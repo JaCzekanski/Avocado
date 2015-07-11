@@ -346,13 +346,27 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			}
 		}
 
+		// Branch On Greater Than Or Equal To Zero And Link
+		// BGEZAL rs, offset
+		else if (rt == b("10001")) {
+			mnemonic = "BGEZAL";
+			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+
+			cpu->reg[31] = cpu->PC + 4;
+			if (cpu->reg[rs] >= 0) {
+				cpu->shouldJump = true;
+				isJumpCycle = false;
+				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+			}
+		}
+
 		// Branch On Less Than Zero
 		// BLTZ rs, offset
 		else if (rt == b("00000")) {
 			mnemonic = "BLTZ";
 			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
 
-			if (cpu->reg[rs] == 0 || (cpu->reg[rs] & 0x80000000)) {
+			if (((int32_t)cpu->reg[rs]) < 0) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
 				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
@@ -382,6 +396,15 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
 
 		cpu->reg[rt] = cpu->reg[rs] | imm;
+	}
+
+	// Xor Immediate
+	// XORI rt, rs, imm
+	else if (op == b("001110")) {
+		mnemonic = "XORI";
+		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+
+		cpu->reg[rt] = cpu->reg[rs] ^ imm;
 	}
 
 	// Add Immediate Unsigned Word
@@ -673,7 +696,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Xor
 		// XOR rd, rs, rt
-		else if (fun == b("001110")) {
+		else if (fun == b("100110")) {
 			mnemonic = "XOR";
 			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
 
@@ -765,10 +788,10 @@ int main( int argc, char** argv )
 	{
 		uint32_t opcode = readMemory32(cpu.PC);
 
-		//if (cpu.PC == 0xbfc0d9a4)
-		//{
-		//	__debugbreak();
-		//}
+		if (cpu.PC == 0x00003b88)
+		{
+			__debugbreak();
+		}
 		cpu.PC += 4;
 
 		bool executed = executeInstruction(&cpu, opcode);
