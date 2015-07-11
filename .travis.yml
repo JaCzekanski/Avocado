@@ -1,0 +1,9 @@
+language: cpp
+
+os: linux
+
+compiler:
+  - gcc
+
+
+
