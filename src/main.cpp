@@ -48,6 +48,7 @@ struct CPU
 	uint32_t hi, lo;
 };
 
+bool IsC = false;
 uint8_t POST = 0;
 bool disassemblyEnabled = false;
 
@@ -152,7 +153,7 @@ void writeMemory8( uint32_t address, uint8_t data )
 	if (address >= 0x00000000 &&
 		address <= 0x1fffff)
 	{
-		ram[address] = data;
+		if (!IsC) ram[address] = data;
 		//printf("RAM_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
 	}
 
@@ -181,7 +182,9 @@ void writeMemory8( uint32_t address, uint8_t data )
 		io[address] = data;
 		printf("IO_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
 
-		if (address == 0x1041) POST = data;
+		if (address == 0x1041) {
+			POST = data;
+		}
 	}
 
 	else if (address >= 0x1fc00000 &&
@@ -328,14 +331,28 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		}
 	}
 
-	// Branch On Greater Than Or Equal To Zero
-	// BGEZ rs, offset
+
 	else if (op == b("000001")) {
+		// Branch On Greater Than Or Equal To Zero
+		// BGEZ rs, offset
 		if (rt == b("00001")) {
 			mnemonic = "BGEZ";
 			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
 
 			if (cpu->reg[rs] >= 0) {
+				cpu->shouldJump = true;
+				isJumpCycle = false;
+				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+			}
+		}
+
+		// Branch On Less Than Zero
+		// BLTZ rs, offset
+		else if (rt == b("00000")) {
+			mnemonic = "BLTZ";
+			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+
+			if (cpu->reg[rs] == 0 || (cpu->reg[rs] & 0x80000000)) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
 				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
@@ -461,9 +478,19 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	}
 
 	// Set On Less Than Immediate Unsigned
+	// SLTI rd, rs, rt
+	else if (op == b("001010")) {
+		mnemonic = "SLTI";
+		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+
+		if (cpu->reg[rs] < imm) cpu->reg[rt] = 1;
+		else cpu->reg[rt] = 0;
+	}
+
+	// Set On Less Than Immediate Unsigned
 	// SLTIU rd, rs, rt
 	else if (op == b("001011")) {
-		mnemonic = "SLTU";
+		mnemonic = "SLTIU";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
 
 		if (cpu->reg[rs] < imm) cpu->reg[rt] = 1;
@@ -492,6 +519,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 			uint32_t tmp = cpu->reg[rt];
 			cpu->COP0[rd] = tmp;
+			if (rd == 12) IsC = (tmp & 0x10000) ? true : false;
 		}
 	}
 
@@ -693,9 +721,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	else nopCounter = 0;
 
 	if (nopCounter > 30) {
-		//disassemblyEnabled = true;
+		disassemblyEnabled = true;
 		nopCounter = 0; 
-		//__debugbreak();
+		__debugbreak();
 		//putFileContents("ram.bin", ram);
 	}
 
@@ -731,17 +759,29 @@ int main( int argc, char** argv )
 	scratchpad.resize(1024);
 	io.resize(8*1024);
 
+	bool doDump = false;
+
 	while (cpuRunning)
 	{
 		uint32_t opcode = readMemory32(cpu.PC);
+
+		//if (cpu.PC == 0xbfc0d9a4)
+		//{
+		//	__debugbreak();
+		//}
 		cpu.PC += 4;
 
 		bool executed = executeInstruction(&cpu, opcode);
 
+		if (doDump)
+		{
+			putFileContents("ram.bin", ram);
+			doDump = false;
+		}
 		if (!executed)
 		{
 			//cpuRunning = false;
-			printf("Unknown instruction: 0x%08x\n", opcode);
+			printf("Unknown instruction: 0x%08x (copy: %02x %02x %02x %02x)\n", opcode, opcode & 0xff, (opcode >> 8) & 0xff, (opcode >> 16) & 0xff, (opcode >> 24) & 0xff);
 			fflush(stdout);
 		}
 	}
