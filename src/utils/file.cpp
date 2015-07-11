@@ -61,6 +61,17 @@ std::vector<unsigned char> getFileContents(std::string name)
 	return contents;
 }
 
+
+void putFileContents(std::string name, std::vector<unsigned char> &contents)
+{
+	FILE *f = fopen(name.c_str(), "wb");
+	if (!f) return;
+
+	fwrite(&contents[0], 1, contents.size(), f);
+
+	fclose(f);
+}
+
 std::string getFileContentsAsString(std::string name)
 {
 	std::string contents;
