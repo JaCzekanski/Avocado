@@ -19,11 +19,11 @@ KUSEG     KSEG0     KSEG1
        FFFE0000h(KSEG2)        0.5K   I / O Ports(Cache Control)
 */
 
-std::vector<uint8_t> bios;
-std::vector<uint8_t> ram;
-std::vector<uint8_t> scratchpad;
-std::vector<uint8_t> io;
-std::vector<uint8_t> expansion;
+uint8_t bios[512 * 1024]; //std::vector<uint8_t> bios;
+uint8_t ram[2 * 1024 * 1024]; //std::vector<uint8_t> ram;
+uint8_t scratchpad[1024]; //std::vector<uint8_t> scratchpad;
+uint8_t io[8 * 1024]; //std::vector<uint8_t> io;
+uint8_t expansion[0x10000]; //std::vector<uint8_t> expansion;
 
 std::string regNames[] = {
 	"zero",
@@ -101,7 +101,7 @@ uint8_t readMemory(uint32_t address)
 
 
 	else if (address >= 0x1fc00000 && 
-			address <= 0x1fc00000 + bios.size())
+			address <= 0x1fc00000 + 512*1024)
 	{
 		address -= 0x1fc00000;
 		
@@ -213,7 +213,7 @@ void writeMemory( uint32_t address, uint8_t data )
 	}
 
 	else if (address >= 0x1fc00000 &&
-		address <= 0x1fc00000 + bios.size())
+		address <= 0x1fc00000 + 512*1024)
 	{
 		address -= 0x1fc00000;
 
@@ -259,6 +259,19 @@ void writeMemory32(uint32_t address, uint32_t data)
 	if (!part.empty()) printf("%s_W32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
 }
 
+uint32_t bin2int(const char *bin)
+{
+	uint32_t number = 0;
+
+	int len = strlen(bin);
+
+	for (int i = 0; i < len; i++)
+	{
+		if (bin[i] == '1') number |= 1 << (len-1-i);
+	}
+	return number;
+}
+
 bool executeInstruction( CPU *cpu, uint32_t instruction )
 {
 	// I-Type: Immediate
@@ -293,6 +306,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	std::string mnemonic = "";
 	std::string _disasm = "";
+	std::string _pseudo = "";
 
 	uint32_t addr = 0;
 
@@ -300,8 +314,11 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	static int nopCounter = 0;
 
-#define disasm(fmt, ...) _disasm=string_format(fmt, ##__VA_ARGS__)
-#define b(x) std::bitset<6>(x).to_ullong()
+	#define disasm(fmt, ...) _disasm=string_format(fmt, ##__VA_ARGS__)
+	#define pseudo(fmt, ...) _pseudo=string_format(fmt, ##__VA_ARGS__)
+
+//#define b(x) std::bitset<6>(x).to_ullong()
+#define b(x) bin2int(x)
 	// Jump
 	// J target
 	if(op == b("000010")) {
@@ -428,6 +445,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	else if (op == b("001100")) {
 		mnemonic = "ANDI";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+		pseudo("r%d = r%d & 0x%x", rt, rs, imm);
 
 		cpu->reg[rt] = cpu->reg[rs] & imm;
 	}
@@ -437,6 +455,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	else if (op == b("001110")) {
 		mnemonic = "XORI";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+		pseudo("r%d = r%d ^ 0x%x", rt, rs, imm);
 
 		cpu->reg[rt] = cpu->reg[rs] ^ imm;
 	}
@@ -446,6 +465,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	else if(op == b("001001")) {
 		mnemonic = "ADDIU";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, offset);
+		disasm("r%d = r%d + %d", rt, rs, offset);
 
 		cpu->reg[rt] = cpu->reg[rs] + offset;
 	}
@@ -464,6 +484,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	else if (op == b("001101")) {
 		mnemonic = "ORI";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+		pseudo("r%d = (r%d&0xffff0000) | 0x%x", rt, rs, imm);
 
 		cpu->reg[rt] = (cpu->reg[rs] & 0xffff0000) | imm;
 	}
@@ -473,6 +494,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	else if (op == b("001111")) {
 		mnemonic = "LUI";
 		disasm("%s r%d, 0x%x", mnemonic.c_str(), rt, imm);
+		pseudo("r%d = 0x%x", rt, imm<<16);
 
 		cpu->reg[rt] = imm << 16;
 	}
@@ -507,6 +529,16 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		cpu->reg[rt] = readMemory32(addr);
 	}
 
+	// Load Halfword Unsigned
+	// LHU rt, offset(base)
+	else if (op == b("100101")) {
+		mnemonic = "LHU";
+		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+
+		addr = cpu->reg[rs] + offset;
+		cpu->reg[rt] = readMemory16(addr);
+	}
+
 	// Store Byte
 	// SB rt, offset(base)
 	else if (op == b("101000")) {
@@ -519,7 +551,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	// Store Halfword
 	// SH rt, offset(base)
 	else if (op == b("101001")) {
-		mnemonic = "SW";
+		mnemonic = "SH";
 		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
 		addr = cpu->reg[rs] + offset;
 		writeMemory16(addr, cpu->reg[rt]);
@@ -532,6 +564,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
 		addr = cpu->reg[rs] + offset;
 		writeMemory32(addr, cpu->reg[rt]);
+		pseudo("mem[r%d+0x%x] = r%d    mem[0x%x] = 0x%x", rs, offset, rt, addr, cpu->reg[rt]);
 	}
 
 	// Set On Less Than Immediate Unsigned
@@ -628,13 +661,6 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			cpu->reg[rd] = cpu->reg[rs] & cpu->reg[rt];
 		}
 
-		// TODO
-		// Divide
-		// div rs, rt
-		//else if (fun == b("011010")) {
-		//	mnemonic = "DIV UNSUPPORTED";
-		//	disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
-		//}
 
 		// TODO
 		// Multiply
@@ -774,16 +800,78 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			else cpu->reg[rd] = 0;
 		}
 
+		// Divide
+		// div rs, rt
+		else if (fun == b("011010")) {
+			mnemonic = "DIV";
+			disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
 
-		// TODO: syscall
+			cpu->lo = (int32_t)cpu->reg[rs] / (int32_t)cpu->reg[rt];
+			cpu->hi = (int32_t)cpu->reg[rs] % (int32_t)cpu->reg[rt];
+		}
+
+		// Divide Unsigned Word
+		// divu rs, rt
+		else if (fun == b("011011")) {
+			mnemonic = "DIVU";
+			disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
+
+			cpu->lo = cpu->reg[rs] / cpu->reg[rt];
+			cpu->hi = cpu->reg[rs] % cpu->reg[rt];
+		}
+
+		// Move From Hi
+		// MFHI rd
+		else if (fun == b("010000")) {
+			mnemonic = "MFHI";
+			disasm("%s r%d", mnemonic.c_str(), rd);
+
+			cpu->reg[rd] = cpu->hi;
+		}
+
+		// Move From Lo
+		// MFLO rd
+		else if (fun == b("010010")) {
+			mnemonic = "MFLO";
+			disasm("%s r%d", mnemonic.c_str(), rd);
+
+			cpu->reg[rd] = cpu->lo;
+		}
+
+		// Move To Lo
+		// MTLO rd
+		else if (fun == b("010011")) {
+			mnemonic = "MTLO";
+			disasm("%s r%d", mnemonic.c_str(), rd);
+
+			cpu->lo = cpu->reg[rd];
+		}
+
+		// Move To Hi
+		// MTHI rd
+		else if (fun == b("010001")) {
+			mnemonic = "MTHI";
+			disasm("%s r%d", mnemonic.c_str(), rd);
+
+			cpu->hi = cpu->reg[rd];
+		}
+
+		// Syscall
+		// SYSCALL
+		else if (fun == b("001100")) {
+			__debugbreak();
+			printf("Syscall: r4: 0x%x\n", cpu->reg[4]);
+			mnemonic = "SYSCALL";
+			disasm("%s", mnemonic.c_str());
+			cpu->PC = 0xa0000080;
+			// Syscall?
+		}
+
+		else return false;
 		// TODO: break
-		// TODO: mfhi
 		// TODO: mthi
-		// TODO: mflo
 		// TODO: mtlo
 		// TODO: multu
-		// TODO: div
-		// TODO: divu
 	}
 
 	else
@@ -806,14 +894,13 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	if (disassemblyEnabled) {
 		if (_disasm.empty()) printf("%s\n", mnemonic.c_str());
-		else printf("    0x%08x  %08x:        %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _disasm.c_str());
+		else {
+			if (!_pseudo.empty())
+				printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _pseudo.c_str());
+			else
+				printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _disasm.c_str());
+		}
 	}
-
-	//if (cpu->PC - 4 == 0xbfc01a78) __debugbreak();
-	//if (rs == 29)// rd == 29 || rt == 29)
-	//{
-	//	__debugbreak();
-	//}
 
 	if (cpu->shouldJump && isJumpCycle) {
 		cpu->PC = cpu->jumpPC & 0xFFFFFFFC;
@@ -823,6 +910,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	return true;
 }
 
+bool doDump = false;
 int main( int argc, char** argv )
 {
 	CPU cpu;
@@ -831,34 +919,56 @@ int main( int argc, char** argv )
 	
 	std::string biosPath = "data/bios/SCPH1000.bin";
 	
-	bios = getFileContents(biosPath);
-	ram.resize(1024 * 1024 * 2);
-	scratchpad.resize(1024);
-	io.resize(8*1024);
-	expansion.resize(0xffff+1);
+	auto _bios = getFileContents(biosPath);
+	if (_bios.empty()) {
+		printf("Cannot open BIOS");
+		return 1;
+	}
+	memcpy(bios, &_bios[0], _bios.size());
+	//ram.resize(1024 * 1024 * 2);
+	//scratchpad.resize(1024);
+	//io.resize(8*1024);
+	//expansion.resize(0xffff+1);
 
 	// Pre boot hook
 	//uint32_t preBootHookAddress = 0x1F000100;
 	//std::string license = "Licensed by Sony Computer Entertainment Inc.";
 	//memcpy(&expansion[0x84], license.c_str(), license.size());
 
-	bool doDump = false;
 
 	while (cpuRunning)
 	{
 		uint32_t opcode = readMemory32(cpu.PC);
-
-		if (cpu.PC == 0xbfc01a50)
+		if (cpu.PC == 0xbfc018d0)
+		//if (POST == 5 && !disassemblyEnabled)
 		{
-			if (POST==4)__debugbreak();
+			//disassemblyEnabled = true;
+			//__debugbreak();
+			int addr = cpu.reg[4];
+			std::string format;
+
+			int c;
+			while (1)
+			{
+				c = readMemory(addr);
+				addr++;
+				if (!c) break;
+				format += c;
+			}
+			printf("%s\n", format.c_str());
 		}
+
 		cpu.PC += 4;
 
 		bool executed = executeInstruction(&cpu, opcode);
 
+
 		if (doDump)
 		{
-			putFileContents("ram.bin", ram);
+			std::vector<uint8_t> ramdump;
+			ramdump.resize(2 * 1024 * 1024);
+			memcpy(&ramdump[0], ram, ramdump.size());
+			putFileContents("ram.bin", ramdump);
 			doDump = false;
 		}
 		if (!executed)
