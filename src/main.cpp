@@ -23,6 +23,7 @@ std::vector<uint8_t> bios;
 std::vector<uint8_t> ram;
 std::vector<uint8_t> scratchpad;
 std::vector<uint8_t> io;
+std::vector<uint8_t> expansion;
 
 std::string regNames[] = {
 	"zero",
@@ -52,14 +53,16 @@ bool IsC = false;
 uint8_t POST = 0;
 bool disassemblyEnabled = false;
 
+std::string part = "";
 
-uint8_t readMemory8( uint32_t address )
+uint8_t readMemory(uint32_t address)
 {
 	uint32_t _address = address;
 	uint32_t data = 0;
 	if (address >= 0xa0000000) address -= 0xa0000000;
 	if (address >= 0x80000000) address -= 0x80000000;
 
+	part = "";
 
 	// RAM
 	if (address >= 0x00000000 &&
@@ -73,8 +76,9 @@ uint8_t readMemory8( uint32_t address )
 	else if (address >= 0x1f000000 &&
 		address <= 0x1f00ffff)
 	{
-		data = 0;
-		printf("EXP_R: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		address -= 0x1f000000;
+		data = expansion[address];
+		part = "EXPANSION";
 	}
 
 	// Scratch Pad
@@ -83,7 +87,7 @@ uint8_t readMemory8( uint32_t address )
 	{
 		address -= 0x1f800000;
 		data = scratchpad[address];
-		printf("SCRATCH_R: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		part = "  SCRATCH";
 	}
 
 	// IO Ports
@@ -92,7 +96,7 @@ uint8_t readMemory8( uint32_t address )
 	{
 		address -= 0x1f801000;
 		data = io[address];
-		printf("IO_R: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		part = "       IO";
 	}
 
 
@@ -109,6 +113,8 @@ uint8_t readMemory8( uint32_t address )
 	{
 		address = _address - 0xfffe0000;
 		data = 0;
+
+		part = "    CACHE";
 	}
 
 	else
@@ -123,12 +129,21 @@ uint8_t readMemory8( uint32_t address )
 // Half - 16bit
 // Byte - 8bit
 
+uint8_t readMemory8(uint32_t address)
+{
+	// TODO: Check address align
+	uint8_t data = readMemory(address);
+	if (!part.empty()) printf("%s_R08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
+	return data;
+}
+
 uint16_t readMemory16(uint32_t address)
 {
 	// TODO: Check address align
 	uint16_t data = 0;
-	data |= readMemory8(address + 0);
-	data |= readMemory8(address + 1) << 8;
+	data |= readMemory(address + 0);
+	data |= readMemory(address + 1) << 8;
+	if (!part.empty()) printf("%s_R16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
 	return data;
 }
 
@@ -136,24 +151,30 @@ uint32_t readMemory32(uint32_t address)
 {
 	// TODO: Check address align
 	uint32_t data = 0;
-	data |= readMemory8(address + 0);
-	data |= readMemory8(address + 1) << 8;
-	data |= readMemory8(address + 2) << 16;
-	data |= readMemory8(address + 3) << 24;
+	data |= readMemory(address + 0);
+	data |= readMemory(address + 1) << 8;
+	data |= readMemory(address + 2) << 16;
+	data |= readMemory(address + 3) << 24;
+	if (!part.empty()) printf("%s_R32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
 	return data;
 }
 
-void writeMemory8( uint32_t address, uint8_t data )
+void writeMemory( uint32_t address, uint8_t data )
 {
 	uint32_t _address = address;
 	if (address >= 0xa0000000) address -= 0xa0000000;
 	if (address >= 0x80000000) address -= 0x80000000;
 
+	part = "";
+
 	// RAM
 	if (address >= 0x00000000 &&
 		address <= 0x1fffff)
 	{
-		if (!IsC) ram[address] = data;
+		if (!IsC) {
+			ram[address] = data;
+			if (disassemblyEnabled) part = "      RAM";
+		}
 		//printf("RAM_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
 	}
 
@@ -161,8 +182,9 @@ void writeMemory8( uint32_t address, uint8_t data )
 	else if (address >= 0x1f000000 &&
 		address <= 0x1f00ffff)
 	{
-		//data = 0;
-		printf("EXP_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		address -= 0x1f000000;
+		expansion[address] = data;
+		part = "EXPANSION";
 	}
 
 	// Scratch Pad
@@ -171,19 +193,22 @@ void writeMemory8( uint32_t address, uint8_t data )
 	{
 		address -= 0x1f800000;
 		scratchpad[address] = data;
-		printf("SCRATCH_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		part = "  SCRATCH";
 	}
 
 	// IO Ports
 	else if (address >= 0x1f801000 &&
-		address <= 0x1f803000)
+			address <= 0x1f803000)
 	{
 		address -= 0x1f801000;
-		io[address] = data;
-		printf("IO_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
 
 		if (address == 0x1041) {
 			POST = data;
+			part = "     POST";
+		}
+		else {
+			io[address] = data;
+			part = "       IO";
 		}
 	}
 
@@ -199,7 +224,7 @@ void writeMemory8( uint32_t address, uint8_t data )
 			_address <= 0xfffe0200)
 	{
 		address = _address - 0xfffe0000;
-		//printf("W: Cache Control 0x%03x: 0x%x\n", address, data);
+		part = "    CACHE";
 	}
 
 	else
@@ -209,20 +234,29 @@ void writeMemory8( uint32_t address, uint8_t data )
 	}
 }
 
+void writeMemory8(uint32_t address, uint8_t data)
+{
+	// TODO: Check address align
+	writeMemory(address, data);
+	if (!part.empty()) printf("%s_W08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
+}
+
 void writeMemory16(uint32_t address, uint16_t data)
 {
 	// TODO: Check address align
-	writeMemory8(address + 0, data);
-	writeMemory8(address + 1, data >> 8);
+	writeMemory(address + 0, data & 0xff);
+	writeMemory(address + 1, data >> 8);
+	if (!part.empty()) printf("%s_W16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
 }
 
 void writeMemory32(uint32_t address, uint32_t data)
 {
 	// TODO: Check address align
-	writeMemory8(address+0, data);
-	writeMemory8(address+1, data >> 8);
-	writeMemory8(address+2, data >> 16);
-	writeMemory8(address+3, data >> 24);
+	writeMemory(address + 0, data);
+	writeMemory(address + 1, data >> 8);
+	writeMemory(address + 2, data >> 16);
+	writeMemory(address + 3, data >> 24);
+	if (!part.empty()) printf("%s_W32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
 }
 
 bool executeInstruction( CPU *cpu, uint32_t instruction )
@@ -339,7 +373,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			mnemonic = "BGEZ";
 			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
 
-			if (cpu->reg[rs] >= 0) {
+			if ((int32_t)cpu->reg[rs] >= 0) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
 				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
@@ -353,7 +387,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
 
 			cpu->reg[31] = cpu->PC + 4;
-			if (cpu->reg[rs] >= 0) {
+			if ((int32_t)cpu->reg[rs] >= 0) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
 				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
@@ -366,7 +400,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			mnemonic = "BLTZ";
 			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
 
-			if (((int32_t)cpu->reg[rs]) < 0) {
+			if (cpu->reg[rs] & 0x80000000) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
 				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
@@ -395,7 +429,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		mnemonic = "ANDI";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
 
-		cpu->reg[rt] = cpu->reg[rs] | imm;
+		cpu->reg[rt] = cpu->reg[rs] & imm;
 	}
 
 	// Xor Immediate
@@ -450,7 +484,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
 
 		addr = cpu->reg[rs] + offset;
-		cpu->reg[rt] = readMemory8(addr);
+		cpu->reg[rt] = ((int32_t)(readMemory8(addr)<<24))>>24;
 	}
 
 	// Load Byte Unsigned
@@ -506,7 +540,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		mnemonic = "SLTI";
 		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
 
-		if (cpu->reg[rs] < imm) cpu->reg[rt] = 1;
+		if ((int32_t)cpu->reg[rs] < offset) cpu->reg[rt] = 1;
 		else cpu->reg[rt] = 0;
 	}
 
@@ -580,9 +614,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		// Add unsigned
 		// add rd, rs, rt
 		else if (fun == b("100001")) {
-			mnemonic = "ADD";
+			mnemonic = "ADDU";
 			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
-			cpu->reg[rd] = cpu->reg[rs] + cpu->reg[rt];
+			cpu->reg[rd] = ((int32_t)cpu->reg[rs]) + ((int32_t)cpu->reg[rt]);
 		}
 
 		// And
@@ -597,10 +631,10 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		// TODO
 		// Divide
 		// div rs, rt
-		else if (fun == b("011010")) {
-			mnemonic = "DIV UNSUPPORTED";
-			disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
-		}
+		//else if (fun == b("011010")) {
+		//	mnemonic = "DIV UNSUPPORTED";
+		//	disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
+		//}
 
 		// TODO
 		// Multiply
@@ -655,45 +689,45 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			mnemonic = "SLLV";
 			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rt, rs);
 
-			cpu->reg[rd] = cpu->reg[rt] << cpu->reg[rs];
+			cpu->reg[rd] = cpu->reg[rt] << (cpu->reg[rs] & 0x1f);
 		}
 
-		// Shift Word Right Logical
+		// Shift Word Right Arithmetic
 		// SRA rd, rt, a
 		else if (fun == b("000011")) {
 			mnemonic = "SRA";
+			disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
+
+			cpu->reg[rd] = ((int32_t)cpu->reg[rt]) >> sh;
+		}
+
+		// Shift Word Right Arithmetic Variable
+		// SRAV rd, rt, rs
+		else if (fun == b("000111")) {
+			mnemonic = "SRAV";
+			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rt, rs);
+
+			cpu->reg[rd] = ((int32_t)cpu->reg[rt]) >> (cpu->reg[rs]&0x1f);
+		}
+
+		// Shift Word Right Logical
+		// SRL rd, rt, a
+		else if (fun == b("000010")) {
+			mnemonic = "SRL";
 			disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
 
 			cpu->reg[rd] = cpu->reg[rt] >> sh;
 		}
 
 		// Shift Word Right Logical Variable
-		// SRAV rd, rt, rs
-		else if (fun == b("000111")) {
-			mnemonic = "SRAV";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rt, rs);
-
-			cpu->reg[rd] = cpu->reg[rt] >> cpu->reg[rs];
-		}
-
-		// Shift Word Right Arithmetic
-		// SRA rd, rt, a
-		else if (fun == b("000010")) {
-			mnemonic = "SRA UNSUPPORTED";
+		// SRLV rd, rt, a
+		else if (fun == b("000110")) {
+			mnemonic = "SRLV";
 			disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
 
-			cpu->reg[rd] = cpu->reg[rt] >> sh;
+			cpu->reg[rd] = cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
 		}
-
-		// Shift Word Right Arithmetic Variable
-		// SRAV rd, rt, rs
-		else if (fun == b("100010")) {
-			mnemonic = "SRAV UNSUPPORTED";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rt, rs);
-
-			cpu->reg[rd] = cpu->reg[rt] >> cpu->reg[rs];
-		}
-
+		
 		// Xor
 		// XOR rd, rs, rt
 		else if (fun == b("100110")) {
@@ -720,6 +754,16 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		}
 
 
+		// Set On Less Than Signed
+		// SLT rd, rs, rt
+		else if (fun == b("101010")) {
+			mnemonic = "SLTU";
+			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+
+			if ((int32_t)cpu->reg[rs] < (int32_t)cpu->reg[rt]) cpu->reg[rd] = 1;
+			else cpu->reg[rd] = 0;
+		}
+
 		// Set On Less Than Unsigned
 		// SLTU rd, rs, rt
 		else if (fun == b("101011")) {
@@ -729,7 +773,17 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 			if (cpu->reg[rs] < cpu->reg[rt]) cpu->reg[rd] = 1;
 			else cpu->reg[rd] = 0;
 		}
-		
+
+
+		// TODO: syscall
+		// TODO: break
+		// TODO: mfhi
+		// TODO: mthi
+		// TODO: mflo
+		// TODO: mtlo
+		// TODO: multu
+		// TODO: div
+		// TODO: divu
 	}
 
 	else
@@ -775,12 +829,18 @@ int main( int argc, char** argv )
 	bool cpuRunning = true;
 	memset(cpu.reg, 0, sizeof(uint32_t) * 32);
 	
-	std::string biosPath = "data/bios/SCPH-102.bin";
+	std::string biosPath = "data/bios/SCPH1000.bin";
 	
 	bios = getFileContents(biosPath);
 	ram.resize(1024 * 1024 * 2);
 	scratchpad.resize(1024);
 	io.resize(8*1024);
+	expansion.resize(0xffff+1);
+
+	// Pre boot hook
+	//uint32_t preBootHookAddress = 0x1F000100;
+	//std::string license = "Licensed by Sony Computer Entertainment Inc.";
+	//memcpy(&expansion[0x84], license.c_str(), license.size());
 
 	bool doDump = false;
 
@@ -788,9 +848,9 @@ int main( int argc, char** argv )
 	{
 		uint32_t opcode = readMemory32(cpu.PC);
 
-		if (cpu.PC == 0x00003b88)
+		if (cpu.PC == 0xbfc01a50)
 		{
-			__debugbreak();
+			if (POST==4)__debugbreak();
 		}
 		cpu.PC += 4;
 
