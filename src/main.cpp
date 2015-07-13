@@ -28,11 +28,23 @@ uint8_t scratchpad[1024]; //std::vector<uint8_t> scratchpad;
 uint8_t io[8 * 1024]; //std::vector<uint8_t> io;
 uint8_t expansion[0x10000]; //std::vector<uint8_t> expansion;
 
+// r0      zero  - always return 0
+// r1      at    - assembler temporary, reserved for use by assembler
+// r2-r3   v0-v1 - (value) returned by subroutine
+// r4-r7   a0-a3 - (arguments) first four parameters for a subroutine
+// r8-r15  t0-t7 - (temporaries) subroutines may use without saving
+// r24-r25 t8-t9
+// r16-r23 s0-s7 - subroutine regiver variables; a subroutine which will write one of these must save the old value and restore it before it exits, so the calling routine sees their values preserved/
+// r26-r27 k0-k1 - Reserved for use by interrupt/trap handler - may change under your feet
+// r28     gp    - global pointer - some runtime system maintain this to give easy access to static or extern variables
+// r29     sp    - stack pointer
+// r30     fp    - frame pointer
+// r31     ra    - return address for subroutine
 std::string regNames[] = {
-	"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
-	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
-	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
-	"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
+	"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+	"t0",   "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+	"s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+	"t8",   "t9", "k0", "k1", "gp", "sp", "fp", "ra"
 };
 
 
