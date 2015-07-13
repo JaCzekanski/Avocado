@@ -51,6 +51,7 @@ struct CPU
 	uint32_t COP0[32];
 	uint32_t hi, lo;
 	bool IsC = false;
+	bool halted = false;
 	CPU()
 	{
 		PC = 0xBFC00000;

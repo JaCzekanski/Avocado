@@ -100,7 +100,6 @@ uint8_t readMemory(uint32_t address)
 			address <= 0x1fc00000 + 512*1024)
 	{
 		address -= 0x1fc00000;
-		
 		data = bios[address];
 	}
 
@@ -109,8 +108,7 @@ uint8_t readMemory(uint32_t address)
 	{
 		address = _address - 0xfffe0000;
 		data = 0;
-
-		//part = "    CACHE";
+		part = "    CACHE";
 	}
 
 	else
@@ -213,7 +211,6 @@ void writeMemory( uint32_t address, uint8_t data )
 		address <= 0x1fc00000 + 512*1024)
 	{
 		address -= 0x1fc00000;
-
 		printf("Write to readonly address (BIOS): 0x%08x\n", address);
 	}
 
@@ -221,7 +218,7 @@ void writeMemory( uint32_t address, uint8_t data )
 			_address <= 0xfffe0200)
 	{
 		address = _address - 0xfffe0000;
-		//part = "    CACHE";
+		part = "    CACHE";
 	}
 
 	else
@@ -262,7 +259,7 @@ std::string _disasm = "";
 std::string _pseudo = "";
 
 
-bool executeInstruction(CPU *cpu, Opcode i)
+void executeInstruction(CPU *cpu, Opcode i)
 {
 	_pseudo = "";
 	uint32_t addr = 0;
@@ -292,7 +289,6 @@ bool executeInstruction(CPU *cpu, Opcode i)
 		cpu->jumpPC = 0;
 		cpu->shouldJump = false;
 	}
-	return true;
 }
 
 std::string getStringFromRam(uint32_t addr)
@@ -335,7 +331,6 @@ int main( int argc, char** argv )
 
 	int cycles = 0;
 	int frames = 0;
-
 	Opcode _opcode;
 
 	while (cpuRunning)
@@ -351,7 +346,8 @@ int main( int argc, char** argv )
 
 		cpu.PC += 4;
 
-		bool executed = executeInstruction(&cpu, _opcode);
+		executeInstruction(&cpu, _opcode);
+
 		cycles += 2;
 
 		if (cycles >= 564480) {
@@ -368,9 +364,10 @@ int main( int argc, char** argv )
 			putFileContents("ram.bin", ramdump);
 			doDump = false;
 		}
-		if (!executed)
+		if (cpu.halted)
 		{
-			printf("Unknown instruction @ 0x%08x: 0x%08x (copy: %02x %02x %02x %02x)\n", cpu.PC - 4, _opcode.opcode, _opcode.opcode & 0xff, (_opcode.opcode >> 8) & 0xff, (_opcode.opcode >> 16) & 0xff, (_opcode.opcode >> 24) & 0xff);
+			printf("CPU Halted\n");
+			//printf("Unknown instruction @ 0x%08x: 0x%08x (copy: %02x %02x %02x %02x)\n", cpu.PC - 4, _opcode.opcode, _opcode.opcode & 0xff, (_opcode.opcode >> 8) & 0xff, (_opcode.opcode >> 16) & 0xff, (_opcode.opcode >> 24) & 0xff);
 			cpuRunning = false;
 		}
 	}

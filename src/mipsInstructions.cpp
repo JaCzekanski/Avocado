@@ -94,12 +94,14 @@ namespace mipsInstructions
 {
 	void invalid(CPU* cpu, Opcode i)
 	{
-		printf("Invalid opcode at 0x%08x: 0x%08x\n", cpu->PC - 4, i.opcode);
+		printf("Invalid opcode (%s) at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC - 4, i.opcode);
+		cpu->halted = true;
 	}
 
 	void notImplemented(CPU* cpu, Opcode i)
 	{
 		printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC - 4, i.opcode);
+		cpu->halted = true;
 	}
 
 	void special(CPU* cpu, Opcode i)
@@ -595,6 +597,22 @@ namespace mipsInstructions
 			uint32_t tmp = cpu->reg[i.rt];
 			cpu->COP0[i.rd] = tmp;
 			if (i.rd == 12) IsC = (tmp & 0x10000) ? true : false;
+		}
+
+		// Restore from exception
+		// RFE
+		else if (i.rs == 16)
+		{
+			if (i.fun == 16) {
+				mnemonic("RFE");
+				disasm("");
+				printf("RFE TODO\n");
+			}
+			else
+			{
+				invalid(cpu, i);
+			}
+
 		}
 		else
 		{
