@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <string>
+#include <algorithm>
 #include <stdint.h>
 #include <bitset>
 #include "utils/file.h"
@@ -26,32 +27,37 @@ uint8_t io[8 * 1024]; //std::vector<uint8_t> io;
 uint8_t expansion[0x10000]; //std::vector<uint8_t> expansion;
 
 std::string regNames[] = {
-	"zero",
-	"at",
-	"v0", "v1",
-	"a0", "a1", "a2", "a3",
+	"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3",
 	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
 	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
-	"k0", "k1",
-	"gp",
-	"sp",
-	"fp",
-	"ra"
+	"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
 };
 
 struct CPU
 {
-	uint32_t PC = 0xBFC00000;
+	uint32_t PC;
 	uint32_t jumpPC; 
-	bool shouldJump = false;
+	bool shouldJump;
 	uint32_t reg[32];
 	uint32_t COP0[32];
 	uint32_t hi, lo;
+
+	CPU()
+	{
+		PC = 0xBFC00000;
+		jumpPC = 0;
+		shouldJump = false;
+		for (int i = 0; i < 32; i++) reg[i] = 0;
+		for (int i = 0; i < 32; i++) COP0[i] = 0;
+		hi = 0;
+		lo = 0;
+	}
 };
 
 bool IsC = false;
 uint8_t POST = 0;
 bool disassemblyEnabled = false;
+bool memoryAccessLogging = false;
 
 std::string part = "";
 
@@ -87,7 +93,7 @@ uint8_t readMemory(uint32_t address)
 	{
 		address -= 0x1f800000;
 		data = scratchpad[address];
-		part = "  SCRATCH";
+		//part = "  SCRATCH";
 	}
 
 	// IO Ports
@@ -96,7 +102,15 @@ uint8_t readMemory(uint32_t address)
 	{
 		address -= 0x1f801000;
 		data = io[address];
-		part = "       IO";
+		if (address >= 0x0000 && address <= 0x0024) part = " MEMCTRL1";
+		else if (address >= 0x0040 && address <= 0x005F) part = "   PERIPH";
+		else if (address >= 0x0060 && address <= 0x0063) part = " MEMCTRL2";
+		else if (address >= 0x0070 && address <= 0x0077) part = "  INTCTRL";
+		else if (address >= 0x0080 && address <= 0x00FF) part = "      DMA";
+		else if (address >= 0x0100 && address <= 0x012F) part = "    TIMER";
+		else if (address >= 0x0800 && address <= 0x0803) part = "    CDROM";
+		else if (address >= 0x0C00 && address <= 0x1FFF) part = "      SPU";
+		else part = "       IO";
 	}
 
 
@@ -114,7 +128,7 @@ uint8_t readMemory(uint32_t address)
 		address = _address - 0xfffe0000;
 		data = 0;
 
-		part = "    CACHE";
+		//part = "    CACHE";
 	}
 
 	else
@@ -133,7 +147,7 @@ uint8_t readMemory8(uint32_t address)
 {
 	// TODO: Check address align
 	uint8_t data = readMemory(address);
-	if (!part.empty()) printf("%s_R08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
+	if (!part.empty() && memoryAccessLogging) printf("%s_R08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
 	return data;
 }
 
@@ -143,7 +157,7 @@ uint16_t readMemory16(uint32_t address)
 	uint16_t data = 0;
 	data |= readMemory(address + 0);
 	data |= readMemory(address + 1) << 8;
-	if (!part.empty()) printf("%s_R16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
+	if (!part.empty() && memoryAccessLogging) printf("%s_R16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
 	return data;
 }
 
@@ -155,7 +169,7 @@ uint32_t readMemory32(uint32_t address)
 	data |= readMemory(address + 1) << 8;
 	data |= readMemory(address + 2) << 16;
 	data |= readMemory(address + 3) << 24;
-	if (!part.empty()) printf("%s_R32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
+	if (!part.empty() && memoryAccessLogging) printf("%s_R32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
 	return data;
 }
 
@@ -193,7 +207,7 @@ void writeMemory( uint32_t address, uint8_t data )
 	{
 		address -= 0x1f800000;
 		scratchpad[address] = data;
-		part = "  SCRATCH";
+		//part = "  SCRATCH";
 	}
 
 	// IO Ports
@@ -202,14 +216,15 @@ void writeMemory( uint32_t address, uint8_t data )
 	{
 		address -= 0x1f801000;
 
-		if (address == 0x1041) {
-			POST = data;
-			part = "     POST";
-		}
-		else {
-			io[address] = data;
-			part = "       IO";
-		}
+		if (address >= 0x0000 && address <= 0x0024) part = " MEMCTRL1";
+		else if (address >= 0x0040 && address <= 0x005F) part = "   PERIPH";
+		else if (address >= 0x0060 && address <= 0x0063) part = " MEMCTRL2";
+		else if (address >= 0x0070 && address <= 0x0077) part = "  INTCTRL";
+		else if (address >= 0x0080 && address <= 0x00FF) part = "      DMA";
+		else if (address >= 0x0100 && address <= 0x012F) part = "    TIMER";
+		else if (address >= 0x0800 && address <= 0x0803) part = "    CDROM";
+		else if (address >= 0x0C00 && address <= 0x1FFF) part = "      SPU";
+		else if (address == 0x1041) part = "     POST";
 	}
 
 	else if (address >= 0x1fc00000 &&
@@ -224,7 +239,7 @@ void writeMemory( uint32_t address, uint8_t data )
 			_address <= 0xfffe0200)
 	{
 		address = _address - 0xfffe0000;
-		part = "    CACHE";
+		//part = "    CACHE";
 	}
 
 	else
@@ -238,7 +253,7 @@ void writeMemory8(uint32_t address, uint8_t data)
 {
 	// TODO: Check address align
 	writeMemory(address, data);
-	if (!part.empty()) printf("%s_W08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
+	if (!part.empty() && memoryAccessLogging) printf("%s_W08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
 }
 
 void writeMemory16(uint32_t address, uint16_t data)
@@ -246,7 +261,7 @@ void writeMemory16(uint32_t address, uint16_t data)
 	// TODO: Check address align
 	writeMemory(address + 0, data & 0xff);
 	writeMemory(address + 1, data >> 8);
-	if (!part.empty()) printf("%s_W16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
+	if (!part.empty() && memoryAccessLogging) printf("%s_W16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
 }
 
 void writeMemory32(uint32_t address, uint32_t data)
@@ -256,7 +271,7 @@ void writeMemory32(uint32_t address, uint32_t data)
 	writeMemory(address + 1, data >> 8);
 	writeMemory(address + 2, data >> 16);
 	writeMemory(address + 3, data >> 24);
-	if (!part.empty()) printf("%s_W32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
+	if (!part.empty() && memoryAccessLogging) printf("%s_W32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
 }
 
 uint32_t bin2int(const char *bin)
@@ -304,7 +319,7 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	int16_t  offset = (instruction & 0x0000ffff);
 	uint32_t target = (instruction &  0x3ffffff);
 
-	std::string mnemonic = "";
+	std::string _mnemonic = "";
 	std::string _disasm = "";
 	std::string _pseudo = "";
 
@@ -314,16 +329,17 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	static int nopCounter = 0;
 
-	#define disasm(fmt, ...) _disasm=string_format(fmt, ##__VA_ARGS__)
-	#define pseudo(fmt, ...) _pseudo=string_format(fmt, ##__VA_ARGS__)
+	#define mnemonic(x) if (disassemblyEnabled) _mnemonic = x
+	#define disasm(fmt, ...) if (disassemblyEnabled) _disasm=string_format(fmt, ##__VA_ARGS__)
+	#define pseudo(fmt, ...) if (disassemblyEnabled) _pseudo=string_format(fmt, ##__VA_ARGS__)
 
 //#define b(x) std::bitset<6>(x).to_ullong()
 #define b(x) bin2int(x)
 	// Jump
 	// J target
-	if(op == b("000010")) {
-		mnemonic = "J";
-		disasm("%s 0x%x", mnemonic.c_str(), (target << 2));
+	if(op == 2) {
+		mnemonic("J");
+		disasm("0x%x", (target << 2));
 		cpu->shouldJump = true;
 		isJumpCycle = false;
 		cpu->jumpPC = (cpu->PC & 0xf0000000) | (target << 2);
@@ -331,9 +347,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Jump And Link
 	// JAL target
-	else if (op == b("000011")) {
-		mnemonic = "JAL";
-		disasm("%s 0x%x", mnemonic.c_str(), (target << 2));
+	else if (op == 3) {
+		mnemonic("JAL");
+		disasm("0x%x", (target << 2));
 		cpu->shouldJump = true;
 		isJumpCycle = false;
 		cpu->jumpPC = (cpu->PC & 0xf0000000) | (target << 2);
@@ -344,83 +360,83 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Branch On Equal
 	// BEQ rs, rt, offset
-	else if (op == b("000100")) {
-		mnemonic = "BEQ";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rs, rt, imm);
+	else if (op == 4) {
+		mnemonic("BEQ");
+		disasm("r%d, r%d, 0x%x", rs, rt, imm);
 
 		if (cpu->reg[rt] == cpu->reg[rs]) {
 			cpu->shouldJump = true;
 			isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 		}
 	}
 
 	// Branch On Greater Than Zero
 	// BGTZ rs, offset
-	else if (op == b("000111")) {
-		mnemonic = "BGTZ";
-		disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+	else if (op == 7) {
+		mnemonic("BGTZ");
+		disasm("r%d, 0x%x", rs, imm);
 
 		if (cpu->reg[rs] > 0) {
 			cpu->shouldJump = true;
 			isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 		}
 	}
 
 	// Branch On Less Than Or Equal To Zero
 	// BLEZ rs, offset
 
-	else if (op == b("000110")) {
-		mnemonic = "BLEZ";
-		disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+	else if (op == 6) {
+		mnemonic("BLEZ");
+		disasm("r%d, 0x%x", rs, imm);
 
 		if (cpu->reg[rs] == 0 || (cpu->reg[rs] & 0x80000000)) {
 			cpu->shouldJump = true;
 			isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 		}
 	}
 
 
-	else if (op == b("000001")) {
+	else if (op == 1) {
 		// Branch On Greater Than Or Equal To Zero
 		// BGEZ rs, offset
-		if (rt == b("00001")) {
-			mnemonic = "BGEZ";
-			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+		if (rt == 1) {
+			mnemonic("BGEZ");
+			disasm("r%d, 0x%x", rs, imm);
 
 			if ((int32_t)cpu->reg[rs] >= 0) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
-				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+				cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 			}
 		}
 
 		// Branch On Greater Than Or Equal To Zero And Link
 		// BGEZAL rs, offset
-		else if (rt == b("10001")) {
-			mnemonic = "BGEZAL";
-			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+		else if (rt == 17) {
+			mnemonic("BGEZAL");
+			disasm("r%d, 0x%x", rs, imm);
 
 			cpu->reg[31] = cpu->PC + 4;
 			if ((int32_t)cpu->reg[rs] >= 0) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
-				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+				cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 			}
 		}
 
 		// Branch On Less Than Zero
 		// BLTZ rs, offset
-		else if (rt == b("00000")) {
-			mnemonic = "BLTZ";
-			disasm("%s r%d, 0x%x", mnemonic.c_str(), rs, imm);
+		else if (rt == 0) {
+			mnemonic("BLTZ");
+			disasm("r%d, 0x%x", rs, imm);
 
 			if (cpu->reg[rs] & 0x80000000) {
 				cpu->shouldJump = true;
 				isJumpCycle = false;
-				cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+				cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 			}
 		}
 
@@ -429,22 +445,22 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Branch On Not Equal
 	// BGTZ rs, offset
-	else if (op == b("000101")) {
-		mnemonic = "BNE";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rs, rt, imm);
+	else if (op == 5) {
+		mnemonic("BNE");
+		disasm("r%d, r%d, 0x%x", rs, rt, imm);
 
 		if (cpu->reg[rt] != cpu->reg[rs]) {
 			cpu->shouldJump = true;
 			isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | (cpu->PC) + (offset << 2);
+			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (offset << 2));
 		}
 	}
 
 	// And Immediate
 	// ANDI rt, rs, imm
-	else if (op == b("001100")) {
-		mnemonic = "ANDI";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+	else if (op == 12) {
+		mnemonic("ANDI");
+		disasm("r%d, r%d, 0x%x", rt, rs, imm);
 		pseudo("r%d = r%d & 0x%x", rt, rs, imm);
 
 		cpu->reg[rt] = cpu->reg[rs] & imm;
@@ -452,9 +468,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Xor Immediate
 	// XORI rt, rs, imm
-	else if (op == b("001110")) {
-		mnemonic = "XORI";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+	else if (op == 14) {
+		mnemonic("XORI");
+		disasm("r%d, r%d, 0x%x", rt, rs, imm);
 		pseudo("r%d = r%d ^ 0x%x", rt, rs, imm);
 
 		cpu->reg[rt] = cpu->reg[rs] ^ imm;
@@ -462,28 +478,28 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Add Immediate Unsigned Word
 	// ADDIU rt, rs, imm
-	else if(op == b("001001")) {
-		mnemonic = "ADDIU";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, offset);
-		disasm("r%d = r%d + %d", rt, rs, offset);
+	else if(op == 9) {
+		mnemonic("ADDIU");
+		disasm("r%d, r%d, 0x%x", rt, rs, offset);
+		pseudo("r%d = r%d + %d", rt, rs, offset);
 
 		cpu->reg[rt] = cpu->reg[rs] + offset;
 	}
 
 	// Add Immediate Word
 	// ADDI rt, rs, imm
-	else if (op == b("001000")) {
-		mnemonic = "ADDI";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, offset);
+	else if (op == 8) {
+		mnemonic("ADDI");
+		disasm("r%d, r%d, 0x%x", rt, rs, offset);
 
 		cpu->reg[rt] = cpu->reg[rs] + offset;
 	}
 
 	// Or Immediete
 	// ORI rt, rs, imm
-	else if (op == b("001101")) {
-		mnemonic = "ORI";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+	else if (op == 13) {
+		mnemonic("ORI");
+		disasm("r%d, r%d, 0x%x", rt, rs, imm);
 		pseudo("r%d = (r%d&0xffff0000) | 0x%x", rt, rs, imm);
 
 		cpu->reg[rt] = (cpu->reg[rs] & 0xffff0000) | imm;
@@ -491,9 +507,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Load Upper Immediate
 	// LUI rt, imm
-	else if (op == b("001111")) {
-		mnemonic = "LUI";
-		disasm("%s r%d, 0x%x", mnemonic.c_str(), rt, imm);
+	else if (op == 15) {
+		mnemonic("LUI");
+		disasm("r%d, 0x%x", rt, imm);
 		pseudo("r%d = 0x%x", rt, imm<<16);
 
 		cpu->reg[rt] = imm << 16;
@@ -501,9 +517,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Load Byte
 	// LB rt, offset(base)
-	else if (op == b("100000")) {
-		mnemonic = "LB";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 32) {
+		mnemonic("LB");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 
 		addr = cpu->reg[rs] + offset;
 		cpu->reg[rt] = ((int32_t)(readMemory8(addr)<<24))>>24;
@@ -511,9 +527,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Load Byte Unsigned
 	// LBU rt, offset(base)
-	else if (op == b("100100")) {
-		mnemonic = "LBU";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 36) {
+		mnemonic("LBU");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 
 		addr = cpu->reg[rs] + offset;
 		cpu->reg[rt] = readMemory8(addr);
@@ -521,9 +537,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Load Word
 	// LW rt, offset(base)
-	else if (op == b("100011")) {
-		mnemonic = "LW";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 35) {
+		mnemonic("LW");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 
 		addr = cpu->reg[rs] + offset;
 		cpu->reg[rt] = readMemory32(addr);
@@ -531,9 +547,19 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Load Halfword Unsigned
 	// LHU rt, offset(base)
-	else if (op == b("100101")) {
-		mnemonic = "LHU";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 33) {
+		mnemonic("LH");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
+
+		addr = cpu->reg[rs] + offset;
+		cpu->reg[rt] = ((int32_t)(readMemory16(addr) << 16)) >> 16; 
+	}
+
+	// Load Halfword Unsigned
+	// LHU rt, offset(base)
+	else if (op == 37) {
+		mnemonic("LHU");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 
 		addr = cpu->reg[rs] + offset;
 		cpu->reg[rt] = readMemory16(addr);
@@ -541,27 +567,27 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Store Byte
 	// SB rt, offset(base)
-	else if (op == b("101000")) {
-		mnemonic = "SB";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 40) {
+		mnemonic("SB");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 		addr = cpu->reg[rs] + offset;
 		writeMemory8(addr, cpu->reg[rt]);
 	}
 
 	// Store Halfword
 	// SH rt, offset(base)
-	else if (op == b("101001")) {
-		mnemonic = "SH";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 41) {
+		mnemonic("SH");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 		addr = cpu->reg[rs] + offset;
 		writeMemory16(addr, cpu->reg[rt]);
 	}
 
 	// Store Word
 	// SW rt, offset(base)
-	else if (op == b("101011")) {
-		mnemonic = "SW";
-		disasm("%s r%d, %d(r%d)", mnemonic.c_str(), rt, offset, rs);
+	else if (op == 43) {
+		mnemonic("SW");
+		disasm("r%d, %d(r%d)", rt, offset, rs);
 		addr = cpu->reg[rs] + offset;
 		writeMemory32(addr, cpu->reg[rt]);
 		pseudo("mem[r%d+0x%x] = r%d    mem[0x%x] = 0x%x", rs, offset, rt, addr, cpu->reg[rt]);
@@ -569,9 +595,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Set On Less Than Immediate Unsigned
 	// SLTI rd, rs, rt
-	else if (op == b("001010")) {
-		mnemonic = "SLTI";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+	else if (op == 10) {
+		mnemonic("SLTI");
+		disasm("r%d, r%d, 0x%x", rt, rs, imm);
 
 		if ((int32_t)cpu->reg[rs] < offset) cpu->reg[rt] = 1;
 		else cpu->reg[rt] = 0;
@@ -579,22 +605,22 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 	// Set On Less Than Immediate Unsigned
 	// SLTIU rd, rs, rt
-	else if (op == b("001011")) {
-		mnemonic = "SLTIU";
-		disasm("%s r%d, r%d, 0x%x", mnemonic.c_str(), rt, rs, imm);
+	else if (op == 11) {
+		mnemonic("SLTIU");
+		disasm("r%d, r%d, 0x%x", rt, rs, imm);
 
 		if (cpu->reg[rs] < imm) cpu->reg[rt] = 1;
 		else cpu->reg[rt] = 0;
 	}
 
 	// Coprocessor zero
-	else if (op == b("010000")) {
+	else if (op == 16) {
 		// Move from co-processor zero
 		// MFC0 rd, <nn>
 		if (rs == 0)
 		{
-			mnemonic = "MFC0";
-			disasm("%s r%d, $%d", mnemonic.c_str(), rt, rd);
+			mnemonic("MFC0");
+			disasm("r%d, $%d", rt, rd);
 
 			uint32_t tmp = cpu->COP0[rd];
 			cpu->reg[rt] = tmp;
@@ -604,8 +630,8 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		// MTC0 rs, <nn>
 		else if (rs == 4)
 		{
-			mnemonic = "MTC0";
-			disasm("%s r%d, $%d", mnemonic.c_str(), rt, rd);
+			mnemonic("MTC0");
+			disasm("r%d, $%d", rt, rd);
 
 			uint32_t tmp = cpu->reg[rt];
 			cpu->COP0[rd] = tmp;
@@ -614,12 +640,12 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 	}
 
 	// R Type
-	else if (op == b("000000")) {
+	else if (op == 0) {
 		// Jump Register
 		// JR rs
-		if (fun == b("001000")) {
-			mnemonic = "JR";
-			disasm("%s r%d", mnemonic.c_str(), rs);
+		if (fun == 8) {
+			mnemonic("JR");
+			disasm("r%d", rs);
 			cpu->shouldJump = true;
 			isJumpCycle = false;
 			cpu->jumpPC = cpu->reg[rs];
@@ -627,9 +653,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Jump Register
 		// JALR
-		else if (fun == b("001001")) {
-			mnemonic = "JALR";
-			disasm("%s r%d r%d", mnemonic.c_str(), rd, rs);
+		else if (fun == 9) {
+			mnemonic("JALR");
+			disasm("r%d r%d", rd, rs);
 			cpu->shouldJump = true;
 			isJumpCycle = false;
 			cpu->jumpPC = cpu->reg[rs];
@@ -638,25 +664,25 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Add
 		// add rd, rs, rt
-		else if (fun == b("100000")) {
-			mnemonic = "ADD";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 32) {
+			mnemonic("ADD");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 			cpu->reg[rd] = ((int32_t)cpu->reg[rs]) + ((int32_t)cpu->reg[rt]);
 		}
 
 		// Add unsigned
 		// add rd, rs, rt
-		else if (fun == b("100001")) {
-			mnemonic = "ADDU";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 33) {
+			mnemonic("ADDU");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 			cpu->reg[rd] = ((int32_t)cpu->reg[rs]) + ((int32_t)cpu->reg[rt]);
 		}
 
 		// And
 		// and rd, rs, rt
-		else if (fun == b("100100")) {
-			mnemonic = "AND";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 36) {
+			mnemonic("AND");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 
 			cpu->reg[rd] = cpu->reg[rs] & cpu->reg[rt];
 		}
@@ -665,9 +691,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		// TODO
 		// Multiply
 		// mul rs, rt
-		else if (fun == b("011000")) {
-			mnemonic = "MULT";
-			disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
+		else if (fun == 24) {
+			mnemonic("MULT");
+			disasm("r%d, r%d", rs, rt);
 
 			uint64_t temp = cpu->reg[rs] * cpu->reg[rt];
 
@@ -678,32 +704,32 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Nor
 		// NOR rd, rs, rt
-		else if (fun == b("100111")) {
-			mnemonic = "OR";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 39) {
+			mnemonic("OR");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 
 			cpu->reg[rd] = ~(cpu->reg[rs] | cpu->reg[rt]);
 		}
 
 		// Or
 		// OR rd, rs, rt
-		else if (fun == b("100101")) {
-			mnemonic = "OR";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 37) {
+			mnemonic("OR");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 
 			cpu->reg[rd] = cpu->reg[rs] | cpu->reg[rt];
 		}
 
 		// Shift Word Left Logical
 		// SLL rd, rt, a
-		else if (fun == b("000000")) {
+		else if (fun == 0) {
 			if (rt == 0 && rd == 0 && sh == 0) {
-				mnemonic = "NOP";
-				disasm("%s", mnemonic.c_str());
+				mnemonic("NOP");
+				disasm(" ");
 			}
 			else {
-				mnemonic = "SLL";
-				disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
+				mnemonic("SLL");
+				disasm("r%d, r%d, %d", rd, rt, sh);
 
 				cpu->reg[rd] = cpu->reg[rt] << sh;
 			}
@@ -711,80 +737,80 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Shift Word Left Logical Variable
 		// SLLV rd, rt, rs
-		else if (fun == b("000100")) {
-			mnemonic = "SLLV";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rt, rs);
+		else if (fun == 4) {
+			mnemonic("SLLV");
+			disasm("r%d, r%d, r%d", rd, rt, rs);
 
 			cpu->reg[rd] = cpu->reg[rt] << (cpu->reg[rs] & 0x1f);
 		}
 
 		// Shift Word Right Arithmetic
 		// SRA rd, rt, a
-		else if (fun == b("000011")) {
-			mnemonic = "SRA";
-			disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
+		else if (fun == 3) {
+			mnemonic("SRA");
+			disasm("r%d, r%d, %d", rd, rt, sh);
 
 			cpu->reg[rd] = ((int32_t)cpu->reg[rt]) >> sh;
 		}
 
 		// Shift Word Right Arithmetic Variable
 		// SRAV rd, rt, rs
-		else if (fun == b("000111")) {
-			mnemonic = "SRAV";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rt, rs);
+		else if (fun == 7) {
+			mnemonic("SRAV");
+			disasm("r%d, r%d, r%d", rd, rt, rs);
 
 			cpu->reg[rd] = ((int32_t)cpu->reg[rt]) >> (cpu->reg[rs]&0x1f);
 		}
 
 		// Shift Word Right Logical
 		// SRL rd, rt, a
-		else if (fun == b("000010")) {
-			mnemonic = "SRL";
-			disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
+		else if (fun == 2) {
+			mnemonic("SRL");
+			disasm("r%d, r%d, %d", rd, rt, sh);
 
 			cpu->reg[rd] = cpu->reg[rt] >> sh;
 		}
 
 		// Shift Word Right Logical Variable
 		// SRLV rd, rt, a
-		else if (fun == b("000110")) {
-			mnemonic = "SRLV";
-			disasm("%s r%d, r%d, %d", mnemonic.c_str(), rd, rt, sh);
+		else if (fun == 6) {
+			mnemonic("SRLV");
+			disasm("r%d, r%d, %d", rd, rt, sh);
 
 			cpu->reg[rd] = cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
 		}
 		
 		// Xor
 		// XOR rd, rs, rt
-		else if (fun == b("100110")) {
-			mnemonic = "XOR";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 38) {
+			mnemonic("XOR");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 
 			cpu->reg[rd] = cpu->reg[rs] ^ cpu->reg[rt];
 		}
 
 		// Subtract
 		// sub rd, rs, rt
-		else if (fun == b("100010")) {
-			mnemonic = "SUB";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 34) {
+			mnemonic("SUB");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 			cpu->reg[rd] = ((int32_t)cpu->reg[rs]) - ((int32_t)cpu->reg[rt]);
 		}
 
 		// Subtract unsigned
 		// subu rd, rs, rt
-		else if (fun == b("100011")) {
-			mnemonic = "SUBU";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 35) {
+			mnemonic("SUBU");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 			cpu->reg[rd] = ((int32_t)cpu->reg[rs]) - ((int32_t)cpu->reg[rt]);
 		}
 
 
 		// Set On Less Than Signed
 		// SLT rd, rs, rt
-		else if (fun == b("101010")) {
-			mnemonic = "SLTU";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 42) {
+			mnemonic("SLTU");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 
 			if ((int32_t)cpu->reg[rs] < (int32_t)cpu->reg[rt]) cpu->reg[rd] = 1;
 			else cpu->reg[rd] = 0;
@@ -792,9 +818,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Set On Less Than Unsigned
 		// SLTU rd, rs, rt
-		else if (fun == b("101011")) {
-			mnemonic = "SLTU";
-			disasm("%s r%d, r%d, r%d", mnemonic.c_str(), rd, rs, rt);
+		else if (fun == 43) {
+			mnemonic("SLTU");
+			disasm("r%d, r%d, r%d", rd, rs, rt);
 
 			if (cpu->reg[rs] < cpu->reg[rt]) cpu->reg[rd] = 1;
 			else cpu->reg[rd] = 0;
@@ -802,9 +828,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Divide
 		// div rs, rt
-		else if (fun == b("011010")) {
-			mnemonic = "DIV";
-			disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
+		else if (fun == 26) {
+			mnemonic("DIV");
+			disasm("r%d, r%d", rs, rt);
 
 			cpu->lo = (int32_t)cpu->reg[rs] / (int32_t)cpu->reg[rt];
 			cpu->hi = (int32_t)cpu->reg[rs] % (int32_t)cpu->reg[rt];
@@ -812,9 +838,9 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Divide Unsigned Word
 		// divu rs, rt
-		else if (fun == b("011011")) {
-			mnemonic = "DIVU";
-			disasm("%s r%d, r%d", mnemonic.c_str(), rs, rt);
+		else if (fun == 27) {
+			mnemonic("DIVU");
+			disasm("r%d, r%d", rs, rt);
 
 			cpu->lo = cpu->reg[rs] / cpu->reg[rt];
 			cpu->hi = cpu->reg[rs] % cpu->reg[rt];
@@ -822,49 +848,51 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 		// Move From Hi
 		// MFHI rd
-		else if (fun == b("010000")) {
-			mnemonic = "MFHI";
-			disasm("%s r%d", mnemonic.c_str(), rd);
+		else if (fun == 16) {
+			mnemonic("MFHI");
+			disasm("r%d", rd);
 
 			cpu->reg[rd] = cpu->hi;
 		}
 
 		// Move From Lo
 		// MFLO rd
-		else if (fun == b("010010")) {
-			mnemonic = "MFLO";
-			disasm("%s r%d", mnemonic.c_str(), rd);
+		else if (fun == 18) {
+			mnemonic("MFLO");
+			disasm("r%d", rd);
 
 			cpu->reg[rd] = cpu->lo;
 		}
 
 		// Move To Lo
 		// MTLO rd
-		else if (fun == b("010011")) {
-			mnemonic = "MTLO";
-			disasm("%s r%d", mnemonic.c_str(), rd);
+		else if (fun == 19) {
+			mnemonic("MTLO");
+			disasm("r%d", rd);
 
 			cpu->lo = cpu->reg[rd];
 		}
 
 		// Move To Hi
 		// MTHI rd
-		else if (fun == b("010001")) {
-			mnemonic = "MTHI";
-			disasm("%s r%d", mnemonic.c_str(), rd);
+		else if (fun == 17) {
+			mnemonic("MTHI");
+			disasm("r%d", rd);
 
 			cpu->hi = cpu->reg[rd];
 		}
 
 		// Syscall
 		// SYSCALL
-		else if (fun == b("001100")) {
-			__debugbreak();
-			printf("Syscall: r4: 0x%x\n", cpu->reg[4]);
-			mnemonic = "SYSCALL";
-			disasm("%s", mnemonic.c_str());
-			cpu->PC = 0xa0000080;
-			// Syscall?
+		else if (fun == 12) {
+			//__debugbreak();
+			//printf("Syscall: r4: 0x%x\n", cpu->reg[4]);
+			mnemonic("SYSCALL");
+			disasm("");
+
+			cpu->COP0[14] = cpu->PC;// EPC - retur address from trap
+			cpu->COP0[13] = 8<<2;// Cause, hardcoded SYSCALL
+			cpu->PC = 0x80000080;
 		}
 
 		else return false;
@@ -881,24 +909,17 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 
 #undef b
 
-	if (mnemonic == "NOP")
-		nopCounter++;
-	else nopCounter = 0;
-
-	if (nopCounter > 30) {
-		disassemblyEnabled = true;
-		nopCounter = 0; 
-		__debugbreak();
-		//putFileContents("ram.bin", ram);
-	}
 
 	if (disassemblyEnabled) {
-		if (_disasm.empty()) printf("%s\n", mnemonic.c_str());
+		if (_disasm.empty()) printf("%s\n", _mnemonic.c_str());
 		else {
-			if (!_pseudo.empty())
-				printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _pseudo.c_str());
-			else
-				printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _disasm.c_str());
+			//if (!_pseudo.empty())
+			//	printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _pseudo.c_str());
+			//else
+			//	printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _disasm.c_str());
+
+			std::transform(_mnemonic.begin(), _mnemonic.end(), _mnemonic.begin(), ::tolower);
+			printf("%08X %08X %-7s %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _mnemonic.c_str(), _disasm.c_str());
 		}
 	}
 
@@ -908,6 +929,23 @@ bool executeInstruction( CPU *cpu, uint32_t instruction )
 		cpu->shouldJump = false;
 	}
 	return true;
+}
+
+std::string getStringFromRam(uint32_t addr)
+{
+	std::string format;
+
+	int c;
+	int i = 0;
+	while (1)
+	{
+		c = readMemory(addr);
+		addr++;
+		if (!c) break;
+		format += c;
+		if (i++ > 100) break;
+	}
+	return format;
 }
 
 bool doDump = false;
@@ -934,34 +972,30 @@ int main( int argc, char** argv )
 	//uint32_t preBootHookAddress = 0x1F000100;
 	//std::string license = "Licensed by Sony Computer Entertainment Inc.";
 	//memcpy(&expansion[0x84], license.c_str(), license.size());
-
+	int cycles = 0;
+	int frames = 0;
 
 	while (cpuRunning)
 	{
 		uint32_t opcode = readMemory32(cpu.PC);
-		if (cpu.PC == 0xbfc018d0)
-		//if (POST == 5 && !disassemblyEnabled)
-		{
-			//disassemblyEnabled = true;
-			//__debugbreak();
-			int addr = cpu.reg[4];
-			std::string format;
-
-			int c;
-			while (1)
-			{
-				c = readMemory(addr);
-				addr++;
-				if (!c) break;
-				format += c;
-			}
-			printf("%s\n", format.c_str());
-		}
+		//if (cpu.PC == 0xbfc018d0)
+		//{
+		//	disassemblyEnabled = true;
+		//	__debugbreak();
+		//	std::string format = getStringFromRam(cpu.reg[4]);
+		//	printf("___%s\n", format.c_str());
+		//}
 
 		cpu.PC += 4;
 
 		bool executed = executeInstruction(&cpu, opcode);
+		cycles += 2;
 
+		if (cycles >= 564480) {
+			cycles = 0;
+			frames++;
+			printf("Frame: %d\n", frames);
+		}
 
 		if (doDump)
 		{
@@ -973,8 +1007,8 @@ int main( int argc, char** argv )
 		}
 		if (!executed)
 		{
-			//cpuRunning = false;
-			printf("Unknown instruction: 0x%08x (copy: %02x %02x %02x %02x)\n", opcode, opcode & 0xff, (opcode >> 8) & 0xff, (opcode >> 16) & 0xff, (opcode >> 24) & 0xff);
+			cpuRunning = false;
+			printf("Unknown instruction @ 0x%08x: 0x%08x (copy: %02x %02x %02x %02x)\n", cpu.PC-4, opcode, opcode & 0xff, (opcode >> 8) & 0xff, (opcode >> 16) & 0xff, (opcode >> 24) & 0xff);
 			fflush(stdout);
 		}
 	}
