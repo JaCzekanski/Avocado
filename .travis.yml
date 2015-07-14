@@ -17,4 +17,5 @@ install:
   - export CC="gcc-4.8"
 
 script:
+  - chmod a+x .travis.sh
   - ./.travis.sh
