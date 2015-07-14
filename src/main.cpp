@@ -51,7 +51,7 @@ std::string regNames[] = {
 bool IsC = false;
 uint8_t POST = 0;
 bool disassemblyEnabled = false;
-bool memoryAccessLogging = false;
+bool memoryAccessLogging = true;
 
 std::string part = "";
 
@@ -69,6 +69,7 @@ uint8_t readMemory(uint32_t address)
 		address <=   0x1fffff)
 	{
 		data = ram[address];
+		if (address == 0x0000b9b0) data = 1;// DUART enable
 		//printf("RAM_R: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
 	}
 
@@ -103,10 +104,15 @@ uint8_t readMemory(uint32_t address)
 		else if (address >= 0x0080 && address <= 0x00FF) part = "      DMA";
 		else if (address >= 0x0100 && address <= 0x012F) part = "    TIMER";
 		else if (address >= 0x0800 && address <= 0x0803) part = "    CDROM";
-		else if (address >= 0x0C00 && address <= 0x1FFF) part = "      SPU";
+		else if (address >= 0x0810 && address <= 0x0818) part = "      GPU";
+		else if (address >= 0x0820 && address <= 0x0828) part = "     MDEC";
+		else if (address >= 0x0C00 && address <= 0x0FFF) part = "      SPU";
+		else if (address >= 0x1020 && address <= 0x102f) {
+			part = "    DUART";
+			//if (address == 0x21) data = 4;
+		}
 		else part = "       IO";
 	}
-
 
 	else if (address >= 0x1fc00000 && 
 			address <= 0x1fc00000 + 512*1024)
@@ -208,15 +214,22 @@ void writeMemory( uint32_t address, uint8_t data )
 	{
 		address -= 0x1f801000;
 
-		if (address >= 0x0000 && address <= 0x0024) part = " MEMCTRL1";
+		if (address == 0x1041) part = "     POST";
+		else if (address >= 0x0000 && address <= 0x0024) part = " MEMCTRL1";
 		else if (address >= 0x0040 && address <= 0x005F) part = "   PERIPH";
 		else if (address >= 0x0060 && address <= 0x0063) part = " MEMCTRL2";
 		else if (address >= 0x0070 && address <= 0x0077) part = "  INTCTRL";
 		else if (address >= 0x0080 && address <= 0x00FF) part = "      DMA";
 		else if (address >= 0x0100 && address <= 0x012F) part = "    TIMER";
 		else if (address >= 0x0800 && address <= 0x0803) part = "    CDROM";
-		else if (address >= 0x0C00 && address <= 0x1FFF) part = "      SPU";
-		else if (address == 0x1041) part = "     POST";
+		else if (address >= 0x0810 && address <= 0x0818) part = "      GPU";
+		else if (address >= 0x0820 && address <= 0x0828) part = "     MDEC";
+		else if (address >= 0x0C00 && address <= 0x0FFF) part = "      SPU";
+		else if (address >= 0x1020 && address <= 0x102f) {
+			part = "    DUART";
+			//if (address == 0x20) printf("%c", data);
+		}
+		else part = "       IO";
 	}
 
 	else if (address >= 0x1fc00000 &&
