@@ -132,15 +132,15 @@ namespace mipsInstructions
 		else if (i.fun == 32) {
 			mnemonic("ADD");
 			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rs]) + ((int32_t)cpu->reg[i.rt]);
+			cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
 		}
 
 		// Add unsigned
-		// add rd, rs, rt
+		// addu rd, rs, rt
 		else if (i.fun == 33) {
 			mnemonic("ADDU");
 			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rs]) + ((int32_t)cpu->reg[i.rt]);
+			cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
 		}
 
 		// And
@@ -153,14 +153,25 @@ namespace mipsInstructions
 		}
 
 
-		// TODO
 		// Multiply
-		// mul rs, rt
+		// mult rs, rt
 		else if (i.fun == 24) {
 			mnemonic("MULT");
 			disasm("r%d, r%d", i.rs, i.rt);
 
-			uint64_t temp = cpu->reg[i.rs] * cpu->reg[i.rt];
+			int64_t temp = (int64_t)cpu->reg[i.rs] * (int64_t)cpu->reg[i.rt];
+
+			cpu->lo = temp & 0xffffffff;
+			cpu->hi = (temp & 0xffffffff00000000) >> 32;
+		}
+
+		// Multiply Unsigned
+		// multu rs, rt
+		else if (i.fun == 25) {
+			mnemonic("MULTU");
+			disasm("r%d, r%d", i.rs, i.rt);
+
+			int64_t temp = (uint64_t)cpu->reg[i.rs] * (uint64_t)cpu->reg[i.rt];
 
 			cpu->lo = temp & 0xffffffff;
 			cpu->hi = (temp & 0xffffffff00000000) >> 32;
@@ -170,7 +181,7 @@ namespace mipsInstructions
 		// Nor
 		// NOR rd, rs, rt
 		else if (i.fun == 39) {
-			mnemonic("OR");
+			mnemonic("NOR");
 			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
 
 			cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]);
@@ -259,7 +270,7 @@ namespace mipsInstructions
 		else if (i.fun == 34) {
 			mnemonic("SUB");
 			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rs]) - ((int32_t)cpu->reg[i.rt]);
+			cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
 		}
 
 		// Subtract unsigned
@@ -267,14 +278,14 @@ namespace mipsInstructions
 		else if (i.fun == 35) {
 			mnemonic("SUBU");
 			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rs]) - ((int32_t)cpu->reg[i.rt]);
+			cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
 		}
 
 
 		// Set On Less Than Signed
 		// SLT rd, rs, rt
 		else if (i.fun == 42) {
-			mnemonic("SLTU");
+			mnemonic("SLT");
 			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
 
 			if ((int32_t)cpu->reg[i.rs] < (int32_t)cpu->reg[i.rt]) cpu->reg[i.rd] = 1;
@@ -296,7 +307,7 @@ namespace mipsInstructions
 		else if (i.fun == 26) {
 			mnemonic("DIV");
 			disasm("r%d, r%d", i.rs, i.rt);
-
+			// TODO: Check for 0
 			cpu->lo = (int32_t)cpu->reg[i.rs] / (int32_t)cpu->reg[i.rt];
 			cpu->hi = (int32_t)cpu->reg[i.rs] % (int32_t)cpu->reg[i.rt];
 		}
@@ -306,7 +317,7 @@ namespace mipsInstructions
 		else if (i.fun == 27) {
 			mnemonic("DIVU");
 			disasm("r%d, r%d", i.rs, i.rt);
-
+			// TODO: Check for 0
 			cpu->lo = cpu->reg[i.rs] / cpu->reg[i.rt];
 			cpu->hi = cpu->reg[i.rs] % cpu->reg[i.rt];
 		}
@@ -363,7 +374,6 @@ namespace mipsInstructions
 			invalid(cpu, i);
 		}
 		// TODO: break
-		// TODO: multu
 	}
 
 	void branch(CPU* cpu, Opcode i)
@@ -513,13 +523,13 @@ namespace mipsInstructions
 		cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 	}
 
-	// Set On Less Than Immediate Unsigned
+	// Set On Less Than Immediate 
 	// SLTI rd, rs, rt
 	void slti(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
 
-		if ((int32_t)cpu->reg[i.rs] < i.offset) cpu->reg[i.rt] = 1;
+		if ((int32_t)cpu->reg[i.rs] < (int32_t)i.offset) cpu->reg[i.rt] = 1;
 		else cpu->reg[i.rt] = 0;
 	}
 
@@ -529,7 +539,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
 
-		if (cpu->reg[i.rs] < i.imm) cpu->reg[i.rt] = 1;
+		if (cpu->reg[i.rs] < (uint32_t)i.imm) cpu->reg[i.rt] = 1;
 		else cpu->reg[i.rt] = 0;
 	}
 
