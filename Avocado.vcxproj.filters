@@ -26,6 +26,9 @@
     <ClCompile Include="src\utils\string.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
+    <ClCompile Include="src\mipsInstructions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\file.h">
@@ -33,6 +36,9 @@
     </ClInclude>
     <ClInclude Include="src\utils\string.h">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mipsInstructions.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
