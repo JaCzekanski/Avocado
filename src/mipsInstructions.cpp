@@ -550,7 +550,7 @@ namespace mipsInstructions
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
 		pseudo("r%d = (r%d&0xffff0000) | 0x%x", i.rt, i.rs, i.imm);
 
-		cpu->reg[i.rt] = (cpu->reg[i.rs] & 0xffff0000) | i.imm;
+		cpu->reg[i.rt] = cpu->reg[i.rs] | i.imm;
 	}
 
 	// Xor Immediate
