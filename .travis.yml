@@ -6,7 +6,7 @@ compiler:
   - gcc
 
 before_install:
-  - sudo add-apt-repository ppa:zoogie/sdl2-snapshots -y
+  - sudo add-apt-repository -y ppa:zoogie/sdl2-snapshots
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
 
@@ -18,4 +18,4 @@ install:
 
 script:
   - $CXX --version
-  - ./build.sh
+  - ./travis.sh
