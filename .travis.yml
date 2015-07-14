@@ -17,5 +17,4 @@ install:
   - export CC="gcc-4.8"
 
 script:
-  - $CXX --version
-  - ./travis.sh
+  - ./.travis.sh
