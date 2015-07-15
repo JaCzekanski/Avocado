@@ -108,8 +108,8 @@ uint8_t readMemory(uint32_t address)
 		else if (address >= 0x0820 && address <= 0x0828) part = "     MDEC";
 		else if (address >= 0x0C00 && address <= 0x0FFF) part = "      SPU";
 		else if (address >= 0x1020 && address <= 0x102f) {
-			part = "    DUART";
-			//if (address == 0x21) data = 4;
+			//part = "    DUART";
+			if (address == 0x1021) data = 0x0c;
 		}
 		else part = "       IO";
 	}
@@ -226,8 +226,8 @@ void writeMemory( uint32_t address, uint8_t data )
 		else if (address >= 0x0820 && address <= 0x0828) part = "     MDEC";
 		else if (address >= 0x0C00 && address <= 0x0FFF) part = "      SPU";
 		else if (address >= 0x1020 && address <= 0x102f) {
-			part = "    DUART";
-			//if (address == 0x20) printf("%c", data);
+			//part = "    DUART";
+			if (address == 0x1023) printf("%c", data);
 		}
 		else part = "       IO";
 	}
@@ -378,7 +378,7 @@ int main( int argc, char** argv )
 		if (cycles >= 564480) {
 			cycles = 0;
 			frames++;
-			printf("Frame: %d\n", frames);
+			//printf("Frame: %d\n", frames);
 		}
 
 		if (doDump)
