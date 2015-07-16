@@ -3,7 +3,6 @@
 
 #define mnemonic(x) if (disassemblyEnabled) _mnemonic = x
 #define disasm(fmt, ...) if (disassemblyEnabled) _disasm=string_format(fmt, ##__VA_ARGS__)
-#define pseudo(fmt, ...) if (disassemblyEnabled) _pseudo=string_format(fmt, ##__VA_ARGS__)
 
 union Opcode
 {

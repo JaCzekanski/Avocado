@@ -47,94 +47,117 @@ std::string regNames[] = {
 	"t8",   "t9", "k0", "k1", "gp", "sp", "fp", "ra"
 };
 
+char* memoryRegion[] = {
+	"",          // 0
+	"RAM",       // 1
+	"Expansion1",
+	"Scratchpad",
+	"MemoryCtrl1",
+	"Joypad",    // 5
+	"Serial",
+	"MemoryCtrl2",
+	"Interrupt",
+	"DMA",
+	"Timer0",    // 10
+	"Timer1",
+	"Timer2",
+	"CDROM",
+	"GPU",
+	"MDEC",      // 15
+	"SPUVoice",
+	"SPUControl",
+	"SPUReverb",
+	"SPUInternal",
+	"DUART",    // 20
+	"POST",
+	"BIOS",
+	"MemoryCtrl3",
+	"Unknown"
+};
 
 bool IsC = false;
 uint8_t POST = 0;
 bool disassemblyEnabled = false;
-bool memoryAccessLogging = true;
+bool memoryAccessLogging = false;
 
-std::string part = "";
+int part = 0;
 
 uint8_t readMemory(uint32_t address)
 {
 	uint32_t _address = address;
-	uint32_t data = 0;
 	if (address >= 0xa0000000) address -= 0xa0000000;
 	if (address >= 0x80000000) address -= 0x80000000;
 
-	part = "";
-
 	// RAM
-	if (address >= 0x00000000 &&
-		address <=   0x1fffff)
+	if (address < 0x200000)
 	{
-		data = ram[address];
-		if (address == 0x0000b9b0) data = 1;// DUART enable
-		//printf("RAM_R: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		part = 1;
+		if (address == 0x0000b9b0) return 1;// DUART enable
+		return ram[address];
 	}
 
 	// Expansion port (mirrored?)
-	else if (address >= 0x1f000000 &&
-		address <= 0x1f00ffff)
+	if (address >= 0x1f000000 && address < 0x1f010000)
 	{
-		address -= 0x1f000000;
-		data = expansion[address];
-		part = "EXPANSION";
+		part = 2;
+		return expansion[address - 0x1f000000];
 	}
 
 	// Scratch Pad
-	else if (address >= 0x1f800000 &&
-			address <= 0x1f8003ff)
+	if (address >= 0x1f800000 && address < 0x1f800400)
 	{
-		address -= 0x1f800000;
-		data = scratchpad[address];
-		//part = "  SCRATCH";
+		part = 3;
+		return scratchpad[address - 0x1f800000];
 	}
 
 	// IO Ports
-	else if (address >= 0x1f801000 &&
-			address <= 0x1f803000)
+	if (address >= 0x1f801000 && address <= 0x1f803000)
 	{
 		address -= 0x1f801000;
-		data = io[address];
-		if (address >= 0x0000 && address <= 0x0024) part = " MEMCTRL1";
-		else if (address >= 0x0040 && address <= 0x005F) part = "   PERIPH";
-		else if (address >= 0x0060 && address <= 0x0063) part = " MEMCTRL2";
-		else if (address >= 0x0070 && address <= 0x0077) part = "  INTCTRL";
-		else if (address >= 0x0080 && address <= 0x00FF) part = "      DMA";
-		else if (address >= 0x0100 && address <= 0x012F) part = "    TIMER";
-		else if (address >= 0x0800 && address <= 0x0803) part = "    CDROM";
-		else if (address >= 0x0810 && address <= 0x0818) part = "      GPU";
-		else if (address >= 0x0820 && address <= 0x0828) part = "     MDEC";
-		else if (address >= 0x0C00 && address <= 0x0FFF) part = "      SPU";
-		else if (address >= 0x1020 && address <= 0x102f) {
-			//part = "    DUART";
-			if (address == 0x1021) data = 0x0c;
+		if (address >= 0x0000 && address <= 0x0024) part = 4; 
+		else if (address >= 0x0040 && address <  0x0050) part = 5;
+		else if (address >= 0x0050 && address <  0x0060) part = 6;
+		else if (address >= 0x0060 && address <= 0x0063) part = 7;
+		else if (address >= 0x0070 && address <= 0x0077) part = 8;
+		else if (address >= 0x0080 && address <= 0x00FF) part = 9;
+		else if (address >= 0x0100 && address <= 0x012F) {
+			if (address >= 0x100 && address < 0x110) part = 10;
+			else if (address >= 0x110 && address < 0x120) part = 11;
+			else if (address >= 0x120 && address < 0x130) part = 12;
 		}
-		else part = "       IO";
+		else if (address >= 0x0800 && address <= 0x0803) part = 13;
+		else if (address >= 0x0810 && address <= 0x0818) part = 14;
+		else if (address >= 0x0820 && address <= 0x0828) part = 15;
+		else if (address >= 0x0C00 && address <  0x0D80) part = 16;
+		else if (address >= 0x0D80 && address <  0x0DC0) part = 17;
+		else if (address >= 0x0DC0 && address <  0x0E00) part = 18;
+		else if (address >= 0x0E00 && address <  0x1000) part = 19;
+		else if (address >= 0x1020 && address <= 0x102f) {
+			//part = 20;
+			part = 0;
+			if (address == 0x1021) return 0x0c;
+		}
+		else if (address == 0x1041) part = 21;
+		else part = 24;
+
+		return io[address];
 	}
 
-	else if (address >= 0x1fc00000 && 
-			address <= 0x1fc00000 + 512*1024)
+	if (address >= 0x1fc00000 && address <= 0x1fc00000 + 512*1024)
 	{
-		address -= 0x1fc00000;
-		data = bios[address];
+		//part = 22; 
+		part = 0;
+		return bios[address - 0x1fc00000];
 	}
 
-	else if (_address >= 0xfffe0000 &&
-		_address <= 0xfffe0200)
+	if (_address >= 0xfffe0130 &&	_address < 0xfffe0134)
 	{
-		address = _address - 0xfffe0000;
-		data = 0;
-		part = "    CACHE";
+		part = 23;
+		return 0;
 	}
-
-	else
-	{
-		printf("READ: Access to unmapped address: 0x%08x (0x%08x)\n", address, _address);
-		data = 0;
-	}
-	return data;
+	
+	part = 24;
+	return 0;
 }
 
 // Word - 32bit
@@ -145,7 +168,7 @@ uint8_t readMemory8(uint32_t address)
 {
 	// TODO: Check address align
 	uint8_t data = readMemory(address);
-	if (!part.empty() && memoryAccessLogging) printf("%s_R08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
+	if (part > 1 && memoryAccessLogging) printf("%12s R08: 0x%08x - 0x%02x\n", memoryRegion[part], address, data);
 	return data;
 }
 
@@ -155,7 +178,7 @@ uint16_t readMemory16(uint32_t address)
 	uint16_t data = 0;
 	data |= readMemory(address + 0);
 	data |= readMemory(address + 1) << 8;
-	if (!part.empty() && memoryAccessLogging) printf("%s_R16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
+	if (part > 1 && memoryAccessLogging) printf("%12s R16: 0x%08x - 0x%04x\n", memoryRegion[part], address, data);
 	return data;
 }
 
@@ -167,7 +190,7 @@ uint32_t readMemory32(uint32_t address)
 	data |= readMemory(address + 1) << 8;
 	data |= readMemory(address + 2) << 16;
 	data |= readMemory(address + 3) << 24;
-	if (!part.empty() && memoryAccessLogging) printf("%s_R32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
+	if (part > 1 && memoryAccessLogging) printf("%12s R32: 0x%08x - 0x%08x\n", memoryRegion[part], address, data);
 	return data;
 }
 
@@ -176,80 +199,70 @@ void writeMemory( uint32_t address, uint8_t data )
 	uint32_t _address = address;
 	if (address >= 0xa0000000) address -= 0xa0000000;
 	if (address >= 0x80000000) address -= 0x80000000;
-
-	part = "";
-
+	
 	// RAM
-	if (address >= 0x00000000 &&
-		address <= 0x1fffff)
+	if (address < 0x200000)
 	{
-		if (!IsC) {
-			ram[address] = data;
-			if (disassemblyEnabled) part = "      RAM";
-		}
-		//printf("RAM_W: 0x%02x (0x%08x) - 0x%02x\n", address, _address, data);
+		part = 1;
+		if (!IsC) ram[address] = data;
 	}
 
 	// Expansion port (mirrored?)
-	else if (address >= 0x1f000000 &&
-		address <= 0x1f00ffff)
+	else if (address >= 0x1f000000 && address < 0x1f010000)
 	{
-		address -= 0x1f000000;
-		expansion[address] = data;
-		part = "EXPANSION";
+		part = 2;
+		expansion[address - 0x1f000000] = data;
 	}
 
 	// Scratch Pad
-	else if (address >= 0x1f800000 &&
-		address <= 0x1f8003ff)
+	else if (address >= 0x1f800000 && address < 0x1f800400)
 	{
-		address -= 0x1f800000;
-		scratchpad[address] = data;
-		//part = "  SCRATCH";
+		part = 3;
+		scratchpad[address - 0x1f800000] = data;
 	}
 
 	// IO Ports
-	else if (address >= 0x1f801000 &&
-			address <= 0x1f803000)
+	else if (address >= 0x1f801000 && address <= 0x1f803000)
 	{
 		address -= 0x1f801000;
-
-		if (address == 0x1041) part = "     POST";
-		else if (address >= 0x0000 && address <= 0x0024) part = " MEMCTRL1";
-		else if (address >= 0x0040 && address <= 0x005F) part = "   PERIPH";
-		else if (address >= 0x0060 && address <= 0x0063) part = " MEMCTRL2";
-		else if (address >= 0x0070 && address <= 0x0077) part = "  INTCTRL";
-		else if (address >= 0x0080 && address <= 0x00FF) part = "      DMA";
-		else if (address >= 0x0100 && address <= 0x012F) part = "    TIMER";
-		else if (address >= 0x0800 && address <= 0x0803) part = "    CDROM";
-		else if (address >= 0x0810 && address <= 0x0818) part = "      GPU";
-		else if (address >= 0x0820 && address <= 0x0828) part = "     MDEC";
-		else if (address >= 0x0C00 && address <= 0x0FFF) part = "      SPU";
+		if (address >= 0x0000 && address <= 0x0024) part = 4;
+		else if (address >= 0x0040 && address <  0x0050) part = 5;
+		else if (address >= 0x0050 && address <  0x0060) part = 6;
+		else if (address >= 0x0060 && address <= 0x0063) part = 7;
+		else if (address >= 0x0070 && address <= 0x0077) part = 8;
+		else if (address >= 0x0080 && address <= 0x00FF) part = 9;
+		else if (address >= 0x0100 && address <= 0x012F) {
+			if (address >= 0x100 && address < 0x110) part = 10;
+			else if (address >= 0x110 && address < 0x120) part = 11;
+			else if (address >= 0x120 && address < 0x130) part = 12;
+		}
+		else if (address >= 0x0800 && address <= 0x0803) part = 13;
+		else if (address >= 0x0810 && address <= 0x0818) part = 14;
+		else if (address >= 0x0820 && address <= 0x0828) part = 15;
+		else if (address >= 0x0C00 && address <  0x0D80) part = 16;
+		else if (address >= 0x0D80 && address <  0x0DC0) part = 17;
+		else if (address >= 0x0DC0 && address <  0x0E00) part = 18;
+		else if (address >= 0x0E00 && address <  0x1000) part = 19;
 		else if (address >= 0x1020 && address <= 0x102f) {
-			//part = "    DUART";
+			//part = 20;
+			part = 0;
 			if (address == 0x1023) printf("%c", data);
 		}
-		else part = "       IO";
+		else if (address == 0x1041) part = 21;
+		else part = 24;
+
+		io[address] = data;
 	}
 
-	else if (address >= 0x1fc00000 &&
-		address <= 0x1fc00000 + 512*1024)
+	else if (_address >= 0xfffe0130 && _address < 0xfffe0134)
 	{
-		address -= 0x1fc00000;
-		printf("Write to readonly address (BIOS): 0x%08x\n", address);
-	}
-
-	else if (_address >= 0xfffe0000 &&
-			_address <= 0xfffe0200)
-	{
-		address = _address - 0xfffe0000;
-		part = "    CACHE";
+		part = 23;
 	}
 
 	else
 	{
-		printf("WRITE: Access to unmapped address: 0x%08x (0x%08x)\n", address, _address);
-		data = 0;
+		//printf("WRITE: Access to unmapped address: 0x%08x (0x%08x)\n", address, _address);
+		part = 24;
 	}
 }
 
@@ -257,7 +270,7 @@ void writeMemory8(uint32_t address, uint8_t data)
 {
 	// TODO: Check address align
 	writeMemory(address, data);
-	if (!part.empty() && memoryAccessLogging) printf("%s_W08: 0x%08x - 0x%02x '%c'\n", part.c_str(), address, data, data);
+	if (part > 1 && memoryAccessLogging) printf("%12s W08: 0x%08x - 0x%02x\n", memoryRegion[part], address, data);
 }
 
 void writeMemory16(uint32_t address, uint16_t data)
@@ -265,7 +278,7 @@ void writeMemory16(uint32_t address, uint16_t data)
 	// TODO: Check address align
 	writeMemory(address + 0, data & 0xff);
 	writeMemory(address + 1, data >> 8);
-	if (!part.empty() && memoryAccessLogging) printf("%s_W16: 0x%08x - 0x%04x\n", part.c_str(), address, data);
+	if (part > 1 && memoryAccessLogging) printf("%12s W16: 0x%08x - 0x%04x\n", memoryRegion[part], address, data);
 }
 
 void writeMemory32(uint32_t address, uint32_t data)
@@ -275,18 +288,14 @@ void writeMemory32(uint32_t address, uint32_t data)
 	writeMemory(address + 1, data >> 8);
 	writeMemory(address + 2, data >> 16);
 	writeMemory(address + 3, data >> 24);
-	if (!part.empty() && memoryAccessLogging) printf("%s_W32: 0x%08x - 0x%08x\n", part.c_str(), address, data);
+	if (part > 1 && memoryAccessLogging) printf("%12s W32: 0x%08x - 0x%08x\n", memoryRegion[part], address, data);
 }
-
 
 std::string _mnemonic = "";
 std::string _disasm = "";
-std::string _pseudo = "";
-
 
 void executeInstruction(CPU *cpu, Opcode i)
 {
-	_pseudo = "";
 	uint32_t addr = 0;
 
 	cpu->isJumpCycle = true;
@@ -294,20 +303,9 @@ void executeInstruction(CPU *cpu, Opcode i)
 	auto op = OpcodeTable[i.op];
 	op.instruction(cpu, i);
 
-	_mnemonic = op.mnemnic;
-
-	if (disassemblyEnabled) {
-		if (_disasm.empty()) printf("%s\n", _mnemonic.c_str());
-		else {
-			if (!_pseudo.empty())
-				printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _pseudo.c_str());
-			else
-				printf("   0x%08x  %08x:    %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _disasm.c_str());
-
-			//std::transform(_mnemonic.begin(), _mnemonic.end(), _mnemonic.begin(), ::tolower);
-			//printf("%08X %08X %-7s %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _mnemonic.c_str(), _disasm.c_str());
-		}
-	}
+	if (_mnemonic.empty()) _mnemonic = op.mnemnic;
+	if (disassemblyEnabled) 
+		printf("   0x%08x  %08x:    %s %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _mnemonic.c_str(), _disasm.c_str());
 
 	if (cpu->shouldJump && cpu->isJumpCycle) {
 		cpu->PC = cpu->jumpPC & 0xFFFFFFFC;
@@ -340,7 +338,7 @@ int main( int argc, char** argv )
 	bool cpuRunning = true;
 	memset(cpu.reg, 0, sizeof(uint32_t) * 32);
 	
-	std::string biosPath = "data/bios/SCPH1000.bin";
+	std::string biosPath = "data/bios/SCPH1001.bin";
 	
 	auto _bios = getFileContents(biosPath);
 	if (_bios.empty()) {
@@ -378,7 +376,7 @@ int main( int argc, char** argv )
 		if (cycles >= 564480) {
 			cycles = 0;
 			frames++;
-			//printf("Frame: %d\n", frames);
+			printf("Frame: %d\n", frames);
 		}
 
 		if (doDump)

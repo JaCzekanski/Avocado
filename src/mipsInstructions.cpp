@@ -81,7 +81,6 @@ extern bool disassemblyEnabled;
 extern bool IsC;
 extern std::string _mnemonic;
 extern std::string _disasm;
-extern std::string _pseudo;
 
 uint8_t readMemory8(uint32_t address);
 uint16_t readMemory16(uint32_t address);
@@ -518,7 +517,6 @@ namespace mipsInstructions
 	{
 		mnemonic("ADDIU");
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.offset);
-		pseudo("r%d = r%d + %d", i.rt, i.rs, i.offset);
 
 		cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 	}
@@ -548,7 +546,6 @@ namespace mipsInstructions
 	void andi(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-		pseudo("r%d = r%d & 0x%x", i.rt, i.rs, i.imm);
 
 		cpu->reg[i.rt] = cpu->reg[i.rs] & i.imm;
 	}
@@ -558,7 +555,6 @@ namespace mipsInstructions
 	void ori(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-		pseudo("r%d = (r%d&0xffff0000) | 0x%x", i.rt, i.rs, i.imm);
 
 		cpu->reg[i.rt] = cpu->reg[i.rs] | i.imm;
 	}
@@ -568,7 +564,6 @@ namespace mipsInstructions
 	void xori(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-		pseudo("r%d = r%d ^ 0x%x", i.rt, i.rs, i.imm);
 
 		cpu->reg[i.rt] = cpu->reg[i.rs] ^ i.imm;
 	}
@@ -578,7 +573,6 @@ namespace mipsInstructions
 	void lui(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, 0x%x", i.rt, i.imm);
-		pseudo("r%d = 0x%x", i.rt, i.imm << 16);
 
 		cpu->reg[i.rt] = i.imm << 16;
 	}
@@ -705,6 +699,5 @@ namespace mipsInstructions
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		writeMemory32(addr, cpu->reg[i.rt]);
-		pseudo("mem[r%d+0x%x] = r%d    mem[0x%x] = 0x%x", i.rs, i.offset, i.rt, addr, cpu->reg[i.rt]);
 	}
 };
