@@ -77,9 +77,84 @@ PrimaryInstruction OpcodeTable[64] =
 	{ 63, mipsInstructions::invalid, "INVALID" },
 };
 
+PrimaryInstruction SpecialTable[64] =
+{
+	{ 0, mipsInstructions::sll, "sll" },
+	{ 1, mipsInstructions::invalid, "INVALID" },
+	{ 2, mipsInstructions::srl, "stl" },
+	{ 3, mipsInstructions::sra, "sra" },
+	{ 4, mipsInstructions::sllv, "sllv" },
+	{ 5, mipsInstructions::invalid, "INVALID" },
+	{ 6, mipsInstructions::srlv, "srlv" },
+	{ 7, mipsInstructions::srav, "srav" },
+
+	{ 8, mipsInstructions::jr, "jr" },
+	{ 9, mipsInstructions::jalr, "jalr" },
+	{ 10, mipsInstructions::invalid, "INVALID" },
+	{ 11, mipsInstructions::invalid, "INVALID" },
+	{ 12, mipsInstructions::syscall, "syscall" },
+	{ 13, mipsInstructions::notImplemented, "break" },
+	{ 14, mipsInstructions::invalid, "INVALID" },
+	{ 15, mipsInstructions::invalid, "INVALID" },
+
+	{ 16, mipsInstructions::mfhi, "mfhi" },
+	{ 17, mipsInstructions::mthi, "mthi" },
+	{ 18, mipsInstructions::mflo, "mflo" },
+	{ 19, mipsInstructions::mtlo, "mtlo" },
+	{ 20, mipsInstructions::invalid, "INVALID" },
+	{ 21, mipsInstructions::invalid, "INVALID" },
+	{ 22, mipsInstructions::invalid, "INVALID" },
+	{ 23, mipsInstructions::invalid, "INVALID" },
+
+	{ 24, mipsInstructions::mult, "mult" },
+	{ 25, mipsInstructions::multu, "multu" },
+	{ 26, mipsInstructions::div, "div" },
+	{ 27, mipsInstructions::divu, "divu" },
+	{ 28, mipsInstructions::invalid, "INVALID" },
+	{ 29, mipsInstructions::invalid, "INVALID" },
+	{ 30, mipsInstructions::invalid, "INVALID" },
+	{ 31, mipsInstructions::invalid, "INVALID" },
+
+	{ 32, mipsInstructions::add, "add" },
+	{ 33, mipsInstructions::addu, "addu" },
+	{ 34, mipsInstructions::sub, "sub" },
+	{ 35, mipsInstructions::subu, "subu" },
+	{ 36, mipsInstructions::and, "and" },
+	{ 37, mipsInstructions::or, "or" },
+	{ 38, mipsInstructions::xor, "xor" },
+	{ 39, mipsInstructions::nor, "nor" },
+
+	{ 40, mipsInstructions::invalid, "INVALID" },
+	{ 41, mipsInstructions::invalid, "INVALID" },
+	{ 42, mipsInstructions::slt, "slt" },
+	{ 43, mipsInstructions::sltu, "sltu" },
+	{ 44, mipsInstructions::invalid, "INVALID" },
+	{ 45, mipsInstructions::invalid, "INVALID" },
+	{ 46, mipsInstructions::invalid, "INVALID" },
+	{ 47, mipsInstructions::invalid, "INVALID" },
+
+	{ 48, mipsInstructions::invalid, "INVALID" },
+	{ 49, mipsInstructions::invalid, "INVALID" },
+	{ 50, mipsInstructions::invalid, "INVALID" },
+	{ 51, mipsInstructions::invalid, "INVALID" },
+	{ 52, mipsInstructions::invalid, "INVALID" },
+	{ 53, mipsInstructions::invalid, "INVALID" },
+	{ 54, mipsInstructions::invalid, "INVALID" },
+	{ 55, mipsInstructions::invalid, "INVALID" },
+
+	{ 56, mipsInstructions::invalid, "INVALID" },
+	{ 57, mipsInstructions::invalid, "INVALID" },
+	{ 58, mipsInstructions::invalid, "INVALID" },
+	{ 59, mipsInstructions::invalid, "INVALID" },
+	{ 60, mipsInstructions::invalid, "INVALID" },
+	{ 61, mipsInstructions::invalid, "INVALID" },
+	{ 62, mipsInstructions::invalid, "INVALID" },
+	{ 63, mipsInstructions::invalid, "INVALID" },
+};
+
 extern bool disassemblyEnabled;
 extern bool IsC;
-extern std::string _mnemonic;
+extern char* _mnemonic;
 extern std::string _disasm;
 
 uint8_t readMemory8(uint32_t address);
@@ -105,274 +180,250 @@ namespace mipsInstructions
 
 	void special(CPU* cpu, Opcode i)
 	{
-		// Jump Register
-		// JR rs
-		if (i.fun == 8) {
-			mnemonic("JR");
-			disasm("r%d", i.rs);
-			cpu->shouldJump = true;
-			cpu->isJumpCycle = false;
-			cpu->jumpPC = cpu->reg[i.rs];
-		}
-
-		// Jump Register
-		// JALR
-		else if (i.fun == 9) {
-			mnemonic("JALR");
-			disasm("r%d r%d", i.rd, i.rs);
-			cpu->shouldJump = true;
-			cpu->isJumpCycle = false;
-			cpu->jumpPC = cpu->reg[i.rs];
-			cpu->reg[i.rd] = cpu->PC + 4;
-		}
-
-		// Add
-		// add rd, rs, rt
-		else if (i.fun == 32) {
-			mnemonic("ADD");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
-		}
-
-		// Add unsigned
-		// addu rd, rs, rt
-		else if (i.fun == 33) {
-			mnemonic("ADDU");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
-		}
-
-		// And
-		// and rd, rs, rt
-		else if (i.fun == 36) {
-			mnemonic("AND");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-
-			cpu->reg[i.rd] = cpu->reg[i.rs] & cpu->reg[i.rt];
-		}
-
-
-		// Multiply
-		// mult rs, rt
-		else if (i.fun == 24) {
-			mnemonic("MULT");
-			disasm("r%d, r%d", i.rs, i.rt);
-
-			int64_t temp = (int64_t)cpu->reg[i.rs] * (int64_t)cpu->reg[i.rt];
-
-			cpu->lo = temp & 0xffffffff;
-			cpu->hi = (temp & 0xffffffff00000000) >> 32;
-		}
-
-		// Multiply Unsigned
-		// multu rs, rt
-		else if (i.fun == 25) {
-			mnemonic("MULTU");
-			disasm("r%d, r%d", i.rs, i.rt);
-
-			int64_t temp = (uint64_t)cpu->reg[i.rs] * (uint64_t)cpu->reg[i.rt];
-
-			cpu->lo = temp & 0xffffffff;
-			cpu->hi = (temp & 0xffffffff00000000) >> 32;
-		}
-
-
-		// Nor
-		// NOR rd, rs, rt
-		else if (i.fun == 39) {
-			mnemonic("NOR");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-
-			cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]);
-		}
-
-		// Or
-		// OR rd, rs, rt
-		else if (i.fun == 37) {
-			mnemonic("OR");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-
-			cpu->reg[i.rd] = cpu->reg[i.rs] | cpu->reg[i.rt];
-		}
-
-		// Shift Word Left Logical
-		// SLL rd, rt, a
-		else if (i.fun == 0) {
-			if (i.rt == 0 && i.rd == 0 && i.sh == 0) {
-				mnemonic("NOP");
-				disasm(" ");
-			}
-			else {
-				mnemonic("SLL");
-				disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
-
-				cpu->reg[i.rd] = cpu->reg[i.rt] << i.sh;
-			}
-		}
-
-		// Shift Word Left Logical Variable
-		// SLLV rd, rt, rs
-		else if (i.fun == 4) {
-			mnemonic("SLLV");
-			disasm("r%d, r%d, r%d", i.rd, i.rt, i.rs);
-
-			cpu->reg[i.rd] = cpu->reg[i.rt] << (cpu->reg[i.rs] & 0x1f);
-		}
-
-		// Shift Word Right Arithmetic
-		// SRA rd, rt, a
-		else if (i.fun == 3) {
-			mnemonic("SRA");
-			disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
-
-			cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> i.sh;
-		}
-
-		// Shift Word Right Arithmetic Variable
-		// SRAV rd, rt, rs
-		else if (i.fun == 7) {
-			mnemonic("SRAV");
-			disasm("r%d, r%d, r%d", i.rd, i.rt, i.rs);
-
-			cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> (cpu->reg[i.rs] & 0x1f);
-		}
-
-		// Shift Word Right Logical
-		// SRL rd, rt, a
-		else if (i.fun == 2) {
-			mnemonic("SRL");
-			disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
-
-			cpu->reg[i.rd] = cpu->reg[i.rt] >> i.sh;
-		}
-
-		// Shift Word Right Logical Variable
-		// SRLV rd, rt, a
-		else if (i.fun == 6) {
-			mnemonic("SRLV");
-			disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
-
-			cpu->reg[i.rd] = cpu->reg[i.rt] >> (cpu->reg[i.rs] & 0x1f);
-		}
-
-		// Xor
-		// XOR rd, rs, rt
-		else if (i.fun == 38) {
-			mnemonic("XOR");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-
-			cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt];
-		}
-
-		// Subtract
-		// sub rd, rs, rt
-		else if (i.fun == 34) {
-			mnemonic("SUB");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
-		}
-
-		// Subtract unsigned
-		// subu rd, rs, rt
-		else if (i.fun == 35) {
-			mnemonic("SUBU");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-			cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
-		}
-
-
-		// Set On Less Than Signed
-		// SLT rd, rs, rt
-		else if (i.fun == 42) {
-			mnemonic("SLT");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-
-			if ((int32_t)cpu->reg[i.rs] < (int32_t)cpu->reg[i.rt]) cpu->reg[i.rd] = 1;
-			else cpu->reg[i.rd] = 0;
-		}
-
-		// Set On Less Than Unsigned
-		// SLTU rd, rs, rt
-		else if (i.fun == 43) {
-			mnemonic("SLTU");
-			disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-
-			if (cpu->reg[i.rs] < cpu->reg[i.rt]) cpu->reg[i.rd] = 1;
-			else cpu->reg[i.rd] = 0;
-		}
-
-		// Divide
-		// div rs, rt
-		else if (i.fun == 26) {
-			mnemonic("DIV");
-			disasm("r%d, r%d", i.rs, i.rt);
-			// TODO: Check for 0
-			cpu->lo = (int32_t)cpu->reg[i.rs] / (int32_t)cpu->reg[i.rt];
-			cpu->hi = (int32_t)cpu->reg[i.rs] % (int32_t)cpu->reg[i.rt];
-		}
-
-		// Divide Unsigned Word
-		// divu rs, rt
-		else if (i.fun == 27) {
-			mnemonic("DIVU");
-			disasm("r%d, r%d", i.rs, i.rt);
-			// TODO: Check for 0
-			cpu->lo = cpu->reg[i.rs] / cpu->reg[i.rt];
-			cpu->hi = cpu->reg[i.rs] % cpu->reg[i.rt];
-		}
-
-		// Move From Hi
-		// MFHI rd
-		else if (i.fun == 16) {
-			mnemonic("MFHI");
-			disasm("r%d", i.rd);
-
-			cpu->reg[i.rd] = cpu->hi;
-		}
-
-		// Move From Lo
-		// MFLO rd
-		else if (i.fun == 18) {
-			mnemonic("MFLO");
-			disasm("r%d", i.rd);
-
-			cpu->reg[i.rd] = cpu->lo;
-		}
-
-		// Move To Lo
-		// MTLO rd
-		else if (i.fun == 19) {
-			mnemonic("MTLO");
-			disasm("r%d", i.rd);
-
-			cpu->lo = cpu->reg[i.rd];
-		}
-
-		// Move To Hi
-		// MTHI rd
-		else if (i.fun == 17) {
-			mnemonic("MTHI");
-			disasm("r%d", i.rd);
-
-			cpu->hi = cpu->reg[i.rd];
-		}
-
-		// Syscall
-		// SYSCALL
-		else if (i.fun == 12) {
-			//__debugbreak();
-			//printf("Syscall: r4: 0x%x\n", cpu->reg[4]);
-			mnemonic("SYSCALL");
-			disasm("");
-
-			cpu->COP0[14] = cpu->PC;// EPC - retur address from trap
-			cpu->COP0[13] = 8 << 2;// Cause, hardcoded SYSCALL
-			cpu->PC = 0x80000080;
-		}
-		else {
-			invalid(cpu, i);
-		}
+		const auto &instruction = SpecialTable[i.fun];
+		mnemonic(instruction.mnemnic);
+		instruction.instruction(cpu, i);
 		// TODO: break
+	}
+
+	// Shift Word Left Logical
+	// SLL rd, rt, a
+	void sll(CPU *cpu, Opcode i)
+	{
+		if (i.rt == 0 && i.rd == 0 && i.sh == 0) 
+		{
+			mnemonic("nop");
+			disasm("");
+		}
+		else 
+		{
+			disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
+			cpu->reg[i.rd] = cpu->reg[i.rt] << i.sh;
+		}
+	}
+
+	// Shift Word Right Logical
+	// SRL rd, rt, a
+	void srl(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
+		cpu->reg[i.rd] = cpu->reg[i.rt] >> i.sh;
+	}
+
+	// Shift Word Right Arithmetic
+	// SRA rd, rt, a
+	void sra(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
+		cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> i.sh;
+	}
+
+	// Shift Word Left Logical Variable
+	// SLLV rd, rt, rs
+	void sllv(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rt, i.rs);
+		cpu->reg[i.rd] = cpu->reg[i.rt] << (cpu->reg[i.rs] & 0x1f);
+	}
+
+	// Shift Word Right Logical Variable
+	// SRLV rd, rt, a
+	void srlv(CPU *cpu, Opcode i) 
+	{
+		disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
+		cpu->reg[i.rd] = cpu->reg[i.rt] >> (cpu->reg[i.rs] & 0x1f);
+	}
+
+	// Shift Word Right Arithmetic Variable
+	// SRAV rd, rt, rs
+	void srav(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rt, i.rs);
+		cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> (cpu->reg[i.rs] & 0x1f);
+	}
+
+	// Jump Register
+	// JR rs
+	void jr(CPU *cpu, Opcode i)
+	{
+		disasm("r%d", i.rs);
+		cpu->shouldJump = true;
+		cpu->isJumpCycle = false;
+		cpu->jumpPC = cpu->reg[i.rs];
+	}
+
+	// Jump Register
+	// JALR
+	void jalr(CPU *cpu, Opcode i)
+	{
+		disasm("r%d r%d", i.rd, i.rs);
+		cpu->shouldJump = true;
+		cpu->isJumpCycle = false;
+		cpu->jumpPC = cpu->reg[i.rs];
+		cpu->reg[i.rd] = cpu->PC + 4;
+	}
+
+	// Syscall
+	// SYSCALL
+	void syscall(CPU *cpu, Opcode i)
+	{
+		disasm("");
+
+		cpu->COP0[14] = cpu->PC;// EPC - retur address from trap
+		cpu->COP0[13] = 8 << 2;// Cause, hardcoded SYSCALL
+		cpu->PC = 0x80000080;
+	}
+
+	// Move From Hi
+	// MFHI rd
+	void mfhi(CPU *cpu, Opcode i)
+	{
+		disasm("r%d", i.rd);
+		cpu->reg[i.rd] = cpu->hi;
+	}
+
+	// Move To Hi
+	// MTHI rd
+	void mthi(CPU *cpu, Opcode i)
+	{
+		disasm("r%d", i.rd);
+		cpu->hi = cpu->reg[i.rd];
+	}
+
+	// Move From Lo
+	// MFLO rd
+	void mflo(CPU *cpu, Opcode i)
+	{
+		disasm("r%d", i.rd);
+		cpu->reg[i.rd] = cpu->lo;
+	}
+
+	// Move To Lo
+	// MTLO rd
+	void mtlo(CPU *cpu, Opcode i)
+	{
+		disasm("r%d", i.rd);
+		cpu->lo = cpu->reg[i.rd];
+	}
+
+	// Multiply
+	// mult rs, rt
+	void mult(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d", i.rs, i.rt);
+		int64_t temp = (int64_t)cpu->reg[i.rs] * (int64_t)cpu->reg[i.rt];
+		cpu->lo = temp & 0xffffffff;
+		cpu->hi = (temp & 0xffffffff00000000) >> 32;
+	}
+
+	// Multiply Unsigned
+	// multu rs, rt
+	void multu(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d", i.rs, i.rt);
+		int64_t temp = (uint64_t)cpu->reg[i.rs] * (uint64_t)cpu->reg[i.rt];
+		cpu->lo = temp & 0xffffffff;
+		cpu->hi = (temp & 0xffffffff00000000) >> 32;
+	}
+	// Divide
+	// div rs, rt
+	void div(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d", i.rs, i.rt);
+		// TODO: Check for 0
+		cpu->lo = (int32_t)cpu->reg[i.rs] / (int32_t)cpu->reg[i.rt];
+		cpu->hi = (int32_t)cpu->reg[i.rs] % (int32_t)cpu->reg[i.rt];
+	}
+
+	// Divide Unsigned Word
+	// divu rs, rt
+	void divu(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d", i.rs, i.rt);
+		// TODO: Check for 0
+		cpu->lo = cpu->reg[i.rs] / cpu->reg[i.rt];
+		cpu->hi = cpu->reg[i.rs] % cpu->reg[i.rt];
+	}
+
+	// add rd, rs, rt
+	void add(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
+	}
+
+	// Add unsigned
+	// addu rd, rs, rt
+	void addu(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
+	}
+
+	// Subtract
+	// sub rd, rs, rt
+	void sub(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
+	}
+
+	// Subtract unsigned
+	// subu rd, rs, rt
+	void subu(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
+	}
+
+	// And
+	// and rd, rs, rt
+	void and(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] & cpu->reg[i.rt];
+	}
+
+	// Or
+	// OR rd, rs, rt
+	void or(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] | cpu->reg[i.rt];
+	}
+
+	// Xor
+	// XOR rd, rs, rt
+	void xor(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt];
+	}
+
+	// Nor
+	// NOR rd, rs, rt
+	void nor(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]);
+	}
+
+	// Set On Less Than Signed
+	// SLT rd, rs, rt
+	void slt(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		if ((int32_t)cpu->reg[i.rs] < (int32_t)cpu->reg[i.rt]) cpu->reg[i.rd] = 1;
+		else cpu->reg[i.rd] = 0;
+	}
+
+	// Set On Less Than Unsigned
+	// SLTU rd, rs, rt
+	void sltu(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		if (cpu->reg[i.rs] < cpu->reg[i.rt]) cpu->reg[i.rd] = 1;
+		else cpu->reg[i.rd] = 0;
 	}
 
 	void branch(CPU* cpu, Opcode i)
@@ -423,10 +474,7 @@ namespace mipsInstructions
 		 		cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
 		 	}
 		}
-
-		else {
-			invalid(cpu, i);
-		}
+		else invalid(cpu, i);
 	}
 
 	// Jump
@@ -455,7 +503,6 @@ namespace mipsInstructions
 	void beq(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rs, i.rt, i.imm);
-
 		if (cpu->reg[i.rt] == cpu->reg[i.rs]) {
 			cpu->shouldJump = true;
 			cpu->isJumpCycle = false;
@@ -468,7 +515,6 @@ namespace mipsInstructions
 	void bgtz(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, 0x%x", i.rs, i.imm);
-
 		if (cpu->reg[i.rs] > 0) {
 			cpu->shouldJump = true;
 			cpu->isJumpCycle = false;
@@ -481,7 +527,6 @@ namespace mipsInstructions
 	void blez(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, 0x%x", i.rs, i.imm);
-
 		if (cpu->reg[i.rs] == 0 || (cpu->reg[i.rs] & 0x80000000)) {
 			cpu->shouldJump = true;
 			cpu->isJumpCycle = false;
@@ -494,7 +539,6 @@ namespace mipsInstructions
 	void bne(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rs, i.rt, i.imm);
-
 		if (cpu->reg[i.rt] != cpu->reg[i.rs]) {
 			cpu->shouldJump = true;
 			cpu->isJumpCycle = false;
@@ -507,7 +551,6 @@ namespace mipsInstructions
 	void addi(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.offset);
-
 		cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 	}
 
@@ -515,9 +558,7 @@ namespace mipsInstructions
 	// ADDIU rt, rs, imm
 	void addiu(CPU *cpu, Opcode i)
 	{
-		mnemonic("ADDIU");
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.offset);
-
 		cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 	}
 
@@ -526,7 +567,6 @@ namespace mipsInstructions
 	void slti(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-
 		if ((int32_t)cpu->reg[i.rs] < (int32_t)i.offset) cpu->reg[i.rt] = 1;
 		else cpu->reg[i.rt] = 0;
 	}
@@ -536,7 +576,6 @@ namespace mipsInstructions
 	void sltiu(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-
 		if (cpu->reg[i.rs] < (uint32_t)i.imm) cpu->reg[i.rt] = 1;
 		else cpu->reg[i.rt] = 0;
 	}
@@ -546,7 +585,6 @@ namespace mipsInstructions
 	void andi(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-
 		cpu->reg[i.rt] = cpu->reg[i.rs] & i.imm;
 	}
 
@@ -555,7 +593,6 @@ namespace mipsInstructions
 	void ori(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-
 		cpu->reg[i.rt] = cpu->reg[i.rs] | i.imm;
 	}
 
@@ -564,7 +601,6 @@ namespace mipsInstructions
 	void xori(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-
 		cpu->reg[i.rt] = cpu->reg[i.rs] ^ i.imm;
 	}
 
@@ -573,7 +609,6 @@ namespace mipsInstructions
 	void lui(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, 0x%x", i.rt, i.imm);
-
 		cpu->reg[i.rt] = i.imm << 16;
 	}
 
@@ -607,21 +642,15 @@ namespace mipsInstructions
 		// RFE
 		else if (i.rs == 16)
 		{
-			if (i.fun == 16) {
+			if (i.fun == 16) 
+			{
 				mnemonic("RFE");
 				disasm("");
 				printf("RFE TODO\n");
 			}
-			else
-			{
-				invalid(cpu, i);
-			}
-
+			else invalid(cpu, i);
 		}
-		else
-		{
-			invalid(cpu, i);
-		}
+		else invalid(cpu, i);
 	}
 
 	// Load Byte
@@ -629,7 +658,6 @@ namespace mipsInstructions
 	void lb(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
-
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->reg[i.rt] = ((int32_t)(readMemory8(addr) << 24)) >> 24;
 	}
@@ -639,7 +667,6 @@ namespace mipsInstructions
 	void lh(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
-
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->reg[i.rt] = ((int32_t)(readMemory16(addr) << 16)) >> 16;
 	}
@@ -649,7 +676,6 @@ namespace mipsInstructions
 	void lw(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
-
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->reg[i.rt] = readMemory32(addr);
 	}
@@ -659,7 +685,6 @@ namespace mipsInstructions
 	void lbu(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
-
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->reg[i.rt] = readMemory8(addr);
 	}
@@ -669,7 +694,6 @@ namespace mipsInstructions
 	void lhu(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
-
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->reg[i.rt] = readMemory16(addr);
 	}

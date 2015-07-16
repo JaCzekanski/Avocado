@@ -117,22 +117,26 @@ uint8_t readMemory(uint32_t address)
 		if (address >= 0x0000 && address <= 0x0024) part = 4; 
 		else if (address >= 0x0040 && address <  0x0050) part = 5;
 		else if (address >= 0x0050 && address <  0x0060) part = 6;
-		else if (address >= 0x0060 && address <= 0x0063) part = 7;
-		else if (address >= 0x0070 && address <= 0x0077) part = 8;
-		else if (address >= 0x0080 && address <= 0x00FF) part = 9;
-		else if (address >= 0x0100 && address <= 0x012F) {
+		else if (address >= 0x0060 && address <  0x0064) part = 7;
+		else if (address >= 0x0070 && address <  0x0078) part = 8;
+		else if (address >= 0x0080 && address <  0x0100) part = 9;
+		else if (address >= 0x0100 && address <  0x0130) {
 			if (address >= 0x100 && address < 0x110) part = 10;
 			else if (address >= 0x110 && address < 0x120) part = 11;
 			else if (address >= 0x120 && address < 0x130) part = 12;
 		}
-		else if (address >= 0x0800 && address <= 0x0803) part = 13;
-		else if (address >= 0x0810 && address <= 0x0818) part = 14;
-		else if (address >= 0x0820 && address <= 0x0828) part = 15;
+		else if (address >= 0x0800 && address < 0x0804) part = 13;
+		else if (address >= 0x0810 && address < 0x0818) {
+			part = 14;
+			if (address >= 0x814 && address <= 0x817)
+				return (0x1C000000) >> ((address - 0x814) * 8);
+		}
+		else if (address >= 0x0820 && address <  0x0828) part = 15;
 		else if (address >= 0x0C00 && address <  0x0D80) part = 16;
 		else if (address >= 0x0D80 && address <  0x0DC0) part = 17;
 		else if (address >= 0x0DC0 && address <  0x0E00) part = 18;
 		else if (address >= 0x0E00 && address <  0x1000) part = 19;
-		else if (address >= 0x1020 && address <= 0x102f) {
+		else if (address >= 0x1020 && address <  0x1030) {
 			//part = 20;
 			part = 0;
 			if (address == 0x1021) return 0x0c;
@@ -291,7 +295,7 @@ void writeMemory32(uint32_t address, uint32_t data)
 	if (part > 1 && memoryAccessLogging) printf("%12s W32: 0x%08x - 0x%08x\n", memoryRegion[part], address, data);
 }
 
-std::string _mnemonic = "";
+char* _mnemonic;
 std::string _disasm = "";
 
 void executeInstruction(CPU *cpu, Opcode i)
@@ -299,13 +303,14 @@ void executeInstruction(CPU *cpu, Opcode i)
 	uint32_t addr = 0;
 
 	cpu->isJumpCycle = true;
-	
-	auto op = OpcodeTable[i.op];
+
+	const auto &op = OpcodeTable[i.op];
+	_mnemonic = op.mnemnic;
+
 	op.instruction(cpu, i);
 
-	if (_mnemonic.empty()) _mnemonic = op.mnemnic;
 	if (disassemblyEnabled) 
-		printf("   0x%08x  %08x:    %s %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _mnemonic.c_str(), _disasm.c_str());
+		printf("   0x%08x  %08x:    %s %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _mnemonic, _disasm.c_str());
 
 	if (cpu->shouldJump && cpu->isJumpCycle) {
 		cpu->PC = cpu->jumpPC & 0xFFFFFFFC;
@@ -359,21 +364,12 @@ int main( int argc, char** argv )
 	while (cpuRunning)
 	{
 		_opcode.opcode = readMemory32(cpu.PC);
-		//if (cpu.PC == 0xbfc018d0)
-		//{
-		//	disassemblyEnabled = true;
-		//	__debugbreak();
-		//	std::string format = getStringFromRam(cpu.reg[4]);
-		//	printf("___%s\n", format.c_str());
-		//}
-
 		cpu.PC += 4;
-
 		executeInstruction(&cpu, _opcode);
 
 		cycles += 2;
 
-		if (cycles >= 564480) {
+		if (cycles >= 34000000.f/50.f) {
 			cycles = 0;
 			frames++;
 			printf("Frame: %d\n", frames);

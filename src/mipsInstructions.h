@@ -66,7 +66,7 @@ struct CPU
 typedef void(*_Instruction) (CPU*, Opcode);
 struct PrimaryInstruction
 {
-	uint8_t number;
+	uint32_t number;
 	_Instruction instruction;
 	char* mnemnic;
 };
@@ -76,6 +76,35 @@ namespace mipsInstructions
 	void invalid(CPU* cpu, Opcode i);
 	void notImplemented(CPU* cpu, Opcode i);
 	void special(CPU* cpu, Opcode i);
+
+	void sll(CPU *cpu, Opcode i);
+	void srl(CPU *cpu, Opcode i);
+	void sra(CPU *cpu, Opcode i);
+	void sllv(CPU *cpu, Opcode i);
+	void srlv(CPU *cpu, Opcode i);
+	void srav(CPU *cpu, Opcode i);
+	void jr(CPU *cpu, Opcode i);
+	void jalr(CPU *cpu, Opcode i);
+	void syscall(CPU *cpu, Opcode i);
+	void mfhi(CPU *cpu, Opcode i);
+	void mthi(CPU *cpu, Opcode i);
+	void mflo(CPU *cpu, Opcode i);
+	void mtlo(CPU *cpu, Opcode i);
+	void mult(CPU *cpu, Opcode i);
+	void multu(CPU *cpu, Opcode i);
+	void div(CPU *cpu, Opcode i);
+	void divu(CPU *cpu, Opcode i);
+	void add(CPU *cpu, Opcode i);
+	void addu(CPU *cpu, Opcode i);
+	void sub(CPU *cpu, Opcode i);
+	void subu(CPU *cpu, Opcode i);
+	void and(CPU *cpu, Opcode i);
+	void or(CPU *cpu, Opcode i);
+	void xor(CPU *cpu, Opcode i);
+	void nor(CPU *cpu, Opcode i);
+	void slt(CPU *cpu, Opcode i);
+	void sltu(CPU *cpu, Opcode i);
+
 	void branch(CPU* cpu, Opcode i);
 	void j(CPU *cpu, Opcode i);
 	void jal(CPU *cpu, Opcode i);
