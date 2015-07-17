@@ -168,13 +168,13 @@ namespace mipsInstructions
 {
 	void invalid(CPU* cpu, Opcode i)
 	{
-		printf("Invalid opcode (%s) at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC - 4, i.opcode);
+		printf("Invalid opcode (%s) at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
 		cpu->halted = true;
 	}
 
 	void notImplemented(CPU* cpu, Opcode i)
 	{
-		printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC - 4, i.opcode);
+		printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
 		cpu->halted = true;
 	}
 
@@ -193,7 +193,7 @@ namespace mipsInstructions
 		if (i.rt == 0 && i.rd == 0 && i.sh == 0) 
 		{
 			mnemonic("nop");
-			disasm("");
+			disasm(" ");
 		}
 		else 
 		{
@@ -248,7 +248,6 @@ namespace mipsInstructions
 	{
 		disasm("r%d", i.rs);
 		cpu->shouldJump = true;
-		cpu->isJumpCycle = false;
 		cpu->jumpPC = cpu->reg[i.rs];
 	}
 
@@ -258,20 +257,17 @@ namespace mipsInstructions
 	{
 		disasm("r%d r%d", i.rd, i.rs);
 		cpu->shouldJump = true;
-		cpu->isJumpCycle = false;
 		cpu->jumpPC = cpu->reg[i.rs];
-		cpu->reg[i.rd] = cpu->PC + 4;
+		cpu->reg[i.rd] = cpu->PC + 8;
 	}
 
 	// Syscall
 	// SYSCALL
 	void syscall(CPU *cpu, Opcode i)
 	{
-		disasm("");
-
-		cpu->COP0[14] = cpu->PC;// EPC - retur address from trap
-		cpu->COP0[13] = 8 << 2;// Cause, hardcoded SYSCALL
-		cpu->PC = 0x80000080;
+		cpu->COP0[14] = cpu->PC+4; // EPC - return address from trap
+		cpu->COP0[13] = 8 << 2; // Cause, hardcoded SYSCALL
+		cpu->PC = 0x80000080-4;
 	}
 
 	// Move From Hi
@@ -432,12 +428,11 @@ namespace mipsInstructions
 		// BLTZ rs, offset
 		if (i.rt == 0) {
 			mnemonic("BLTZ");
-			disasm("r%d, 0x%x", i.rs, i.imm);
+			disasm("r%d, %d", i.rs, i.offset);
 
-			if (cpu->reg[i.rs] & 0x80000000) {
+			if ((int32_t)cpu->reg[i.rs] < 0) {
 				cpu->shouldJump = true;
-				cpu->isJumpCycle = false;
-				cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 			}
 		}
 
@@ -445,33 +440,37 @@ namespace mipsInstructions
 		// BGEZ rs, offset
 		else if (i.rt == 1) {
 		 	mnemonic("BGEZ");
-		 	disasm("r%d, 0x%x", i.rs, i.imm);
+			disasm("r%d, %d", i.rs, i.offset);
 
 		 	if ((int32_t)cpu->reg[i.rs] >= 0) {
 		 		cpu->shouldJump = true;
-		 		cpu->isJumpCycle = false;
-		 		cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 		 	}
 		}
 
 		// Branch On Less Than Zero And Link
 		// bltzal rs, offset
 		else if (i.rt == 16) {
-			// TODO:
-			invalid(cpu, i);
+			mnemonic("BLTZAL");
+			disasm("r%d, %d", i.rs, i.offset);
+
+			cpu->reg[31] = cpu->PC + 8;
+			if ((int32_t)cpu->reg[i.rs] < 0) {
+				cpu->shouldJump = true;
+				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+			}
 		}
 
 		// Branch On Greater Than Or Equal To Zero And Link
 		// BGEZAL rs, offset
 		else if (i.rt == 17) {
 		 	mnemonic("BGEZAL");
-		 	disasm("r%d, 0x%x", i.rs, i.imm);
+			disasm("r%d, %d", i.rs, i.offset);
 
-		 	cpu->reg[31] = cpu->PC + 4;
+		 	cpu->reg[31] = cpu->PC + 8;
 		 	if ((int32_t)cpu->reg[i.rs] >= 0) {
 		 		cpu->shouldJump = true;
-		 		cpu->isJumpCycle = false;
-		 		cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 		 	}
 		}
 		else invalid(cpu, i);
@@ -483,7 +482,6 @@ namespace mipsInstructions
 	{
 		disasm("0x%x", i.target << 2);
 		cpu->shouldJump = true;
-		cpu->isJumpCycle = false;
 		cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target << 2);
 	}
 
@@ -493,20 +491,18 @@ namespace mipsInstructions
 	{
 		disasm("0x%x", (i.target << 2));
 		cpu->shouldJump = true;
-		cpu->isJumpCycle = false;
 		cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target << 2);
-		cpu->reg[31] = cpu->PC + 4;
+		cpu->reg[31] = cpu->PC + 8;
 	}
 
 	// Branch On Equal
 	// BEQ rs, rt, offset
 	void beq(CPU *cpu, Opcode i)
 	{
-		disasm("r%d, r%d, 0x%x", i.rs, i.rt, i.imm);
+		disasm("r%d, r%d, %d", i.rs, i.rt, i.offset);
 		if (cpu->reg[i.rt] == cpu->reg[i.rs]) {
 			cpu->shouldJump = true;
-			cpu->isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+			cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 		}
 	}
 
@@ -514,11 +510,10 @@ namespace mipsInstructions
 	// BGTZ rs, offset
 	void bgtz(CPU *cpu, Opcode i)
 	{
-		disasm("r%d, 0x%x", i.rs, i.imm);
-		if (cpu->reg[i.rs] > 0) {
+		disasm("r%d, %d", i.rs, i.offset);
+		if ((int32_t)cpu->reg[i.rs] > 0) {
 			cpu->shouldJump = true;
-			cpu->isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+			cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 		}
 	}
 
@@ -526,11 +521,10 @@ namespace mipsInstructions
 	// BLEZ rs, offset
 	void blez(CPU *cpu, Opcode i)
 	{
-		disasm("r%d, 0x%x", i.rs, i.imm);
-		if (cpu->reg[i.rs] == 0 || (cpu->reg[i.rs] & 0x80000000)) {
+		disasm("r%d, %d", i.rs, i.offset);
+		if ((int32_t)cpu->reg[i.rs] <= 0) {
 			cpu->shouldJump = true;
-			cpu->isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+			cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 		}
 	}
 
@@ -538,11 +532,10 @@ namespace mipsInstructions
 	// BNE rs, offset
 	void bne(CPU *cpu, Opcode i)
 	{
-		disasm("r%d, r%d, 0x%x", i.rs, i.rt, i.imm);
+		disasm("r%d, r%d, %d", i.rs, i.rt, i.offset);
 		if (cpu->reg[i.rt] != cpu->reg[i.rs]) {
 			cpu->shouldJump = true;
-			cpu->isJumpCycle = false;
-			cpu->jumpPC = (cpu->PC & 0xf0000000) | ((cpu->PC) + (i.offset << 2));
+			cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 		}
 	}
 
@@ -550,15 +543,15 @@ namespace mipsInstructions
 	// ADDI rt, rs, imm
 	void addi(CPU *cpu, Opcode i)
 	{
-		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.offset);
-		cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
+		disasm("r%d, r%d, %d", i.rt, i.rs, i.offset);
+		cpu->reg[i.rt] = (int32_t)cpu->reg[i.rs] + i.offset;
 	}
 
 	// Add Immediate Unsigned Word
 	// ADDIU rt, rs, imm
 	void addiu(CPU *cpu, Opcode i)
 	{
-		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.offset);
+		disasm("r%d, r%d, %d", i.rt, i.rs, i.offset);
 		cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 	}
 
@@ -645,7 +638,6 @@ namespace mipsInstructions
 			if (i.fun == 16) 
 			{
 				mnemonic("RFE");
-				disasm("");
 				printf("RFE TODO\n");
 			}
 			else invalid(cpu, i);

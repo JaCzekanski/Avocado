@@ -300,9 +300,7 @@ std::string _disasm = "";
 
 void executeInstruction(CPU *cpu, Opcode i)
 {
-	uint32_t addr = 0;
-
-	cpu->isJumpCycle = true;
+	bool isJumpCycle = cpu->shouldJump;
 
 	const auto &op = OpcodeTable[i.op];
 	_mnemonic = op.mnemnic;
@@ -310,13 +308,14 @@ void executeInstruction(CPU *cpu, Opcode i)
 	op.instruction(cpu, i);
 
 	if (disassemblyEnabled) 
-		printf("   0x%08x  %08x:    %s %s\n", cpu->PC - 4, readMemory32(cpu->PC - 4), _mnemonic, _disasm.c_str());
+		printf("   0x%08x  %08x:    %s %s\n", cpu->PC, readMemory32(cpu->PC), _mnemonic, _disasm.c_str());
 
-	if (cpu->shouldJump && cpu->isJumpCycle) {
+	if (isJumpCycle) {
 		cpu->PC = cpu->jumpPC & 0xFFFFFFFC;
 		cpu->jumpPC = 0;
 		cpu->shouldJump = false;
 	}
+	else cpu->PC += 4;
 }
 
 std::string getStringFromRam(uint32_t addr)
@@ -364,7 +363,6 @@ int main( int argc, char** argv )
 	while (cpuRunning)
 	{
 		_opcode.opcode = readMemory32(cpu.PC);
-		cpu.PC += 4;
 		executeInstruction(&cpu, _opcode);
 
 		cycles += 2;

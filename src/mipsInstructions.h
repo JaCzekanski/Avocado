@@ -45,7 +45,6 @@ struct CPU
 	uint32_t PC;
 	uint32_t jumpPC;
 	bool shouldJump;
-	bool isJumpCycle;
 	uint32_t reg[32];
 	uint32_t COP0[32];
 	uint32_t hi, lo;
