@@ -1,171 +1,172 @@
 #include "mipsInstructions.h"
+#include "mips.h"
 #include <string>
 #include "utils/string.h"
 
-PrimaryInstruction OpcodeTable[64] =
-{
-	{ 0, mipsInstructions::special, "special" }, // R type
-	{ 1, mipsInstructions::branch, "branch" },
-	{ 2, mipsInstructions::j, "j" },
-	{ 3, mipsInstructions::jal, "jal" },
-	{ 4, mipsInstructions::beq, "beq" },
-	{ 5, mipsInstructions::bne, "bne" },
-	{ 6, mipsInstructions::blez, "blez" },
-	{ 7, mipsInstructions::bgtz, "bgtz" },
+#define mnemonic(x) if (disassemblyEnabled) _mnemonic = x
+#define disasm(fmt, ...) if (disassemblyEnabled) _disasm=string_format(fmt, ##__VA_ARGS__)
 
-	{ 8, mipsInstructions::addi, "addi" },
-	{ 9, mipsInstructions::addiu, "addiu" },
-	{ 10, mipsInstructions::slti, "slti" },
-	{ 11, mipsInstructions::sltiu, "sltiu" },
-	{ 12, mipsInstructions::andi, "andi" },
-	{ 13, mipsInstructions::ori, "ori" },
-	{ 14, mipsInstructions::xori, "xori" },
-	{ 15, mipsInstructions::lui, "lui" },
-
-	{ 16, mipsInstructions::cop0, "cop0" },
-	{ 17, mipsInstructions::notImplemented, "cop1" },
-	{ 18, mipsInstructions::notImplemented, "cop2" },
-	{ 19, mipsInstructions::notImplemented, "cop3" },
-	{ 20, mipsInstructions::invalid, "INVALID" },
-	{ 21, mipsInstructions::invalid, "INVALID" },
-	{ 22, mipsInstructions::invalid, "INVALID" },
-	{ 23, mipsInstructions::invalid, "INVALID" },
-
-	{ 24, mipsInstructions::invalid, "INVALID" },
-	{ 25, mipsInstructions::invalid, "INVALID" },
-	{ 26, mipsInstructions::invalid, "INVALID" },
-	{ 27, mipsInstructions::invalid, "INVALID" },
-	{ 28, mipsInstructions::invalid, "INVALID" },
-	{ 29, mipsInstructions::invalid, "INVALID" },
-	{ 30, mipsInstructions::invalid, "INVALID" },
-	{ 31, mipsInstructions::invalid, "INVALID" },
-
-	{ 32, mipsInstructions::lb, "lb" },
-	{ 33, mipsInstructions::lh, "lh" },
-	{ 34, mipsInstructions::notImplemented, "lwl" },
-	{ 35, mipsInstructions::lw, "lw" },
-	{ 36, mipsInstructions::lbu, "lbu" },
-	{ 37, mipsInstructions::lbu, "lhu" },
-	{ 38, mipsInstructions::notImplemented, "lwr" },
-	{ 39, mipsInstructions::invalid, "INVALID" },
-
-	{ 40, mipsInstructions::sb, "sb" },
-	{ 41, mipsInstructions::sh, "sh" },
-	{ 42, mipsInstructions::notImplemented, "swl" },
-	{ 43, mipsInstructions::sw, "sw" },
-	{ 44, mipsInstructions::invalid, "INVALID" },
-	{ 45, mipsInstructions::invalid, "INVALID" },
-	{ 46, mipsInstructions::notImplemented, "swr" },
-	{ 47, mipsInstructions::invalid, "INVALID" },
-
-	{ 48, mipsInstructions::notImplemented, "lwc0" },
-	{ 49, mipsInstructions::notImplemented, "lwc1" },
-	{ 50, mipsInstructions::notImplemented, "lwc2" },
-	{ 51, mipsInstructions::notImplemented, "lwc3" },
-	{ 52, mipsInstructions::invalid, "INVALID" },
-	{ 53, mipsInstructions::invalid, "INVALID" },
-	{ 54, mipsInstructions::invalid, "INVALID" },
-	{ 55, mipsInstructions::invalid, "INVALID" },
-
-	{ 56, mipsInstructions::notImplemented, "swc0" },
-	{ 57, mipsInstructions::notImplemented, "swc1" },
-	{ 58, mipsInstructions::notImplemented, "swc2" },
-	{ 59, mipsInstructions::notImplemented, "swc3" },
-	{ 60, mipsInstructions::invalid, "INVALID" },
-	{ 61, mipsInstructions::invalid, "INVALID" },
-	{ 62, mipsInstructions::invalid, "INVALID" },
-	{ 63, mipsInstructions::invalid, "INVALID" },
-};
-
-PrimaryInstruction SpecialTable[64] =
-{
-	{ 0, mipsInstructions::sll, "sll" },
-	{ 1, mipsInstructions::invalid, "INVALID" },
-	{ 2, mipsInstructions::srl, "stl" },
-	{ 3, mipsInstructions::sra, "sra" },
-	{ 4, mipsInstructions::sllv, "sllv" },
-	{ 5, mipsInstructions::invalid, "INVALID" },
-	{ 6, mipsInstructions::srlv, "srlv" },
-	{ 7, mipsInstructions::srav, "srav" },
-
-	{ 8, mipsInstructions::jr, "jr" },
-	{ 9, mipsInstructions::jalr, "jalr" },
-	{ 10, mipsInstructions::invalid, "INVALID" },
-	{ 11, mipsInstructions::invalid, "INVALID" },
-	{ 12, mipsInstructions::syscall, "syscall" },
-	{ 13, mipsInstructions::notImplemented, "break" },
-	{ 14, mipsInstructions::invalid, "INVALID" },
-	{ 15, mipsInstructions::invalid, "INVALID" },
-
-	{ 16, mipsInstructions::mfhi, "mfhi" },
-	{ 17, mipsInstructions::mthi, "mthi" },
-	{ 18, mipsInstructions::mflo, "mflo" },
-	{ 19, mipsInstructions::mtlo, "mtlo" },
-	{ 20, mipsInstructions::invalid, "INVALID" },
-	{ 21, mipsInstructions::invalid, "INVALID" },
-	{ 22, mipsInstructions::invalid, "INVALID" },
-	{ 23, mipsInstructions::invalid, "INVALID" },
-
-	{ 24, mipsInstructions::mult, "mult" },
-	{ 25, mipsInstructions::multu, "multu" },
-	{ 26, mipsInstructions::div, "div" },
-	{ 27, mipsInstructions::divu, "divu" },
-	{ 28, mipsInstructions::invalid, "INVALID" },
-	{ 29, mipsInstructions::invalid, "INVALID" },
-	{ 30, mipsInstructions::invalid, "INVALID" },
-	{ 31, mipsInstructions::invalid, "INVALID" },
-
-	{ 32, mipsInstructions::add, "add" },
-	{ 33, mipsInstructions::addu, "addu" },
-	{ 34, mipsInstructions::sub, "sub" },
-	{ 35, mipsInstructions::subu, "subu" },
-	{ 36, mipsInstructions::and, "and" },
-	{ 37, mipsInstructions::or, "or" },
-	{ 38, mipsInstructions::xor, "xor" },
-	{ 39, mipsInstructions::nor, "nor" },
-
-	{ 40, mipsInstructions::invalid, "INVALID" },
-	{ 41, mipsInstructions::invalid, "INVALID" },
-	{ 42, mipsInstructions::slt, "slt" },
-	{ 43, mipsInstructions::sltu, "sltu" },
-	{ 44, mipsInstructions::invalid, "INVALID" },
-	{ 45, mipsInstructions::invalid, "INVALID" },
-	{ 46, mipsInstructions::invalid, "INVALID" },
-	{ 47, mipsInstructions::invalid, "INVALID" },
-
-	{ 48, mipsInstructions::invalid, "INVALID" },
-	{ 49, mipsInstructions::invalid, "INVALID" },
-	{ 50, mipsInstructions::invalid, "INVALID" },
-	{ 51, mipsInstructions::invalid, "INVALID" },
-	{ 52, mipsInstructions::invalid, "INVALID" },
-	{ 53, mipsInstructions::invalid, "INVALID" },
-	{ 54, mipsInstructions::invalid, "INVALID" },
-	{ 55, mipsInstructions::invalid, "INVALID" },
-
-	{ 56, mipsInstructions::invalid, "INVALID" },
-	{ 57, mipsInstructions::invalid, "INVALID" },
-	{ 58, mipsInstructions::invalid, "INVALID" },
-	{ 59, mipsInstructions::invalid, "INVALID" },
-	{ 60, mipsInstructions::invalid, "INVALID" },
-	{ 61, mipsInstructions::invalid, "INVALID" },
-	{ 62, mipsInstructions::invalid, "INVALID" },
-	{ 63, mipsInstructions::invalid, "INVALID" },
-};
+using namespace mips;
 
 extern bool disassemblyEnabled;
-extern bool IsC;
+extern bool memoryAccessLogging;
 extern char* _mnemonic;
 extern std::string _disasm;
 
-uint8_t readMemory8(uint32_t address);
-uint16_t readMemory16(uint32_t address);
-uint32_t readMemory32(uint32_t address);
-void writeMemory8(uint32_t address, uint8_t data);
-void writeMemory16(uint32_t address, uint16_t data);
-void writeMemory32(uint32_t address, uint32_t data);
-
 namespace mipsInstructions
 {
+	PrimaryInstruction OpcodeTable[64] =
+	{
+		{ 0, special, "special" }, // R type
+		{ 1, branch, "branch" },
+		{ 2, j, "j" },
+		{ 3, jal, "jal" },
+		{ 4, beq, "beq" },
+		{ 5, bne, "bne" },
+		{ 6, blez, "blez" },
+		{ 7, bgtz, "bgtz" },
+
+		{ 8, addi, "addi" },
+		{ 9, addiu, "addiu" },
+		{ 10, slti, "slti" },
+		{ 11, sltiu, "sltiu" },
+		{ 12, andi, "andi" },
+		{ 13, ori, "ori" },
+		{ 14, xori, "xori" },
+		{ 15, lui, "lui" },
+
+		{ 16, cop0, "cop0" },
+		{ 17, notImplemented, "cop1" },
+		{ 18, notImplemented, "cop2" },
+		{ 19, notImplemented, "cop3" },
+		{ 20, invalid, "INVALID" },
+		{ 21, invalid, "INVALID" },
+		{ 22, invalid, "INVALID" },
+		{ 23, invalid, "INVALID" },
+
+		{ 24, invalid, "INVALID" },
+		{ 25, invalid, "INVALID" },
+		{ 26, invalid, "INVALID" },
+		{ 27, invalid, "INVALID" },
+		{ 28, invalid, "INVALID" },
+		{ 29, invalid, "INVALID" },
+		{ 30, invalid, "INVALID" },
+		{ 31, invalid, "INVALID" },
+
+		{ 32, lb, "lb" },
+		{ 33, lh, "lh" },
+		{ 34, notImplemented, "lwl" },
+		{ 35, lw, "lw" },
+		{ 36, lbu, "lbu" },
+		{ 37, lbu, "lhu" },
+		{ 38, notImplemented, "lwr" },
+		{ 39, invalid, "INVALID" },
+
+		{ 40, sb, "sb" },
+		{ 41, sh, "sh" },
+		{ 42, notImplemented, "swl" },
+		{ 43, sw, "sw" },
+		{ 44, invalid, "INVALID" },
+		{ 45, invalid, "INVALID" },
+		{ 46, notImplemented, "swr" },
+		{ 47, invalid, "INVALID" },
+
+		{ 48, notImplemented, "lwc0" },
+		{ 49, notImplemented, "lwc1" },
+		{ 50, notImplemented, "lwc2" },
+		{ 51, notImplemented, "lwc3" },
+		{ 52, invalid, "INVALID" },
+		{ 53, invalid, "INVALID" },
+		{ 54, invalid, "INVALID" },
+		{ 55, invalid, "INVALID" },
+
+		{ 56, notImplemented, "swc0" },
+		{ 57, notImplemented, "swc1" },
+		{ 58, notImplemented, "swc2" },
+		{ 59, notImplemented, "swc3" },
+		{ 60, invalid, "INVALID" },
+		{ 61, invalid, "INVALID" },
+		{ 62, invalid, "INVALID" },
+		{ 63, invalid, "INVALID" },
+	};
+
+	PrimaryInstruction SpecialTable[64] =
+	{
+		{ 0, sll, "sll" },
+		{ 1, invalid, "INVALID" },
+		{ 2, srl, "stl" },
+		{ 3, sra, "sra" },
+		{ 4, sllv, "sllv" },
+		{ 5, invalid, "INVALID" },
+		{ 6, srlv, "srlv" },
+		{ 7, srav, "srav" },
+
+		{ 8, jr, "jr" },
+		{ 9, jalr, "jalr" },
+		{ 10, invalid, "INVALID" },
+		{ 11, invalid, "INVALID" },
+		{ 12, syscall, "syscall" },
+		{ 13, notImplemented, "break" },
+		{ 14, invalid, "INVALID" },
+		{ 15, invalid, "INVALID" },
+
+		{ 16, mfhi, "mfhi" },
+		{ 17, mthi, "mthi" },
+		{ 18, mflo, "mflo" },
+		{ 19, mtlo, "mtlo" },
+		{ 20, invalid, "INVALID" },
+		{ 21, invalid, "INVALID" },
+		{ 22, invalid, "INVALID" },
+		{ 23, invalid, "INVALID" },
+
+		{ 24, mult, "mult" },
+		{ 25, multu, "multu" },
+		{ 26, div, "div" },
+		{ 27, divu, "divu" },
+		{ 28, invalid, "INVALID" },
+		{ 29, invalid, "INVALID" },
+		{ 30, invalid, "INVALID" },
+		{ 31, invalid, "INVALID" },
+
+		{ 32, add, "add" },
+		{ 33, addu, "addu" },
+		{ 34, sub, "sub" },
+		{ 35, subu, "subu" },
+		{ 36, and, "and" },
+		{ 37, or, "or" },
+		{ 38, xor, "xor" },
+		{ 39, nor, "nor" },
+
+		{ 40, invalid, "INVALID" },
+		{ 41, invalid, "INVALID" },
+		{ 42, slt, "slt" },
+		{ 43, sltu, "sltu" },
+		{ 44, invalid, "INVALID" },
+		{ 45, invalid, "INVALID" },
+		{ 46, invalid, "INVALID" },
+		{ 47, invalid, "INVALID" },
+
+		{ 48, invalid, "INVALID" },
+		{ 49, invalid, "INVALID" },
+		{ 50, invalid, "INVALID" },
+		{ 51, invalid, "INVALID" },
+		{ 52, invalid, "INVALID" },
+		{ 53, invalid, "INVALID" },
+		{ 54, invalid, "INVALID" },
+		{ 55, invalid, "INVALID" },
+
+		{ 56, invalid, "INVALID" },
+		{ 57, invalid, "INVALID" },
+		{ 58, invalid, "INVALID" },
+		{ 59, invalid, "INVALID" },
+		{ 60, invalid, "INVALID" },
+		{ 61, invalid, "INVALID" },
+		{ 62, invalid, "INVALID" },
+		{ 63, invalid, "INVALID" },
+	};
+
+	int part = 0;
+
 	void invalid(CPU* cpu, Opcode i)
 	{
 		printf("Invalid opcode (%s) at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
@@ -183,19 +184,18 @@ namespace mipsInstructions
 		const auto &instruction = SpecialTable[i.fun];
 		mnemonic(instruction.mnemnic);
 		instruction.instruction(cpu, i);
-		// TODO: break
 	}
 
 	// Shift Word Left Logical
 	// SLL rd, rt, a
 	void sll(CPU *cpu, Opcode i)
 	{
-		if (i.rt == 0 && i.rd == 0 && i.sh == 0) 
+		if (i.rt == 0 && i.rd == 0 && i.sh == 0)
 		{
 			mnemonic("nop");
 			disasm(" ");
 		}
-		else 
+		else
 		{
 			disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
 			cpu->reg[i.rd] = cpu->reg[i.rt] << i.sh;
@@ -228,7 +228,7 @@ namespace mipsInstructions
 
 	// Shift Word Right Logical Variable
 	// SRLV rd, rt, a
-	void srlv(CPU *cpu, Opcode i) 
+	void srlv(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
 		cpu->reg[i.rd] = cpu->reg[i.rt] >> (cpu->reg[i.rs] & 0x1f);
@@ -265,9 +265,9 @@ namespace mipsInstructions
 	// SYSCALL
 	void syscall(CPU *cpu, Opcode i)
 	{
-		cpu->COP0[14] = cpu->PC+4; // EPC - return address from trap
+		cpu->COP0[14] = cpu->PC + 4; // EPC - return address from trap
 		cpu->COP0[13] = 8 << 2; // Cause, hardcoded SYSCALL
-		cpu->PC = 0x80000080-4;
+		cpu->PC = 0x80000080 - 4;
 	}
 
 	// Move From Hi
@@ -424,9 +424,11 @@ namespace mipsInstructions
 
 	void branch(CPU* cpu, Opcode i)
 	{
-		// Branch On Less Than Zero
-		// BLTZ rs, offset
-		if (i.rt == 0) {
+		switch (i.rt)
+		{
+		case 0:
+			// Branch On Less Than Zero
+			// BLTZ rs, offset
 			mnemonic("BLTZ");
 			disasm("r%d, %d", i.rs, i.offset);
 
@@ -434,23 +436,24 @@ namespace mipsInstructions
 				cpu->shouldJump = true;
 				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 			}
-		}
+			break;
 
-		// Branch On Greater Than Or Equal To Zero
-		// BGEZ rs, offset
-		else if (i.rt == 1) {
-		 	mnemonic("BGEZ");
+
+		case 1:
+			// Branch On Greater Than Or Equal To Zero
+			// BGEZ rs, offset
+			mnemonic("BGEZ");
 			disasm("r%d, %d", i.rs, i.offset);
 
-		 	if ((int32_t)cpu->reg[i.rs] >= 0) {
-		 		cpu->shouldJump = true;
+			if ((int32_t)cpu->reg[i.rs] >= 0) {
+				cpu->shouldJump = true;
 				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
-		 	}
-		}
+			}
+			break;
 
-		// Branch On Less Than Zero And Link
-		// bltzal rs, offset
-		else if (i.rt == 16) {
+		case 16:
+			// Branch On Less Than Zero And Link
+			// bltzal rs, offset
 			mnemonic("BLTZAL");
 			disasm("r%d, %d", i.rs, i.offset);
 
@@ -459,21 +462,24 @@ namespace mipsInstructions
 				cpu->shouldJump = true;
 				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
 			}
-		}
+			break;
 
-		// Branch On Greater Than Or Equal To Zero And Link
-		// BGEZAL rs, offset
-		else if (i.rt == 17) {
-		 	mnemonic("BGEZAL");
+		case 17:
+			// Branch On Greater Than Or Equal To Zero And Link
+			// BGEZAL rs, offset
+			mnemonic("BGEZAL");
 			disasm("r%d, %d", i.rs, i.offset);
 
-		 	cpu->reg[31] = cpu->PC + 8;
-		 	if ((int32_t)cpu->reg[i.rs] >= 0) {
-		 		cpu->shouldJump = true;
+			cpu->reg[31] = cpu->PC + 8;
+			if ((int32_t)cpu->reg[i.rs] >= 0) {
+				cpu->shouldJump = true;
 				cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
-		 	}
+			}
+			break;
+
+		default:
+			invalid(cpu, i);
 		}
-		else invalid(cpu, i);
 	}
 
 	// Jump
@@ -608,41 +614,37 @@ namespace mipsInstructions
 	// Coprocessor zero
 	void cop0(CPU *cpu, Opcode i)
 	{
-		// Move from co-processor zero
-		// MFC0 rd, <nn>
-		if (i.rs == 0)
+		switch (i.rs)
 		{
+		case 0:
+			// Move from co-processor zero
+			// MFC0 rd, <nn>
 			mnemonic("MFC0");
 			disasm("r%d, $%d", i.rt, i.rd);
 
-			uint32_t tmp = cpu->COP0[i.rd];
-			cpu->reg[i.rt] = tmp;
-		}
+			cpu->reg[i.rt] = cpu->COP0[i.rd];
+			break;
 
-		// Move to co-processor zero
-		// MTC0 rs, <nn>
-		else if (i.rs == 4)
-		{
+		case 4:
+			// Move to co-processor zero
+			// MTC0 rs, <nn>
 			mnemonic("MTC0");
 			disasm("r%d, $%d", i.rt, i.rd);
 
-			uint32_t tmp = cpu->reg[i.rt];
-			cpu->COP0[i.rd] = tmp;
-			if (i.rd == 12) IsC = (tmp & 0x10000) ? true : false;
-		}
+			cpu->COP0[i.rd] = cpu->reg[i.rt];
+			if (i.rd == 12) cpu->IsC = (cpu->COP0[i.rd] & 0x10000) ? true : false;
+			break;
 
-		// Restore from exception
-		// RFE
-		else if (i.rs == 16)
-		{
-			if (i.fun == 16) 
-			{
-				mnemonic("RFE");
-				printf("RFE TODO\n");
-			}
-			else invalid(cpu, i);
+		case 16:
+			// Restore from exception
+			// RFE
+			mnemonic("RFE");
+			printf("RFE TODO\n");
+			break;
+
+		default:
+			invalid(cpu, i);
 		}
-		else invalid(cpu, i);
 	}
 
 	// Load Byte
@@ -651,7 +653,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		cpu->reg[i.rt] = ((int32_t)(readMemory8(addr) << 24)) >> 24;
+		cpu->reg[i.rt] = ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24;
 	}
 
 	// Load Halfword 
@@ -660,7 +662,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		cpu->reg[i.rt] = ((int32_t)(readMemory16(addr) << 16)) >> 16;
+		cpu->reg[i.rt] = ((int32_t)(cpu->readMemory16(addr) << 16)) >> 16;
 	}
 
 	// Load Word
@@ -669,7 +671,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		cpu->reg[i.rt] = readMemory32(addr);
+		cpu->reg[i.rt] = cpu->readMemory32(addr);
 	}
 
 	// Load Byte Unsigned
@@ -678,7 +680,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		cpu->reg[i.rt] = readMemory8(addr);
+		cpu->reg[i.rt] = cpu->readMemory8(addr);
 	}
 
 	// Load Halfword Unsigned
@@ -687,7 +689,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		cpu->reg[i.rt] = readMemory16(addr);
+		cpu->reg[i.rt] = cpu->readMemory16(addr);
 	}
 
 	// Store Byte
@@ -696,7 +698,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		writeMemory8(addr, cpu->reg[i.rt]);
+		cpu->writeMemory8(addr, cpu->reg[i.rt]);
 	}
 
 	// Store Halfword
@@ -705,7 +707,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		writeMemory16(addr, cpu->reg[i.rt]);
+		cpu->writeMemory16(addr, cpu->reg[i.rt]);
 	}
 
 	// Store Word
@@ -714,6 +716,6 @@ namespace mipsInstructions
 	{
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
-		writeMemory32(addr, cpu->reg[i.rt]);
+		cpu->writeMemory32(addr, cpu->reg[i.rt]);
 	}
 };
