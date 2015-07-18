@@ -1,5 +1,8 @@
 #!/bin/sh
+SRC=`find src/ | grep '\(\.cpp$\)'`
+CXXFLAGS=-std=c++11 -Wno-write-strings `sdl2-config --cflags --libs`
+OUTPUT=build/avocado
 rm -rf build/
 mkdir -p build
 $CXX --version
-$CXX src/main.cpp src/mipsInstructions.cpp src/utils/file.cpp src/utils/string.cpp `sdl2-config --cflags --libs` -std=c++11 -Wno-write-strings -o build/avocado
+$CXX $CXXFLAGS -o $OUTPUT $SRC
