@@ -61,6 +61,7 @@ namespace mipsInstructions
 	void jr(mips::CPU* cpu, Opcode i);
 	void jalr(mips::CPU* cpu, Opcode i);
 	void syscall(mips::CPU* cpu, Opcode i);
+	void break_(mips::CPU *cpu, Opcode i);
 	void mfhi(mips::CPU* cpu, Opcode i);
 	void mthi(mips::CPU* cpu, Opcode i);
 	void mflo(mips::CPU* cpu, Opcode i);
@@ -98,14 +99,18 @@ namespace mipsInstructions
 	void cop0(mips::CPU* cpu, Opcode i);
 	void lb(mips::CPU* cpu, Opcode i);
 	void lh(mips::CPU* cpu, Opcode i);
+	void lwl(mips::CPU* cpu, Opcode i);
 	void lwu(mips::CPU* cpu, Opcode i);
 	void lw(mips::CPU* cpu, Opcode i);
 	void lbu(mips::CPU* cpu, Opcode i);
 	void lhu(mips::CPU* cpu, Opcode i);
+	void lwr(mips::CPU* cpu, Opcode i);
 	void sb(mips::CPU* cpu, Opcode i);
 	void sh(mips::CPU* cpu, Opcode i);
 	void sh(mips::CPU* cpu, Opcode i);
+	void swl(mips::CPU* cpu, Opcode i);
 	void sw(mips::CPU* cpu, Opcode i);
+	void swr(mips::CPU* cpu, Opcode i);
 
 	extern PrimaryInstruction OpcodeTable[64];
 };

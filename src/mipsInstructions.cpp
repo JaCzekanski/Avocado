@@ -55,20 +55,20 @@ namespace mipsInstructions
 
 		{ 32, lb, "lb" },
 		{ 33, lh, "lh" },
-		{ 34, notImplemented, "lwl" },
+		{ 34, lwl, "lwl" },
 		{ 35, lw, "lw" },
 		{ 36, lbu, "lbu" },
 		{ 37, lbu, "lhu" },
-		{ 38, notImplemented, "lwr" },
+		{ 38, lwr, "lwr" },
 		{ 39, invalid, "INVALID" },
 
 		{ 40, sb, "sb" },
 		{ 41, sh, "sh" },
-		{ 42, notImplemented, "swl" },
+		{ 42, swl, "swl" },
 		{ 43, sw, "sw" },
 		{ 44, invalid, "INVALID" },
 		{ 45, invalid, "INVALID" },
-		{ 46, notImplemented, "swr" },
+		{ 46, swr, "swr" },
 		{ 47, invalid, "INVALID" },
 
 		{ 48, notImplemented, "lwc0" },
@@ -106,7 +106,7 @@ namespace mipsInstructions
 		{ 10, invalid, "INVALID" },
 		{ 11, invalid, "INVALID" },
 		{ 12, syscall, "syscall" },
-		{ 13, notImplemented, "break" },
+		{ 13, break_, "break" },
 		{ 14, invalid, "INVALID" },
 		{ 15, invalid, "INVALID" },
 
@@ -270,6 +270,15 @@ namespace mipsInstructions
 		cpu->PC = 0x80000080 - 4;
 	}
 
+	// Break
+	// BREAK
+	void break_(CPU *cpu, Opcode i)
+	{
+		cpu->COP0[14] = cpu->PC + 4; // EPC - return address from trap
+		cpu->COP0[13] = 9 << 2; // Cause, hardcoded SYSCALL
+		cpu->PC = 0x80000080 - 4;
+	}
+
 	// Move From Hi
 	// MFHI rd
 	void mfhi(CPU *cpu, Opcode i)
@@ -327,6 +336,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, r%d", i.rs, i.rt);
 		// TODO: Check for 0
+		if (cpu->reg[i.rt] == 0) return;
 		cpu->lo = (int32_t)cpu->reg[i.rs] / (int32_t)cpu->reg[i.rt];
 		cpu->hi = (int32_t)cpu->reg[i.rs] % (int32_t)cpu->reg[i.rt];
 	}
@@ -337,6 +347,7 @@ namespace mipsInstructions
 	{
 		disasm("r%d, r%d", i.rs, i.rt);
 		// TODO: Check for 0
+		if (cpu->reg[i.rt] == 0) return;
 		cpu->lo = cpu->reg[i.rs] / cpu->reg[i.rt];
 		cpu->hi = cpu->reg[i.rs] % cpu->reg[i.rt];
 	}
@@ -638,8 +649,18 @@ namespace mipsInstructions
 		case 16:
 			// Restore from exception
 			// RFE
+		{
 			mnemonic("RFE");
-			printf("RFE TODO\n");
+
+			uint32_t sr = cpu->COP0[12];
+			sr &= ~3;
+			sr |= (sr & 0xc) >> 2;
+
+			sr &= ~0xc;
+			sr |= (sr & 0x30) >> 2;
+
+			cpu->COP0[12] = sr;
+		}
 			break;
 
 		default:
@@ -663,6 +684,37 @@ namespace mipsInstructions
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->reg[i.rt] = ((int32_t)(cpu->readMemory16(addr) << 16)) >> 16;
+	}
+
+	// Load Word Right 
+	// LWL rt, offset(base)
+	void lwl(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
+
+
+		uint32_t addr = cpu->reg[i.rs] + i.offset;
+		uint32_t rt = cpu->reg[i.rt];
+		uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+
+		uint32_t result = 0;
+
+		switch (i.offset % 4)
+		{
+		case 0:
+			result = word;
+			break;
+		case 1:
+			result = (word << 8) | (rt & 0xff);
+			break;
+		case 2:
+			result = (word << 16) | (rt & 0xffff);
+			break;
+		case 3:
+			result = (word << 24) | (rt & 0xffffff);
+			break;
+		}
+		cpu->reg[i.rt] = result;
 	}
 
 	// Load Word
@@ -692,6 +744,38 @@ namespace mipsInstructions
 		cpu->reg[i.rt] = cpu->readMemory16(addr);
 	}
 
+
+	// Load Word Right 
+	// LWR rt, offset(base)
+	void lwr(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
+
+
+		uint32_t addr = cpu->reg[i.rs] + i.offset;
+		uint32_t rt = cpu->reg[i.rt];
+		uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+
+		uint32_t result = 0;
+
+		switch (i.offset % 4)
+		{
+		case 0:
+			result = word;
+			break;
+		case 1:
+			result = (rt & 0xff000000) | (word >> 8);
+			break;
+		case 2:
+			result = (rt & 0xffff0000) | (word >> 16);
+			break;
+		case 3:
+			result = (rt & 0xffffff00) | (word >> 24);
+			break;
+		}
+		cpu->reg[i.rt] = result;
+	}
+
 	// Store Byte
 	// SB rt, offset(base)
 	void sb(CPU *cpu, Opcode i)
@@ -710,6 +794,38 @@ namespace mipsInstructions
 		cpu->writeMemory16(addr, cpu->reg[i.rt]);
 	}
 
+
+	// Store Word Left 
+	// SWL rt, offset(base)
+	void swl(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
+
+		uint32_t addr = cpu->reg[i.rs] + i.offset;
+		uint32_t rt = cpu->reg[i.rt];
+		uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+
+		uint32_t result = 0;
+
+		switch (i.offset % 4)
+		{
+		case 0:
+			result = rt;
+			break;
+		case 1:
+			result = (word & 0xff000000) | ((rt >> 8) & 0xffffff);
+			break;
+		case 2:
+			result = (word & 0xffff0000) | ((rt >> 16) & 0xffff);
+			break;
+		case 3:
+			result = (word & 0xffffff00) | ((rt >> 24) & 0xff);
+			break;
+		}
+		cpu->writeMemory32(addr & 0xfffffffc, result);
+	}
+
+
 	// Store Word
 	// SW rt, offset(base)
 	void sw(CPU *cpu, Opcode i)
@@ -717,5 +833,36 @@ namespace mipsInstructions
 		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
 		uint32_t addr = cpu->reg[i.rs] + i.offset;
 		cpu->writeMemory32(addr, cpu->reg[i.rt]);
+	}
+
+
+	// Store Word Right 
+	// SWR rt, offset(base)
+	void swr(CPU *cpu, Opcode i)
+	{
+		disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
+
+		uint32_t addr = cpu->reg[i.rs] + i.offset;
+		uint32_t rt = cpu->reg[i.rt];
+		uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+
+		uint32_t result = 0;
+
+		switch (i.offset % 4)
+		{
+		case 0:
+			result = rt;
+			break;
+		case 1:
+			result = ((rt << 8) & 0xffffff00) | (word & 0xff);
+			break;
+		case 2:
+			result = ((rt << 16) & 0xffff0000) | (word & 0xffff);
+			break;
+		case 3:
+			result = ((rt << 24) & 0xff000000) | (word & 0xffffff);
+			break;
+		}
+		cpu->writeMemory32(addr & 0xfffffffc, result);
 	}
 };

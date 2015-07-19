@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "device/gpu.h"
 
 namespace mips
 {
@@ -60,9 +61,16 @@ namespace mips
 		uint8_t expansion[0x10000];
 
 	private:
+		// Devices
+		device::gpu::GPU *gpu = nullptr;
+
 		uint8_t readMemory(uint32_t address);
 		void writeMemory(uint32_t address, uint8_t data);
 	public:
+		void setGPU(device::gpu::GPU *gpu) {
+			this->gpu = gpu;
+		}
+
 		uint8_t readMemory8(uint32_t address);
 		uint16_t readMemory16(uint32_t address);
 		uint32_t readMemory32(uint32_t address);
