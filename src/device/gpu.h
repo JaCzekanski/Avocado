@@ -23,12 +23,26 @@ namespace device
 			int whichGP0Byte = 0;
 			int whichGP1Byte = 0;
 
+			/* 0 - nothing
+			   1 - GP0(0xc0) - VRAM to CPU transfer
+			   2 - GP1(0x10) - Get GPU Info
+			*/
+			int startX = 0;
+			int startY = 0;
+			int endX = 0;
+			int endY = 0;
+			int currX = 0;
+			int currY = 0;
+			int gpuReadMode = 0; 
 			uint32_t GPUREAD = 0;
 			uint32_t GPUSTAT = 0;
 
 			const float WIDTH = 640.f;
 			const float HEIGHT = 480.f;
 			
+			// GP0(0xc0)
+			bool readyVramToCpu = false;
+
 			// GP0(0xe1)
 			int texturePageBaseX = 0;
 			int texturePageBaseY = 0;

@@ -1,7 +1,6 @@
 #include "gpu.h"
 #include <cstdio>
 #include <SDL.h>
-#include <SDL2_gfxPrimitives.h>
 #include "../utils/file.h"
 #include <cmath>
 
@@ -46,7 +45,7 @@ namespace device
 			a = t;
 		}
 
-		inline float distance(int x1, int y1, int x2, int y2)
+		inline int distance(int x1, int y1, int x2, int y2)
 		{
 			return sqrtf((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
 		}
@@ -115,7 +114,6 @@ namespace device
 						colorBuffer[x] = 0xff000000 | ((b & 0xff) << 16) | ((g & 0xff) << 8) | (r & 0xff);
 					}
 				}
-
 				(uint8_t*&)colorBuffer += stride;
 			}
 		}
@@ -145,15 +143,35 @@ namespace device
 				| (horizontalResolution2 << 16)
 				| (reverseFlag << 14)
 				| (1 << 26) // Ready for DMA command
-				| (1 << 28)
-				| (odd << 31); // Ready for receive DMA block
+				| (readyVramToCpu << 27)
+				| (1 << 28) // Ready for receive DMA block
+				//| (dmaDirection << 29)
+				| (odd << 31); 
 		}
 
 		uint8_t GPU::read(uint32_t address)
 		{
 			step();
 
-			if (address >= 0 && address < 4) return GPUREAD >> (address*8);
+			if (address >= 0 && address < 4) {
+				if (gpuReadMode == 0) return GPUREAD >> (address * 8);
+				else if (gpuReadMode == 1)
+				{
+					uint32_t word = 0;
+					word |= VRAM[currY][currX * 2 + 0];
+					word |= VRAM[currY][currX * 2 + 1] << 8;
+					word |= VRAM[currY][currX * 2 + 2] << 16;
+					word |= VRAM[currY][currX * 2 + 3] << 24;
+					currX += 2;
+
+					if (currX >= endX)
+					{
+						currX = startX;
+						if (++currY >= endY) gpuReadMode = 0;
+					}
+					return word;
+				}
+			}
 			if (address >= 4 && address < 8) return GPUSTAT >> ((address - 4)*8);
 		}
 
@@ -169,6 +187,7 @@ namespace device
 					writeGP0(tmpGP0);
 					tmpGP0 = 0;
 					whichGP0Byte = 0;
+					step();
 				}
 			}
 			else if (address >= 4 && address < 8)
@@ -181,9 +200,9 @@ namespace device
 					writeGP1(tmpGP1);
 					tmpGP1 = 0;
 					whichGP1Byte = 0;
+					step();
 				}
 			}
-			step();
 		}
 
 		void GPU::writeGP0(uint32_t data)
@@ -191,7 +210,7 @@ namespace device
 			static bool finished = true;
 			static uint32_t command = 0;
 			static uint32_t argument = 0;
-			static uint32_t arguments[256];
+			static uint32_t arguments[32];
 			static int currentArgument = 0;
 			static int argumentCount = 0;
 
@@ -206,8 +225,8 @@ namespace device
 				currentArgument = 0;
 				isManyArguments = false;
 
-				if (command == 0x00) { // NOP
-				}
+				if (command == 0x00) {} // NOP
+				else if (command == 0x01) {} // Clear Cache
 				else if (command >= 0x20 && command < 0x40) // Polygons
 				{
 					bool istextureMapped = command & 4; // True - texcoords, false - no texcoords
@@ -238,6 +257,11 @@ namespace device
 					finished = false;
 				}
 				else if (command == 0xa0) { // Copy rectangle (CPU -> VRAM)
+					argumentCount = 2;
+					finished = false;
+				}
+				else if (command == 0xc0) { // Copy rectangle (VRAM -> CPU)
+					readyVramToCpu = true;
 					argumentCount = 2;
 					finished = false;
 				}
@@ -274,303 +298,249 @@ namespace device
 					setMaskWhileDrawing = argument & 1;
 					checkMaskBeforeDraw = (argument & 2) >> 1;
 				}
-				/*else */printf("GP0(0x%02x) args 0x%06x\n", command, argument);
+				else printf("GP0(0x%02x) args 0x%06x\n", command, argument);
+
+				return;
 			}
-			else 
+
+			if (currentArgument < argumentCount) {
+				arguments[currentArgument++] = data;
+				if ( isManyArguments && data == 0x55555555) argumentCount = currentArgument;
+			}
+			if (currentArgument == argumentCount) 
 			{
-				if (currentArgument < argumentCount) {
-					arguments[currentArgument++] = data;
-					if ( isManyArguments &&  data == 0x55555555) argumentCount = currentArgument;
-				}
-				if (currentArgument == argumentCount) 
+				finished = true;
+				if (command >= 0x20 && command < 0x40) // Polygons
 				{
-					finished = true;
-					if (command >= 0x20 && command < 0x40) // Polygons
+					bool isTextureMapped = command & 4; // True - texcoords, false - no texcoords
+					bool isFourVertex = command & 8; // True - 4 vertex, false - 3 vertex
+					bool isShaded = command & 0x10; // True - Gouroud shading, false - flat shading
+
+					int ptr = 0;
+					int x[4], y[4];
+					int color[4];
+					int texcoord[4];
+					for (int i = 0; i < (isFourVertex ? 4 : 3); i++)
 					{
-						bool isTextureMapped = command & 4; // True - texcoords, false - no texcoords
-						bool isFourVertex = command & 8; // True - 4 vertex, false - 3 vertex
-						bool isShaded = command & 0x10; // True - Gouroud shading, false - flat shading
+						x[i] = (arguments[ptr] & 0xffff);
+						y[i] = ((arguments[ptr++] >> 16) & 0xffff);
 
-						int ptr = 0;
-						int x[4], y[4];
-						int color[4];
-						int texcoord[4];
-						for (int i = 0; i < (isFourVertex ? 4 : 3); i++)
-						{
-							x[i] = (arguments[ptr] & 0xffff);
-							y[i] = ((arguments[ptr++] >> 16) & 0xffff);
-
-							if (!isShaded || i == 0) color[i] = argument & 0xffffff;
-							if (isTextureMapped) texcoord[i] = ptr++;
-							if (isShaded && i < (isFourVertex ? 4 : 3)-1) {
-								color[i+1] = arguments[ptr++];
-							}
-						}
-
-						//filledTrigonColor(renderer,
-						//	x[0], y[0],
-						//	x[1], y[1],
-						//	x[2], y[2],
-						//	colorMean(color,3));
-						drawPolygon(x, y, color);
-						if (isFourVertex) {
-							drawPolygon(x + 1, y + 1, color+1);
-							//filledTrigonColor(renderer,
-							//	x[1], y[1],
-							//	x[2], y[2],
-							//	x[3], y[3],
-							//	colorMean(color+1, 3));
-							//drawPolygon(x + 1, y + 1, color + 1);
-						}
-						swap(x[0], x[1]);
-						swap(y[0], y[1]);
-						swap(color[0], color[1]);
-						drawPolygon(x, y, color);
+						if (!isShaded || i == 0) color[i] = argument & 0xffffff;
+						if (isTextureMapped) texcoord[i] = ptr++;
+						if (isShaded && i < (isFourVertex ? 4 : 3)-1) color[i+1] = arguments[ptr++];
 					}
-					else if (command >= 0x40 && command < 0x60) // Lines
-					{
-						isManyArguments = command & 8; // True - n points, false - 2 points (0x55555555 terminated)
-						bool isShaded = command & 0x10; // True - Gouroud shading, false - flat shading
+					drawPolygon(x, y, color);
+					if (isFourVertex) drawPolygon(x + 1, y + 1, color+1);
+					swap(x[0], x[1]);
+					swap(y[0], y[1]);
+					swap(color[0], color[1]);
+					drawPolygon(x, y, color);
+				}
+				else if (command >= 0x40 && command < 0x60) // Lines
+				{
+					bool isShaded = command & 0x10; // True - Gouroud shading, false - flat shading
 
-						int ptr = 0;
-						int sx, sy, sc;
-						int ex = 0, ey = 0, ec = 0;
-						for (int i = 0; i < argumentCount; i++)
+					int ptr = 0;
+					int sx, sy, sc;
+					int ex = 0, ey = 0, ec = 0;
+					for (int i = 0; i < argumentCount; i++)
+					{
+						if (i == 0)
 						{
-							if (i == 0)
-							{
-								sx = arguments[ptr] & 0xffff;
-								sy = (arguments[ptr++] & 0xffff0000) >> 16;
-								if (isShaded) sc = arguments[ptr++];
-								else sc = command & 0xffffff;
-							}
-							else
-							{
-								sx = ex;
-								sy = ey;
-								sc = ec;
-							}
-
-							ex = arguments[ptr] & 0xffff;
-							ey = (arguments[ptr++] & 0xffff0000) >> 16;
-							if (isShaded) ec = arguments[ptr++];
-							else ec = command & 0xffffff;
-
-							//lineColor(renderer, sx, sy, ex, ey, colorMean(&ec, 1));
-							int x[3] = { sx, sx, ex };
-							int y[3] = { ex, ex, ey };
-							int c[3] = { sc, sc, sc };
-
-							drawPolygon(x, y, c);
+							sx = arguments[ptr] & 0xffff;
+							sy = (arguments[ptr++] & 0xffff0000) >> 16;
+							if (isShaded) sc = arguments[ptr++];
+							else sc = command & 0xffffff;
 						}
-					}
-					else if (command >= 0x60 && command < 0x80) // Rectangles
-					{
-						bool istextureMapped = command & 4; // True - texcoords, false - no texcoords
-						int size = (command & 0x18) >> 3; // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
-
-						int width = 1;
-						int height = 1;
-
-						if (size == 2) width = height = 8;
-						else if (size == 3) width = height = 16;
 						else
 						{
-							width = arguments[(istextureMapped?2:1)] & 0xffff;
-							height = (arguments[(istextureMapped ? 2 : 1)] & 0xffff0000) >> 16;
+							sx = ex;
+							sy = ey;
+							sc = ec;
 						}
 
-						SDL_Rect r;
+						ex = arguments[ptr] & 0xffff;
+						ey = (arguments[ptr++] & 0xffff0000) >> 16;
+						if (isShaded) ec = arguments[ptr++];
+						else ec = command & 0xffffff;
 
-						r.x = arguments[0] & 0xffff;
-						r.y = (arguments[0] & 0xffff0000) >> 16;
-						r.w = width;
-						r.h = height;
-
-						int sc = argument;
-						//boxColor(renderer, r.x, r.y, r.x+r.w, r.y+r.h, colorMean(&sc, 1));
-						int x[4] = { r.x, r.x + r.w, r.x, r.x + r.w };
-						int y[4] = { r.y, r.y, r.y + r.h, r.y + r.h };
+						//lineColor(renderer, sx, sy, ex, ey, colorMean(&ec, 1));
+						int x[3] = { sx, sx, ex };
+						int y[3] = { ex, ex, ey };
 						int c[3] = { sc, sc, sc };
-						
-						drawPolygon(x + 1, y + 1, c);
-						swap(x[0], x[1]);
-						swap(y[0], y[1]);
+
 						drawPolygon(x, y, c);
-
 					}
-					else if (command == 0xA0) { // Copy rectangle ( CPU -> VRAM )
-						static int size;
-						size = (arguments[1] & 0xffff) * ((arguments[1] & 0xffff0000) >> 16);
-						static int currentHalfWord = 0;
-						static int currY = 0, currX = 0;
-						if (currentArgument <= 2) {
-							argumentCount = 3;
-							finished = false;
-							currentHalfWord = 0;
-							currX = (arguments[0] & 0xffff);
-							currY = (arguments[0] & 0xffff0000)>16;
-						}
-						else {
-							currentArgument = 2;
-							finished = false;
+				}
+				else if (command >= 0x60 && command < 0x80) // Rectangles
+				{
+					bool istextureMapped = command & 4; // True - texcoords, false - no texcoords
+					int size = (command & 0x18) >> 3; // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
 
-							VRAM[currY][currX * 2 + 0] = (arguments[2] & 0x000000ff);
-							VRAM[currY][currX * 2 + 1] = (arguments[2] & 0x0000ff00) >> 8;
-							VRAM[currY][currX * 2 + 2] = (arguments[2] & 0x00ff0000) >> 16;
-							VRAM[currY][currX * 2 + 3] = (arguments[2] & 0xff000000) >> 24;
-							currX += 2;
-							currentHalfWord += 2;
-							if (currentHalfWord >= size)
-							{
-								finished = true;
-								void* pixels;
-								int pitch;
-								SDL_LockTexture(texture, NULL, &pixels, &pitch);
+					int w = 1;
+					int h = 1;
 
-								uint8_t* ptr;;
-								for (int y = 0; y < 512; y++)
-								{
-									ptr = (uint8_t*)pixels + y*pitch;
-									for (int x = 0; x < pitch; x++)
-									{
-										*(ptr++) = VRAM[y][x];
-									}
-								}
-
-								SDL_UnlockTexture(texture);
-
-							}
-							if (currX >= (arguments[0] & 0xffff) + ((arguments[1] & 0xffff)))
-							{
-								currX = (arguments[0] & 0xffff);
-								currY++;
-								if (currY >= ((arguments[0] & 0xffff0000)) + ((arguments[1] & 0xffff0000) >> 16)) {
-									finished = true;
-
-									std::vector<uint8_t> vramdump;
-									vramdump.resize(2048 * 512);
-									memcpy(&vramdump[0], VRAM, 2048 * 512);
-									putFileContents("vram.bin", vramdump);
-									//__debugbreak();
-								}
-								if (currY > 512)
-								{
-									printf("Fishy...\n");
-								}
-							}
-						}
-
-
-					}
+					if (size == 2) w = h = 8;
+					else if (size == 3) w = h = 16;
 					else
 					{
-						printf("Unimplemented command 0x%02x (arg count: %d)\n", command, argumentCount);
+						w = (arguments[(istextureMapped ? 2 : 1)] & 0xffff);
+						h = (arguments[(istextureMapped ? 2 : 1)] & 0xffff0000) >> 16;
 					}
+					int x = arguments[0] & 0xffff;
+					int y = (arguments[0] & 0xffff0000) >> 16;
+
+					int _x[4] = { x, x+w, x,   x+w };
+					int _y[4] = { y, y,   y+h, y+h };
+					int _c[3] = { argument, argument, argument };
+						
+					drawPolygon(_x + 1, _y + 1, _c);
+					swap(_x[0], _x[1]);
+					swap(_y[0], _y[1]);
+					drawPolygon(_x, _y, _c);
+				}
+				else if (command == 0xA0) { // Copy rectangle ( CPU -> VRAM )
+					if (currentArgument <= 2) {
+						argumentCount = 3;
+						finished = false;
+						currX = (arguments[0] & 0xffff);
+						currY = (arguments[0] & 0xffff0000)>16;
+						startX = currX;
+						endX = startX + (arguments[1] & 0xffff);
+						startY = currY;
+						endY = startY + ((arguments[1] & 0xffff0000) >> 16);
+					}
+					else {
+						currentArgument = 2;
+						finished = false;
+						uint32_t byte = arguments[2];
+
+						VRAM[currY][currX * 2 + 0] = byte;
+						VRAM[currY][currX * 2 + 1] = byte >> 8;
+						VRAM[currY][currX * 2 + 2] = byte >> 16;
+						VRAM[currY][currX * 2 + 3] = byte >> 24;
+						currX += 2;
+
+						if (currX >= endX)
+						{
+							currX = startX;
+							if (++currY >= endY) finished = true;
+						}
+					}
+				}
+				else if (command == 0xC0) { // Copy rectangle ( VRAM -> CPU )
+					finished = true;
+					gpuReadMode = 1;
+					currX = (arguments[0] & 0xffff);
+					currY = (arguments[0] & 0xffff0000)>16;
+					startX = currX;
+					endX = startX + (arguments[1] & 0xffff);
+					startY = currY;
+					endY = startY + ((arguments[1] & 0xffff0000) >> 16);
 				}
 			}
 		}
 
 		void GPU::writeGP1(uint32_t data)
 		{
-			static bool finished = true;
-			static uint32_t command = 0;
-			static uint32_t argument = 0;
-
-			if (finished)
-			{
-				command = data >> 24;
-				argument = data & 0xffffff;
-				finished = true;
-
-				if (command == 0x00) { // Reset GPU
+			uint32_t command = data >> 24;
+			uint32_t argument = data & 0xffffff;
+			
+			if (command == 0x00) { // Reset GPU
 					
-					irqAcknowledge = false;
-					displayDisable = true;
-					dmaDirection = 0;
-					displayAreaStartX = displayAreaStartY = 0;
-					displayRangeX1 = 0x200;
-					displayRangeX2 = 0x200 + 256 * 10;
-					displayRangeY1 = 0x10;
-					displayRangeY2 = 0x10 + 240;
-					horizontalResolution1 = 0; // 320x240 NTSC
-					horizontalResolution2 = false;
-					verticalResolution = 0;
-					videoMode = false;
+				irqAcknowledge = false;
+				displayDisable = true;
+				dmaDirection = 0;
+				displayAreaStartX = displayAreaStartY = 0;
+				displayRangeX1 = 0x200;
+				displayRangeX2 = 0x200 + 256 * 10;
+				displayRangeY1 = 0x10;
+				displayRangeY2 = 0x10 + 240;
+				horizontalResolution1 = 0; // 320x240 NTSC
+				horizontalResolution2 = false;
+				verticalResolution = 0;
+				videoMode = false;
 
-					texturePageBaseX = 0;
-					texturePageBaseY = 0;
-					semiTransparency = 0;
-					texturePageColors = 0;
-					dither24to15 = 0;
-					drawingToDisplayArea = 0;
-					textureDisable = 0;
-					texturedRectangleXFlip = 0;
-					texturedRectangleYFlip = 0;
+				texturePageBaseX = 0;
+				texturePageBaseY = 0;
+				semiTransparency = 0;
+				texturePageColors = 0;
+				dither24to15 = 0;
+				drawingToDisplayArea = 0;
+				textureDisable = 0;
+				texturedRectangleXFlip = 0;
+				texturedRectangleYFlip = 0;
 
-					textureWindowMaskX = 0;
-					textureWindowMaskY = 0;
-					textureWindowOffsetX = 0;
-					textureWindowOffsetY = 0;
+				textureWindowMaskX = 0;
+				textureWindowMaskY = 0;
+				textureWindowOffsetX = 0;
+				textureWindowOffsetY = 0;
 
-					drawingAreaX1 = 0;
-					drawingAreaY1 = 0;
+				drawingAreaX1 = 0;
+				drawingAreaY1 = 0;
 
-					drawingAreaX2 = 0;
-					drawingAreaY2 = 0;
+				drawingAreaX2 = 0;
+				drawingAreaY2 = 0;
 
-					drawingOffsetX = 0;
-					drawingOffsetY = 0;
+				drawingOffsetX = 0;
+				drawingOffsetY = 0;
 
-					setMaskWhileDrawing = 0;
-					checkMaskBeforeDraw = 0;
-				}
-				else if (command == 0x01) { // Reset command buffer
-
-				}
-				else if (command == 0x02) { // Acknowledge IRQ1
-					irqAcknowledge = false;
-				}
-				else if (command == 0x03) { // Display Enable
-					displayDisable = (argument & 1) ? true : false;
-				}
-				else if (command == 0x04) { // DMA Direction
-					dmaDirection = argument & 3;
-				}
-				else if (command == 0x05) { // Start of display area
-					displayAreaStartX = argument & 0x3ff;
-					displayAreaStartY = argument >> 10;
-				}
-				else if (command == 0x06) { // Horizontal display range
-					displayRangeX1 = argument & 0xfff;
-					displayRangeX2 = argument >> 12;
-				}
-				else if (command == 0x07) { // Vertical display range
-					displayRangeY1 = argument & 0x3ff;
-					displayRangeX2 = argument >> 10;
-				}
-				else if (command == 0x08) { // Display mode
-					horizontalResolution1 = argument & 3;
-					verticalResolution = (argument & 0x04) >> 2;
-					videoMode = (argument & 0x08) >> 3;
-					colorDepth = (argument & 0x10) >> 4;
-					interlace = (argument & 0x20) >> 5;
-					horizontalResolution2 = (argument & 0x40) >> 6;
-					reverseFlag = (argument & 0x80) >> 7;
-				}
-				else if (command == 0x09) { // Allow texture disable
-					textureDisableAllowed = argument & 1;
-				}
-				else if (command >= 0x10 && command <= 0x1f) { // get GPU Info
-					printf("GPU info request!\n");
-				}
-				/*else */printf("GP1(0x%02x) args 0x%06x\n", command, argument);
+				setMaskWhileDrawing = 0;
+				checkMaskBeforeDraw = 0;
 			}
+			else if (command == 0x01) { // Reset command buffer
+
+			}
+			else if (command == 0x02) { // Acknowledge IRQ1
+				irqAcknowledge = false;
+			}
+			else if (command == 0x03) { // Display Enable
+				displayDisable = (argument & 1) ? true : false;
+			}
+			else if (command == 0x04) { // DMA Direction
+				dmaDirection = argument & 3;
+			}
+			else if (command == 0x05) { // Start of display area
+				displayAreaStartX = argument & 0x3ff;
+				displayAreaStartY = argument >> 10;
+			}
+			else if (command == 0x06) { // Horizontal display range
+				displayRangeX1 = argument & 0xfff;
+				displayRangeX2 = argument >> 12;
+			}
+			else if (command == 0x07) { // Vertical display range
+				displayRangeY1 = argument & 0x3ff;
+				displayRangeX2 = argument >> 10;
+			}
+			else if (command == 0x08) { // Display mode
+				horizontalResolution1 = argument & 3;
+				verticalResolution = (argument & 0x04) >> 2;
+				videoMode = (argument & 0x08) >> 3;
+				colorDepth = (argument & 0x10) >> 4;
+				interlace = (argument & 0x20) >> 5;
+				horizontalResolution2 = (argument & 0x40) >> 6;
+				reverseFlag = (argument & 0x80) >> 7;
+			}
+			else if (command == 0x09) { // Allow texture disable
+				textureDisableAllowed = argument & 1;
+			}
+			else if (command >= 0x10 && command <= 0x1f) { // get GPU Info
+				printf("GPU info request!\n");
+			}
+			else printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 		}
 
 		void GPU::render()
 		{
+			uint8_t* ptr = nullptr;
+			int pitch;
+			SDL_LockTexture(texture, NULL, &(void*&)ptr, &pitch);
 
+			for (int y = 0; y < 512; y++)
+			for (int x = 0; x < pitch; x++) {
+				*(ptr++) = VRAM[y][x];
+			}
+			SDL_UnlockTexture(texture);
 
 			SDL_UnlockTexture(SCREEN);
 			SDL_RenderCopy(renderer, SCREEN, NULL, NULL);

@@ -226,16 +226,21 @@ namespace mips
 							int addr = dma2Address;
 
 							if (mode == 2) { // linked list 
-								printf("DMA2 linked list @ 0x%08x\n", dma2Address);
+								//printf("DMA2 linked list @ 0x%08x\n", dma2Address);
 
 								for (;;) {
 									uint32_t blockInfo = readMemory32(addr);
 									int commandCount = blockInfo >> 24;
 
+									addr += 4;
 									for (int i = 0; i < commandCount; i++)	{
-										addr += 4;
-										uint32_t command = readMemory32(addr);
-										writeMemory32(0x1F801810, command);
+										//uint32_t command = readMemory32(addr);
+										//writeMemory32(0x1F801810, command);
+										//gpu->write(0x10, command);
+										gpu->write(0, readMemory8(addr++));
+										gpu->write(0, readMemory8(addr++));
+										gpu->write(0, readMemory8(addr++));
+										gpu->write(0, readMemory8(addr++));
 									}
 									if (blockInfo & 0xffffff == 0xffffff) break;
 									addr = blockInfo & 0xffffff;
@@ -254,8 +259,11 @@ namespace mips
 
 								for (int block = 0; block < blockCount; block++){
 									for (int i = 0; i < blockSize; i++) {
-										writeMemory32(0x1f801810, readMemory32(addr));
-										addr += 4;
+										//writeMemory32(0x1f801810, readMemory32(addr));
+										gpu->write(0, readMemory8(addr++));
+										gpu->write(0, readMemory8(addr++));
+										gpu->write(0, readMemory8(addr++));
+										gpu->write(0, readMemory8(addr++));
 									}
 								}
 

@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <string>
 #include <SDL.h>
-#include <SDL2_gfxPrimitives.h>
 #include "utils/file.h"
 #include "mips.h"
 #undef main
