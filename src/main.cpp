@@ -17,7 +17,7 @@ mips::CPU cpu;
 
 void IRQ(int irq)
 {
-	if (cpu.readMemory32(0x1f801074) & (1 << irq))
+	//if (cpu.readMemory32(0x1f801074) & (1 << irq))
 	{
 		cpu.writeMemory32(0x1f801070, cpu.readMemory32(0x1f801070) | (1 << irq));
 		cpu.COP0[14] = cpu.PC; // EPC - return address from trap
@@ -43,7 +43,7 @@ int main( int argc, char** argv )
 		return 1;
 	}
 
-	std::string biosPath = "data/bios/SCPH1002.BIN";
+	std::string biosPath = "data/bios/SCPH-102.BIN";
 	auto _bios = getFileContents(biosPath);
 	if (_bios.empty()) {
 		printf("Cannot open BIOS");
@@ -68,43 +68,60 @@ int main( int argc, char** argv )
 
 	int dupa = 0;
 	SDL_Event event;
-	while (cpuRunning)
+	while (true)
 	{
 		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT) cpuRunning = false;
+			if (event.type == SDL_QUIT) break;
+			if (event.type == SDL_KEYDOWN)
+			{
+				if (event.key.keysym.sym == SDLK_SPACE)
+				{
+					memoryAccessLogging = !memoryAccessLogging;
+					printf("MAL %d\n", memoryAccessLogging);
+				}
+				if (event.key.keysym.sym == SDLK_i)	IRQ(0);
+				if (event.key.keysym.sym == SDLK_l) loadExe = true;
+			}
 		}
 
-		if (!cpu.executeInstructions(1)) {
-			printf("CPU Halted\n");
-			cpuRunning = false;
-		}
+		if (cpuRunning) {
+			if (!cpu.executeInstructions(1)) {
+				printf("CPU Halted\n");
+				cpuRunning = false;
+			}
 
-		cycles += 1*2;
+			cycles += 1 * 2;
 
-		if (cycles >= 33868800.f / 25.0f && dupa == 0) {
-			gpu->odd = !gpu->odd;
-			gpu->step();
-			dupa = 1;
-		}
-		if (cycles >= 33868800.f / 50.0f) {
-			
-			cycles = 0;
-			frames++;
+			if (cycles >= 33868800.f / 25.0f && dupa == 0) {
+				gpu->odd = !gpu->odd;
+				gpu->step();
+				dupa = 1;
+			}
+			if (cycles >= 33868800.f / 50.0f) {
 
-			dupa = 0;
-			gpu->odd = !gpu->odd;
-			gpu->step();
-			gpu->render();
+				cycles = 0;
+				frames++;
 
-			IRQ(0);
-			//printf("Frame: %d\n", frames);
+				dupa = 0;
+				gpu->odd = !gpu->odd;
+				gpu->step();
+				gpu->render();
+
+				//IRQ(0);
+				//printf("Frame: %d\n", frames);
+			}
 		}
 		if (loadExe)
 		{
 			loadExe = false;
 
 			PsxExe exe;
-			std::string exePath = "data/exe/psxtest_cpu.exe";
+			std::string exePath = "data/exe/";
+			char filename[128];
+			printf("\nEnter exe name: ");
+			scanf("%s", filename);
+			exePath += filename;
+
 			auto _exe = getFileContents(exePath);
 			if (!_exe.empty()) {
 				memcpy(&exe, &_exe[0], sizeof(exe));
@@ -115,8 +132,6 @@ int main( int argc, char** argv )
 
 				cpu.PC = exe.pc0;
 			}
-			disassemblyEnabled = true;
-			memoryAccessLogging = true;
 		}
 		if (doDump)
 		{
@@ -128,6 +143,7 @@ int main( int argc, char** argv )
 		}
 	}
 
+	
 	SDL_Quit();
 	return 0;
 }

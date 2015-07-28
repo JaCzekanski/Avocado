@@ -37,7 +37,7 @@ namespace mipsInstructions
 
 		{ 16, cop0, "cop0" },
 		{ 17, notImplemented, "cop1" },
-		{ 18, notImplemented, "cop2" },
+		{ 18, cop2, "cop2" },
 		{ 19, notImplemented, "cop3" },
 		{ 20, invalid, "INVALID" },
 		{ 21, invalid, "INVALID" },
@@ -666,6 +666,12 @@ namespace mipsInstructions
 		default:
 			invalid(cpu, i);
 		}
+	}
+
+	// Coprocessor two
+	void cop2(CPU *cpu, Opcode i)
+	{
+		printf("COP2: 0x%08x\n", i.opcode);
 	}
 
 	// Load Byte

@@ -117,6 +117,24 @@ namespace device
 				(uint8_t*&)colorBuffer += stride;
 			}
 		}
+
+		uint32_t to15bit(uint32_t color)
+		{
+			uint32_t newColor = 0;
+			newColor |= (color & 0xf80000) >> 9;
+			newColor |= (color & 0xf800) >> 6;
+			newColor |= (color & 0xf8) >> 3;
+			return newColor;
+		}
+
+		uint32_t to24bit(uint32_t color)
+		{
+			uint32_t newColor = 0;
+			newColor |= (color & 0x7c00) << 9;
+			newColor |= (color & 0x3e0) << 6;
+			newColor |= (color & 0x1f) << 3;
+			return newColor;
+		}
 		
 		void GPU::step()
 		{
@@ -157,19 +175,25 @@ namespace device
 				if (gpuReadMode == 0) return GPUREAD >> (address * 8);
 				else if (gpuReadMode == 1)
 				{
+					static int write = 0;
 					uint32_t word = 0;
 					word |= VRAM[currY][currX * 2 + 0];
 					word |= VRAM[currY][currX * 2 + 1] << 8;
 					word |= VRAM[currY][currX * 2 + 2] << 16;
 					word |= VRAM[currY][currX * 2 + 3] << 24;
-					currX += 2;
+					if (++write == 4) {
+						write = 0;
+						currX += 2;
 
-					if (currX >= endX)
-					{
-						currX = startX;
-						if (++currY >= endY) gpuReadMode = 0;
+						if (currX >= endX)
+						{
+							currX = startX;
+							if (++currY >= endY) {
+								gpuReadMode = 0;
+							}
+						}
 					}
-					return word;
+					return word >> (address * 8);
 				}
 			}
 			if (address >= 4 && address < 8) return GPUSTAT >> ((address - 4)*8);
@@ -227,6 +251,11 @@ namespace device
 
 				if (command == 0x00) {} // NOP
 				else if (command == 0x01) {} // Clear Cache
+				else if (command == 0x02) // Fill rectangle
+				{
+					argumentCount = 2;
+					finished = false;
+				}
 				else if (command >= 0x20 && command < 0x40) // Polygons
 				{
 					bool istextureMapped = command & 4; // True - texcoords, false - no texcoords
@@ -310,7 +339,32 @@ namespace device
 			if (currentArgument == argumentCount) 
 			{
 				finished = true;
-				if (command >= 0x20 && command < 0x40) // Polygons
+				if (command == 0x02) // fill rectangle
+				{
+					currX = (arguments[0] & 0xffff);
+					currY = (arguments[0] & 0xffff0000)>16;
+					startX = currX;
+					endX = startX + (arguments[1] & 0xffff);
+					startY = currY;
+					endY = startY + ((arguments[1] & 0xffff0000) >> 16);
+
+					uint32_t color = to15bit(argument & 0xffffff);
+
+					for (;;) {
+						VRAM[currY][currX * 2 + 0] = color;
+						VRAM[currY][currX * 2 + 1] = color >> 8;
+						VRAM[currY][currX * 2 + 2] = color;
+						VRAM[currY][currX * 2 + 3] = color >> 8;
+						currX += 2;
+
+						if (currX >= endX)
+						{
+							currX = startX;
+							if (++currY >= endY) break;
+						}
+					}
+				}
+				else if (command >= 0x20 && command < 0x40) // Polygons
 				{
 					bool isTextureMapped = command & 4; // True - texcoords, false - no texcoords
 					bool isFourVertex = command & 8; // True - 4 vertex, false - 3 vertex
@@ -386,6 +440,9 @@ namespace device
 					{
 						w = (arguments[(istextureMapped ? 2 : 1)] & 0xffff);
 						h = (arguments[(istextureMapped ? 2 : 1)] & 0xffff0000) >> 16;
+
+						if (h>1023) h = 1023;
+						if (w > 511) w = 511;
 					}
 					int x = arguments[0] & 0xffff;
 					int y = (arguments[0] & 0xffff0000) >> 16;
@@ -536,14 +593,26 @@ namespace device
 			int pitch;
 			SDL_LockTexture(texture, NULL, &(void*&)ptr, &pitch);
 
-			for (int y = 0; y < 512; y++)
-			for (int x = 0; x < pitch; x++) {
-				*(ptr++) = VRAM[y][x];
+			uint32_t col = 0;
+			for (int y = 0; y < 512; y++) {
+				int x = 0;
+				for (int p = 0; p < pitch; p++) {
+					if (p % 3 == 0)  {
+						col = to24bit(VRAM[y][x] | (VRAM[y][x+1] << 8));
+						x += 2;
+					}
+					*(ptr++) = col;
+					col >>= 8;
+				}
 			}
 			SDL_UnlockTexture(texture);
 
 			SDL_UnlockTexture(SCREEN);
 			SDL_RenderCopy(renderer, SCREEN, NULL, NULL);
+
+			SDL_Rect dst = { 320, 0, 320, 240 };
+			SDL_RenderCopy(renderer, texture, NULL, &dst);
+
 			SDL_RenderPresent(renderer);
 			SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
 		}

@@ -122,7 +122,7 @@ namespace device
 			void render();
 			void setRenderer(SDL_Renderer* renderer) {
 				this->renderer = renderer;
-				texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, 512, 1024);
+				texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
 				SCREEN = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STREAMING, 640, 480);
 			}
 		};

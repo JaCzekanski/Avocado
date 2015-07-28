@@ -2,6 +2,7 @@
 #include "mipsInstructions.h"
 #include <cstdio>
 #include <string>
+#include <deque>
 
 extern bool disassemblyEnabled;
 extern bool memoryAccessLogging;
@@ -54,6 +55,11 @@ namespace mips
 	static int dma6Timer = 0;
 
 	static int htimer = 0;
+
+	static int CDROM_index = 0;
+	static std::deque<uint8_t> CDROM_params;
+	static std::deque<uint8_t> CDROM_response;
+	static std::deque<uint8_t> CDROM_interrupt;
 
 	uint8_t CPU::readMemory(uint32_t address)
 	{
@@ -119,10 +125,31 @@ namespace mips
 				else if (address >= 0x120 && address < 0x130) part = 12;
 			}
 			else if (address >= 0x0800 && address < 0x0804) {
-				if (address == 0x800) return 9;
+				if (address == 0x800) {
+					uint8_t status = CDROM_index;
+					//status |= (!CDROM_data.emprt()) << 6;
+					status |= (!CDROM_response.empty()) << 5;
+					status |= (CDROM_params.size() >= 16) << 4;
+					status |= (CDROM_params.empty()) << 3;
+
+					return status;
+				}
 				if (address == 0x801) {
-					printf("COMMAND: 0x%02x\n", io[0x801]);
-					return 0;
+					uint8_t response = 0;
+					if (!CDROM_response.empty()) {
+						response = CDROM_response.front();
+						CDROM_response.pop_front();
+					}
+					return response;
+				}
+				if (address == 0x803) { // type of response received
+					uint8_t status = 0xe0;
+					if (!CDROM_interrupt.empty()) {
+						status |= CDROM_interrupt.front();
+						CDROM_interrupt.pop_front();
+					}
+
+					return status;
 				}
 				part = 13;
 			}
@@ -226,7 +253,7 @@ namespace mips
 							int addr = dma2Address;
 
 							if (mode == 2) { // linked list 
-								//printf("DMA2 linked list @ 0x%08x\n", dma2Address);
+								printf("DMA2 linked list @ 0x%08x\n", dma2Address);
 
 								for (;;) {
 									uint32_t blockInfo = readMemory32(addr);
@@ -247,26 +274,43 @@ namespace mips
 								}
 							}
 							else if (mode == 1)	{
-								if (dma2Control != 0x01000201)
+								int blockSize = dma2Count & 0xffff;
+								int blockCount = dma2Count >> 16;
+								if (blockCount == 0) blockCount = 0x10000;
+
+								if (dma2Control == 0x01000200 ) // VRAM READ
+								{
+									printf("DMA2 VRAM -> CPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", dma2Address, blockSize, blockCount);
+
+									for (int block = 0; block < blockCount; block++){
+										for (int i = 0; i < blockSize; i++) {
+											//writeMemory32(0x1f801810, readMemory32(addr));
+											writeMemory8(addr++, gpu->read(0));
+											writeMemory8(addr++, gpu->read(1));
+											writeMemory8(addr++, gpu->read(2));
+											writeMemory8(addr++, gpu->read(3));
+										}
+									}
+								}
+								else if (dma2Control == 0x01000201) // VRAM WRITE
+								{
+									printf("DMA2 CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", dma2Address, blockSize, blockCount);
+
+									for (int block = 0; block < blockCount; block++){
+										for (int i = 0; i < blockSize; i++) {
+											//writeMemory32(0x1f801810, readMemory32(addr));
+											gpu->write(0, readMemory8(addr++));
+											gpu->write(0, readMemory8(addr++));
+											gpu->write(0, readMemory8(addr++));
+											gpu->write(0, readMemory8(addr++));
+										}
+									}
+								}
+								else
 								{
 									printf("Unsupported cpu to vram dma mode\n");
 									__debugbreak();
 								}
-								int blockSize = dma2Count & 0xffff;
-								int blockCount = dma2Count >> 16;
-								if (blockCount == 0) blockCount = 0x10000;
-								printf("DMA2 CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", dma2Address, blockSize, blockCount);
-
-								for (int block = 0; block < blockCount; block++){
-									for (int i = 0; i < blockSize; i++) {
-										//writeMemory32(0x1f801810, readMemory32(addr));
-										gpu->write(0, readMemory8(addr++));
-										gpu->write(0, readMemory8(addr++));
-										gpu->write(0, readMemory8(addr++));
-										gpu->write(0, readMemory8(addr++));
-									}
-								}
-
 							}
 							else
 							{
@@ -329,9 +373,38 @@ namespace mips
 			}
 			else if (address >= 0x0800 && address <= 0x0803) {
 				part = 13;
-				if (address == 0x801) {
-					printf("COMMAND: 0x%02x\n", data);
-					
+				if (address == 0x800) CDROM_index = data & 3;
+				if (address == 0x801) { // Command register
+					CDROM_interrupt.clear();
+					CDROM_response.clear();
+					if (CDROM_index == 0) {
+						if (data == 0x0a) // Init 
+						{
+							CDROM_interrupt.push_back(3);
+							CDROM_response.push_back(0x02); //stat
+
+							CDROM_interrupt.push_back(2);
+							CDROM_response.push_back(0x02); //stat
+						}
+						if (data == 0x19) // Test
+						{
+							if (CDROM_params.front() == 0x20) // Get CDROM BIOS date/version (yy,mm,dd,ver)
+							{
+								CDROM_params.pop_front();
+								CDROM_interrupt.push_back(3);
+								CDROM_response.push_back(0x97);
+								CDROM_response.push_back(0x01);
+								CDROM_response.push_back(0x10);
+								CDROM_response.push_back(0xc2);
+							}
+						}
+					}
+					CDROM_params.clear();
+				}
+				if (address == 0x802) { // Parameter fifo
+					if (CDROM_index == 0) {
+						CDROM_params.push_back(data);
+					}
 				}
 			}
 			else if (address >= 0x0810 && address <= 0x0818) {

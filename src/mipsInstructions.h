@@ -97,6 +97,7 @@ namespace mipsInstructions
 	void xori(mips::CPU* cpu, Opcode i);
 	void lui(mips::CPU* cpu, Opcode i);
 	void cop0(mips::CPU* cpu, Opcode i);
+	void cop2(mips::CPU* cpu, Opcode i);
 	void lb(mips::CPU* cpu, Opcode i);
 	void lh(mips::CPU* cpu, Opcode i);
 	void lwl(mips::CPU* cpu, Opcode i);
