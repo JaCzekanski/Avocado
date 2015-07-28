@@ -58,5 +58,8 @@
     <ClInclude Include="src\device\gpu.h">
       <Filter>Header Files\device</Filter>
     </ClInclude>
+    <ClInclude Include="src\psxExe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

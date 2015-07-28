@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include "utils/file.h"
 #include "mips.h"
+#include "psxExe.h"
 #undef main
 
 bool disassemblyEnabled = false;
@@ -27,6 +28,7 @@ void IRQ(int irq)
 	}
 }
 
+bool loadExe = false;
 int main( int argc, char** argv )
 {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -48,6 +50,7 @@ int main( int argc, char** argv )
 		return 1;
 	}
 	memcpy(cpu.bios, &_bios[0], _bios.size());
+
 
 	device::gpu::GPU *gpu = new device::gpu::GPU();
 	cpu.setGPU(gpu);
@@ -96,7 +99,25 @@ int main( int argc, char** argv )
 			IRQ(0);
 			//printf("Frame: %d\n", frames);
 		}
+		if (loadExe)
+		{
+			loadExe = false;
 
+			PsxExe exe;
+			std::string exePath = "data/exe/psxtest_cpu.exe";
+			auto _exe = getFileContents(exePath);
+			if (!_exe.empty()) {
+				memcpy(&exe, &_exe[0], sizeof(exe));
+
+				for (int i = 0x800; i < _exe.size(); i++) {
+					cpu.writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
+				}
+
+				cpu.PC = exe.pc0;
+			}
+			disassemblyEnabled = true;
+			memoryAccessLogging = true;
+		}
 		if (doDump)
 		{
 			std::vector<uint8_t> ramdump;

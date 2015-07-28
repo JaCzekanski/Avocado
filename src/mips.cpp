@@ -67,11 +67,11 @@ namespace mips
 		if (address >= 0x80000000) address -= 0x80000000;
 
 		// RAM
-		if (address < 0x200000)
+		if (address < 0x200000*4)
 		{
 			part = 1;
 			if (address == 0x0000b9b0) return 1;// DUART enable
-			return ram[address];
+			return ram[address % (2 * 1024 * 1024)];
 		}
 
 		// Expansion port (mirrored?)
@@ -170,10 +170,10 @@ namespace mips
 		if (address >= 0x80000000) address -= 0x80000000;
 
 		// RAM
-		if (address < 0x200000)
+		if (address < 0x200000*4)
 		{
 			part = 1;
-			if (!IsC) ram[address] = data;
+			if (!IsC) ram[address%(2*1024*1024)] = data;
 		}
 
 		// Expansion port (mirrored?)
