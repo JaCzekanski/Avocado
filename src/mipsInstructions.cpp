@@ -318,7 +318,7 @@ namespace mipsInstructions
 		disasm("r%d, r%d", i.rs, i.rt);
 		int64_t temp = (int64_t)cpu->reg[i.rs] * (int64_t)cpu->reg[i.rt];
 		cpu->lo = temp & 0xffffffff;
-		cpu->hi = (temp & 0xffffffff00000000) >> 32;
+		cpu->hi = temp >> 32;
 	}
 
 	// Multiply Unsigned
@@ -326,9 +326,9 @@ namespace mipsInstructions
 	void multu(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d", i.rs, i.rt);
-		int64_t temp = (uint64_t)cpu->reg[i.rs] * (uint64_t)cpu->reg[i.rt];
+		uint64_t temp = (uint64_t)cpu->reg[i.rs] * (uint64_t)cpu->reg[i.rt];
 		cpu->lo = temp & 0xffffffff;
-		cpu->hi = (temp & 0xffffffff00000000) >> 32;
+		cpu->hi = temp >> 32;
 	}
 	// Divide
 	// div rs, rt
