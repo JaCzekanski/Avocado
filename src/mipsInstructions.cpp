@@ -335,10 +335,20 @@ namespace mipsInstructions
 	void div(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d", i.rs, i.rt);
-		// TODO: Check for 0
-		if (cpu->reg[i.rt] == 0) return;
-		cpu->lo = (int32_t)cpu->reg[i.rs] / (int32_t)cpu->reg[i.rt];
-		cpu->hi = (int32_t)cpu->reg[i.rs] % (int32_t)cpu->reg[i.rt];
+
+		int32_t rs = (int32_t)cpu->reg[i.rs];
+		int32_t rt = (int32_t)cpu->reg[i.rt];
+		if (rt == 0) {
+			cpu->lo = (rs<0)?0x00000001:0xffffffff;
+			cpu->hi = rs;	
+		} else if (rs == 0x80000000 && rt == 0xffffffff) {
+			cpu->lo = 0x80000000;
+			cpu->hi = 0x00000000;
+		}
+		else {
+			cpu->lo = rs / rt;
+			cpu->hi = rs % rt;
+		}
 	}
 
 	// Divide Unsigned Word
@@ -346,10 +356,17 @@ namespace mipsInstructions
 	void divu(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d", i.rs, i.rt);
-		// TODO: Check for 0
-		if (cpu->reg[i.rt] == 0) return;
-		cpu->lo = cpu->reg[i.rs] / cpu->reg[i.rt];
-		cpu->hi = cpu->reg[i.rs] % cpu->reg[i.rt];
+
+        uint32_t rs = cpu->reg[i.rs];
+        uint32_t rt = cpu->reg[i.rt];
+
+		if (rt == 0) {
+			cpu->lo = 0xffffffff;
+			cpu->hi = rs;
+		} else {
+			cpu->lo = rs / rt;
+			cpu->hi = rs % rt;
+		}
 	}
 
 	// add rd, rs, rt
