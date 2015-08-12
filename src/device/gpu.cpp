@@ -195,6 +195,7 @@ namespace device
 					}
 					return word >> (address * 8);
 				}
+				else if (gpuReadMode == 2) return GPUREAD >> (address * 8);
 			}
 			if (address >= 4 && address < 8) return GPUSTAT >> ((address - 4)*8);
 		}
@@ -292,6 +293,10 @@ namespace device
 				else if (command == 0xc0) { // Copy rectangle (VRAM -> CPU)
 					readyVramToCpu = true;
 					argumentCount = 2;
+					finished = false;
+				}
+				else if (command == 0x80) { // Copy rectangle (VRAM -> VRAM)
+					argumentCount = 3;
 					finished = false;
 				}
 				else if (command == 0xE1) { // Draw mode setting
@@ -495,6 +500,28 @@ namespace device
 					startY = currY;
 					endY = startY + ((arguments[1] & 0xffff0000) >> 16);
 				}
+				else if (command == 0x80) { // Copy rectangle ( VRAM -> VRAM )
+					finished = true;
+					int srcX = (arguments[0] & 0xffff);
+					int srcY = (arguments[0] & 0xffff0000)>16;
+
+					int dstX = (arguments[1] & 0xffff);
+					int dstY = (arguments[1] & 0xffff0000)>16;
+
+					int width = (arguments[2] & 0xffff);
+					int height = (arguments[2] & 0xffff0000)>16;
+
+					int x = 0;
+					int y = 0;
+
+					for (int y = 0; y < height; y++)
+					{
+						for (int x = 0; x < width; x++)
+						{
+							VRAM[dstY + y][dstX + x] = VRAM[srcY + y][srcX + x];
+						}
+					}
+				}
 			}
 		}
 
@@ -582,7 +609,11 @@ namespace device
 				textureDisableAllowed = argument & 1;
 			}
 			else if (command >= 0x10 && command <= 0x1f) { // get GPU Info
-				printf("GPU info request!\n");
+				if (argument == 7) { // GPU Version
+					GPUREAD = 2;
+					gpuReadMode = 2;
+				}
+				else printf("Unimplemented GPU info request!\n");
 			}
 			else printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 		}
