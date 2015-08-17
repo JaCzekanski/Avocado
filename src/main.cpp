@@ -17,17 +17,38 @@ mips::CPU cpu;
 
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
-
 void IRQ(int irq)
 {
-	if (cpu.readMemory32(0x1f801074) & (1 << irq))
-	{
-		cpu.writeMemory32(0x1f801070, cpu.readMemory32(0x1f801070) | (1 << irq));
-		cpu.COP0[14] = cpu.PC; // EPC - return address from trap
-		cpu.COP0[13] |= (1 << 10); // Cause, IRQ
-		cpu.COP0[12] |= (1 << 10) | 1;
-		cpu.PC = 0x80000080;
-		//printf("----IRQ%d\n", irq);
+	int cause = 0;
+	// set Status Flag
+	if (cpu.io[0x70 & (1 << irq)]) return;
+	cpu.io[0x70] = cpu.io[0x70] | (1 << irq);
+
+	// check Interrupt Mask
+	if (cpu.io[0x74] & (1 << irq)) {
+		cpu.COP0[13] = (1 << 10) | (cause << 2); // Cause, IRQ
+
+		if ((cpu.COP0[12] & (1 << 0)) &&
+			(cpu.COP0[12] & (1 << 10)))
+		{
+			cpu.COP0[14] = cpu.PC; // EPC - return address from trap
+
+			uint32_t sr = cpu.COP0[12];
+
+
+			sr &= ~0x30;
+			sr |= (sr & 0xc) << 2;
+
+			sr &= ~0xc;
+			sr |= (sr & 0x3) << 2;
+
+			sr &= ~3;
+
+			cpu.COP0[12] = sr;
+
+			cpu.PC = 0x80000080;
+			printf("----IRQ%d\n", irq);
+		}
 	}
 }
 
@@ -61,6 +82,7 @@ int main( int argc, char** argv )
 	int gpuCycles = 0;
 	int gpuLine = 0;
 	int gpuDot = 0;
+	bool gpuOdd = false;
 	bool vblank = false;
 
 	int cycles = 0;
@@ -109,8 +131,9 @@ int main( int argc, char** argv )
 
 					gpuLine++;
 
-					if (gpuLine == 240 && !vblank) {
+					if (gpuLine == 240) {
 						vblank = true;
+						gpu->odd = false;
 						gpu->step();
 						gpu->render(); 
 
@@ -123,7 +146,10 @@ int main( int argc, char** argv )
 						vblank = false;
 
 						frames++;
-						gpu->odd = !gpu->odd;
+						gpuOdd = !gpuOdd;
+						gpu->odd = gpuOdd;
+
+
 					}
 				}
 			}

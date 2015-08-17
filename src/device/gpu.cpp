@@ -79,6 +79,9 @@ namespace device
 			int miny = (int)min(y1, y2, y3);
 			int maxy = (int)max(y1, y2, y3);
 
+			maxx = min(maxx, 640 - 1, 9999);
+			maxy = min(maxy, 480 - 1, 9999);
+
 
 			uint32_t* colorBuffer = (uint32_t*)pixels;
 
@@ -356,10 +359,12 @@ namespace device
 					uint32_t color = to15bit(argument & 0xffffff);
 
 					for (;;) {
-						VRAM[currY][currX * 2 + 0] = color;
-						VRAM[currY][currX * 2 + 1] = color >> 8;
-						VRAM[currY][currX * 2 + 2] = color;
-						VRAM[currY][currX * 2 + 3] = color >> 8;
+						if (currY < 512 && currX < 1024) {
+							VRAM[currY][currX * 2 + 0] = color;
+							VRAM[currY][currX * 2 + 1] = color >> 8;
+							VRAM[currY][currX * 2 + 2] = color;
+							VRAM[currY][currX * 2 + 3] = color >> 8;
+						}
 						currX += 2;
 
 						if (currX >= endX)
