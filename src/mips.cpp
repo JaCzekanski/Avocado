@@ -54,6 +54,8 @@ namespace mips
 	static uint32_t dma6Control = 0;
 	static int dma6Timer = 0;
 
+	static uint32_t dmaStatus = 0;
+
 	static int htimer = 0;
 
 	static int CDROM_index = 0;
@@ -113,6 +115,10 @@ namespace mips
 				}
 				if (address >= 0xe8 && address < 0xec) {
 					return dma6Control >> ((address - 0xe8) * 8);
+				}
+				else if (address >= 0xf4 && address < 0xf8)
+				{
+					return dmaStatus >> ((address - 0xf4) * 8);
 				}
 			}
 			else if (address >= 0x0100 && address <  0x0130) {
@@ -320,9 +326,14 @@ namespace mips
 							dma2Control &= ~(1 << 24); // complete
 							extern void IRQ(int irq);
 
-							if (readMemory32(0x1f8010f4)&(1 << 16 + 2)) {
-								writeMemory32(0x1f8010f4, readMemory32(0x1f8010f4) | (1 << 24 + 2));
-								//IRQ(3);
+							if (dmaStatus & (1 << (16 + 2))) {
+								dmaStatus |= 1 << (24 + 2);
+
+								if ((dmaStatus & 0x8000) ||
+									((dmaStatus&(1 << 23)) && ((dmaStatus & 0x7f0000) >> 16) & ((dmaStatus & 0x7f000000) >> 24))) {
+									dmaStatus |= 0x80000000;
+									IRQ(3);
+								}
 							}
 						}
 					}
@@ -358,13 +369,37 @@ namespace mips
 							dma6Control &= ~(1 << 24); // complete
 
 							extern void IRQ(int irq);
-							if (readMemory32(0x1f8010f4)&(1 << 16 + 6)) {
-								writeMemory32(0x1f8010f4, readMemory32(0x1f8010f4) | (1 << 24 + 6));
-								//IRQ(3);
+							if (dmaStatus & (1 << (16 + 6))) {
+								dmaStatus |= 1 << (24 + 6);
+
+								if ((dmaStatus & 0x8000) ||
+									((dmaStatus&(1 << 23)) && ((dmaStatus & 0x7f0000) >> 16) & ((dmaStatus & 0x7f000000) >> 24))) {
+									dmaStatus |= 0x80000000;
+									IRQ(3);
+								}
 							}
 						}
 					}
 				}
+				else if (address >= 0xf4 && address < 0xf8)
+				{
+					static uint32_t t = 0;
+					t &= ~(0xff << 8 * (address - 0xf4));
+					t |= data << 8 * (address - 0xf4);
+
+					dmaStatus &= 0xff8000;
+					dmaStatus |= t & 0xff8000;
+
+					dmaStatus &= ~(t & 0x7f000000);
+
+					extern void IRQ(int irq);
+					if ((dmaStatus & 0x8000) ||
+						((dmaStatus&(1 << 23)) && ((dmaStatus & 0x7f0000) >> 16) & ((dmaStatus & 0x7f000000) >> 24))) {
+						dmaStatus |= 0x80000000;
+						IRQ(3);
+					}
+				}
+
 			}
 			else if (address >= 0x0100 && address <= 0x012F) {
 				if (address >= 0x100 && address < 0x110) part = 10;
