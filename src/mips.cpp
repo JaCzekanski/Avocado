@@ -9,10 +9,10 @@ extern bool memoryAccessLogging;
 extern char* _mnemonic;
 extern std::string _disasm;
 
+extern uint32_t htimer;
+
 namespace mips
 {
-	int part = 0;
-
 	const char* regNames[] = {
 		"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
 		"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -20,173 +20,92 @@ namespace mips
 		"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
 	};
 
-	char* memoryRegion[] = {
-		"",          // 0
-		"RAM",       // 1
-		"Expansion1",
-		"Scratchpad",
-		"MemoryCtrl1",
-		"Joypad",    // 5
-		"Serial",
-		"MemoryCtrl2",
-		"Interrupt",
-		"DMA",
-		"Timer0",    // 10
-		"Timer1",
-		"Timer2",
-		"CDROM",
-		"GPU",
-		"MDEC",      // 15
-		"SPUVoice",
-		"SPUControl",
-		"SPUReverb",
-		"SPUInternal",
-		"DUART",    // 20
-		"POST",
-		"BIOS",
-		"MemoryCtrl3",
-		"Unknown"
-	};
-
-	static uint32_t dma2Control = 0;
-	static int dma2Timer = 0;
-
-	static uint32_t dma6Control = 0;
-	static int dma6Timer = 0;
-
-	static uint32_t dmaStatus = 0;
-
-	static int htimer = 0;
-
-	static int CDROM_index = 0;
-	static std::deque<uint8_t> CDROM_params;
-	static std::deque<uint8_t> CDROM_response;
-	static std::deque<uint8_t> CDROM_interrupt;
+	//static int CDROM_index = 0;
+	//static std::deque<uint8_t> CDROM_params;
+	//static std::deque<uint8_t> CDROM_response;
+	//static std::deque<uint8_t> CDROM_interrupt;
 
 	uint8_t CPU::readMemory(uint32_t address)
 	{
-		if (address >= 0xfffe0130 && address < 0xfffe0134)
-		{
-			part = 23;
+		if (address >= 0xfffe0130 && address < 0xfffe0134) {
+			printf("R Unhandled memory control\n");
 			return 0;
 		}
 
 		if (address >= 0xa0000000) address -= 0xa0000000;
 		if (address >= 0x80000000) address -= 0x80000000;
 
-		// RAM
-		if (address < 0x200000*4)
-		{
-			part = 1;
-			if (address == 0x0000b9b0) return 1;// DUART enable
-			return ram[address % (2 * 1024 * 1024)];
-		}
+		if (address == 0x0000b9b0) return 1; // DUART enable
 
-		// Expansion port (mirrored?)
-		if (address >= 0x1f000000 && address < 0x1f010000)
-		{
-			part = 2;
-			return expansion[address - 0x1f000000];
-		}
+		if (address < 0x200000*4) return ram[address % (2 * 1024 * 1024)];
+		if (address >= 0x1f000000 && address < 0x1f010000) return expansion[address - 0x1f000000];
+		if (address >= 0x1f800000 && address < 0x1f800400) return scratchpad[address - 0x1f800000];
 
-		// Scratch Pad
-		if (address >= 0x1f800000 && address < 0x1f800400)
-		{
-			part = 3;
-			return scratchpad[address - 0x1f800000];
-		}
+#define IO(begin, end, periph) if (address >= (begin) && address < (end)) return periph->read(address-(begin))
 
 		// IO Ports
 		if (address >= 0x1f801000 && address <= 0x1f803000)
 		{
 			address -= 0x1f801000;
-			if (address >= 0x0000 && address <= 0x0024) part = 4;
-			else if (address >= 0x0040 && address <  0x0050) part = 5;
-			else if (address >= 0x0050 && address < 0x0060) {
-				part = 6;
-				if (address == 0x54) return 5;
-			}
-			else if (address >= 0x0060 && address <  0x0064) part = 7;
-			else if (address >= 0x0070 && address <  0x0078) part = 8;
-			else if (address >= 0x0080 && address < 0x0100) { // DMA
-				part = 9;
-				if (address >= 0xa8 && address < 0xac) {
-					return dma2Control >> ((address - 0xa8) * 8);
-				}
-				if (address >= 0xe8 && address < 0xec) {
-					return dma6Control >> ((address - 0xe8) * 8);
-				}
-				else if (address >= 0xf4 && address < 0xf8)
-				{
-					return dmaStatus >> ((address - 0xf4) * 8);
-				}
-			}
-			else if (address >= 0x0100 && address <  0x0130) {
-				if (address >= 0x100 && address < 0x110) part = 10;
-				else if (address >= 0x110 && address < 0x120) {
-					htimer++;
-					if (address < 0x114) return htimer >> ((address - 0x114) * 8);
-					part = 11;
-				}
-				else if (address >= 0x120 && address < 0x130) part = 12;
-			}
-			else if (address >= 0x0800 && address < 0x0804) {
-				if (address == 0x800) {
-					uint8_t status = CDROM_index;
-					//status |= (!CDROM_data.emprt()) << 6;
-					status |= (!CDROM_response.empty()) << 5;
-					status |= (CDROM_params.size() >= 16) << 4;
-					status |= (CDROM_params.empty()) << 3;
 
-					return status;
-				}
-				if (address == 0x801) {
-					uint8_t response = 0;
-					if (!CDROM_response.empty()) {
-						response = CDROM_response.front();
-						CDROM_response.pop_front();
-					}
-					return response;
-				}
-				if (address == 0x803) { // type of response received
-					uint8_t status = 0xe0;
-					if (!CDROM_interrupt.empty()) {
-						status |= CDROM_interrupt.front();
-						CDROM_interrupt.pop_front();
-					}
+			if ((address >= 0x0000 && address < 0x0024) ||
+				(address >= 0x0060 && address < 0x0064)) return memoryControl->read(address);
+			IO(0x40, 0x50, joypad);
+			IO(0x50, 0x60, serial);
+			//IO(0x70, 0x78, interrupt);
+			if (address >= 0x70 && address < 0x78) return io[address];
+			IO(0x80, 0x100, dma);
+			IO(0x100, 0x110, timer0);
+			//IO(0x110, 0x120, timer1);
+			if (address >= 0x110 && address < 0x120) {
+				if (address < 0x114) return htimer >> ((address - 0x114) * 8);
+			}
+			IO(0x120, 0x130, timer2);
+			IO(0x800, 0x804, cdrom);
+			//{
+			//	if (address == 0x800) {
+			//		uint8_t status = CDROM_index;
+			//		//status |= (!CDROM_data.emprt()) << 6;
+			//		status |= (!CDROM_response.empty()) << 5;
+			//		status |= (CDROM_params.size() >= 16) << 4;
+			//		status |= (CDROM_params.empty()) << 3;
 
-					return status;
-				}
-				part = 13;
-			}
-			else if (address >= 0x0810 && address < 0x0818) {
-				part = 14;
-				return gpu->read(address - 0x0810);
-			}
-			else if (address >= 0x0820 && address <  0x0828) part = 15;
-			else if (address >= 0x0C00 && address <  0x0D80) part = 16;
-			else if (address >= 0x0D80 && address <  0x0DC0) part = 17;
-			else if (address >= 0x0DC0 && address <  0x0E00) part = 18;
-			else if (address >= 0x0E00 && address <  0x1000) part = 19;
-			else if (address >= 0x1020 && address <  0x1030) {
-				//part = 20;
-				part = 0;
+			//		return status;
+			//	}
+			//	if (address == 0x801) {
+			//		uint8_t response = 0;
+			//		if (!CDROM_response.empty()) {
+			//			response = CDROM_response.front();
+			//			CDROM_response.pop_front();
+			//		}
+			//		return response;
+			//	}
+			//	if (address == 0x803) { // type of response received
+			//		uint8_t status = 0xe0;
+			//		if (!CDROM_interrupt.empty()) {
+			//			status |= CDROM_interrupt.front();
+			//			CDROM_interrupt.pop_front();
+			//		}
+
+			//		return status;
+			//	}
+			//	part = 13;
+			//}
+			IO(0x810, 0x818, gpu);
+			IO(0x820, 0x828, mdec);
+			IO(0xC00, 0x1000, spu);
+			if (address >= 0x1000 && address < 0x1043) {
 				if (address == 0x1021) return 0x0c;
+				return expansion2->read(address);
 			}
-			else if (address == 0x1041) part = 21;
-			else part = 24;
-
+			printf("R Unhandled IO at 0x%08x\n", address);
 			return io[address];
 		}
+#undef IO
 
-		if (address >= 0x1fc00000 && address <= 0x1fc80000)
-		{
-			//part = 22; 
-			part = 0;
-			return bios[address - 0x1fc00000];
-		}
+		if (address >= 0x1fc00000 && address <= 0x1fc80000)	return bios[address - 0x1fc00000];
 
-		part = 24;
+		printf("R Unhandled address at 0x%08x\n", address);
 		return 0;
 	}
 
@@ -195,280 +114,91 @@ namespace mips
 		// Cache control
 		if (address >= 0xfffe0130 && address < 0xfffe0134)
 		{
-			part = 23;
+			printf("W Unhandled memory control\n");
 			return;
 		}
 
 		if (address >= 0xa0000000) address -= 0xa0000000;
 		if (address >= 0x80000000) address -= 0x80000000;
 
-		// RAM
-		if (address < 0x200000*4)
-		{
-			part = 1;
-			if (!IsC) ram[address%(2*1024*1024)] = data;
+		if (address < 0x200000 * 4) {
+			if (!IsC) ram[address % (2 * 1024 * 1024)] = data;
 		}
+		else if (address >= 0x1f000000 && address < 0x1f010000)	expansion[address - 0x1f000000] = data;
+		else if (address >= 0x1f800000 && address < 0x1f800400)	scratchpad[address - 0x1f800000] = data;
 
-		// Expansion port (mirrored?)
-		else if (address >= 0x1f000000 && address < 0x1f010000)
-		{
-			part = 2;
-			expansion[address - 0x1f000000] = data;
-		}
-
-		// Scratch Pad
-		else if (address >= 0x1f800000 && address < 0x1f800400)
-		{
-			part = 3;
-			scratchpad[address - 0x1f800000] = data;
-		}
+#define IO(begin, end, periph) if (address >= (begin) && address < (end)) return periph->write(address-(begin), data)
 
 		// IO Ports
 		else if (address >= 0x1f801000 && address <= 0x1f803000)
 		{
 			address -= 0x1f801000;
-			if (address >= 0x0000 && address <= 0x0024) part = 4;
-			else if (address >= 0x0040 && address <  0x0050) part = 5;
-			else if (address >= 0x0050 && address <  0x0060) part = 6;
-			else if (address >= 0x0060 && address <  0x0064) part = 7;
-			else if (address >= 0x0070 && address <  0x0078) part = 8;
-			else if (address >= 0x0080 && address <= 0x0100) { // DMA
-				part = 9;
-				if (address >= 0xa0 && address < 0xb0) { // GPU, channel 2
-					static uint32_t dma2Address = 0;
-					static uint32_t dma2Count = 0;
 
-
-					if (address >= 0xa0 && address < 0xa4) {
-						dma2Address &= ~(0xff << ((address - 0xa0) * 8));
-						dma2Address |= data << ((address - 0xa0) * 8);
-
-						dma2Address &= 0x1FFFFFF;
-					}
-					if (address >= 0xa4 && address < 0xa8) {
-						dma2Count &= ~(0xff << ((address - 0xa4) * 8));
-						dma2Count |= data << ((address - 0xa4) * 8);
-					}
-					if (address >= 0xa8 && address < 0xac) {
-						dma2Control &= ~(0xff << ((address - 0xa8) * 8));
-						dma2Control |= data << ((address - 0xa8) * 8);
-
-						int mode = (dma2Control & 0x600) >> 9;
-					
-						if (dma2Control & (1 << 24)) {
-							int addr = dma2Address;
-
-							if (mode == 2) { // linked list 
-								printf("DMA2 linked list @ 0x%08x\n", dma2Address);
-
-								for (;;) {
-									uint32_t blockInfo = readMemory32(addr);
-									int commandCount = blockInfo >> 24;
-
-									addr += 4;
-									for (int i = 0; i < commandCount; i++)	{
-										//uint32_t command = readMemory32(addr);
-										//writeMemory32(0x1F801810, command);
-										//gpu->write(0x10, command);
-										gpu->write(0, readMemory8(addr++));
-										gpu->write(0, readMemory8(addr++));
-										gpu->write(0, readMemory8(addr++));
-										gpu->write(0, readMemory8(addr++));
-									}
-									if (blockInfo & 0xffffff == 0xffffff) break;
-									addr = blockInfo & 0xffffff;
-								}
-							}
-							else if (mode == 1)	{
-								int blockSize = dma2Count & 0xffff;
-								int blockCount = dma2Count >> 16;
-								if (blockCount == 0) blockCount = 0x10000;
-
-								if (dma2Control == 0x01000200 ) // VRAM READ
-								{
-									printf("DMA2 VRAM -> CPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", dma2Address, blockSize, blockCount);
-
-									for (int block = 0; block < blockCount; block++){
-										for (int i = 0; i < blockSize; i++) {
-											//writeMemory32(0x1f801810, readMemory32(addr));
-											writeMemory8(addr++, gpu->read(0));
-											writeMemory8(addr++, gpu->read(1));
-											writeMemory8(addr++, gpu->read(2));
-											writeMemory8(addr++, gpu->read(3));
-										}
-									}
-								}
-								else if (dma2Control == 0x01000201) // VRAM WRITE
-								{
-									printf("DMA2 CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", dma2Address, blockSize, blockCount);
-
-									for (int block = 0; block < blockCount; block++){
-										for (int i = 0; i < blockSize; i++) {
-											//writeMemory32(0x1f801810, readMemory32(addr));
-											gpu->write(0, readMemory8(addr++));
-											gpu->write(0, readMemory8(addr++));
-											gpu->write(0, readMemory8(addr++));
-											gpu->write(0, readMemory8(addr++));
-										}
-									}
-								}
-								else
-								{
-									printf("Unsupported cpu to vram dma mode\n");
-									__debugbreak();
-								}
-							}
-							else
-							{
-								printf("Unsupported DMA mode\n");
-								__debugbreak();
-							}
-							dma2Control &= ~(1 << 24); // complete
-							extern void IRQ(int irq);
-
-							if (dmaStatus & (1 << (16 + 2))) {
-								dmaStatus |= 1 << (24 + 2);
-
-								if ((dmaStatus & 0x8000) ||
-									((dmaStatus&(1 << 23)) && ((dmaStatus & 0x7f0000) >> 16) & ((dmaStatus & 0x7f000000) >> 24))) {
-									dmaStatus |= 0x80000000;
-									IRQ(3);
-								}
-							}
-						}
-					}
-				}
-				else if (address >= 0xe0 && address < 0xf0) { // reverse clear OT, channel 6
-					static uint32_t dma6Address = 0; 
-					static uint32_t dma6Count = 0;
-
-
-					if (address >= 0xe0 && address < 0xe4) {
-						dma6Address &= ~(0xff << ((address - 0xe0) * 8));
-						dma6Address |=   data << ((address - 0xe0) * 8);
-
-						dma6Address &= 0x1FFFFFF;
-					}
-					if (address >= 0xe4 && address < 0xe8) {
-						dma6Count &= ~(0xff << ((address - 0xe4) * 8));
-						dma6Count |=   data << ((address - 0xe4) * 8);
-					}
-					if (address >= 0xe8 && address < 0xec) {
-						dma6Control &= ~(0xff << ((address - 0xe8) * 8));
-						dma6Control |=   data << ((address - 0xe8) * 8);
-
-						if (dma6Control & (1 << 24)) {
-							dma6Control &= ~(1 << 28); // started
-							printf("DMA6 linked list @ 0x%08x\n", dma6Address);
-							int addr = dma6Address;
-							for (int i = 0; i < dma6Count; i++)	{
-								if (i == dma6Count - 1) writeMemory32(addr, 0xffffff);
-								else writeMemory32(addr, (addr - 4) & 0xffffff);
-								addr -= 4;
-							}
-							dma6Control &= ~(1 << 24); // complete
-
-							extern void IRQ(int irq);
-							if (dmaStatus & (1 << (16 + 6))) {
-								dmaStatus |= 1 << (24 + 6);
-
-								if ((dmaStatus & 0x8000) ||
-									((dmaStatus&(1 << 23)) && ((dmaStatus & 0x7f0000) >> 16) & ((dmaStatus & 0x7f000000) >> 24))) {
-									dmaStatus |= 0x80000000;
-									IRQ(3);
-								}
-							}
-						}
-					}
-				}
-				else if (address >= 0xf4 && address < 0xf8)
-				{
-					static uint32_t t = 0;
-					t &= ~(0xff << 8 * (address - 0xf4));
-					t |= data << 8 * (address - 0xf4);
-
-					dmaStatus &= 0xff8000;
-					dmaStatus |= t & 0xff8000;
-
-					dmaStatus &= ~(t & 0x7f000000);
-
-					extern void IRQ(int irq);
-					if ((dmaStatus & 0x8000) ||
-						((dmaStatus&(1 << 23)) && ((dmaStatus & 0x7f0000) >> 16) & ((dmaStatus & 0x7f000000) >> 24))) {
-						dmaStatus |= 0x80000000;
-						IRQ(3);
-					}
-				}
-
+			if ((address >= 0x0000 && address < 0x0024) ||
+				(address >= 0x0060 && address < 0x0064)) return memoryControl->write(address, data);
+			IO(0x40, 0x50, joypad);
+			IO(0x50, 0x60, serial);
+			//IO(0x70, 0x78, interrupt);
+			if (address >= 0x70 && address < 0x78) {
+				io[address] = data;
+				return;
 			}
-			else if (address >= 0x0100 && address <= 0x012F) {
-				if (address >= 0x100 && address < 0x110) part = 10;
-				else if (address >= 0x110 && address < 0x120) part = 11;
-				else if (address >= 0x120 && address < 0x130) part = 12;
-			}
-			else if (address >= 0x0800 && address <= 0x0803) {
-				part = 13;
-				if (address == 0x800) CDROM_index = data & 3;
-				if (address == 0x801) { // Command register
-					CDROM_interrupt.clear();
-					CDROM_response.clear();
-					if (CDROM_index == 0) {
-						if (data == 0x0a) // Init 
-						{
-							CDROM_interrupt.push_back(3);
-							CDROM_response.push_back(0x02); //stat
-
-							CDROM_interrupt.push_back(2);
-							CDROM_response.push_back(0x02); //stat
-						}
-						if (data == 0x19) // Test
-						{
-							if (CDROM_params.front() == 0x20) // Get CDROM BIOS date/version (yy,mm,dd,ver)
-							{
-								CDROM_params.pop_front();
-								CDROM_interrupt.push_back(3);
-								CDROM_response.push_back(0x97);
-								CDROM_response.push_back(0x01);
-								CDROM_response.push_back(0x10);
-								CDROM_response.push_back(0xc2);
-							}
-						}
-					}
-					CDROM_params.clear();
-				}
-				if (address == 0x802) { // Parameter fifo
-					if (CDROM_index == 0) {
-						CDROM_params.push_back(data);
-					}
-				}
-			}
-			else if (address >= 0x0810 && address <= 0x0818) {
-				part = 14;
-				gpu->write(address - 0x0810, data);
-			}
-			else if (address >= 0x0820 && address <= 0x0828) part = 15;
-			else if (address >= 0x0C00 && address <  0x0D80) part = 16;
-			else if (address >= 0x0D80 && address <  0x0DC0) part = 17;
-			else if (address >= 0x0DC0 && address <  0x0E00) part = 18;
-			else if (address >= 0x0E00 && address <  0x1000) part = 19;
-			else if (address >= 0x1020 && address <= 0x102f) {
-				//part = 20;
-				part = 0;
-				if (address == 0x1023) printf("%c", data);
-			}
-			else if (address == 0x1041) part = 21;
-			else part = 24;
-
-			io[address] = data;
+			IO(0x80, 0x100, dma);
+			IO(0x100, 0x110, timer0);
+			IO(0x110, 0x120, timer1);
+			IO(0x120, 0x130, timer2);
+			IO(0x800, 0x804, cdrom);
+			//else if (address >= 0x0800 && address <= 0x0803) {
+			//	part = 13;
+			//	if (address == 0x800) CDROM_index = data & 3;
+			//	if (address == 0x801) { // Command register
+			//		CDROM_interrupt.clear();
+			//		CDROM_response.clear();
+			//		if (CDROM_index == 0) {
+			//			if (data == 0x0a) // Init 
+			//			{
+			//				CDROM_interrupt.push_back(3);
+			//				CDROM_response.push_back(0x02); //stat
+			//				CDROM_interrupt.push_back(2);
+			//				CDROM_response.push_back(0x02); //stat
+			//			}
+			//			if (data == 0x19) // Test
+			//			{
+			//				if (CDROM_params.front() == 0x20) // Get CDROM BIOS date/version (yy,mm,dd,ver)
+			//				{
+			//					CDROM_params.pop_front();
+			//					CDROM_interrupt.push_back(3);
+			//					CDROM_response.push_back(0x97);
+			//					CDROM_response.push_back(0x01);
+			//					CDROM_response.push_back(0x10);
+			//					CDROM_response.push_back(0xc2);
+			//				}
+			//			}
+			//		}
+			//		CDROM_params.clear();
+			//	}
+			//	if (address == 0x802) { // Parameter fifo
+			//		if (CDROM_index == 0) {
+			//			CDROM_params.push_back(data);
+			//		}
+			//	}
+			//}
+			IO(0x810, 0x818, gpu);
+			IO(0x820, 0x828, mdec);
+			IO(0xC00, 0x1000, spu);
+			if (address == 0x1023) printf("%c", data); // Debug
+			IO(0x1000, 0x1043, expansion2);
+			printf("W Unhandled IO at 0x%08x: 0x%02x\n", address, data);
 		}
+#undef IO
 
-		else part = 24;
+		else printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
 	}
 
 	uint8_t CPU::readMemory8(uint32_t address)
 	{
 		uint8_t data = readMemory(address);
-		if (part > 1 && memoryAccessLogging) printf("%9s %12s R08: 0x%08x - 0x%02x\n", "", memoryRegion[part], address, data);
+		if (memoryAccessLogging) printf("R8:  0x%08x - 0x%02x\n", address, data);
 		return data;
 	}
 
@@ -477,7 +207,7 @@ namespace mips
 		uint16_t data = 0;
 		data |= readMemory(address + 0);
 		data |= readMemory(address + 1) << 8;
-		if (part > 1 && memoryAccessLogging) printf("%9s %12s R16: 0x%08x - 0x%04x\n", (address & 1) ? "Unaligned" : "", memoryRegion[part], address, data);
+		if (memoryAccessLogging) printf("R16: 0x%08x - 0x%04x\n", address, data);
 		return data;
 	}
 
@@ -488,7 +218,7 @@ namespace mips
 		data |= readMemory(address + 1) << 8;
 		data |= readMemory(address + 2) << 16;
 		data |= readMemory(address + 3) << 24;
-		if (part > 1 && memoryAccessLogging) printf("%9s %12s R32: 0x%08x - 0x%08x\n", (address & 3) ? "Unaligned" : "", memoryRegion[part], address, data);
+		if (memoryAccessLogging) printf("R32: 0x%08x - 0x%08x\n", address, data);
 		return data;
 	}
 
@@ -496,14 +226,14 @@ namespace mips
 	void CPU::writeMemory8(uint32_t address, uint8_t data)
 	{
 		writeMemory(address, data);
-		if (part > 1 && memoryAccessLogging) printf("%9s %12s W08: 0x%08x - 0x%02x\n", "", memoryRegion[part], address, data);
+		if (memoryAccessLogging) printf("W8:  0x%08x - 0x%02x\n", address, data);
 	}
 
 	void CPU::writeMemory16(uint32_t address, uint16_t data)
 	{
 		writeMemory(address + 0, data & 0xff);
 		writeMemory(address + 1, data >> 8);
-		if (part > 1 && memoryAccessLogging) printf("%9s %12s W16: 0x%08x - 0x%04x\n", (address & 1) ? "Unaligned" : "", memoryRegion[part], address, data);
+		if (memoryAccessLogging) printf("W16: 0x%08x - 0x%04x\n", address, data);
 	}
 
 	void CPU::writeMemory32(uint32_t address, uint32_t data)
@@ -512,7 +242,7 @@ namespace mips
 		writeMemory(address + 1, data >> 8);
 		writeMemory(address + 2, data >> 16);
 		writeMemory(address + 3, data >> 24);
-		if (part > 1 && memoryAccessLogging) printf("%9s %12s W32: 0x%08x - 0x%08x\n", (address & 3) ? "Unaligned" : "", memoryRegion[part], address, data);
+		if (memoryAccessLogging) printf("W32: 0x%08x - 0x%08x\n", address, data);
 	}
 
 	bool CPU::executeInstructions(int count)

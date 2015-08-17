@@ -2,6 +2,7 @@
 #include <string>
 #include <SDL.h>
 #include "utils/file.h"
+#include "utils/string.h"
 #include "mips.h"
 #include "psxExe.h"
 #undef main
@@ -9,6 +10,7 @@
 bool disassemblyEnabled = false;
 bool memoryAccessLogging = false;
 uint32_t memoryDumpAddress = 0;
+uint32_t htimer = 0;
 
 char* _mnemonic;
 std::string _disasm = "";
@@ -126,8 +128,18 @@ int main( int argc, char** argv )
 				gpuCycles++;
 				gpuDot++;
 
+				if (gpuDot == 3413) {
+					if (gpuLine < 240) {
+						htimer++;
+
+						std::string title = string_format("frame: %d, htimer: %d", frames, htimer);
+						SDL_SetWindowTitle(window, title.c_str());
+						if (htimer == 0xffff) htimer = 0;
+					}
+				}
 				if (gpuDot > 3413) {
 					gpuDot = 0;
+					
 
 					gpuLine++;
 
@@ -136,10 +148,9 @@ int main( int argc, char** argv )
 						gpu->odd = false;
 						gpu->step();
 						gpu->render(); 
-
 						IRQ(0);
 					}
-
+					
 					if (gpuLine > 263) {
 						gpuLine = 0;
 						gpuCycles = 0;
@@ -149,14 +160,13 @@ int main( int argc, char** argv )
 						gpuOdd = !gpuOdd;
 						gpu->odd = gpuOdd;
 
-
 					}
 				}
 			}
 		}
-		if (loadExe)
+		if (/*frames == 45 && !*/loadExe)
 		{
-			loadExe = false;
+			loadExe = true;
 
 			PsxExe exe;
 			std::string exePath = "data/exe/";

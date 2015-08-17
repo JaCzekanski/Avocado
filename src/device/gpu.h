@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include "device.h"
 #include <SDL.h>
 
 struct SDL_Renderer;
@@ -8,8 +8,7 @@ namespace device
 {
 	namespace gpu
 	{
-
-		class GPU
+		class GPU : public Device
 		{
 			SDL_Texture *texture;
 			SDL_Texture *SCREEN;

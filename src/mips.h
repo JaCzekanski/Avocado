@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include "device/gpu.h"
+#include "device/dma.h"
+#include "device/dummy.h"
 
 namespace mips
 {
@@ -33,6 +35,7 @@ namespace mips
 	r30     fp    - frame pointer
 	r31     ra    - return address
 	*/
+
 	struct CPU
 	{
 		uint32_t PC;
@@ -52,6 +55,20 @@ namespace mips
 			for (int i = 0; i < 32; i++) COP0[i] = 0;
 			hi = 0;
 			lo = 0;
+
+			memoryControl = new device::Dummy("MemCtrl", 0x1f801000);
+			joypad = new device::Dummy("Joypad", 0x1f801040);
+			serial = new device::Dummy("Serial", 0x1f801050);
+			interrupt = new device::Dummy("Interrupt", 0x1f801070);
+			dma = new device::dma::DMA();
+			dma->setCPU(this);
+			timer0 = new device::Dummy("Timer0", 0x1f801100);
+			timer1 = new device::Dummy("Timer1", 0x1f801110);
+			timer2 = new device::Dummy("Timer2", 0x1f801120);
+			cdrom = new device::Dummy("CDROM", 0x1f801800);
+			mdec = new device::Dummy("MDEC", 0x1f801820);
+			spu = new device::Dummy("SPU", 0x1f801c00, false);
+			expansion2 = new device::Dummy("Expansion2", 0x1f802000, false);
 		}
 
 		uint8_t bios[512 * 1024];
@@ -62,13 +79,26 @@ namespace mips
 
 	private:
 		// Devices
+		device::Dummy *memoryControl = nullptr;
+		device::Dummy *joypad = nullptr;
+		device::Dummy *serial = nullptr;
+		device::Dummy *interrupt = nullptr;
+		device::dma::DMA *dma = nullptr;
+		device::Dummy *timer0 = nullptr;
+		device::Dummy *timer1 = nullptr;
+		device::Dummy *timer2 = nullptr;
+		device::Dummy *cdrom = nullptr;
 		device::gpu::GPU *gpu = nullptr;
+		device::Dummy *mdec = nullptr;
+		device::Dummy *spu = nullptr;
+		device::Dummy *expansion2 = nullptr;
 
 		uint8_t readMemory(uint32_t address);
 		void writeMemory(uint32_t address, uint8_t data);
 	public:
 		void setGPU(device::gpu::GPU *gpu) {
 			this->gpu = gpu;
+			dma->setGPU(gpu);
 		}
 
 		uint8_t readMemory8(uint32_t address);
