@@ -112,6 +112,7 @@ namespace mipsInstructions
 	void swl(mips::CPU* cpu, Opcode i);
 	void sw(mips::CPU* cpu, Opcode i);
 	void swr(mips::CPU* cpu, Opcode i);
+	void breakpoint(mips::CPU* cpu, Opcode i);
 
 	extern PrimaryInstruction OpcodeTable[64];
 };

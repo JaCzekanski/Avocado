@@ -87,14 +87,15 @@ namespace mipsInstructions
 		{ 60, invalid, "INVALID" },
 		{ 61, invalid, "INVALID" },
 		{ 62, invalid, "INVALID" },
-		{ 63, invalid, "INVALID" },
+		//{ 63, invalid, "INVALID" },
+		{ 63, breakpoint, "BREAKPOINT" }
 	};
 
 	PrimaryInstruction SpecialTable[64] =
 	{
 		{ 0, sll, "sll" },
 		{ 1, invalid, "INVALID" },
-		{ 2, srl, "stl" },
+		{ 2, srl, "srl" },
 		{ 3, sra, "sra" },
 		{ 4, sllv, "sllv" },
 		{ 5, invalid, "INVALID" },
@@ -166,6 +167,15 @@ namespace mipsInstructions
 	};
 
 	int part = 0;
+
+	void trap(CPU* cpu)
+	{
+		//printf("Ha haa! trap it\n");
+		cpu->COP0[8] = cpu->PC; //  BadVAddr - Memory address where exception occurred
+		cpu->COP0[14] = cpu->PC + 4; // EPC - return address from trap
+		cpu->COP0[13] = 12 << 2; // Cause, hardcoded SYSCALL
+		cpu->PC = 0x80000080 - 4;
+	}
 
 	void invalid(CPU* cpu, Opcode i)
 	{
@@ -265,7 +275,7 @@ namespace mipsInstructions
 	// SYSCALL
 	void syscall(CPU *cpu, Opcode i)
 	{
-		cpu->COP0[14] = cpu->PC + 4; // EPC - return address from trap
+		cpu->COP0[14] = cpu->PC; // EPC - return address from trap
 		cpu->COP0[13] = 8 << 2; // Cause, hardcoded SYSCALL
 		cpu->PC = 0x80000080 - 4;
 	}
@@ -291,8 +301,8 @@ namespace mipsInstructions
 	// MTHI rd
 	void mthi(CPU *cpu, Opcode i)
 	{
-		disasm("r%d", i.rd);
-		cpu->hi = cpu->reg[i.rd];
+		disasm("r%d", i.rs);
+		cpu->hi = cpu->reg[i.rs];
 	}
 
 	// Move From Lo
@@ -307,8 +317,8 @@ namespace mipsInstructions
 	// MTLO rd
 	void mtlo(CPU *cpu, Opcode i)
 	{
-		disasm("r%d", i.rd);
-		cpu->lo = cpu->reg[i.rd];
+		disasm("r%d", i.rs);
+		cpu->lo = cpu->reg[i.rs];
 	}
 
 	// Multiply
@@ -316,7 +326,7 @@ namespace mipsInstructions
 	void mult(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d", i.rs, i.rt);
-		int64_t temp = (int64_t)cpu->reg[i.rs] * (int64_t)cpu->reg[i.rt];
+		uint64_t temp = (int64_t)cpu->reg[i.rs] * (int64_t)cpu->reg[i.rt];
 		cpu->lo = temp & 0xffffffff;
 		cpu->hi = temp >> 32;
 	}
@@ -373,6 +383,9 @@ namespace mipsInstructions
 	void add(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+		if (((uint64_t)cpu->reg[i.rs] + (uint64_t)cpu->reg[i.rt]) & 0x100000000) {
+			trap(cpu);
+		}
 		cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
 	}
 
@@ -603,7 +616,7 @@ namespace mipsInstructions
 	void sltiu(CPU *cpu, Opcode i)
 	{
 		disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
-		if (cpu->reg[i.rs] < (uint32_t)i.imm) cpu->reg[i.rt] = 1;
+		if (cpu->reg[i.rs] < (uint32_t)i.offset) cpu->reg[i.rt] = 1;
 		else cpu->reg[i.rt] = 0;
 	}
 
@@ -669,12 +682,13 @@ namespace mipsInstructions
 		{
 			mnemonic("RFE");
 
-			uint32_t sr = cpu->COP0[12];
-			sr &= ~3;
-			sr |= (sr & 0xc) >> 2;
+			uint32_t sr = cpu->COP0[12] & 0xfffffff0;
+			sr |= (cpu->COP0[12] & 0x3c) >> 2;
+			//sr &= ~3;
+			//sr |= (sr & 0xc) >> 2;
 
-			sr &= ~0xc;
-			sr |= (sr & 0x30) >> 2;
+			//sr &= ~0xc;
+			//sr |= (sr & 0x30) >> 2;
 
 			cpu->COP0[12] = sr;
 		}
@@ -887,5 +901,14 @@ namespace mipsInstructions
 			break;
 		}
 		cpu->writeMemory32(addr & 0xfffffffc, result);
+	}
+
+
+	// BREAKPOINT
+	void breakpoint(CPU *cpu, Opcode i)
+	{
+		disasm("");
+		printf("Breakpoint at 0x%08x\n", cpu->PC);
+		cpu->halted = true;
 	}
 };
