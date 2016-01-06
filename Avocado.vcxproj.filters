@@ -62,6 +62,9 @@
     <ClCompile Include="externals\imgui\imgui_draw.cpp">
       <Filter>libs\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="src\device\dmaChannel.cpp">
+      <Filter>Source Files\device</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\file.h">
@@ -89,6 +92,15 @@
       <Filter>Header Files\device</Filter>
     </ClInclude>
     <ClInclude Include="src\device\dma.h">
+      <Filter>Header Files\device</Filter>
+    </ClInclude>
+    <ClInclude Include="src\device\dmaChannel.h">
+      <Filter>Header Files\device</Filter>
+    </ClInclude>
+    <ClInclude Include="src\device\dma2Channel.h">
+      <Filter>Header Files\device</Filter>
+    </ClInclude>
+    <ClInclude Include="src\device\dma6Channel.h">
       <Filter>Header Files\device</Filter>
     </ClInclude>
   </ItemGroup>
