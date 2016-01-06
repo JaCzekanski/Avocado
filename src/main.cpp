@@ -21,7 +21,7 @@ uint32_t memoryDumpAddress = 0;
 uint32_t htimer = 0;
 uint32_t timer2 = 0;
 
-char* _mnemonic;
+char *_mnemonic;
 std::string _disasm = "";
 
 mips::CPU cpu;
@@ -99,14 +99,13 @@ void disassemblyWindow() {
         for (int i = 0; i < 30; i++) {
             mipsInstructions::Opcode _opcode;
             _opcode.opcode = debugCPU->readMemory32(PC);
-            const auto& op = mipsInstructions::OpcodeTable[_opcode.op];
+            const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
             _mnemonic = op.mnemnic;
 
             op.instruction(debugCPU.get(), _opcode);
 
-            ImGui::Selectable(string_format("%c 0x%08x    %08x      %s %s",
-                                            (i % 4) == 0 ? 'x' : ' ', PC, _opcode, _mnemonic,
-                                            _disasm.c_str())
+            ImGui::Selectable(string_format("%c 0x%08x    %08x      %s %s", (i % 4) == 0 ? 'x' : ' ', PC, _opcode,
+                                            _mnemonic, _disasm.c_str())
                                   .c_str());
 
             PC += 4;
@@ -119,7 +118,7 @@ void disassemblyWindow() {
     ImGui::End();
 }
 
-void renderDebugWindow(SDL_Window* debugWindow) {
+void renderDebugWindow(SDL_Window *debugWindow) {
     int width, height;
     SDL_GetWindowSize(debugWindow, &width, &height);
 
@@ -161,13 +160,13 @@ void checkForInterrupts() {
 }
 
 bool loadExe = false;
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
         return 1;
     }
-    SDL_Window* window;
-    SDL_Renderer* renderer;
+    SDL_Window *window;
+    SDL_Renderer *renderer;
 
     if (SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_SHOWN, &window, &renderer) != 0) {
         printf("Cannot create window or renderer\n");
@@ -189,16 +188,15 @@ int main(int argc, char** argv) {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_Window* debugWindow =
-        SDL_CreateWindow("Debug", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600,
-                         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
+    SDL_Window *debugWindow = SDL_CreateWindow("Debug", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600,
+                                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
     SDL_GLContext glContext = SDL_GL_CreateContext(debugWindow);
     ImGui_ImplSdl_Init(debugWindow);
 
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF("consola.ttf", 14);
 
-    device::gpu::GPU* gpu = new device::gpu::GPU();
+    device::gpu::GPU *gpu = new device::gpu::GPU();
     cpu.setGPU(gpu);
 
     int gpuLine = 0;
@@ -273,9 +271,8 @@ int main(int argc, char** argv) {
                         gpu->odd = gpuOdd;
                         gpu->step();
 
-                        std::string title =
-                            string_format("INTMASK: 0x%02x, frame: %d, htimer: %d, cpu_cycles: %d",
-                                          cpu.io[0x74], frames, htimer, cycles);
+                        std::string title = string_format("INTMASK: 0x%02x, frame: %d, htimer: %d, cpu_cycles: %d",
+                                                          cpu.io[0x74], frames, htimer, cycles);
                         SDL_SetWindowTitle(window, title.c_str());
 
                         gpu->render();

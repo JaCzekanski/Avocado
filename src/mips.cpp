@@ -6,15 +6,15 @@
 
 extern bool disassemblyEnabled;
 extern bool memoryAccessLogging;
-extern char* _mnemonic;
+extern char *_mnemonic;
 extern std::string _disasm;
 
 extern uint32_t htimer;
 
 namespace mips {
-const char* regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2",
-                          "t3",   "t4", "t5", "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5",
-                          "s6",   "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
+const char *regNames[]
+    = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+       "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
 static int CDROM_index = 0;
 static std::deque<uint8_t> CDROM_params;
@@ -105,11 +105,11 @@ uint8_t CPU::readMemory(uint32_t address) {
             return expansion2->read(address);
         }
         printf("R Unhandled IO at 0x%08x\n", address);
-        return io[address];
+        return io[address & 0x1fff];
     }
 #undef IO
 
-    if (address >= 0x1fc00000 && address <= 0x1fc80000) return bios[address - 0x1fc00000];
+    if (address >= 0x1fc00000 && address < 0x1fc80000) return bios[address - 0x1fc00000];
 
     printf("R Unhandled address at 0x%08x\n", address);
     return 0;
@@ -176,8 +176,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
                     }
                     if (data == 0x19)  // Test
                     {
-                        if (CDROM_params.front() ==
-                            0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
+                        if (CDROM_params.front() == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
                         {
                             CDROM_params.pop_front();
                             CDROM_interrupt.push_back(3);
@@ -261,12 +260,11 @@ bool CPU::executeInstructions(int count) {
         _opcode.opcode = readMemory32(PC);
 
         bool isJumpCycle = shouldJump;
-        const auto& op = mipsInstructions::OpcodeTable[_opcode.op];
+        const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
         _mnemonic = op.mnemnic;
 
         if ((PC & 0x0fffffff) == 0xa0 && biosLog) {
-            printf("BIOS A(0x%02x) r4: 0x%08x r5: 0x%08x r6: 0x%08x \n", reg[9], reg[4], reg[5],
-                   reg[6]);
+            printf("BIOS A(0x%02x) r4: 0x%08x r5: 0x%08x r6: 0x%08x \n", reg[9], reg[4], reg[5], reg[6]);
         }
         if ((PC & 0x0fffffff) == 0xb0 && biosLog) {
             if (reg[9] == 0x3d) {

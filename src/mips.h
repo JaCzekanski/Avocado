@@ -72,7 +72,7 @@ struct CPU {
     uint8_t ram[2 * 1024 * 1024];
     uint8_t scratchpad[1024];
     uint8_t io[8 * 1024];
-    uint8_t expansion[0x10000];
+    uint8_t expansion[8192 * 1024];
 
    private:
     // Devices

@@ -179,8 +179,7 @@ void invalid(CPU *cpu, Opcode i) {
 }
 
 void notImplemented(CPU *cpu, Opcode i) {
-    printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC,
-           i.opcode);
+    printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
     cpu->halted = true;
 }
 

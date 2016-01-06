@@ -39,11 +39,7 @@ union BCR {
 union CHCR {
     enum class TransferDirection : uint8_t { toMainRam = 0, fromMainRam = 1 };
     enum class MemoryAddressStep : uint8_t { forward = 0, backward = 1 };
-    enum class SyncMode : uint8_t {
-        startImmediately = 0,
-        syncBlockToDmaRequests = 1,
-        linkedListMode = 2
-    };
+    enum class SyncMode : uint8_t { startImmediately = 0, syncBlockToDmaRequests = 1, linkedListMode = 2 };
     enum class ChoppingEnable : uint8_t { normal = 0, chopping = 1 };
     enum class Enabled : uint8_t { completed = 0, stop = 0, start = 1 };
     enum class StartTrigger : uint8_t { clear = 0, automatic = 0, manual = 1 };

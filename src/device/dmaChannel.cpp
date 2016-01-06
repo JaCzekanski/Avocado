@@ -87,7 +87,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 for (int i = 0; i < commandCount; i++, addr += 4) {
                     writeDevice(cpu->readMemory32(addr));
                 }
-                if (blockInfo & 0xffffff == 0xffffff) break;
+                if ((blockInfo & 0xffffff) == 0xffffff) break;
                 addr = blockInfo & 0xffffff;
             }
         }

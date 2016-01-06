@@ -7,9 +7,9 @@ namespace dmaChannel {
 class DMA2Channel : public DMAChannel {
     device::gpu::GPU *gpu = nullptr;
 
-    uint32_t readDevice() {
+    uint32_t readDevice() { 
         return gpu->read(0) | (gpu->read(1) << 8) | (gpu->read(2) << 16) | (gpu->read(3) << 24);
-    }
+	}
     void writeDevice(uint32_t data) {
         gpu->write(0, data);
         gpu->write(1, data >> 8);
