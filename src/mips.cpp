@@ -16,11 +16,6 @@ const char *regNames[]
     = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
        "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
-static int CDROM_index = 0;
-static std::deque<uint8_t> CDROM_params;
-static std::deque<uint8_t> CDROM_response;
-static std::deque<uint8_t> CDROM_interrupt;
-
 uint8_t CPU::readMemory(uint32_t address) {
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
         printf("R Unhandled memory control\n");
@@ -42,8 +37,6 @@ uint8_t CPU::readMemory(uint32_t address) {
     if (address >= 0x1f801000 && address <= 0x1f803000) {
         address -= 0x1f801000;
 
-        if ((address >= 0x0000 && address < 0x0024) || (address >= 0x0060 && address < 0x0064))
-            return memoryControl->read(address);
         if ((address >= 0x44 && address < 0x48) || (address >= 0x4A && address < 0x4E)) {
             return rand() % 256;
         }
@@ -52,14 +45,13 @@ uint8_t CPU::readMemory(uint32_t address) {
                 return 0x5 >> ((address - 0x54) * 8);
             }
         }
-
+        IO(0x00, 0x24, memoryControl);
         IO(0x40, 0x50, joypad);
         IO(0x50, 0x60, serial);
-        // IO(0x70, 0x78, interrupt);
-        if (address >= 0x70 && address < 0x78) return io[address];
+        IO(0x60, 0x64, memoryControl);
+        IO(0x70, 0x78, interrupt);
         IO(0x80, 0x100, dma);
         IO(0x100, 0x110, timer0);
-        // IO(0x110, 0x120, timer1);
         if (address >= 0x110 && address < 0x114) {
             return htimer >> ((address - 0x110) * 8);
         }
@@ -67,36 +59,7 @@ uint8_t CPU::readMemory(uint32_t address) {
             return (htimer * 100) >> ((address - 0x110) * 8);
         }
         IO(0x120, 0x130, timer2);
-        // IO(0x800, 0x804, cdrom);
-        if (address >= 0x0800 && address <= 0x0803) {
-            if (address == 0x800) {
-                uint8_t status = CDROM_index;
-                // status |= (!CDROM_data.emprt()) << 6;
-                status |= (!CDROM_response.empty()) << 5;
-                status |= (CDROM_params.size() >= 16) << 4;
-                status |= (CDROM_params.empty()) << 3;
-
-                return status;
-            }
-            if (address == 0x801) {
-                uint8_t response = 0;
-                if (!CDROM_response.empty()) {
-                    response = CDROM_response.front();
-                    CDROM_response.pop_front();
-                }
-                return response;
-            }
-            if (address == 0x803) {  // type of response received
-                uint8_t status = 0xe0;
-                if (!CDROM_interrupt.empty()) {
-                    status |= CDROM_interrupt.front();
-                    CDROM_interrupt.pop_front();
-                }
-
-                return status;
-            }
-            // part = 13;
-        }
+        IO(0x800, 0x804, cdrom);
         IO(0x810, 0x818, gpu);
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
@@ -125,7 +88,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) {
-        if (!IsC) ram[address & 0x1FFFFF] = data;
+        if (cop0.status.isolateCache == device::Bit::cleared) ram[address & 0x1FFFFF] = data;
         return;
     } else if (address >= 0x1f000000 && address < 0x1f010000) {
         expansion[address - 0x1f000000] = data;
@@ -142,64 +105,21 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     if (address >= 0x1f801000 && address <= 0x1f803000) {
         address -= 0x1f801000;
 
-        if ((address >= 0x0000 && address < 0x0024) || (address >= 0x0060 && address < 0x0064))
-            return memoryControl->write(address, data);
+        if (address == 0x1023) printf("%c", data);  // Debug
+
+        IO(0x00, 0x24, memoryControl);
         IO(0x40, 0x50, joypad);
         IO(0x50, 0x60, serial);
-        // IO(0x70, 0x78, interrupt);
-        if (address >= 0x70 && address < 0x74) {
-            io[address] &= data;
-            return;
-        }
-        if (address >= 0x74 && address < 0x78) {
-            io[address] = data;
-            return;
-        }
+        IO(0x60, 0x64, memoryControl);
+        IO(0x70, 0x78, interrupt);
         IO(0x80, 0x100, dma);
         IO(0x100, 0x110, timer0);
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
-        // IO(0x800, 0x804, cdrom);
-        if (address >= 0x0800 && address <= 0x0803) {
-            // part = 13;
-            if (address == 0x800) CDROM_index = data & 3;
-            if (address == 0x801) {  // Command register
-                CDROM_interrupt.clear();
-                CDROM_response.clear();
-                if (CDROM_index == 0) {
-                    if (data == 0x0a)  // Init
-                    {
-                        CDROM_interrupt.push_back(3);
-                        CDROM_response.push_back(0x20);  // stat
-                        CDROM_interrupt.push_back(2);
-                        CDROM_response.push_back(0x20);  // stat
-                    }
-                    if (data == 0x19)  // Test
-                    {
-                        if (CDROM_params.front() == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
-                        {
-                            CDROM_params.pop_front();
-                            CDROM_interrupt.push_back(3);
-                            CDROM_response.push_back(0x97);
-                            CDROM_response.push_back(0x01);
-                            CDROM_response.push_back(0x10);
-                            CDROM_response.push_back(0xc2);
-                        }
-                    }
-                }
-                CDROM_params.clear();
-            }
-            if (address == 0x802) {  // Parameter fifo
-                if (CDROM_index == 0) {
-                    CDROM_params.push_back(data);
-                }
-            }
-            return;
-        }
+        IO(0x800, 0x804, cdrom);
         IO(0x810, 0x818, gpu);
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
-        if (address == 0x1023) printf("%c", data);  // Debug
         IO(0x1000, 0x1043, expansion2);
         printf("W Unhandled IO at 0x%08x: 0x%02x\n", address, data);
         return;
@@ -266,7 +186,7 @@ bool CPU::executeInstructions(int count) {
         if ((PC & 0x0fffffff) == 0xa0 && biosLog) {
             printf("BIOS A(0x%02x) r4: 0x%08x r5: 0x%08x r6: 0x%08x \n", reg[9], reg[4], reg[5], reg[6]);
         }
-        if ((PC & 0x0fffffff) == 0xb0 && biosLog) {
+        if ((PC & 0x0fffffff) == 0xb0 && (biosLog || reg[9] == 0x3d)) {
             if (reg[9] == 0x3d) {
                 printf("%c", reg[4]);
             } else {

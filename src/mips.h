@@ -1,7 +1,9 @@
 #pragma once
 #include <stdint.h>
+#include "cop0.h"
 #include "device/gpu.h"
 #include "device/dma.h"
+#include "device/interrupt.h"
 #include "device/dummy.h"
 
 namespace mips {
@@ -40,23 +42,21 @@ struct CPU {
     uint32_t jumpPC;
     bool shouldJump;
     uint32_t reg[32];
-    uint32_t COP0[32];
+	cop0::COP0 cop0;
     uint32_t hi, lo;
-    bool IsC = false;
     bool halted = false;
     CPU() {
         PC = 0xBFC00000;
         jumpPC = 0;
         shouldJump = false;
         for (int i = 0; i < 32; i++) reg[i] = 0;
-        for (int i = 0; i < 32; i++) COP0[i] = 0;
         hi = 0;
         lo = 0;
 
         memoryControl = new device::Dummy("MemCtrl", 0x1f801000);
         joypad = new device::Dummy("Joypad", 0x1f801040);
         serial = new device::Dummy("Serial", 0x1f801050);
-        interrupt = new device::Dummy("Interrupt", 0x1f801070);
+        interrupt = new device::interrupt::Interrupt();
         dma = new device::dma::DMA();
         dma->setCPU(this);
         timer0 = new device::Dummy("Timer0", 0x1f801100);
@@ -74,12 +74,14 @@ struct CPU {
     uint8_t io[8 * 1024];
     uint8_t expansion[8192 * 1024];
 
-   private:
     // Devices
+   public:
+    device::interrupt::Interrupt *interrupt = nullptr;
+
+   private:
     device::Dummy *memoryControl = nullptr;
     device::Dummy *joypad = nullptr;
     device::Dummy *serial = nullptr;
-    device::Dummy *interrupt = nullptr;
     device::dma::DMA *dma = nullptr;
     device::Dummy *timer0 = nullptr;
     device::Dummy *timer1 = nullptr;

@@ -16,7 +16,8 @@ extern char *_mnemonic;
 extern std::string _disasm;
 
 namespace mipsInstructions {
-PrimaryInstruction OpcodeTable[64] = {{0, special, "special"},  // R type
+	PrimaryInstruction OpcodeTable[64] = {  // R type
+		{0, special, "special"},
                                       {1, branch, "branch"},
                                       {2, j, "j"},
                                       {3, jal, "jal"},
@@ -87,7 +88,8 @@ PrimaryInstruction OpcodeTable[64] = {{0, special, "special"},  // R type
                                       {61, invalid, "INVALID"},
                                       {62, invalid, "INVALID"},
                                       //{ 63, invalid, "INVALID" },
-                                      {63, breakpoint, "BREAKPOINT"}};
+                                      {63, breakpoint, "BREAKPOINT"}
+	};
 
 PrimaryInstruction SpecialTable[64] = {
     {0, sll, "sll"},
@@ -166,10 +168,9 @@ PrimaryInstruction SpecialTable[64] = {
 int part = 0;
 
 void trap(CPU *cpu) {
-    // printf("Ha haa! trap it\n");
-    cpu->COP0[8] = cpu->PC;       //  BadVAddr - Memory address where exception occurred
-    cpu->COP0[14] = cpu->PC + 4;  // EPC - return address from trap
-    cpu->COP0[13] = 12 << 2;      // Cause, hardcoded SYSCALL
+    cpu->cop0.badVaddr = cpu->PC;
+	cpu->cop0.epc = cpu->PC + 4;
+	cpu->cop0.cause.exception = cop0::CAUSE::Exception::syscall;
     cpu->PC = 0x80000080 - 4;
 }
 
@@ -256,16 +257,16 @@ void jalr(CPU *cpu, Opcode i) {
 // Syscall
 // SYSCALL
 void syscall(CPU *cpu, Opcode i) {
-    cpu->COP0[14] = cpu->PC;  // EPC - return address from trap
-    cpu->COP0[13] = 8 << 2;   // Cause, hardcoded SYSCALL
+    cpu->cop0.epc = cpu->PC;
+	cpu->cop0.cause.exception = cop0::CAUSE::Exception::syscall;
     cpu->PC = 0x80000080 - 4;
 }
 
 // Break
 // BREAK
 void break_(CPU *cpu, Opcode i) {
-    cpu->COP0[14] = cpu->PC + 4;  // EPC - return address from trap
-    cpu->COP0[13] = 9 << 2;       // Cause, hardcoded SYSCALL
+	cpu->cop0.epc = cpu->PC + 4;
+	cpu->cop0.cause.exception = cop0::CAUSE::Exception::breakpoint;
     cpu->PC = 0x80000080 - 4;
 }
 
@@ -613,36 +614,63 @@ void cop0(CPU *cpu, Opcode i) {
             // MFC0 rd, <nn>
             mnemonic("MFC0");
             disasm("r%d, $%d", i.rt, i.rd);
+			
+			switch (i.rd) {
+			case 8:
+				cpu->reg[i.rt] = cpu->cop0.badVaddr;
+				break;
 
-            cpu->reg[i.rt] = cpu->COP0[i.rd];
+			case 12:
+				cpu->reg[i.rt] = cpu->cop0.status._reg;
+				break;
+
+			case 13:
+				cpu->reg[i.rt] = cpu->cop0.cause._reg;
+				break;
+
+			case 14:
+				cpu->reg[i.rt] = cpu->cop0.epc;
+				break;
+
+			default:
+				cpu->reg[i.rt] = 0;
+				break;
+			}
+
             break;
 
         case 4:
             // Move to co-processor zero
             // MTC0 rs, <nn>
             mnemonic("MTC0");
-            disasm("r%d, $%d", i.rt, i.rd);
+			disasm("r%d, $%d", i.rt, i.rd);
 
-            cpu->COP0[i.rd] = cpu->reg[i.rt];
-            if (i.rd == 12) cpu->IsC = (cpu->COP0[i.rd] & 0x10000) ? true : false;
+			switch (i.rd) {
+			case 12:
+				cpu->cop0.status._reg = cpu->reg[i.rt];
+				break;
+
+			case 13:
+				cpu->cop0.cause._reg &= ~0x300;
+				cpu->cop0.cause._reg |= (cpu->reg[i.rt] & 0x300);
+				break;
+				
+			default:
+				cpu->reg[i.rt] = 0;
+				break;
+			}
             break;
 
         case 16:
             // Restore from exception
             // RFE
-            {
-                mnemonic("RFE");
+            mnemonic("RFE");
 
-                uint32_t sr = cpu->COP0[12] & 0xfffffff0;
-                sr |= (cpu->COP0[12] & 0x3c) >> 2;
-                // sr &= ~3;
-                // sr |= (sr & 0xc) >> 2;
+			cpu->cop0.status.interruptEnable = cpu->cop0.status.previousInterruptEnable;
+			cpu->cop0.status.mode = cpu->cop0.status.previousMode;
 
-                // sr &= ~0xc;
-                // sr |= (sr & 0x30) >> 2;
-
-                cpu->COP0[12] = sr;
-            }
+			cpu->cop0.status.previousInterruptEnable = cpu->cop0.status.oldInterruptEnable;
+			cpu->cop0.status.previousMode = cpu->cop0.status.oldMode;
             break;
 
         default:

@@ -14,10 +14,12 @@
     <ClCompile Include="externals\imgui\examples\sdl_opengl_example\imgui_impl_sdl.cpp" />
     <ClCompile Include="externals\imgui\imgui.cpp" />
     <ClCompile Include="externals\imgui\imgui_draw.cpp" />
+    <ClCompile Include="src\device\cdrom.cpp" />
     <ClCompile Include="src\device\dma.cpp" />
     <ClCompile Include="src\device\dmaChannel.cpp" />
     <ClCompile Include="src\device\dummy.cpp" />
     <ClCompile Include="src\device\gpu.cpp" />
+    <ClCompile Include="src\device\interrupt.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mips.cpp" />
     <ClCompile Include="src\mipsInstructions.cpp" />
@@ -25,6 +27,8 @@
     <ClCompile Include="src\utils\string.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\cop0.h" />
+    <ClInclude Include="src\device\cdrom.h" />
     <ClInclude Include="src\device\device.h" />
     <ClInclude Include="src\device\dma.h" />
     <ClInclude Include="src\device\dma2Channel.h" />
@@ -32,6 +36,7 @@
     <ClInclude Include="src\device\dmaChannel.h" />
     <ClInclude Include="src\device\dummy.h" />
     <ClInclude Include="src\device\gpu.h" />
+    <ClInclude Include="src\device\interrupt.h" />
     <ClInclude Include="src\mips.h" />
     <ClInclude Include="src\mipsInstructions.h" />
     <ClInclude Include="src\psxExe.h" />

@@ -38,8 +38,8 @@ std::vector<Breakpoint> breakpoints;
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
 void IRQ(int irq) {
-    printf("IRQ%d\n", irq);
-    cpu.io[0x70] = cpu.io[0x70] | (1 << irq);
+    // printf("IRQ%d\n", irq);
+    cpu.interrupt->IRQ(irq);
 }
 
 bool isBreakpointSet(uint32_t addr) {
@@ -135,27 +135,38 @@ void renderDebugWindow(SDL_Window *debugWindow) {
 }
 
 void checkForInterrupts() {
-    // check Interrupt Mask
-    if (cpu.io[0x74] & cpu.io[0x70]) {
-        if ((cpu.COP0[12] & (1 << 0)) && (cpu.COP0[12] & (1 << 10))) {
-            cpu.COP0[13] = (1 << 10) | (0 << 2);  // Cause, IRQ
-            cpu.COP0[14] = cpu.PC;                // EPC - return address from trap
+    if (!cpu.interrupt->interruptPending()) {
+        return;
+    }
 
-            uint32_t sr = cpu.COP0[12];
+	using namespace mips::cop0;
 
-            sr &= ~0x30;
-            sr |= (sr & 0xc) << 2;
+    if (cpu.cop0.status.interruptEnable == Bit::set && (cpu.cop0.status.interruptMask & 4)) {
+        cpu.cop0.cause.exception = CAUSE::Exception::interrupt;
+		cpu.cop0.cause.interruptPending = 4;
 
-            sr &= ~0xc;
-            sr |= (sr & 0x3) << 2;
-
-            sr &= ~3;
-
-            cpu.COP0[12] = sr;
-
-            cpu.PC = 0x80000080;
-            printf("----\n");
+        if (cpu.shouldJump) {
+			cpu.cop0.cause.isInDelaySlot = Bit::set;
+            cpu.cop0.epc = cpu.PC - 4;  // EPC - return address from trap
+        } else {
+			cpu.cop0.epc = cpu.PC;  // EPC - return address from trap
         }
+		
+		cpu.cop0.status.oldInterruptEnable = cpu.cop0.status.previousInterruptEnable;
+		cpu.cop0.status.oldMode = cpu.cop0.status.previousMode;
+
+		cpu.cop0.status.previousInterruptEnable = cpu.cop0.status.interruptEnable;
+		cpu.cop0.status.previousMode = cpu.cop0.status.mode;
+
+		cpu.cop0.status.interruptEnable = Bit::cleared;
+		cpu.cop0.status.mode = STATUS::Mode::kernel;
+
+        if (cpu.cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
+            cpu.PC = 0xbfc00180;
+        else
+            cpu.PC = 0x80000080;
+
+        printf("----\n");
     }
 }
 
@@ -243,7 +254,6 @@ int main(int argc, char **argv) {
             if (timer2 >= 0xffff) {
                 timer2 = 0;
                 IRQ(6);
-                printf("TIMER 2 IRQ\n");
             }
 
             for (int i = 0; i < 11; i++) {
@@ -271,8 +281,8 @@ int main(int argc, char **argv) {
                         gpu->odd = gpuOdd;
                         gpu->step();
 
-                        std::string title = string_format("INTMASK: 0x%02x, frame: %d, htimer: %d, cpu_cycles: %d",
-                                                          cpu.io[0x74], frames, htimer, cycles);
+                        std::string title
+                            = string_format("frame: %d, htimer: %d, cpu_cycles: %d", frames, htimer, cycles);
                         SDL_SetWindowTitle(window, title.c_str());
 
                         gpu->render();

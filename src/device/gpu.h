@@ -9,17 +9,17 @@ namespace gpu {
 
 // Draw Mode setting
 union GP0_E1 {
-    enum class SemiTransparency : uint8_t {
+    enum class SemiTransparency : uint32_t {
         Bby2plusHby2 = 0,  // B/2+F/2
         BplusF = 1,        // B+F
         BminusF = 2,       // B-F
         BplusFby4 = 3      // B+F/4
     };
-    enum class TexturePageColors : uint8_t { bit4 = 0, bit8 = 1, bit15 = 2 };
-    enum class DrawingToDisplayArea : uint8_t { prohibited = 0, allowed = 1 };
+    enum class TexturePageColors : uint32_t { bit4 = 0, bit8 = 1, bit15 = 2 };
+    enum class DrawingToDisplayArea : uint32_t { prohibited = 0, allowed = 1 };
     struct {
-        uint8_t texturePageBaseX : 2;  // N * 64
-        uint8_t texturePageBaseY : 1;  // N * 256
+        uint32_t texturePageBaseX : 2;  // N * 64
+        uint32_t texturePageBaseY : 1;  // N * 256
         SemiTransparency semiTransparency : 2;
         TexturePageColors texturePageColors : 2;
         Bit dither24to15 : 1;
@@ -28,7 +28,7 @@ union GP0_E1 {
         Bit texturedRectangleXFlip : 1;  // (BIOS does set this bit on power-up...?)
         Bit texturedRectangleYFlip : 1;  // (BIOS does set it equal to GPUSTAT.13...?)
 
-        uint32_t unused : 10;
+        uint32_t : 10;
         uint8_t command;  // 0xe1
     };
     struct {
@@ -67,7 +67,7 @@ union GP1_08 {
         HorizontalResolution2 horizontalResolution2 : 1;  // (0=256/320/512/640, 1=368)
         ReverseFlag reverseFlag : 1;
 
-        uint32_t unused : 16;
+        uint32_t : 16;
         uint8_t command;  // 0x08
     };
     struct {

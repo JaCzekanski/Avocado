@@ -54,19 +54,16 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             if (control.transferDirection == CHCR::TransferDirection::toMainRam)  // VRAM READ
             {
-                printf("DMA%d VRAM -> CPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr,
-                       blockSize, blockCount);
+                printf("DMA%d VRAM -> CPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
                         cpu->writeMemory32(addr, readDevice());
                     }
                 }
-            } else if (control.transferDirection ==
-                       CHCR::TransferDirection::fromMainRam)  // VRAM WRITE
+            } else if (control.transferDirection == CHCR::TransferDirection::fromMainRam)  // VRAM WRITE
             {
-                printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr,
-                       blockSize, blockCount);
+                printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
