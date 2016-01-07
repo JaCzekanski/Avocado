@@ -3,10 +3,12 @@
 #include "cop0.h"
 #include "device/gpu.h"
 #include "device/dma.h"
+#include "device/cdrom.h"
 #include "device/interrupt.h"
 #include "device/dummy.h"
 
 namespace mips {
+	using namespace device;
 /*
 Based on http://problemkaputt.de/psx-spx.htm
 0x00000000 - 0x20000000 is cache enabled
@@ -42,7 +44,7 @@ struct CPU {
     uint32_t jumpPC;
     bool shouldJump;
     uint32_t reg[32];
-	cop0::COP0 cop0;
+    cop0::COP0 cop0;
     uint32_t hi, lo;
     bool halted = false;
     CPU() {
@@ -53,19 +55,20 @@ struct CPU {
         hi = 0;
         lo = 0;
 
-        memoryControl = new device::Dummy("MemCtrl", 0x1f801000);
-        joypad = new device::Dummy("Joypad", 0x1f801040);
-        serial = new device::Dummy("Serial", 0x1f801050);
-        interrupt = new device::interrupt::Interrupt();
-        dma = new device::dma::DMA();
+        memoryControl = new Dummy("MemCtrl", 0x1f801000);
+        joypad = new Dummy("Joypad", 0x1f801040, false);
+        serial = new Dummy("Serial", 0x1f801050);
+        interrupt = new interrupt::Interrupt();
+		interrupt->setCPU(this);
+        dma = new dma::DMA();
         dma->setCPU(this);
-        timer0 = new device::Dummy("Timer0", 0x1f801100);
-        timer1 = new device::Dummy("Timer1", 0x1f801110);
-        timer2 = new device::Dummy("Timer2", 0x1f801120);
-        cdrom = new device::Dummy("CDROM", 0x1f801800);
-        mdec = new device::Dummy("MDEC", 0x1f801820);
-        spu = new device::Dummy("SPU", 0x1f801c00, false);
-        expansion2 = new device::Dummy("Expansion2", 0x1f802000, false);
+        timer0 = new Dummy("Timer0", 0x1f801100);
+        timer1 = new Dummy("Timer1", 0x1f801110);
+        timer2 = new Dummy("Timer2", 0x1f801120);
+		cdrom = new cdrom::CDROM();
+        mdec = new Dummy("MDEC", 0x1f801820);
+        spu = new Dummy("SPU", 0x1f801c00, false);
+        expansion2 = new Dummy("Expansion2", 0x1f802000, false);
     }
 
     uint8_t bios[512 * 1024];
@@ -76,27 +79,27 @@ struct CPU {
 
     // Devices
    public:
-    device::interrupt::Interrupt *interrupt = nullptr;
+    interrupt::Interrupt *interrupt = nullptr;
 
    private:
-    device::Dummy *memoryControl = nullptr;
-    device::Dummy *joypad = nullptr;
-    device::Dummy *serial = nullptr;
-    device::dma::DMA *dma = nullptr;
-    device::Dummy *timer0 = nullptr;
-    device::Dummy *timer1 = nullptr;
-    device::Dummy *timer2 = nullptr;
-    device::Dummy *cdrom = nullptr;
-    device::gpu::GPU *gpu = nullptr;
-    device::Dummy *mdec = nullptr;
-    device::Dummy *spu = nullptr;
-    device::Dummy *expansion2 = nullptr;
+    Dummy *memoryControl = nullptr;
+    Dummy *joypad = nullptr;
+    Dummy *serial = nullptr;
+    dma::DMA *dma = nullptr;
+    Dummy *timer0 = nullptr;
+    Dummy *timer1 = nullptr;
+    Dummy *timer2 = nullptr;
+    cdrom::CDROM *cdrom = nullptr;
+    gpu::GPU *gpu = nullptr;
+    Dummy *mdec = nullptr;
+    Dummy *spu = nullptr;
+    Dummy *expansion2 = nullptr;
 
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
 
    public:
-    void setGPU(device::gpu::GPU *gpu) {
+    void setGPU(gpu::GPU *gpu) {
         this->gpu = gpu;
         dma->setGPU(gpu);
     }

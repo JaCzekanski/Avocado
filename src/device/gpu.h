@@ -18,7 +18,7 @@ union GP0_E1 {
     enum class TexturePageColors : uint32_t { bit4 = 0, bit8 = 1, bit15 = 2 };
     enum class DrawingToDisplayArea : uint32_t { prohibited = 0, allowed = 1 };
     struct {
-        uint32_t texturePageBaseX : 2;  // N * 64
+        uint32_t texturePageBaseX : 4;  // N * 64
         uint32_t texturePageBaseY : 1;  // N * 256
         SemiTransparency semiTransparency : 2;
         TexturePageColors texturePageColors : 2;

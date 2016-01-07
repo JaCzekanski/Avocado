@@ -16,80 +16,80 @@ extern char *_mnemonic;
 extern std::string _disasm;
 
 namespace mipsInstructions {
-	PrimaryInstruction OpcodeTable[64] = {  // R type
-		{0, special, "special"},
-                                      {1, branch, "branch"},
-                                      {2, j, "j"},
-                                      {3, jal, "jal"},
-                                      {4, beq, "beq"},
-                                      {5, bne, "bne"},
-                                      {6, blez, "blez"},
-                                      {7, bgtz, "bgtz"},
+PrimaryInstruction OpcodeTable[64] = {  // R type
+    {0, special, "special"},
+    {1, branch, "branch"},
+    {2, j, "j"},
+    {3, jal, "jal"},
+    {4, beq, "beq"},
+    {5, bne, "bne"},
+    {6, blez, "blez"},
+    {7, bgtz, "bgtz"},
 
-                                      {8, addi, "addi"},
-                                      {9, addiu, "addiu"},
-                                      {10, slti, "slti"},
-                                      {11, sltiu, "sltiu"},
-                                      {12, andi, "andi"},
-                                      {13, ori, "ori"},
-                                      {14, xori, "xori"},
-                                      {15, lui, "lui"},
+    {8, addi, "addi"},
+    {9, addiu, "addiu"},
+    {10, slti, "slti"},
+    {11, sltiu, "sltiu"},
+    {12, andi, "andi"},
+    {13, ori, "ori"},
+    {14, xori, "xori"},
+    {15, lui, "lui"},
 
-                                      {16, cop0, "cop0"},
-                                      {17, notImplemented, "cop1"},
-                                      {18, cop2, "cop2"},
-                                      {19, notImplemented, "cop3"},
-                                      {20, invalid, "INVALID"},
-                                      {21, invalid, "INVALID"},
-                                      {22, invalid, "INVALID"},
-                                      {23, invalid, "INVALID"},
+    {16, cop0, "cop0"},
+    {17, notImplemented, "cop1"},
+    {18, cop2, "cop2"},
+    {19, notImplemented, "cop3"},
+    {20, invalid, "INVALID"},
+    {21, invalid, "INVALID"},
+    {22, invalid, "INVALID"},
+    {23, invalid, "INVALID"},
 
-                                      {24, invalid, "INVALID"},
-                                      {25, invalid, "INVALID"},
-                                      {26, invalid, "INVALID"},
-                                      {27, invalid, "INVALID"},
-                                      {28, invalid, "INVALID"},
-                                      {29, invalid, "INVALID"},
-                                      {30, invalid, "INVALID"},
-                                      {31, invalid, "INVALID"},
+    {24, invalid, "INVALID"},
+    {25, invalid, "INVALID"},
+    {26, invalid, "INVALID"},
+    {27, invalid, "INVALID"},
+    {28, invalid, "INVALID"},
+    {29, invalid, "INVALID"},
+    {30, invalid, "INVALID"},
+    {31, invalid, "INVALID"},
 
-                                      {32, lb, "lb"},
-                                      {33, lh, "lh"},
-                                      {34, lwl, "lwl"},
-                                      {35, lw, "lw"},
-                                      {36, lbu, "lbu"},
-                                      {37, lbu, "lhu"},
-                                      {38, lwr, "lwr"},
-                                      {39, invalid, "INVALID"},
+    {32, lb, "lb"},
+    {33, lh, "lh"},
+    {34, lwl, "lwl"},
+    {35, lw, "lw"},
+    {36, lbu, "lbu"},
+    {37, lbu, "lhu"},
+    {38, lwr, "lwr"},
+    {39, invalid, "INVALID"},
 
-                                      {40, sb, "sb"},
-                                      {41, sh, "sh"},
-                                      {42, swl, "swl"},
-                                      {43, sw, "sw"},
-                                      {44, invalid, "INVALID"},
-                                      {45, invalid, "INVALID"},
-                                      {46, swr, "swr"},
-                                      {47, invalid, "INVALID"},
+    {40, sb, "sb"},
+    {41, sh, "sh"},
+    {42, swl, "swl"},
+    {43, sw, "sw"},
+    {44, invalid, "INVALID"},
+    {45, invalid, "INVALID"},
+    {46, swr, "swr"},
+    {47, invalid, "INVALID"},
 
-                                      {48, notImplemented, "lwc0"},
-                                      {49, notImplemented, "lwc1"},
-                                      {50, notImplemented, "lwc2"},
-                                      {51, notImplemented, "lwc3"},
-                                      {52, invalid, "INVALID"},
-                                      {53, invalid, "INVALID"},
-                                      {54, invalid, "INVALID"},
-                                      {55, invalid, "INVALID"},
+    {48, notImplemented, "lwc0"},
+    {49, notImplemented, "lwc1"},
+    {50, notImplemented, "lwc2"},
+    {51, notImplemented, "lwc3"},
+    {52, invalid, "INVALID"},
+    {53, invalid, "INVALID"},
+    {54, invalid, "INVALID"},
+    {55, invalid, "INVALID"},
 
-                                      {56, notImplemented, "swc0"},
-                                      {57, notImplemented, "swc1"},
-                                      {58, notImplemented, "swc2"},
-                                      {59, notImplemented, "swc3"},
-                                      {60, invalid, "INVALID"},
-                                      {61, invalid, "INVALID"},
-                                      {62, invalid, "INVALID"},
-                                      //{ 63, invalid, "INVALID" },
-                                      {63, breakpoint, "BREAKPOINT"}
-	};
+    {56, notImplemented, "swc0"},
+    {57, notImplemented, "swc1"},
+    {58, notImplemented, "swc2"},
+    {59, notImplemented, "swc3"},
+    {60, invalid, "INVALID"},
+    {61, invalid, "INVALID"},
+    {62, invalid, "INVALID"},
+    { 63, invalid, "INVALID" },
+    //{63, breakpoint, "BREAKPOINT"}
+};
 
 PrimaryInstruction SpecialTable[64] = {
     {0, sll, "sll"},
@@ -169,8 +169,8 @@ int part = 0;
 
 void trap(CPU *cpu) {
     cpu->cop0.badVaddr = cpu->PC;
-	cpu->cop0.epc = cpu->PC + 4;
-	cpu->cop0.cause.exception = cop0::CAUSE::Exception::syscall;
+    cpu->cop0.epc = cpu->PC + 4;
+    cpu->cop0.cause.exception = cop0::CAUSE::Exception::syscall;
     cpu->PC = 0x80000080 - 4;
 }
 
@@ -258,15 +258,15 @@ void jalr(CPU *cpu, Opcode i) {
 // SYSCALL
 void syscall(CPU *cpu, Opcode i) {
     cpu->cop0.epc = cpu->PC;
-	cpu->cop0.cause.exception = cop0::CAUSE::Exception::syscall;
+    cpu->cop0.cause.exception = cop0::CAUSE::Exception::syscall;
     cpu->PC = 0x80000080 - 4;
 }
 
 // Break
 // BREAK
 void break_(CPU *cpu, Opcode i) {
-	cpu->cop0.epc = cpu->PC + 4;
-	cpu->cop0.cause.exception = cop0::CAUSE::Exception::breakpoint;
+    cpu->cop0.epc = cpu->PC + 4;
+    cpu->cop0.cause.exception = cop0::CAUSE::Exception::breakpoint;
     cpu->PC = 0x80000080 - 4;
 }
 
@@ -614,28 +614,28 @@ void cop0(CPU *cpu, Opcode i) {
             // MFC0 rd, <nn>
             mnemonic("MFC0");
             disasm("r%d, $%d", i.rt, i.rd);
-			
-			switch (i.rd) {
-			case 8:
-				cpu->reg[i.rt] = cpu->cop0.badVaddr;
-				break;
 
-			case 12:
-				cpu->reg[i.rt] = cpu->cop0.status._reg;
-				break;
+            switch (i.rd) {
+                case 8:
+                    cpu->reg[i.rt] = cpu->cop0.badVaddr;
+                    break;
 
-			case 13:
-				cpu->reg[i.rt] = cpu->cop0.cause._reg;
-				break;
+                case 12:
+                    cpu->reg[i.rt] = cpu->cop0.status._reg;
+                    break;
 
-			case 14:
-				cpu->reg[i.rt] = cpu->cop0.epc;
-				break;
+                case 13:
+                    cpu->reg[i.rt] = cpu->cop0.cause._reg;
+                    break;
 
-			default:
-				cpu->reg[i.rt] = 0;
-				break;
-			}
+                case 14:
+                    cpu->reg[i.rt] = cpu->cop0.epc;
+                    break;
+
+                default:
+                    cpu->reg[i.rt] = 0;
+                    break;
+            }
 
             break;
 
@@ -643,22 +643,22 @@ void cop0(CPU *cpu, Opcode i) {
             // Move to co-processor zero
             // MTC0 rs, <nn>
             mnemonic("MTC0");
-			disasm("r%d, $%d", i.rt, i.rd);
+            disasm("r%d, $%d", i.rt, i.rd);
 
-			switch (i.rd) {
-			case 12:
-				cpu->cop0.status._reg = cpu->reg[i.rt];
-				break;
+            switch (i.rd) {
+                case 12:
+                    cpu->cop0.status._reg = cpu->reg[i.rt];
+                    break;
 
-			case 13:
-				cpu->cop0.cause._reg &= ~0x300;
-				cpu->cop0.cause._reg |= (cpu->reg[i.rt] & 0x300);
-				break;
-				
-			default:
-				cpu->reg[i.rt] = 0;
-				break;
-			}
+                case 13:
+                    cpu->cop0.cause._reg &= ~0x300;
+                    cpu->cop0.cause._reg |= (cpu->reg[i.rt] & 0x300);
+                    break;
+
+                default:
+                    cpu->reg[i.rt] = 0;
+                    break;
+            }
             break;
 
         case 16:
@@ -666,11 +666,11 @@ void cop0(CPU *cpu, Opcode i) {
             // RFE
             mnemonic("RFE");
 
-			cpu->cop0.status.interruptEnable = cpu->cop0.status.previousInterruptEnable;
-			cpu->cop0.status.mode = cpu->cop0.status.previousMode;
+            cpu->cop0.status.interruptEnable = cpu->cop0.status.previousInterruptEnable;
+            cpu->cop0.status.mode = cpu->cop0.status.previousMode;
 
-			cpu->cop0.status.previousInterruptEnable = cpu->cop0.status.oldInterruptEnable;
-			cpu->cop0.status.previousMode = cpu->cop0.status.oldMode;
+            cpu->cop0.status.previousInterruptEnable = cpu->cop0.status.oldInterruptEnable;
+            cpu->cop0.status.previousMode = cpu->cop0.status.oldMode;
             break;
 
         default:

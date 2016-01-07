@@ -125,9 +125,15 @@ void GPU::step() {
 
               | ((uint8_t)gp1_08.horizontalResolution2 << 16) | ((gp1_08._reg & 0x3f) << 17)
 
+			  | ((dmaDirection == 0 ? 0 : 
+			   (dmaDirection == 1 ? 1 :
+			   (dmaDirection == 2 ? 1 : readyVramToCpu))) << 25
+			  )
+
               | (1 << 26)                           // Ready for DMA command
-              | (readyVramToCpu << 27) | (1 << 28)  // Ready for receive DMA block
-              //| (dmaDirection << 29)
+              | (readyVramToCpu << 27) 
+			  | (1 << 28)  // Ready for receive DMA block
+              | (dmaDirection << 29)
               | (odd << 31);
 }
 
@@ -159,6 +165,10 @@ uint8_t GPU::read(uint32_t address) {
     }
     if (address >= 4 && address < 8) {
         step();
+		if (address == 7)
+		{
+//			printf("GPUSTAT: 0x%08x\n", GPUSTAT);
+		}
         return GPUSTAT >> ((address - 4) * 8);
     }
     return 0;

@@ -23,9 +23,7 @@ uint8_t DMA::read(uint32_t address) {
         }
     } else {
         printf("R Unimplemented DMA channel %d\n", channel);
-        __debugbreak();
-        for (;;)
-            ;
+//        __debugbreak();
     }
 
     printf("R Unimplemented DMA address 0x%08x\n", address);
@@ -64,9 +62,7 @@ void DMA::write(uint32_t address, uint8_t data) {
     if (channel == 6) return dma6.write(address % 0x10, data);  // reverse clear OT
 
     printf("W Unimplemented DMA channel %d\n", channel);
-    __debugbreak();
-    for (;;)
-        ;
+//    __debugbreak();
 }
 }
 }

@@ -135,39 +135,53 @@ void renderDebugWindow(SDL_Window *debugWindow) {
 }
 
 void checkForInterrupts() {
-    if (!cpu.interrupt->interruptPending()) {
-        return;
-    }
+    using namespace mips::cop0;
 
-	using namespace mips::cop0;
-
-    if (cpu.cop0.status.interruptEnable == Bit::set && (cpu.cop0.status.interruptMask & 4)) {
+	if ((cpu.cop0.cause.interruptPending & 4) &&
+		cpu.cop0.status.interruptEnable == Bit::set && 
+		(cpu.cop0.status.interruptMask & 4)) {
         cpu.cop0.cause.exception = CAUSE::Exception::interrupt;
-		cpu.cop0.cause.interruptPending = 4;
+        //cpu.cop0.cause.interruptPending = 4;
 
         if (cpu.shouldJump) {
-			cpu.cop0.cause.isInDelaySlot = Bit::set;
+            cpu.cop0.cause.isInDelaySlot = Bit::set;
             cpu.cop0.epc = cpu.PC - 4;  // EPC - return address from trap
         } else {
-			cpu.cop0.epc = cpu.PC;  // EPC - return address from trap
+            cpu.cop0.epc = cpu.PC;  // EPC - return address from trap
         }
-		
-		cpu.cop0.status.oldInterruptEnable = cpu.cop0.status.previousInterruptEnable;
-		cpu.cop0.status.oldMode = cpu.cop0.status.previousMode;
 
-		cpu.cop0.status.previousInterruptEnable = cpu.cop0.status.interruptEnable;
-		cpu.cop0.status.previousMode = cpu.cop0.status.mode;
+        cpu.cop0.status.oldInterruptEnable = cpu.cop0.status.previousInterruptEnable;
+        cpu.cop0.status.oldMode = cpu.cop0.status.previousMode;
 
-		cpu.cop0.status.interruptEnable = Bit::cleared;
-		cpu.cop0.status.mode = STATUS::Mode::kernel;
+        cpu.cop0.status.previousInterruptEnable = cpu.cop0.status.interruptEnable;
+        cpu.cop0.status.previousMode = cpu.cop0.status.mode;
+
+        cpu.cop0.status.interruptEnable = Bit::cleared;
+        cpu.cop0.status.mode = STATUS::Mode::kernel;
 
         if (cpu.cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
             cpu.PC = 0xbfc00180;
         else
             cpu.PC = 0x80000080;
 
-        printf("----\n");
+		printf("-%s\n", cpu.interrupt->getStatus().c_str());
     }
+}
+
+void loadExeFile(std::string exePath)
+{
+	auto _exe = getFileContents(exePath);
+	PsxExe exe;
+	if (!_exe.empty()) {
+		memcpy(&exe, &_exe[0], sizeof(exe));
+
+		for (int i = 0x800; i < _exe.size(); i++) {
+			cpu.writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
+		}
+
+		cpu.PC = exe.pc0;
+		cpu.shouldJump = false;
+	}
 }
 
 bool loadExe = false;
@@ -179,8 +193,18 @@ int main(int argc, char **argv) {
     SDL_Window *window;
     SDL_Renderer *renderer;
 
-    if (SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_SHOWN, &window, &renderer) != 0) {
-        printf("Cannot create window or renderer\n");
+	window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
+	if (window == nullptr)
+	{
+		printf("Cannot create window\n");
+		return 1;
+	}
+
+	SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	if (renderer == nullptr) {
+        printf("Cannot create  renderer\n");
         return 1;
     }
 
@@ -230,7 +254,7 @@ int main(int argc, char **argv) {
     while (true) {
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSdl_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) break;
+            if (event.type == SDL_QUIT) return 0;
             if (event.type == SDL_KEYDOWN) {
                 if (event.key.keysym.sym == SDLK_SPACE) {
                     memoryAccessLogging = !memoryAccessLogging;
@@ -238,25 +262,34 @@ int main(int argc, char **argv) {
                 }
                 if (event.key.keysym.sym == SDLK_l) loadExe = true;
                 if (event.key.keysym.sym == SDLK_b) biosLog = !biosLog;
-                if (event.key.keysym.sym == SDLK_c) IRQ(2);
+				if (event.key.keysym.sym == SDLK_c) IRQ(2);
+				if (event.key.keysym.sym == SDLK_d) IRQ(3);
+				if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = device::Bit::set;
             }
+			if (event.type == SDL_DROPFILE)
+			{
+				loadExeFile(event.drop.file);
+				SDL_free(event.drop.file);
+			}
         }
+
+		int batchSize = 100;
 
         if (cpuRunning) {
             checkForInterrupts();
-            if (!cpu.executeInstructions(7)) {
+			if (!cpu.executeInstructions(batchSize*7)) {
                 printf("CPU Halted\n");
                 cpuRunning = false;
             }
-            cycles += 7;
+			cycles += batchSize*7;
 
             timer2++;
             if (timer2 >= 0xffff) {
                 timer2 = 0;
-                IRQ(6);
+                //IRQ(6);
             }
 
-            for (int i = 0; i < 11; i++) {
+			for (int i = 0; i < batchSize*11; i++) {
                 gpuDot++;
 
                 if (gpuDot >= 3413) {
@@ -269,20 +302,20 @@ int main(int argc, char **argv) {
 
                     gpuLine++;
 
-                    if (gpuLine == 240) {
-                        gpu->odd = false;
-                        gpu->step();
-                        IRQ(0);
+					if (gpuLine == 240) {
+						gpu->odd = false;
+						gpu->step();
+						IRQ(0);
                     }
-                    if (gpuLine >= 263) {
+					if (gpuLine >= 263) {
                         gpuLine = 0;
                         frames++;
                         gpuOdd = !gpuOdd;
-                        gpu->odd = gpuOdd;
+						gpu->odd = true;// gpuOdd;
                         gpu->step();
 
                         std::string title
-                            = string_format("frame: %d, htimer: %d, cpu_cycles: %d", frames, htimer, cycles);
+							= string_format("IMASK: %s, ISTAT: %s, frame: %d, htimer: %d, cpu_cycles: %d", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames, htimer, cycles);
                         SDL_SetWindowTitle(window, title.c_str());
 
                         gpu->render();
@@ -294,23 +327,12 @@ int main(int argc, char **argv) {
         if (loadExe) {
             loadExe = false;
 
-            PsxExe exe;
             std::string exePath = "data/exe/";
             char filename[128];
             printf("\nEnter exe name: ");
             scanf("%s", filename);
             exePath += filename;
-
-            auto _exe = getFileContents(exePath);
-            if (!_exe.empty()) {
-                memcpy(&exe, &_exe[0], sizeof(exe));
-
-                for (int i = 0x800; i < _exe.size(); i++) {
-                    cpu.writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
-                }
-
-                cpu.PC = exe.pc0;
-            }
+			loadExeFile(exePath);
         }
         if (doDump) {
             std::vector<uint8_t> ramdump;
