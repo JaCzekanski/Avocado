@@ -58,7 +58,7 @@ PrimaryInstruction OpcodeTable[64] = {  // R type
     {34, lwl, "lwl"},
     {35, lw, "lw"},
     {36, lbu, "lbu"},
-    {37, lbu, "lhu"},
+    {37, lhu, "lhu"},
     {38, lwr, "lwr"},
     {39, invalid, "INVALID"},
 
