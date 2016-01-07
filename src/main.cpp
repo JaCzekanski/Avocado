@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
 			}
         }
 
-		int batchSize = 100;
+		int batchSize = 1;
 
         if (cpuRunning) {
             checkForInterrupts();
@@ -286,7 +286,7 @@ int main(int argc, char **argv) {
             timer2++;
             if (timer2 >= 0xffff) {
                 timer2 = 0;
-                //IRQ(6);
+                IRQ(6);
             }
 
 			for (int i = 0; i < batchSize*11; i++) {

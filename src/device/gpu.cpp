@@ -91,7 +91,7 @@ void GPU::drawPolygon(int x[3], int y[3], int c[3]) {
 
                 int b = ((d1 / ds * b0) + (d2 / ds * b1) + (d3 / ds * b2)) / 3;
 
-                colorBuffer[x] = 0xff000000 | ((b & 0xff) << 16) | ((g & 0xff) << 8) | (r & 0xff);
+                colorBuffer[x] = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
             }
         }
         (uint8_t *&)colorBuffer += stride;
@@ -100,17 +100,18 @@ void GPU::drawPolygon(int x[3], int y[3], int c[3]) {
 
 uint32_t to15bit(uint32_t color) {
     uint32_t newColor = 0;
-    newColor |= (color & 0xf80000) >> 9;
+	newColor |= (color & 0xf80000) >> 19;
     newColor |= (color & 0xf800) >> 6;
-    newColor |= (color & 0xf8) >> 3;
+    newColor |= (color & 0xf8) << 7;
     return newColor;
 }
 
 uint32_t to24bit(uint32_t color) {
     uint32_t newColor = 0;
-    newColor |= (color & 0x7c00) << 9;
-    newColor |= (color & 0x3e0) << 6;
-    newColor |= (color & 0x1f) << 3;
+	newColor |= (color & 0x7c00) >> 7;
+	newColor |= (color & 0x3e0) << 6;
+	newColor |= (color & 0x1f) << 13;
+
     return newColor;
 }
 
@@ -400,21 +401,31 @@ void GPU::writeGP0(uint32_t data) {
             argumentCount = 3;
             finished = false;
             currX = (arguments[0] & 0xffff);
-            currY = (arguments[0] & 0xffff0000) > 16;
+            currY = (arguments[0] & 0xffff0000) >> 16;
+
+			if (currX >= 1024 - 2) currX = 1023 - 2;
+			if (currY >= 512 - 2) currY = 511 - 2;
+
+
             startX = currX;
             endX = startX + (arguments[1] & 0xffff);
             startY = currY;
             endY = startY + ((arguments[1] & 0xffff0000) >> 16);
+
+			if (endX >= 1024-2) endX = 1023-2;
+			if (endY >= 512-2) endY = 511-2;
         } else {
             currentArgument = 2;
             finished = false;
             uint32_t byte = arguments[2];
 
-            VRAM[currY][currX * 2 + 0] = byte;
+            VRAM[currY][currX * 2] = byte;
             VRAM[currY][currX * 2 + 1] = byte >> 8;
-            VRAM[currY][currX * 2 + 2] = byte >> 16;
-            VRAM[currY][currX * 2 + 3] = byte >> 24;
-            currX += 2;
+			currX++;
+
+            VRAM[currY][currX * 2] = byte >> 16;
+            VRAM[currY][currX * 2 + 1] = byte >> 24;
+            currX++;
 
             if (currX >= endX) {
                 currX = startX;
@@ -425,7 +436,7 @@ void GPU::writeGP0(uint32_t data) {
         finished = true;
         gpuReadMode = 1;
         currX = (arguments[0] & 0xffff);
-        currY = (arguments[0] & 0xffff0000) > 16;
+        currY = (arguments[0] & 0xffff0000) >> 16;
         startX = currX;
         endX = startX + (arguments[1] & 0xffff);
         startY = currY;
@@ -433,13 +444,13 @@ void GPU::writeGP0(uint32_t data) {
     } else if (command == 0x80) {  // Copy rectangle ( VRAM -> VRAM )
         finished = true;
         int srcX = (arguments[0] & 0xffff);
-        int srcY = (arguments[0] & 0xffff0000) > 16;
+        int srcY = (arguments[0] & 0xffff0000) >> 16;
 
         int dstX = (arguments[1] & 0xffff);
-        int dstY = (arguments[1] & 0xffff0000) > 16;
+        int dstY = (arguments[1] & 0xffff0000) >> 16;
 
         int width = (arguments[2] & 0xffff);
-        int height = (arguments[2] & 0xffff0000) > 16;
+        int height = (arguments[2] & 0xffff0000) >> 16;
 
         int x = 0;
         int y = 0;
@@ -519,7 +530,6 @@ void GPU::writeGP1(uint32_t data) {
     } else
         printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 }
-
 void GPU::render() {
     uint8_t *ptr = nullptr;
     int pitch;
@@ -529,9 +539,11 @@ void GPU::render() {
     for (int y = 0; y < 512; y++) {
         int x = 0;
         for (int p = 0; p < pitch; p++) {
-            if (p % 3 == 0) {
-                col = to24bit(VRAM[y][x] | (VRAM[y][x + 1] << 8));
-                x += 2;
+            if (p == 0 || (p % 4) == 0) {
+				// 00RRGGBB
+				uint32_t c1 = VRAM[y][x++];
+				uint32_t c2 = VRAM[y][x++];
+				col = to24bit(c1 | (c2 << 8));
             }
             *(ptr++) = col;
             col >>= 8;

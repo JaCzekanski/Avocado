@@ -15,13 +15,12 @@ namespace mips {
 const char *regNames[]
     = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
        "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
-bool isgpu = false;
+
 uint8_t CPU::readMemory(uint32_t address) {
     //if (address >= 0xfffe0130 && address < 0xfffe0134) {
     //    printf("R Unhandled memory control\n");
     //    return 0;
     //}
-	isgpu = false;
 
     address &= 0x1FFFFFFF;
 
@@ -61,10 +60,7 @@ uint8_t CPU::readMemory(uint32_t address) {
 		}
 		IO(0x120, 0x130, timer2);
 		IO(0x800, 0x804, cdrom);
-		if (address >= (0x810) && address < (0x818)) {
-			isgpu = true;  
-			return gpu->read(address - (0x810));
-		}
+		IO(0x810, 0x818, gpu);
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
         if (address >= 0x1000 && address < 0x1043) {
@@ -88,7 +84,6 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     //    printf("W Unhandled memory control\n");
     //    return;
     //}
-	isgpu = false;
 
     address &= 0x1FFFFFFF;
 
@@ -122,10 +117,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
 		IO(0x800, 0x804, cdrom);
-		if (address >= (0x810) && address < (0x818)) {
-			isgpu = true;
-			return gpu->write(address - (0x810), data);
-		}
+		IO(0x810, 0x818, gpu);
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
         IO(0x1000, 0x1043, expansion2);
@@ -138,7 +130,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
 
 uint8_t CPU::readMemory8(uint32_t address) {
     uint8_t data = readMemory(address);
-	if (memoryAccessLogging && isgpu) printf("R8:  0x%08x - 0x%02x\n", address, data);
+	if (memoryAccessLogging) printf("R8:  0x%08x - 0x%02x\n", address, data);
     return data;
 }
 
@@ -146,7 +138,7 @@ uint16_t CPU::readMemory16(uint32_t address) {
     uint16_t data = 0;
     data |= readMemory(address + 0);
     data |= readMemory(address + 1) << 8;
-	if (memoryAccessLogging && isgpu) printf("R16: 0x%08x - 0x%04x\n", address, data);
+	if (memoryAccessLogging) printf("R16: 0x%08x - 0x%04x\n", address, data);
     return data;
 }
 
@@ -156,19 +148,19 @@ uint32_t CPU::readMemory32(uint32_t address) {
     data |= readMemory(address + 1) << 8;
     data |= readMemory(address + 2) << 16;
     data |= readMemory(address + 3) << 24;
-	if (memoryAccessLogging && isgpu) printf("R32: 0x%08x - 0x%08x\n", address, data);
+	if (memoryAccessLogging) printf("R32: 0x%08x - 0x%08x\n", address, data);
     return data;
 }
 
 void CPU::writeMemory8(uint32_t address, uint8_t data) {
     writeMemory(address, data);
-	if (memoryAccessLogging && isgpu) printf("W8:  0x%08x - 0x%02x\n", address, data);
+	if (memoryAccessLogging) printf("W8:  0x%08x - 0x%02x\n", address, data);
 }
 
 void CPU::writeMemory16(uint32_t address, uint16_t data) {
     writeMemory(address + 0, data & 0xff);
     writeMemory(address + 1, data >> 8);
-	if (memoryAccessLogging && isgpu) printf("W16: 0x%08x - 0x%04x\n", address, data);
+	if (memoryAccessLogging) printf("W16: 0x%08x - 0x%04x\n", address, data);
 }
 
 void CPU::writeMemory32(uint32_t address, uint32_t data) {
@@ -176,7 +168,7 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
     writeMemory(address + 1, data >> 8);
     writeMemory(address + 2, data >> 16);
     writeMemory(address + 3, data >> 24);
-    if (memoryAccessLogging && isgpu) printf("W32: 0x%08x - 0x%08x\n", address, data);
+    if (memoryAccessLogging) printf("W32: 0x%08x - 0x%08x\n", address, data);
 }
 
 bool CPU::executeInstructions(int count) {
@@ -193,7 +185,7 @@ bool CPU::executeInstructions(int count) {
 
 		if (PC == 0x800ad124)
 		{
-			__debugbreak();
+			//__debugbreak();
 		}
 
         if ((PC & 0x0fffffff) == 0xa0 && biosLog) {
