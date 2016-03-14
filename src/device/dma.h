@@ -7,8 +7,42 @@
 
 namespace device {
 namespace dma {
+
+	// 0x1f8010f0 - DPCR,  DMA Control
+	union DPCR
+	{
+		struct {
+			uint32_t priorityMdecIn : 3; // DMA0
+			Bit      enableMdecIn : 1;   // DMA0
+
+			uint32_t priorityMdecOut : 3; // DMA1
+			Bit      enableMdecOut : 1; // DMA1
+
+			uint32_t priorityGpu : 3; // DMA2 
+			Bit      enableGpu : 1; // DMA2
+
+			uint32_t priorityCdrom : 3; // DMA3
+			Bit      enableCdrom : 1; // DMA3
+
+			uint32_t prioritySpu : 3; // DMA4
+			Bit      enableSpu : 1; // DMA4
+
+			uint32_t priorityPio : 3; // DMA5
+			Bit      enablePio : 1; // DMA5
+
+			uint32_t priorityOtc : 3; // DMA6
+			Bit      enableOtc : 1; // DMA6
+
+			uint32_t : 4;
+		};
+		uint32_t _reg;
+		uint8_t _byte[4];
+
+		DPCR() : _reg(0) {}
+	};
+
 class DMA : public Device {
-    uint32_t dmaControl;
+	DPCR control;
     uint32_t dmaStatus;
     // uint32_t dma2Control;
     // MADDR dma2Address;

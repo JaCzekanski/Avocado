@@ -16,7 +16,7 @@ uint8_t DMA::read(uint32_t address) {
     {
         address += 0x80;
         if (address >= 0xf0 && address < 0xf4) {
-            return dmaControl >> ((address - 0xf0) * 8);
+			return control._byte[address - 0xf0];
         }
         if (address >= 0xf4 && address < 0xf8) {
             return dmaStatus >> ((address - 0xf4) * 8);
@@ -36,11 +36,7 @@ void DMA::write(uint32_t address, uint8_t data) {
     {
         address += 0x80;
         if (address >= 0xF0 && address < 0xf4) {
-            static uint32_t t = 0;
-            t &= ~(0xff << 8 * (address - 0xf4));
-            t |= data << 8 * (address - 0xf4);
-
-            dmaControl = t;
+			control._byte[address - 0xf0] = data;
             return;
         } else if (address >= 0xF4) {
             static uint32_t t = 0;
