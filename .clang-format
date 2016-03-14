@@ -1,0 +1,9 @@
+---
+BasedOnStyle: Google
+Language: Cpp
+IndentWidth: 4
+ColumnLimit: 120
+PointerAlignment: Left
+AlignTrailingComments: true
+BreakBeforeBinaryOperators: All 
+AlignOperands: true
