@@ -84,7 +84,7 @@ class GPU : public Device {
     void *pixels;
     int stride;
 
-    uint8_t VRAM[512][2048];
+    uint16_t VRAM[512][1024];
     uint32_t fifo[16];
     uint32_t tmpGP0 = 0;
     uint32_t tmpGP1 = 0;

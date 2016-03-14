@@ -243,6 +243,7 @@ int main(int argc, char **argv) {
     int frames = 0;
 
     bool doDump = false;
+	bool emulatorRunning = true;
 
     gpu->setRenderer(renderer);
     SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
@@ -251,27 +252,31 @@ int main(int argc, char **argv) {
 
     SDL_Event event;
 
-    while (true) {
-        while (SDL_PollEvent(&event)) {
-            ImGui_ImplSdl_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) return 0;
-            if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    memoryAccessLogging = !memoryAccessLogging;
-                    printf("MAL %d\n", memoryAccessLogging);
-                }
-                if (event.key.keysym.sym == SDLK_l) loadExe = true;
-                if (event.key.keysym.sym == SDLK_b) biosLog = !biosLog;
-				if (event.key.keysym.sym == SDLK_c) IRQ(2);
-				if (event.key.keysym.sym == SDLK_d) IRQ(3);
-				if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = device::Bit::set;
+    while (emulatorRunning) {
+		int pendingEvents = 0;
+		if (!cpuRunning) SDL_WaitEvent(&event);
+		else pendingEvents = SDL_PollEvent(&event);
+        
+        //ImGui_ImplSdl_ProcessEvent(&event);
+		if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) emulatorRunning = false;
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.sym == SDLK_SPACE) {
+                memoryAccessLogging = !memoryAccessLogging;
+                printf("MAL %d\n", memoryAccessLogging);
             }
-			if (event.type == SDL_DROPFILE)
-			{
-				loadExeFile(event.drop.file);
-				SDL_free(event.drop.file);
-			}
+            if (event.key.keysym.sym == SDLK_l) loadExe = true;
+            if (event.key.keysym.sym == SDLK_b) biosLog = !biosLog;
+			if (event.key.keysym.sym == SDLK_c) IRQ(2);
+			if (event.key.keysym.sym == SDLK_d) IRQ(3);
+			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = device::Bit::set;
+			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
         }
+		if (event.type == SDL_DROPFILE)
+		{
+			loadExeFile(event.drop.file);
+			SDL_free(event.drop.file);
+		}
+		if (pendingEvents) continue;
 
 		int batchSize = 1;
 
