@@ -5,6 +5,7 @@
 #include "device/dma.h"
 #include "device/cdrom.h"
 #include "device/interrupt.h"
+#include "device/timer.h"
 #include "device/dummy.h"
 
 namespace mips {
@@ -57,14 +58,21 @@ struct CPU {
 
         memoryControl = new Dummy("MemCtrl", 0x1f801000);
         joypad = new Dummy("Joypad", 0x1f801040, false);
-        serial = new Dummy("Serial", 0x1f801050);
+        serial = new Dummy("Serial", 0x1f801050, false);
         interrupt = new interrupt::Interrupt();
 		interrupt->setCPU(this);
         dma = new dma::DMA();
         dma->setCPU(this);
-        timer0 = new Dummy("Timer0", 0x1f801100);
-        timer1 = new Dummy("Timer1", 0x1f801110);
-        timer2 = new Dummy("Timer2", 0x1f801120);
+
+		timer0 = new timer::Timer(0);
+		timer0->setCPU(this);
+
+        timer1 = new timer::Timer(1);
+		timer1->setCPU(this);
+
+		timer2 = new timer::Timer(2);
+		timer2->setCPU(this);
+
 		cdrom = new cdrom::CDROM();
         mdec = new Dummy("MDEC", 0x1f801820);
         spu = new Dummy("SPU", 0x1f801c00, false);
@@ -80,15 +88,15 @@ struct CPU {
     // Devices
    public:
     interrupt::Interrupt *interrupt = nullptr;
+	timer::Timer *timer0 = nullptr;
+	timer::Timer *timer1 = nullptr;
+	timer::Timer *timer2 = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
     Dummy *joypad = nullptr;
     Dummy *serial = nullptr;
     dma::DMA *dma = nullptr;
-    Dummy *timer0 = nullptr;
-    Dummy *timer1 = nullptr;
-    Dummy *timer2 = nullptr;
     cdrom::CDROM *cdrom = nullptr;
     gpu::GPU *gpu = nullptr;
     Dummy *mdec = nullptr;

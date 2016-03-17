@@ -18,8 +18,6 @@ bool disassemblyEnabled = false;
 bool memoryAccessLogging = false;
 bool printStackTrace = false;
 uint32_t memoryDumpAddress = 0;
-uint32_t htimer = 0;
-uint32_t timer2 = 0;
 
 char *_mnemonic;
 std::string _disasm = "";
@@ -38,7 +36,6 @@ std::vector<Breakpoint> breakpoints;
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
 void IRQ(int irq) {
-    // printf("IRQ%d\n", irq);
     cpu.interrupt->IRQ(irq);
 }
 
@@ -141,7 +138,7 @@ void checkForInterrupts() {
 		cpu.cop0.status.interruptEnable == Bit::set && 
 		(cpu.cop0.status.interruptMask & 4)) {
         cpu.cop0.cause.exception = CAUSE::Exception::interrupt;
-        //cpu.cop0.cause.interruptPending = 4;
+        cpu.cop0.cause.interruptPending = 4;
 
         if (cpu.shouldJump) {
             cpu.cop0.cause.isInDelaySlot = Bit::set;
@@ -216,7 +213,11 @@ int main(int argc, char **argv) {
     }
     memcpy(cpu.bios, &_bios[0], _bios.size());
 
-    // memcpy(cpu.expansion, rawData, 95232);
+	std::string expansionPath = "data/bios/expansion.rom";
+	auto _exp = getFileContents(expansionPath);
+	if (!_exp.empty()) {
+		memcpy(cpu.expansion, &_exp[0], _exp.size());
+	}
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -257,7 +258,7 @@ int main(int argc, char **argv) {
 		if (!cpuRunning) SDL_WaitEvent(&event);
 		else pendingEvents = SDL_PollEvent(&event);
         
-        //ImGui_ImplSdl_ProcessEvent(&event);
+        ImGui_ImplSdl_ProcessEvent(&event);
 		if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) emulatorRunning = false;
         if (event.type == SDL_KEYDOWN) {
             if (event.key.keysym.sym == SDLK_SPACE) {
@@ -278,54 +279,45 @@ int main(int argc, char **argv) {
 		}
 		if (pendingEvents) continue;
 
-		int batchSize = 1;
-
         if (cpuRunning) {
             checkForInterrupts();
-			if (!cpu.executeInstructions(batchSize*7)) {
+			if (!cpu.executeInstructions(7)) {
                 printf("CPU Halted\n");
                 cpuRunning = false;
             }
-			cycles += batchSize*7;
+			cycles += 7;
 
-            timer2++;
-            if (timer2 >= 0xffff) {
-                timer2 = 0;
-                IRQ(6);
-            }
-
-			for (int i = 0; i < batchSize*11; i++) {
+			for (int i = 0; i < 11; i++) {
+				cpu.timer0->step();
+				cpu.timer1->step();
+				cpu.timer2->step();
                 gpuDot++;
 
-                if (gpuDot >= 3413) {
+                if (gpuDot >= 3412) {
                     gpuDot = 0;
-
-                    htimer++;
-                    if (htimer >= 0xffff) {
-                        htimer = 0;
-                    }
-
                     gpuLine++;
 
-					if (gpuLine == 240) {
+					if (gpuLine == 0x100) {
 						gpu->odd = false;
 						gpu->step();
 						IRQ(0);
+						continue;
                     }
 					if (gpuLine >= 263) {
                         gpuLine = 0;
                         frames++;
                         gpuOdd = !gpuOdd;
-						gpu->odd = true;// gpuOdd;
                         gpu->step();
 
-                        std::string title
-							= string_format("IMASK: %s, ISTAT: %s, frame: %d, htimer: %d, cpu_cycles: %d", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames, htimer, cycles);
+                        std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames);
                         SDL_SetWindowTitle(window, title.c_str());
 
                         gpu->render();
                         SDL_RenderPresent(renderer);
                     }
+					else if (gpuLine > 0x10) {
+						gpu->odd = gpuOdd;
+					}
                 }
             }
         }

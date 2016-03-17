@@ -19,6 +19,7 @@ uint8_t DMA::read(uint32_t address) {
 			return control._byte[address - 0xf0];
         }
         if (address >= 0xf4 && address < 0xf8) {
+			dmaStatus &= ~0xff000000;
             return dmaStatus >> ((address - 0xf4) * 8);
         }
     } else {

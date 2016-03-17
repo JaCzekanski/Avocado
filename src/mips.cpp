@@ -16,12 +16,12 @@ const char *regNames[]
     = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
        "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
+
 uint8_t CPU::readMemory(uint32_t address) {
     //if (address >= 0xfffe0130 && address < 0xfffe0134) {
     //    printf("R Unhandled memory control\n");
     //    return 0;
     //}
-
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) return ram[address & 0x1FFFFF];
@@ -52,12 +52,7 @@ uint8_t CPU::readMemory(uint32_t address) {
 		IO(0x70, 0x78, interrupt);
 		IO(0x80, 0x100, dma);
 		IO(0x100, 0x110, timer0);
-		if (address >= 0x110 && address < 0x114) {
-			return htimer >> ((address - 0x110) * 8);
-		}
-		if (address >= 0x120 && address < 0x124) {
-			return (htimer * 100) >> ((address - 0x110) * 8);
-		}
+		IO(0x110, 0x120, timer1);
 		IO(0x120, 0x130, timer2);
 		IO(0x800, 0x804, cdrom);
 		IO(0x810, 0x818, gpu);
@@ -84,7 +79,6 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     //    printf("W Unhandled memory control\n");
     //    return;
     //}
-
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) {
@@ -183,11 +177,6 @@ bool CPU::executeInstructions(int count) {
         const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
         _mnemonic = op.mnemnic;
 
-		if (PC == 0x800ad124)
-		{
-			//__debugbreak();
-		}
-
         if ((PC & 0x0fffffff) == 0xa0 && biosLog) {
             printf("BIOS A(0x%02x) r4: 0x%08x r5: 0x%08x r6: 0x%08x \n", reg[9], reg[4], reg[5], reg[6]);
         }
@@ -206,47 +195,6 @@ bool CPU::executeInstructions(int count) {
         if (disassemblyEnabled) {
             printf("   0x%08x  %08x:    %s %s\n", PC, _opcode.opcode, _mnemonic, _disasm.c_str());
         }
-
-        if (printStackTrace) {
-            printStackTrace = false;
-
-            uint32_t sp = reg[29];
-            printf("R31: 0x%08x\n", reg[31]);
-            printf("Stacktrace: \n");
-            for (int i = 12; i >= 0; i--) {
-                uint32_t addr = sp - 4 * i;
-                uint32_t val = readMemory32(addr);
-
-                printf("0x%08x - 0x%08x\n", addr, val);
-            }
-            __debugbreak();
-        }
-        // extern uint32_t memoryDumpAddress;
-        // if (memoryDumpAddress != 0)
-        //{
-        //	for (int y = -10; y < 40; y++)
-        //	{
-        //		printf("%08x  ", memoryDumpAddress + y * 16);
-        //		for (int x = 0; x < 4; x++)
-        //		{
-        //			uint8_t byte = readMemory8(memoryDumpAddress + y *
-        // 16 +
-        // x);
-        //			printf("%02x ", byte);
-        //		}
-        //		printf("  ");
-        //		for (int x = 0; x < 4; x++)
-        //		{
-        //			uint8_t byte = readMemory8(memoryDumpAddress + y *
-        // 16 +
-        // x);
-        //			printf("%c", byte>32 ? byte : ' ');
-        //		}
-        //		printf("\n");
-        //	}
-        //	__debugbreak();
-        //	memoryDumpAddress = 0;
-        //}
 
         if (halted) return false;
         if (isJumpCycle) {
