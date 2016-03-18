@@ -17,6 +17,18 @@ bool cpuRunning = true;
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
 
+void render(SDL_Renderer* renderer, device::gpu::GPU* gpu)
+{
+	gpu->render();
+
+	SDL_Rect dst = { 0, 0, 320, 240 };
+	SDL_RenderCopy(renderer, gpu->output, NULL, &dst);
+
+	dst = { 320, 0, 320, 240 };
+	SDL_RenderCopy(renderer, gpu->texture, NULL, &dst);
+	SDL_RenderPresent(renderer);
+}
+
 int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -25,7 +37,7 @@ int main(int argc, char **argv) {
     SDL_Window *window;
     SDL_Renderer *renderer;
 
-	window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (window == nullptr)
 	{
 		printf("Cannot create window\n");
@@ -65,9 +77,8 @@ int main(int argc, char **argv) {
 	bool emulatorRunning = true;
 
     gpu->setRenderer(renderer);
-    SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
     SDL_RenderClear(renderer);
-    gpu->render();
 
     SDL_Event event;
 
@@ -92,7 +103,6 @@ int main(int argc, char **argv) {
 			}
             if (event.key.keysym.sym == SDLK_b) cpu.biosLog = !cpu.biosLog;
 			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
-			if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
 			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
 			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
         }
@@ -136,8 +146,7 @@ int main(int argc, char **argv) {
                 std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames);
                 SDL_SetWindowTitle(window, title.c_str());
 
-                gpu->render();
-                SDL_RenderPresent(renderer);
+				render(renderer, gpu);
             }
 			else if (gpuLine > 0x10) {
 				gpu->odd = gpuOdd;

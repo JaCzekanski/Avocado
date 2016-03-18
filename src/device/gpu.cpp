@@ -1,8 +1,6 @@
 #include "gpu.h"
 #include <cstdio>
 #include <SDL.h>
-#include "../utils/file.h"
-#include <cmath>
 
 namespace device {
 namespace gpu {
@@ -174,18 +172,18 @@ uint8_t GPU::read(uint32_t address) {
 }
 
 void GPU::write(uint32_t address, uint8_t data) {
-    if (address >= 0 && address < 4) {
-        tmpGP0 >>= 8;
-        tmpGP0 |= data << 24;
+    if (address < 4) {
+        tmpGP0 |= data << (whichGP0Byte * 8);
 
         if (++whichGP0Byte == 4) {
             writeGP0(tmpGP0);
             tmpGP0 = 0;
             whichGP0Byte = 0;
         }
-    } else if (address >= 4 && address < 8) {
-        tmpGP1 >>= 8;
-        tmpGP1 |= data << 24;
+		return;
+    } 
+	if (address < 8) {
+        tmpGP1 |= data << (whichGP1Byte*8);
 
         if (++whichGP1Byte == 4) {
             writeGP1(tmpGP1);
@@ -354,7 +352,6 @@ void GPU::writeGP0(uint32_t data) {
             else
                 ec = command & 0xffffff;
 
-            // lineColor(renderer, sx, sy, ex, ey, colorMean(&ec, 1));
             int x[3] = {sx, sx, ex};
             int y[3] = {ex, ex, ey};
             int c[3] = {sc, sc, sc};
@@ -439,10 +436,7 @@ void GPU::writeGP0(uint32_t data) {
 
         int width = (arguments[2] & 0xffff);
         int height = (arguments[2] & 0xffff0000) >> 16;
-
-        int x = 0;
-        int y = 0;
-
+		
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (dstY + y >= 512 || dstX + x >= 1024 || srcY + y >= 512 || srcX + x >= 1024) {
@@ -538,13 +532,10 @@ void GPU::render() {
     SDL_UnlockTexture(texture);
 
     SDL_UnlockTexture(SCREEN);
-    SDL_RenderCopy(renderer, SCREEN, NULL, NULL);
-
-    SDL_Rect dst = {320, 0, 320, 240};
-    SDL_RenderCopy(renderer, texture, NULL, &dst);
-
-    SDL_RenderPresent(renderer);
-    SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
+	SDL_SetRenderTarget(renderer, output);
+	SDL_RenderCopy(renderer, SCREEN, NULL, NULL);
+	SDL_SetRenderTarget(renderer, NULL);
+	SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
 }
 }
 }

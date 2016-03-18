@@ -59,8 +59,10 @@ struct CPU {
         memoryControl = new Dummy("MemCtrl", 0x1f801000);
         joypad = new Dummy("Joypad", 0x1f801040, false);
         serial = new Dummy("Serial", 0x1f801050, false);
+
         interrupt = new interrupt::Interrupt();
 		interrupt->setCPU(this);
+
         dma = new dma::DMA();
         dma->setCPU(this);
 
