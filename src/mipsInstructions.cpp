@@ -72,7 +72,7 @@ PrimaryInstruction OpcodeTable[64] = {  // R type
 
     {48, notImplemented, "lwc0"},
     {49, notImplemented, "lwc1"},
-    {50, notImplemented, "lwc2"},
+    {50, dummy, "lwc2"},
     {51, notImplemented, "lwc3"},
     {52, invalid, "INVALID"},
     {53, invalid, "INVALID"},
@@ -81,7 +81,7 @@ PrimaryInstruction OpcodeTable[64] = {  // R type
 
     {56, notImplemented, "swc0"},
     {57, notImplemented, "swc1"},
-    {58, notImplemented, "swc2"},
+    {58, dummy, "swc2"},
     {59, notImplemented, "swc3"},
     {60, invalid, "INVALID"},
     {61, invalid, "INVALID"},
@@ -165,6 +165,10 @@ PrimaryInstruction SpecialTable[64] = {
 };
 
 int part = 0;
+
+void dummy(CPU *cpu, Opcode i) {
+	
+}
 
 void trap(CPU *cpu) {
     cpu->cop0.badVaddr = cpu->PC;

@@ -7,6 +7,7 @@
 #include "device/interrupt.h"
 #include "device/timer.h"
 #include "device/dummy.h"
+#include "device/controller.h"
 
 namespace mips {
 	using namespace device;
@@ -57,7 +58,7 @@ struct CPU {
         lo = 0;
 
         memoryControl = new Dummy("MemCtrl", 0x1f801000);
-        joypad = new Dummy("Joypad", 0x1f801040, false);
+		controller = new controller::Controller();
         serial = new Dummy("Serial", 0x1f801050, false);
 
         interrupt = new interrupt::Interrupt();
@@ -89,13 +90,13 @@ struct CPU {
     // Devices
    public:
     interrupt::Interrupt *interrupt = nullptr;
+	controller::Controller *controller = nullptr;
 	timer::Timer *timer0 = nullptr;
 	timer::Timer *timer1 = nullptr;
 	timer::Timer *timer2 = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
-    Dummy *joypad = nullptr;
     Dummy *serial = nullptr;
     dma::DMA *dma = nullptr;
     cdrom::CDROM *cdrom = nullptr;

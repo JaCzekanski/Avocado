@@ -106,13 +106,19 @@ uint32_t to15bit(uint32_t color) {
 
 uint32_t to24bit(uint16_t color) {
     uint32_t newColor = 0;
+	// 00 RR GG BB
 	//newColor |= (color & 0x7c00) >> 7;
 	//newColor |= (color & 0x3e0) << 6;
 	//newColor |= (color & 0x1f) << 13;
 
-	newColor |= (color & 0x7c00) << 9;
-	newColor |= (color & 0x3e0) << 6;
-	newColor |= (color & 0x1f) << 3;
+//	newColor |= (color & 0x7c00) << 9;
+//	newColor |= (color & 0x3e0) << 6;
+//	newColor |= (color & 0x1f) << 3;
+
+	// WTF?!
+	newColor |= (color & 0x7c00) << 1;
+	newColor |= (color & 0x3e0) >> 2;
+	newColor |= (color & 0x1f) << 19;
 
     return newColor;
 }
@@ -294,10 +300,10 @@ void GPU::writeGP0(uint32_t data) {
 
         for (;;) {
             if (currY < 512 && currX < 1023) {
-                VRAM[currY][currX++] = color;
+                VRAM[currY][currX] = color;
             }
 
-            if (currX >= endX) {
+            if (currX++ >= endX) {
                 currX = startX;
                 if (++currY >= endY) break;
             }
