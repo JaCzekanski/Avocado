@@ -172,7 +172,7 @@ void loadExeFile(std::string exePath)
 	if (!_exe.empty()) {
 		memcpy(&exe, &_exe[0], sizeof(exe));
 
-		for (int i = 0x800; i < _exe.size(); i++) {
+		for (size_t i = 0x800; i < _exe.size(); i++) {
 			cpu.writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
 		}
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 	if (renderer == nullptr) {
-        printf("Cannot create  renderer\n");
+        printf("Cannot create renderer\n");
         return 1;
     }
 

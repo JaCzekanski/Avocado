@@ -63,7 +63,6 @@ uint8_t CPU::readMemory(uint32_t address) {
             return expansion2->read(address);
         }
         printf("R Unhandled IO at 0x%08x\n", address);
-        return io[address & 0x1fff];
     }
 #undef IO
 
@@ -84,10 +83,12 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     if (address < 0x200000 * 4) {
         if (cop0.status.isolateCache == device::Bit::cleared) ram[address & 0x1FFFFF] = data;
         return;
-    } else if (address >= 0x1f000000 && address < 0x1f010000) {
+    }
+	if (address >= 0x1f000000 && address < 0x1f010000) {
         expansion[address - 0x1f000000] = data;
         return;
-    } else if (address >= 0x1f800000 && address < 0x1f800400) {
+    }
+	if (address >= 0x1f800000 && address < 0x1f800400) {
         scratchpad[address - 0x1f800000] = data;
         return;
     }
