@@ -91,6 +91,7 @@ namespace timer {
 		if (address < 4) {
 			current &= (0xff) << (address * 8);
 			current |= data << (address * 8);
+			return;
 		}
 		if (address < 8) {
 			mode._byte[address - 4] = data;
@@ -98,10 +99,12 @@ namespace timer {
 				mode.reachedFFFF = Bit::cleared;
 				mode.reachedTarget = Bit::cleared;
 			}
+			return;
 		}
 		if (address < 12) {
 			target &= (0xff) << ((address-8) * 8);
 			target |= data << ((address-8) * 8);
+			return;
 		}
 	}
 }

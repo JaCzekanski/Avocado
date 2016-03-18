@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "device\device.h"
+#include "device/device.h"
 
 namespace mips {
 namespace cop0 {

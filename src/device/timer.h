@@ -89,9 +89,9 @@ class Timer : public Device {
 	const int baseAddress = 0x1f801100;
 	
 	int which = 0;
-	uint16_t current = 0;
+	uint32_t current = 0;
 	CounterMode mode;
-	uint16_t target = 0;
+	uint32_t target = 0;
 
 	void *_cpu = nullptr;
 

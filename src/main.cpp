@@ -8,8 +8,8 @@
 #include "mipsInstructions.h"
 #include "psxExe.h"
 
-#include "../externals/imgui/imgui.h"
-#include "../externals/imgui/examples/sdl_opengl_example/imgui_impl_sdl.h"
+#include "externals/imgui/imgui.h"
+#include "externals/imgui/examples/sdl_opengl_example/imgui_impl_sdl.h"
 #undef main
 #include <memory>
 
@@ -199,13 +199,13 @@ int main(int argc, char **argv) {
 
 	SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 	if (renderer == nullptr) {
         printf("Cannot create  renderer\n");
         return 1;
     }
 
-    std::string biosPath = "data/bios/SCPH1001.BIN";
+    std::string biosPath = "data/bios/SCPH1002.BIN";
     auto _bios = getFileContents(biosPath);
     if (_bios.empty()) {
         printf("Cannot open BIOS");
@@ -229,8 +229,8 @@ int main(int argc, char **argv) {
     SDL_GLContext glContext = SDL_GL_CreateContext(debugWindow);
     ImGui_ImplSdl_Init(debugWindow);
 
-    ImGuiIO &io = ImGui::GetIO();
-    io.Fonts->AddFontFromFileTTF("consola.ttf", 14);
+//    ImGuiIO &io = ImGui::GetIO();
+//    io.Fonts->AddFontFromFileTTF("consola.ttf", 14);
 
     device::gpu::GPU *gpu = new device::gpu::GPU();
     cpu.setGPU(gpu);
@@ -243,7 +243,6 @@ int main(int argc, char **argv) {
     int cycles = 0;
     int frames = 0;
 
-    bool doDump = false;
 	bool emulatorRunning = true;
 
     gpu->setRenderer(renderer);
@@ -330,13 +329,6 @@ int main(int argc, char **argv) {
             scanf("%s", filename);
             exePath += filename;
 			loadExeFile(exePath);
-        }
-        if (doDump) {
-            std::vector<uint8_t> ramdump;
-            ramdump.resize(2 * 1024 * 1024);
-            memcpy(&ramdump[0], cpu.ram, ramdump.size());
-            putFileContents("ram.bin", ramdump);
-            doDump = false;
         }
     }
 
