@@ -1,187 +1,22 @@
 #include <cstdio>
 #include <string>
 #include <SDL.h>
-#include <SDL_opengl.h>
 #include "utils/file.h"
 #include "utils/string.h"
 #include "mips.h"
-#include "mipsInstructions.h"
-#include "psxExe.h"
 
-#include "externals/imgui/imgui.h"
-#include "externals/imgui/examples/sdl_opengl_example/imgui_impl_sdl.h"
 #undef main
-#include <memory>
 
-bool biosLog = false;
 bool disassemblyEnabled = false;
-bool memoryAccessLogging = false;
-bool printStackTrace = false;
-uint32_t memoryDumpAddress = 0;
-
 char *_mnemonic;
 std::string _disasm = "";
 
 mips::CPU cpu;
 bool cpuRunning = true;
 
-struct Breakpoint {
-    bool enabled = true;
-    uint32_t location = 0;
-    uint32_t instruction;  // Holds instruction if enabled
-};
-
-std::vector<Breakpoint> breakpoints;
-
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
-void IRQ(int irq) {
-    cpu.interrupt->IRQ(irq);
-}
 
-bool isBreakpointSet(uint32_t addr) {
-    for (auto b : breakpoints) {
-        if (b.location == addr) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void addBreakpoint(uint32_t addr) {
-    for (auto b : breakpoints) {
-        if (b.location == addr) {
-            return;  // Already exists
-        }
-    }
-    Breakpoint b;
-    b.location = addr;
-    b.instruction = cpu.readMemory32(addr);
-    breakpoints.push_back(b);
-
-    cpu.writeMemory32(addr, 0xFC000000);
-    printf("Breakpoint at 0x%08x added\n", addr);
-}
-
-void removeBreakpoint(uint32_t addr) {
-    for (auto it = breakpoints.begin(); it != breakpoints.end(); it++) {
-        if ((*it).location == addr) {
-            cpu.writeMemory32(addr, (*it).instruction);
-            breakpoints.erase(it);
-            printf("Breakpoint at 0x%08x removed\n", addr);
-            return;
-        }
-    }
-}
-
-void disassemblyWindow() {
-    static bool windowOpened;
-    if (ImGui::Begin("Disassembly", &windowOpened, ImVec2(400.f, 600.f))) {
-        if (ImGui::Button("Run")) {
-            cpuRunning = true;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Pause")) {
-            cpuRunning = false;
-        }
-
-        float lineHeight = ImGui::GetTextLineHeight();
-        int lineCount = 100;
-        ImGuiListClipper clipper(lineCount, lineHeight);
-
-        auto debugCPU = std::make_shared<mips::CPU>(cpu);
-        disassemblyEnabled = true;
-
-        uint32_t PC = debugCPU->PC;
-        for (int i = 0; i < 30; i++) {
-            mipsInstructions::Opcode _opcode;
-            _opcode.opcode = debugCPU->readMemory32(PC);
-            const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
-            _mnemonic = op.mnemnic;
-
-            op.instruction(debugCPU.get(), _opcode);
-
-            ImGui::Selectable(string_format("%c 0x%08x    %08x      %s %s", (i % 4) == 0 ? 'x' : ' ', PC, _opcode,
-                                            _mnemonic, _disasm.c_str())
-                                  .c_str());
-
-            PC += 4;
-        }
-
-        disassemblyEnabled = false;
-
-        clipper.End();
-    }
-    ImGui::End();
-}
-
-void renderDebugWindow(SDL_Window *debugWindow) {
-    int width, height;
-    SDL_GetWindowSize(debugWindow, &width, &height);
-
-    ImGui_ImplSdl_NewFrame(debugWindow);
-
-    disassemblyWindow();
-
-    glViewport(0, 0, width, height);
-    glClearColor(0.6f, 0.6f, 0.8f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    ImGui::Render();
-    SDL_GL_SwapWindow(debugWindow);
-}
-
-void checkForInterrupts() {
-    using namespace mips::cop0;
-
-	if ((cpu.cop0.cause.interruptPending & 4) &&
-		cpu.cop0.status.interruptEnable && 
-		(cpu.cop0.status.interruptMask & 4)) {
-        cpu.cop0.cause.exception = CAUSE::Exception::interrupt;
-        cpu.cop0.cause.interruptPending = 4;
-
-        if (cpu.shouldJump) {
-            cpu.cop0.cause.isInDelaySlot = true;
-            cpu.cop0.epc = cpu.PC - 4;  // EPC - return address from trap
-        } else {
-            cpu.cop0.epc = cpu.PC;  // EPC - return address from trap
-        }
-
-        cpu.cop0.status.oldInterruptEnable = cpu.cop0.status.previousInterruptEnable;
-        cpu.cop0.status.oldMode = cpu.cop0.status.previousMode;
-
-        cpu.cop0.status.previousInterruptEnable = cpu.cop0.status.interruptEnable;
-        cpu.cop0.status.previousMode = cpu.cop0.status.mode;
-
-        cpu.cop0.status.interruptEnable = false;
-        cpu.cop0.status.mode = STATUS::Mode::kernel;
-
-        if (cpu.cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
-            cpu.PC = 0xbfc00180;
-        else
-            cpu.PC = 0x80000080;
-
-		printf("-%s\n", cpu.interrupt->getStatus().c_str());
-    }
-}
-
-void loadExeFile(std::string exePath)
-{
-	auto _exe = getFileContents(exePath);
-	PsxExe exe;
-	if (!_exe.empty()) {
-		memcpy(&exe, &_exe[0], sizeof(exe));
-
-		for (size_t i = 0x800; i < _exe.size(); i++) {
-			cpu.writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
-		}
-
-		cpu.PC = exe.pc0;
-		cpu.shouldJump = false;
-	}
-}
-
-bool loadExe = false;
 int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -205,32 +40,17 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    std::string biosPath = "data/bios/SCPH1001.BIN";
-    auto _bios = getFileContents(biosPath);
+    auto _bios = getFileContents("data/bios/SCPH1001.BIN");
     if (_bios.empty()) {
         printf("Cannot open BIOS");
         return 1;
     }
     memcpy(cpu.bios, &_bios[0], _bios.size());
 
-	std::string expansionPath = "data/bios/expansion.rom";
-	auto _exp = getFileContents(expansionPath);
+	auto _exp = getFileContents("data/bios/expansion.rom");
 	if (!_exp.empty()) {
 		memcpy(cpu.expansion, &_exp[0], _exp.size());
 	}
-
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_Window *debugWindow = SDL_CreateWindow("Debug", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600,
-                                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
-    SDL_GLContext glContext = SDL_GL_CreateContext(debugWindow);
-    ImGui_ImplSdl_Init(debugWindow);
-
-//    ImGuiIO &io = ImGui::GetIO();
-//    io.Fonts->AddFontFromFileTTF("consola.ttf", 14);
 
     device::gpu::GPU *gpu = new device::gpu::GPU();
     cpu.setGPU(gpu);
@@ -238,7 +58,6 @@ int main(int argc, char **argv) {
     int gpuLine = 0;
     int gpuDot = 0;
     bool gpuOdd = false;
-    bool vblank = false;
 
     int cycles = 0;
     int frames = 0;
@@ -257,78 +76,72 @@ int main(int argc, char **argv) {
 		if (!cpuRunning) SDL_WaitEvent(&event);
 		else pendingEvents = SDL_PollEvent(&event);
         
-        ImGui_ImplSdl_ProcessEvent(&event);
 		if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) emulatorRunning = false;
         if (event.type == SDL_KEYDOWN) {
             if (event.key.keysym.sym == SDLK_SPACE) {
-                memoryAccessLogging = !memoryAccessLogging;
-                printf("MAL %d\n", memoryAccessLogging);
+				cpu.memoryAccessLogging = !cpu.memoryAccessLogging;
+                printf("MAL %d\n", cpu.memoryAccessLogging);
             }
-            if (event.key.keysym.sym == SDLK_l) loadExe = true;
-            if (event.key.keysym.sym == SDLK_b) biosLog = !biosLog;
-			if (event.key.keysym.sym == SDLK_c) IRQ(2);
-			if (event.key.keysym.sym == SDLK_d) IRQ(3);
+            if (event.key.keysym.sym == SDLK_l) {
+				std::string exePath = "data/exe/";
+				char filename[128];
+				printf("\nEnter exe name: ");
+				scanf("%s", filename);
+				exePath += filename;
+				cpu.loadExeFile(exePath);
+			}
+            if (event.key.keysym.sym == SDLK_b) cpu.biosLog = !cpu.biosLog;
+			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
+			if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
 			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
 			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
         }
 		if (event.type == SDL_DROPFILE)
 		{
-			loadExeFile(event.drop.file);
+			// TODO: SDL_free fails after few times
+			cpu.loadExeFile(event.drop.file);
 			SDL_free(event.drop.file);
 		}
 		if (pendingEvents) continue;
+		if (!cpuRunning) continue;
 
-        if (cpuRunning) {
-            checkForInterrupts();
-			if (!cpu.executeInstructions(7)) {
-                printf("CPU Halted\n");
-                cpuRunning = false;
-            }
-			cycles += 7;
-
-			for (int i = 0; i < 11; i++) {
-				cpu.timer0->step();
-				cpu.timer1->step();
-				cpu.timer2->step();
-                gpuDot++;
-
-                if (gpuDot >= 3412) {
-                    gpuDot = 0;
-                    gpuLine++;
-
-					if (gpuLine == 0x100) {
-						gpu->odd = false;
-						gpu->step();
-						IRQ(0);
-						continue;
-                    }
-					if (gpuLine >= 263) {
-                        gpuLine = 0;
-                        frames++;
-                        gpuOdd = !gpuOdd;
-                        gpu->step();
-
-                        std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames);
-                        SDL_SetWindowTitle(window, title.c_str());
-
-                        gpu->render();
-                        SDL_RenderPresent(renderer);
-                    }
-					else if (gpuLine > 0x10) {
-						gpu->odd = gpuOdd;
-					}
-                }
-            }
+		if (!cpu.executeInstructions(7)) {
+            printf("CPU Halted\n");
+            cpuRunning = false;
         }
-        if (loadExe) {
-            loadExe = false;
+		cycles += 7;
 
-            std::string exePath = "data/exe/";
-            char filename[128];
-            printf("\nEnter exe name: ");
-            scanf("%s", filename);
-            exePath += filename;
-			loadExeFile(exePath);
+		for (int i = 0; i < 11; i++) {
+			cpu.timer0->step();
+			cpu.timer1->step();
+			cpu.timer2->step();
+            gpuDot++;
+
+			if (gpuDot < 3412) continue;
+
+            gpuDot = 0;
+            gpuLine++;
+			if (gpuLine == 0x100) {
+				gpu->odd = false;
+				gpu->step();
+				cpu.interrupt->IRQ(0);
+				continue;
+            }
+			if (gpuLine >= 263) {
+                gpuLine = 0;
+                frames++;
+                gpuOdd = !gpuOdd;
+                gpu->step();
+
+                std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames);
+                SDL_SetWindowTitle(window, title.c_str());
+
+                gpu->render();
+                SDL_RenderPresent(renderer);
+            }
+			else if (gpuLine > 0x10) {
+				gpu->odd = gpuOdd;
+			}
         }
     }
 

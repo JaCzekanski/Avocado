@@ -3,9 +3,10 @@
 #include <cstdio>
 #include <string>
 #include <deque>
+#include "psxExe.h"
+#include "utils/file.h"
 
 extern bool disassemblyEnabled;
-extern bool memoryAccessLogging;
 extern char *_mnemonic;
 extern std::string _disasm;
 
@@ -167,9 +168,9 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
 }
 
 bool CPU::executeInstructions(int count) {
-    extern bool printStackTrace;
-    bool biosLog = false;
     mipsInstructions::Opcode _opcode;
+
+	checkForInterrupts();
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
         _opcode.opcode = readMemory32(PC);
@@ -207,4 +208,58 @@ bool CPU::executeInstructions(int count) {
     }
     return true;
 }
+
+
+void CPU::checkForInterrupts() {
+	using namespace mips::cop0;
+
+	if ((cop0.cause.interruptPending & 4) &&
+		cop0.status.interruptEnable &&
+		(cop0.status.interruptMask & 4)) {
+		cop0.cause.exception = CAUSE::Exception::interrupt;
+		cop0.cause.interruptPending = 4;
+
+		if (shouldJump) {
+			cop0.cause.isInDelaySlot = true;
+			cop0.epc = PC - 4;  // EPC - return address from trap
+		}
+		else {
+			cop0.epc = PC;  // EPC - return address from trap
+		}
+
+		cop0.status.oldInterruptEnable = cop0.status.previousInterruptEnable;
+		cop0.status.oldMode = cop0.status.previousMode;
+
+		cop0.status.previousInterruptEnable = cop0.status.interruptEnable;
+		cop0.status.previousMode = cop0.status.mode;
+
+		cop0.status.interruptEnable = false;
+		cop0.status.mode = STATUS::Mode::kernel;
+
+		if (cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
+			PC = 0xbfc00180;
+		else
+			PC = 0x80000080;
+
+		printf("-%s\n", interrupt->getStatus().c_str());
+	}
+}
+
+bool CPU::loadExeFile(std::string exePath)
+{
+	auto _exe = getFileContents(exePath);
+	PsxExe exe;
+	if (_exe.empty()) return false;
+
+	memcpy(&exe, &_exe[0], sizeof(exe));
+
+	for (size_t i = 0x800; i < _exe.size(); i++) {
+		writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
+	}
+
+	PC = exe.pc0;
+	shouldJump = false;
+	return false;
+}
+
 }

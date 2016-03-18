@@ -11,7 +11,6 @@
 using namespace mips;
 
 extern bool disassemblyEnabled;
-extern bool memoryAccessLogging;
 extern char *_mnemonic;
 extern std::string _disasm;
 

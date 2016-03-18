@@ -57,25 +57,13 @@ namespace timer {
 
 
 		if (current == target) {
-			if (mode.irqWhenTarget) {
-				if (_cpu != nullptr) ((mips::CPU*)_cpu)->interrupt->IRQ(4 + which);
-			}
-
-			if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) {
-				current = 0;
-			}
-
+			if (mode.irqWhenTarget) static_cast<mips::CPU*>(_cpu)->interrupt->IRQ(4 + which);
+			if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) current = 0;
 			mode.reachedTarget = true;
 		}
-
 		else if (current == 0xffff) {
-			if (mode.irqWhenFFFF) {
-				if (_cpu != nullptr) ((mips::CPU*)_cpu)->interrupt->IRQ(4 + which);
-			}
-			if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) {
-				current = 0;
-			}
-
+			if (mode.irqWhenFFFF) static_cast<mips::CPU*>(_cpu)->interrupt->IRQ(4 + which);
+			if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) current = 0;
 			mode.reachedFFFF = true;
 		}
 	}
@@ -104,7 +92,6 @@ namespace timer {
 		if (address < 12) {
 			target &= (0xff) << ((address-8) * 8);
 			target |= data << ((address-8) * 8);
-			return;
 		}
 	}
 }

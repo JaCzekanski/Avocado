@@ -105,6 +105,8 @@ struct CPU {
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
 
+	void checkForInterrupts();
+
    public:
     void setGPU(gpu::GPU *gpu) {
         this->gpu = gpu;
@@ -119,5 +121,11 @@ struct CPU {
     void writeMemory32(uint32_t address, uint32_t data);
 
     bool executeInstructions(int count);
+
+	// Helpers
+	bool biosLog = false;
+	bool printStackTrace = false;
+	bool memoryAccessLogging = false;
+	bool loadExeFile(std::string exePath);
 };
 };
