@@ -76,13 +76,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
-    <IncludePath>externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
+    <IncludePath>.;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
-    <IncludePath>externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
+    <IncludePath>.;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

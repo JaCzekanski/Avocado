@@ -167,7 +167,7 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
 
 bool CPU::executeInstructions(int count) {
     extern bool printStackTrace;
-    bool biosLog;
+    bool biosLog = false;
     mipsInstructions::Opcode _opcode;
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
