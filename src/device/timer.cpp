@@ -57,7 +57,7 @@ namespace timer {
 
 
 		if (current == target) {
-			if (mode.irqWhenTarget == Bit::set) {
+			if (mode.irqWhenTarget) {
 				if (_cpu != nullptr) ((mips::CPU*)_cpu)->interrupt->IRQ(4 + which);
 			}
 
@@ -65,18 +65,18 @@ namespace timer {
 				current = 0;
 			}
 
-			mode.reachedTarget = Bit::set;
+			mode.reachedTarget = true;
 		}
 
 		else if (current == 0xffff) {
-			if (mode.irqWhenFFFF == Bit::set) {
+			if (mode.irqWhenFFFF) {
 				if (_cpu != nullptr) ((mips::CPU*)_cpu)->interrupt->IRQ(4 + which);
 			}
 			if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) {
 				current = 0;
 			}
 
-			mode.reachedFFFF = Bit::set;
+			mode.reachedFFFF = true;
 		}
 	}
 	uint8_t Timer::read(uint32_t address)
@@ -96,8 +96,8 @@ namespace timer {
 		if (address < 8) {
 			mode._byte[address - 4] = data;
 			if (address - 4 == 1) {
-				mode.reachedFFFF = Bit::cleared;
-				mode.reachedTarget = Bit::cleared;
+				mode.reachedFFFF = false;
+				mode.reachedTarget = false;
 			}
 			return;
 		}

@@ -135,13 +135,13 @@ void checkForInterrupts() {
     using namespace mips::cop0;
 
 	if ((cpu.cop0.cause.interruptPending & 4) &&
-		cpu.cop0.status.interruptEnable == Bit::set && 
+		cpu.cop0.status.interruptEnable && 
 		(cpu.cop0.status.interruptMask & 4)) {
         cpu.cop0.cause.exception = CAUSE::Exception::interrupt;
         cpu.cop0.cause.interruptPending = 4;
 
         if (cpu.shouldJump) {
-            cpu.cop0.cause.isInDelaySlot = Bit::set;
+            cpu.cop0.cause.isInDelaySlot = true;
             cpu.cop0.epc = cpu.PC - 4;  // EPC - return address from trap
         } else {
             cpu.cop0.epc = cpu.PC;  // EPC - return address from trap
@@ -153,7 +153,7 @@ void checkForInterrupts() {
         cpu.cop0.status.previousInterruptEnable = cpu.cop0.status.interruptEnable;
         cpu.cop0.status.previousMode = cpu.cop0.status.mode;
 
-        cpu.cop0.status.interruptEnable = Bit::cleared;
+        cpu.cop0.status.interruptEnable = false;
         cpu.cop0.status.mode = STATUS::Mode::kernel;
 
         if (cpu.cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    std::string biosPath = "data/bios/SCPH1002.BIN";
+    std::string biosPath = "data/bios/SCPH1001.BIN";
     auto _bios = getFileContents(biosPath);
     if (_bios.empty()) {
         printf("Cannot open BIOS");
@@ -268,7 +268,7 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_b) biosLog = !biosLog;
 			if (event.key.keysym.sym == SDLK_c) IRQ(2);
 			if (event.key.keysym.sym == SDLK_d) IRQ(3);
-			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = device::Bit::set;
+			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
 			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
         }
 		if (event.type == SDL_DROPFILE)

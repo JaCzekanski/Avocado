@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 namespace device {
-enum class Bit : uint32_t { cleared = 0, set = 1 };
+	typedef uint32_t Bit;
 class Device {
    public:
     virtual ~Device(){};

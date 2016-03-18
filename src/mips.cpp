@@ -81,7 +81,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) {
-        if (cop0.status.isolateCache == device::Bit::cleared) ram[address & 0x1FFFFF] = data;
+        if (!cop0.status.isolateCache) ram[address & 0x1FFFFF] = data;
         return;
     }
 	if (address >= 0x1f000000 && address < 0x1f010000) {

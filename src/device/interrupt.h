@@ -50,17 +50,17 @@ class Interrupt : public Device {
     {
 		std::string buf;
 		buf.resize(11);
-		buf[0] = mask.vblank == Bit::set ? 'V' : '-';
-		buf[1] = mask.gpu == Bit::set ? 'G' : '-';
-		buf[2] = mask.cdrom == Bit::set ? 'C' : '-';
-		buf[3] = mask.dma == Bit::set ? 'D' : '-';
-		buf[4] = mask.timer0 == Bit::set ? '0' : '-';
-		buf[5] = mask.timer1 == Bit::set ? '1' : '-';
-		buf[6] = mask.timer2 == Bit::set ? '2' : '-';
-		buf[7] = mask.controller == Bit::set ? 'C' : '-';
-		buf[8] = mask.sio == Bit::set ? 'I' : '-';
-		buf[9] = mask.spu == Bit::set ? 'S' : '-';
-		buf[10] = mask.lightpen == Bit::set ? 'L' : '-';
+		buf[0] = mask.vblank ? 'V' : '-';
+		buf[1] = mask.gpu ? 'G' : '-';
+		buf[2] = mask.cdrom ? 'C' : '-';
+		buf[3] = mask.dma ? 'D' : '-';
+		buf[4] = mask.timer0 ? '0' : '-';
+		buf[5] = mask.timer1 ? '1' : '-';
+		buf[6] = mask.timer2 ? '2' : '-';
+		buf[7] = mask.controller ? 'C' : '-';
+		buf[8] = mask.sio ? 'I' : '-';
+		buf[9] = mask.spu ? 'S' : '-';
+		buf[10] = mask.lightpen ? 'L' : '-';
 		buf[11] = 0;
 		return buf;
     }
@@ -68,17 +68,17 @@ class Interrupt : public Device {
 	{
 		std::string buf;
 		buf.resize(11);
-		buf[0] = status.vblank == Bit::set ? 'V' : '-';
-		buf[1] = status.gpu == Bit::set ? 'G' : '-';
-		buf[2] = status.cdrom == Bit::set ? 'C' : '-';
-		buf[3] = status.dma == Bit::set ? 'D' : '-';
-		buf[4] = status.timer0 == Bit::set ? '0' : '-';
-		buf[5] = status.timer1 == Bit::set ? '1' : '-';
-		buf[6] = status.timer2 == Bit::set ? '2' : '-';
-		buf[7] = status.controller == Bit::set ? 'C' : '-';
-		buf[8] = status.sio == Bit::set ? 'I' : '-';
-		buf[9] = status.spu == Bit::set ? 'S' : '-';
-		buf[10] = status.lightpen == Bit::set ? 'L' : '-';
+		buf[0] = status.vblank ? 'V' : '-';
+		buf[1] = status.gpu ? 'G' : '-';
+		buf[2] = status.cdrom ? 'C' : '-';
+		buf[3] = status.dma ? 'D' : '-';
+		buf[4] = status.timer0 ? '0' : '-';
+		buf[5] = status.timer1 ? '1' : '-';
+		buf[6] = status.timer2 ? '2' : '-';
+		buf[7] = status.controller ? 'C' : '-';
+		buf[8] = status.sio ? 'I' : '-';
+		buf[9] = status.spu ? 'S' : '-';
+		buf[10] = status.lightpen ? 'L' : '-';
 		buf[11] = 0;
 		return buf;
 	}
