@@ -179,12 +179,12 @@ void trap(CPU *cpu) {
 
 void invalid(CPU *cpu, Opcode i) {
     printf("Invalid opcode (%s) at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
-    cpu->halted = true;
+	cpu->state = CPU::State::halted;
 }
 
 void notImplemented(CPU *cpu, Opcode i) {
     printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
-    cpu->halted = true;
+	cpu->state = CPU::State::halted;
 }
 
 void special(CPU *cpu, Opcode i) {
@@ -865,6 +865,6 @@ void swr(CPU *cpu, Opcode i) {
 void breakpoint(CPU *cpu, Opcode i) {
     disasm("");
     printf("Breakpoint at 0x%08x\n", cpu->PC);
-    cpu->halted = true;
+	cpu->state = CPU::State::halted;
 }
 };

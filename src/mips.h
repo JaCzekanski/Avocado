@@ -8,7 +8,6 @@
 #include "device/timer.h"
 #include "device/dummy.h"
 #include "device/controller.h"
-
 namespace mips {
 	using namespace device;
 /*
@@ -41,14 +40,23 @@ r30     fp    - frame pointer
 r31     ra    - return address
 */
 
+class GdbStub;
+
 struct CPU {
+	enum class State {
+		halted, // Cannot be run until reset
+		stop, // after reset
+		pause, // if debugger attach
+		run // normal state
+	} state = State::stop;
+
+	friend class GdbStub;
     uint32_t PC;
     uint32_t jumpPC;
     bool shouldJump;
     uint32_t reg[32];
     cop0::COP0 cop0;
     uint32_t hi, lo;
-    bool halted = false;
     CPU() {
         PC = 0xBFC00000;
         jumpPC = 0;

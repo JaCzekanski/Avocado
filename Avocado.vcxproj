@@ -22,6 +22,7 @@
     <ClCompile Include="src\device\interrupt.cpp" />
     <ClCompile Include="src\device\controller.cpp" />
     <ClCompile Include="src\device\timer.cpp" />
+    <ClCompile Include="src\gdbStub.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mips.cpp" />
     <ClCompile Include="src\mipsInstructions.cpp" />
@@ -41,6 +42,7 @@
     <ClInclude Include="src\device\interrupt.h" />
     <ClInclude Include="src\device\controller.h" />
     <ClInclude Include="src\device\timer.h" />
+    <ClInclude Include="src\gdbStub.h" />
     <ClInclude Include="src\mips.h" />
     <ClInclude Include="src\mipsInstructions.h" />
     <ClInclude Include="src\psxExe.h" />
@@ -78,14 +80,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
-    <IncludePath>.;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>.;externals\SDL_net;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
+    <LibraryPath>externals\SDL_net\VisualC\Win32\Release;C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
-    <IncludePath>.;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>.;externals\SDL_net;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
+    <LibraryPath>externals\SDL_net\VisualC\Win32\Release;C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -99,7 +101,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;sdl2_ttf.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Iphlpapi.lib;ws2_32.lib;SDL2_net.lib;opengl32.lib;sdl2_ttf.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -117,7 +119,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opengl32.lib;sdl2_ttf.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Iphlpapi.lib;ws2_32.lib;SDL2_net.lib;opengl32.lib;sdl2_ttf.lib;sdl2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

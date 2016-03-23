@@ -199,7 +199,7 @@ bool CPU::executeInstructions(int count) {
             printf("   0x%08x  %08x:    %s %s\n", PC, _opcode.opcode, _mnemonic, _disasm.c_str());
         }
 
-        if (halted) return false;
+        if (state != State::run) return false;
         if (isJumpCycle) {
             PC = jumpPC & 0xFFFFFFFC;
             jumpPC = 0;

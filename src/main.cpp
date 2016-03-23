@@ -4,6 +4,7 @@
 #include "utils/file.h"
 #include "utils/string.h"
 #include "mips.h"
+#include "gdbStub.h"
 
 #undef main
 
@@ -34,6 +35,13 @@ int main(int argc, char **argv) {
         printf("Cannot init SDL\n");
         return 1;
     }
+
+	GdbStub gdbStub;
+	if (!gdbStub.initialize()) {
+		printf("Cannot initialize networking");
+		return 1;
+	}
+
     SDL_Window *window;
     SDL_Renderer *renderer;
 
@@ -52,6 +60,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+
     auto _bios = getFileContents("data/bios/SCPH1001.BIN");
     if (_bios.empty()) {
         printf("Cannot open BIOS");
@@ -66,6 +75,7 @@ int main(int argc, char **argv) {
 
     device::gpu::GPU *gpu = new device::gpu::GPU();
     cpu.setGPU(gpu);
+	cpu.state = mips::CPU::State::run;
 
     int gpuLine = 0;
     int gpuDot = 0;
@@ -86,8 +96,9 @@ int main(int argc, char **argv) {
 
     while (emulatorRunning) {
 		int pendingEvents = 0;
-		if (!cpuRunning) SDL_WaitEvent(&event);
-		else pendingEvents = SDL_PollEvent(&event);
+		//if (!cpuRunning) SDL_WaitEvent(&event);
+		//else pendingEvents = SDL_PollEvent(&event);
+		pendingEvents = SDL_PollEvent(&event);
         
 		if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) emulatorRunning = false;
         if (event.type == SDL_KEYDOWN) {
@@ -106,6 +117,7 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_b) cpu.biosLog = !cpu.biosLog;
 			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
 			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
+			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
 			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
 
 			if (event.key.keysym.sym == SDLK_UP) buttons.up = true;
@@ -129,8 +141,15 @@ int main(int argc, char **argv) {
 			cpu.loadExeFile(event.drop.file);
 			SDL_free(event.drop.file);
 		}
+		gdbStub.handle(cpu);
+		if (cpu.state != mips::CPU::State::run) SDL_Delay(10);
 		if (pendingEvents) continue;
-		if (!cpuRunning) continue;
+
+		if (!cpuRunning) {
+			if (cpu.state == mips::CPU::State::run) cpuRunning = true;
+			continue;
+		}
+
 
 		if (!cpu.executeInstructions(7)) {
             printf("CPU Halted\n");
@@ -170,7 +189,7 @@ int main(int argc, char **argv) {
 			}
         }
     }
-
+	gdbStub.uninitialize();
     SDL_Quit();
     return 0;
 }
