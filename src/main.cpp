@@ -82,6 +82,8 @@ int main(int argc, char **argv) {
 
     SDL_Event event;
 
+	device::controller::DigitalController buttons;
+
     while (emulatorRunning) {
 		int pendingEvents = 0;
 		if (!cpuRunning) SDL_WaitEvent(&event);
@@ -105,7 +107,20 @@ int main(int argc, char **argv) {
 			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
 			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
 			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
+
+			if (event.key.keysym.sym == SDLK_UP) buttons.up = true;
+			if (event.key.keysym.sym == SDLK_DOWN) buttons.down = true;
+			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
+			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
+			cpu.controller->setState(buttons);
         }
+		if (event.type == SDL_KEYUP) {
+			if (event.key.keysym.sym == SDLK_UP) buttons.up = false;
+			if (event.key.keysym.sym == SDLK_DOWN) buttons.down = false;
+			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = false;
+			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = false;
+			cpu.controller->setState(buttons);
+		}
 		if (event.type == SDL_DROPFILE)
 		{
 			// TODO: SDL_free fails after few times

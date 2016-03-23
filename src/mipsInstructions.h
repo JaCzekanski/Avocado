@@ -44,6 +44,7 @@ struct PrimaryInstruction {
     char *mnemnic;
 };
 
+void dummy(mips::CPU *cpu, Opcode i);
 void invalid(mips::CPU *cpu, Opcode i);
 void notImplemented(mips::CPU *cpu, Opcode i);
 void special(mips::CPU *cpu, Opcode i);

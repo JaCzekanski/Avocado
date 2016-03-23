@@ -38,16 +38,18 @@ uint8_t CPU::readMemory(uint32_t address) {
 	if (address >= 0x1f801000 && address <= 0x1f803000) {
 		address -= 0x1f801000;
 
-		if ((address >= 0x44 && address < 0x48) || (address >= 0x4A && address < 0x4E)) {
-			return rand() % 256;
-		}
 		if (address >= 0x50 && address < 0x60) {
 			if (address >= 0x54 && address < 0x58) {
 				return 0x5 >> ((address - 0x54) * 8);
 			}
 		}
+		if (address >= 0xdaa && address < 0xdad)
+		{
+			return rand();
+		}
+
 		IO(0x00, 0x24, memoryControl);
-		IO(0x40, 0x50, joypad);
+		IO(0x40, 0x50, controller);
 		IO(0x50, 0x60, serial);
 		IO(0x60, 0x64, memoryControl);
 		IO(0x70, 0x78, interrupt);
@@ -104,7 +106,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         if (address == 0x1023) printf("%c", data);  // Debug
 
         IO(0x00, 0x24, memoryControl);
-        IO(0x40, 0x50, joypad);
+        IO(0x40, 0x50, controller);
         IO(0x50, 0x60, serial);
         IO(0x60, 0x64, memoryControl);
         IO(0x70, 0x78, interrupt);
@@ -213,9 +215,7 @@ bool CPU::executeInstructions(int count) {
 void CPU::checkForInterrupts() {
 	using namespace mips::cop0;
 
-	if ((cop0.cause.interruptPending & 4) &&
-		cop0.status.interruptEnable &&
-		(cop0.status.interruptMask & 4)) {
+	if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
 		cop0.cause.exception = CAUSE::Exception::interrupt;
 		cop0.cause.interruptPending = 4;
 
