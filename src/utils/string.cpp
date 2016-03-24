@@ -1,6 +1,7 @@
 #include "string.h"
 #include <memory>
 #include <cstdarg>
+#include <cstdlib>
 #include <cstring>
 
 // http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf

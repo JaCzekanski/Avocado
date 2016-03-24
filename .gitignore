@@ -41,3 +41,5 @@ install_manifest.txt
 # Visual Studio Profiler
 *.psess
 *.vsp
+
+*.make

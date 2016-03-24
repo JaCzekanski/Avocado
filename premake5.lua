@@ -24,7 +24,13 @@ project "Avocado"
 		"externals/imgui/*.cpp",
 		"externals/imgui/examples/sdl_opengl_example/imgui_impl_sdl.cpp"
 	}
-	buildoptions { "-std=c++1y", "-Wno-write-strings", "-fno-operator-names" }
+	buildoptions { 
+			"-stdlib=libc++",
+			"-std=c++11",
+			"-Wno-write-strings",
+			"-fno-operator-names",
+			"-fno-exceptions"
+	}
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }
