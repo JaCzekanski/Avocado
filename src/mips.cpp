@@ -3,9 +3,10 @@
 #include <cstdio>
 #include <string>
 #include <deque>
+#include "psxExe.h"
+#include "utils/file.h"
 
 extern bool disassemblyEnabled;
-extern bool memoryAccessLogging;
 extern char *_mnemonic;
 extern std::string _disasm;
 
@@ -37,16 +38,18 @@ uint8_t CPU::readMemory(uint32_t address) {
 	if (address >= 0x1f801000 && address <= 0x1f803000) {
 		address -= 0x1f801000;
 
-		if ((address >= 0x44 && address < 0x48) || (address >= 0x4A && address < 0x4E)) {
-			return rand() % 256;
-		}
 		if (address >= 0x50 && address < 0x60) {
 			if (address >= 0x54 && address < 0x58) {
 				return 0x5 >> ((address - 0x54) * 8);
 			}
 		}
+		if (address >= 0xdaa && address < 0xdad)
+		{
+			return rand();
+		}
+
 		IO(0x00, 0x24, memoryControl);
-		IO(0x40, 0x50, joypad);
+		IO(0x40, 0x50, controller);
 		IO(0x50, 0x60, serial);
 		IO(0x60, 0x64, memoryControl);
 		IO(0x70, 0x78, interrupt);
@@ -63,7 +66,6 @@ uint8_t CPU::readMemory(uint32_t address) {
             return expansion2->read(address);
         }
         printf("R Unhandled IO at 0x%08x\n", address);
-        return io[address & 0x1fff];
     }
 #undef IO
 
@@ -82,12 +84,14 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) {
-        if (cop0.status.isolateCache == device::Bit::cleared) ram[address & 0x1FFFFF] = data;
+        if (!cop0.status.isolateCache) ram[address & 0x1FFFFF] = data;
         return;
-    } else if (address >= 0x1f000000 && address < 0x1f010000) {
+    }
+	if (address >= 0x1f000000 && address < 0x1f010000) {
         expansion[address - 0x1f000000] = data;
         return;
-    } else if (address >= 0x1f800000 && address < 0x1f800400) {
+    }
+	if (address >= 0x1f800000 && address < 0x1f800400) {
         scratchpad[address - 0x1f800000] = data;
         return;
     }
@@ -102,7 +106,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         if (address == 0x1023) printf("%c", data);  // Debug
 
         IO(0x00, 0x24, memoryControl);
-        IO(0x40, 0x50, joypad);
+        IO(0x40, 0x50, controller);
         IO(0x50, 0x60, serial);
         IO(0x60, 0x64, memoryControl);
         IO(0x70, 0x78, interrupt);
@@ -166,9 +170,9 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
 }
 
 bool CPU::executeInstructions(int count) {
-    extern bool printStackTrace;
-    bool biosLog;
     mipsInstructions::Opcode _opcode;
+
+	checkForInterrupts();
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
         _opcode.opcode = readMemory32(PC);
@@ -206,4 +210,56 @@ bool CPU::executeInstructions(int count) {
     }
     return true;
 }
+
+
+void CPU::checkForInterrupts() {
+	using namespace mips::cop0;
+
+	if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
+		cop0.cause.exception = CAUSE::Exception::interrupt;
+		cop0.cause.interruptPending = 4;
+
+		if (shouldJump) {
+			cop0.cause.isInDelaySlot = true;
+			cop0.epc = PC - 4;  // EPC - return address from trap
+		}
+		else {
+			cop0.epc = PC;  // EPC - return address from trap
+		}
+
+		cop0.status.oldInterruptEnable = cop0.status.previousInterruptEnable;
+		cop0.status.oldMode = cop0.status.previousMode;
+
+		cop0.status.previousInterruptEnable = cop0.status.interruptEnable;
+		cop0.status.previousMode = cop0.status.mode;
+
+		cop0.status.interruptEnable = false;
+		cop0.status.mode = STATUS::Mode::kernel;
+
+		if (cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
+			PC = 0xbfc00180;
+		else
+			PC = 0x80000080;
+
+		printf("-%s\n", interrupt->getStatus().c_str());
+	}
+}
+
+bool CPU::loadExeFile(std::string exePath)
+{
+	auto _exe = getFileContents(exePath);
+	PsxExe exe;
+	if (_exe.empty()) return false;
+
+	memcpy(&exe, &_exe[0], sizeof(exe));
+
+	for (size_t i = 0x800; i < _exe.size(); i++) {
+		writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
+	}
+
+	PC = exe.pc0;
+	shouldJump = false;
+	return false;
+}
+
 }

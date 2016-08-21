@@ -7,6 +7,7 @@
 #include "device/interrupt.h"
 #include "device/timer.h"
 #include "device/dummy.h"
+#include "device/controller.h"
 
 namespace mips {
 	using namespace device;
@@ -57,10 +58,12 @@ struct CPU {
         lo = 0;
 
         memoryControl = new Dummy("MemCtrl", 0x1f801000);
-        joypad = new Dummy("Joypad", 0x1f801040, false);
+		controller = new controller::Controller();
         serial = new Dummy("Serial", 0x1f801050, false);
+
         interrupt = new interrupt::Interrupt();
 		interrupt->setCPU(this);
+
         dma = new dma::DMA();
         dma->setCPU(this);
 
@@ -82,19 +85,18 @@ struct CPU {
     uint8_t bios[512 * 1024];
     uint8_t ram[2 * 1024 * 1024];
     uint8_t scratchpad[1024];
-    uint8_t io[8 * 1024];
     uint8_t expansion[8192 * 1024];
 
     // Devices
    public:
     interrupt::Interrupt *interrupt = nullptr;
+	controller::Controller *controller = nullptr;
 	timer::Timer *timer0 = nullptr;
 	timer::Timer *timer1 = nullptr;
 	timer::Timer *timer2 = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
-    Dummy *joypad = nullptr;
     Dummy *serial = nullptr;
     dma::DMA *dma = nullptr;
     cdrom::CDROM *cdrom = nullptr;
@@ -105,6 +107,8 @@ struct CPU {
 
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
+
+	void checkForInterrupts();
 
    public:
     void setGPU(gpu::GPU *gpu) {
@@ -120,5 +124,11 @@ struct CPU {
     void writeMemory32(uint32_t address, uint32_t data);
 
     bool executeInstructions(int count);
+
+	// Helpers
+	bool biosLog = false;
+	bool printStackTrace = false;
+	bool memoryAccessLogging = false;
+	bool loadExeFile(std::string exePath);
 };
 };

@@ -1,8 +1,6 @@
 #include "gpu.h"
 #include <cstdio>
 #include <SDL.h>
-#include "../utils/file.h"
-#include <cmath>
 
 namespace device {
 namespace gpu {
@@ -36,7 +34,7 @@ void swap(int &a, int &b) {
 }
 
 inline int distance(int x1, int y1, int x2, int y2) {
-    return (int)sqrtf((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+    return (int)sqrtf((float)((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)));
 }
 
 void GPU::drawPolygon(int x[3], int y[3], int c[3]) {
@@ -83,13 +81,13 @@ void GPU::drawPolygon(int x[3], int y[3], int c[3]) {
                 int d1 = distance(x1, y1, x, y);
                 int d2 = distance(x2, y2, x, y);
                 int d3 = distance(x3, y3, x, y);
-                float ds = (d1 + d2 + d3) / 3;
+                float ds = (float)(d1 + d2 + d3) / 3;
 
-                int r = ((d1 / ds * r0) + (d2 / ds * r1) + (d3 / ds * r2)) / 3;
+                int r = (int)((d1 / ds * r0) + (d2 / ds * r1) + (d3 / ds * r2)) / 3;
 
-                int g = ((d1 / ds * g0) + (d2 / ds * g1) + (d3 / ds * g2)) / 3;
+                int g = (int)((d1 / ds * g0) + (d2 / ds * g1) + (d3 / ds * g2)) / 3;
 
-                int b = ((d1 / ds * b0) + (d2 / ds * b1) + (d3 / ds * b2)) / 3;
+                int b = (int)((d1 / ds * b0) + (d2 / ds * b1) + (d3 / ds * b2)) / 3;
 
                 colorBuffer[x] = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
             }
@@ -108,13 +106,19 @@ uint32_t to15bit(uint32_t color) {
 
 uint32_t to24bit(uint16_t color) {
     uint32_t newColor = 0;
+	// 00 RR GG BB
 	//newColor |= (color & 0x7c00) >> 7;
 	//newColor |= (color & 0x3e0) << 6;
 	//newColor |= (color & 0x1f) << 13;
 
-	newColor |= (color & 0x7c00) << 9;
-	newColor |= (color & 0x3e0) << 6;
-	newColor |= (color & 0x1f) << 3;
+//	newColor |= (color & 0x7c00) << 9;
+//	newColor |= (color & 0x3e0) << 6;
+//	newColor |= (color & 0x1f) << 3;
+
+	// WTF?!
+	newColor |= (color & 0x7c00) << 1;
+	newColor |= (color & 0x3e0) >> 2;
+	newColor |= (color & 0x1f) << 19;
 
     return newColor;
 }
@@ -174,18 +178,18 @@ uint8_t GPU::read(uint32_t address) {
 }
 
 void GPU::write(uint32_t address, uint8_t data) {
-    if (address >= 0 && address < 4) {
-        tmpGP0 >>= 8;
-        tmpGP0 |= data << 24;
+    if (address < 4) {
+        tmpGP0 |= data << (whichGP0Byte * 8);
 
         if (++whichGP0Byte == 4) {
             writeGP0(tmpGP0);
             tmpGP0 = 0;
             whichGP0Byte = 0;
         }
-    } else if (address >= 4 && address < 8) {
-        tmpGP1 >>= 8;
-        tmpGP1 |= data << 24;
+		return;
+    } 
+	if (address < 8) {
+        tmpGP1 |= data << (whichGP1Byte*8);
 
         if (++whichGP1Byte == 4) {
             writeGP1(tmpGP1);
@@ -221,22 +225,22 @@ void GPU::writeGP0(uint32_t data) {
             argumentCount = 2;
             finished = false;
         } else if (command >= 0x20 && command < 0x40) {  // Polygons
-            bool istextureMapped = command & 4;          // True - texcoords, false - no texcoords
-            bool isFourVertex = command & 8;             // True - 4 vertex, false - 3 vertex
-            bool isShaded = command & 0x10;              // True - Gouroud shading, false - flat shading
+            bool istextureMapped = (command & 4) != 0;          // True - texcoords, false - no texcoords
+            bool isFourVertex = (command & 8) != 0;             // True - 4 vertex, false - 3 vertex
+            bool isShaded = (command & 0x10) != 0;              // True - Gouroud shading, false - flat shading
 
             // Because first color is in argument (cmd+arg, not args[])
             argumentCount
                 = (isFourVertex ? 4 : 3) * (istextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0);
             finished = false;
         } else if (command >= 0x40 && command < 0x60) {  // Lines
-            isManyArguments = command & 8;               // True - n points, false - 2 points (0x55555555 terminated)
-            bool isShaded = (command & 0x10) >> 4;       // True - Gouroud shading, false - flat shading
+            isManyArguments = (command & 8) != 0;               // True - n points, false - 2 points (0x55555555 terminated)
+            bool isShaded = ((command & 0x10) >> 4) != 0;       // True - Gouroud shading, false - flat shading
 
             argumentCount = (isManyArguments ? 0xff : (isShaded ? 2 : 1) * 2);
             finished = false;
         } else if (command >= 0x60 && command < 0x80) {  // Rectangles
-            bool istextureMapped = command & 4;          // True - texcoords, false - no texcoords
+            bool istextureMapped = (command & 4) != 0;          // True - texcoords, false - no texcoords
             int size = (command & 0x18) >> 3;            // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
 
             argumentCount = (size == 0 ? 2 : 1) + (istextureMapped ? 1 : 0);
@@ -296,18 +300,18 @@ void GPU::writeGP0(uint32_t data) {
 
         for (;;) {
             if (currY < 512 && currX < 1023) {
-                VRAM[currY][currX++] = color;
+                VRAM[currY][currX] = color;
             }
 
-            if (currX >= endX) {
+            if (currX++ >= endX) {
                 currX = startX;
                 if (++currY >= endY) break;
             }
         }
     } else if (command >= 0x20 && command < 0x40) {  // Polygons
-        bool isTextureMapped = command & 4;          // True - texcoords, false - no texcoords
-        bool isFourVertex = command & 8;             // True - 4 vertex, false - 3 vertex
-        bool isShaded = command & 0x10;              // True - Gouroud shading, false - flat shading
+        bool isTextureMapped = (command & 4) != 0;          // True - texcoords, false - no texcoords
+        bool isFourVertex = (command & 8) != 0;             // True - 4 vertex, false - 3 vertex
+        bool isShaded = (command & 0x10) != 0;              // True - Gouroud shading, false - flat shading
 
         int ptr = 0;
         int x[4], y[4];
@@ -328,7 +332,7 @@ void GPU::writeGP0(uint32_t data) {
         swap(color[0], color[1]);
         drawPolygon(x, y, color);
     } else if (command >= 0x40 && command < 0x60) {  // Lines
-        bool isShaded = command & 0x10;              // True - Gouroud shading, false - flat shading
+        bool isShaded = (command & 0x10) != 0;              // True - Gouroud shading, false - flat shading
 
         int ptr = 0;
         int sx, sy, sc;
@@ -354,7 +358,6 @@ void GPU::writeGP0(uint32_t data) {
             else
                 ec = command & 0xffffff;
 
-            // lineColor(renderer, sx, sy, ex, ey, colorMean(&ec, 1));
             int x[3] = {sx, sx, ex};
             int y[3] = {ex, ex, ey};
             int c[3] = {sc, sc, sc};
@@ -362,7 +365,7 @@ void GPU::writeGP0(uint32_t data) {
             drawPolygon(x, y, c);
         }
     } else if (command >= 0x60 && command < 0x80) {  // Rectangles
-        bool istextureMapped = command & 4;          // True - texcoords, false - no texcoords
+        bool istextureMapped = (command & 4) != 0;          // True - texcoords, false - no texcoords
         int size = (command & 0x18) >> 3;            // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
 
         int w = 1;
@@ -439,10 +442,7 @@ void GPU::writeGP0(uint32_t data) {
 
         int width = (arguments[2] & 0xffff);
         int height = (arguments[2] & 0xffff0000) >> 16;
-
-        int x = 0;
-        int y = 0;
-
+		
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (dstY + y >= 512 || dstX + x >= 1024 || srcY + y >= 512 || srcX + x >= 1024) {
@@ -460,8 +460,8 @@ void GPU::writeGP1(uint32_t data) {
 
     if (command == 0x00) {  // Reset GPU
 
-        irqAcknowledge = Bit::cleared;
-        displayDisable = Bit::set;
+        irqAcknowledge = false;
+        displayDisable = true;
         dmaDirection = 0;
         displayAreaStartX = displayAreaStartY = 0;
         displayRangeX1 = 0x200;
@@ -491,7 +491,7 @@ void GPU::writeGP1(uint32_t data) {
     } else if (command == 0x01) {  // Reset command buffer
 
     } else if (command == 0x02) {  // Acknowledge IRQ1
-        irqAcknowledge = Bit::cleared;
+        irqAcknowledge = false;
     } else if (command == 0x03) {  // Display Enable
         displayDisable = (Bit)(argument & 1);
     } else if (command == 0x04) {  // DMA Direction
@@ -538,13 +538,10 @@ void GPU::render() {
     SDL_UnlockTexture(texture);
 
     SDL_UnlockTexture(SCREEN);
-    SDL_RenderCopy(renderer, SCREEN, NULL, NULL);
-
-    SDL_Rect dst = {320, 0, 320, 240};
-    SDL_RenderCopy(renderer, texture, NULL, &dst);
-
-    SDL_RenderPresent(renderer);
-    SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
+	SDL_SetRenderTarget(renderer, output);
+	SDL_RenderCopy(renderer, SCREEN, NULL, NULL);
+	SDL_SetRenderTarget(renderer, NULL);
+	SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
 }
 }
 }

@@ -79,8 +79,6 @@ union GP1_08 {
 };
 
 class GPU : public Device {
-    SDL_Texture *texture;
-    SDL_Texture *SCREEN;
     void *pixels;
     int stride;
 
@@ -167,6 +165,9 @@ class GPU : public Device {
     void writeGP1(uint32_t data);
 
    public:
+	   SDL_Texture *texture;
+	   SDL_Texture *SCREEN;
+	   SDL_Texture *output;
     bool odd = false;
     void step();
     uint8_t read(uint32_t address);
@@ -177,6 +178,7 @@ class GPU : public Device {
         this->renderer = renderer;
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
         SCREEN = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 640, 480);
+		output = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 640, 480);
     }
 };
 }

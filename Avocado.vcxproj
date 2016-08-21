@@ -20,6 +20,7 @@
     <ClCompile Include="src\device\dummy.cpp" />
     <ClCompile Include="src\device\gpu.cpp" />
     <ClCompile Include="src\device\interrupt.cpp" />
+    <ClCompile Include="src\device\controller.cpp" />
     <ClCompile Include="src\device\timer.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mips.cpp" />
@@ -38,6 +39,7 @@
     <ClInclude Include="src\device\dummy.h" />
     <ClInclude Include="src\device\gpu.h" />
     <ClInclude Include="src\device\interrupt.h" />
+    <ClInclude Include="src\device\controller.h" />
     <ClInclude Include="src\device\timer.h" />
     <ClInclude Include="src\mips.h" />
     <ClInclude Include="src\mipsInstructions.h" />
@@ -76,13 +78,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
-    <IncludePath>externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
+    <IncludePath>.;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)build\$(Configuration)\</OutDir>
     <IntDir>build\$(Configuration)\</IntDir>
-    <IncludePath>externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
+    <IncludePath>.;externals\imgui;C:\SDK\SDL2_ttf\include;externals\SDL2\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\SDK\SDL2_ttf\lib\x86;externals\SDL2\VisualC\Win32\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

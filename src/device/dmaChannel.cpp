@@ -38,7 +38,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             // TODO: Check Memory Address Step
 
             int addr = baseAddress.address;
-            for (int i = 0; i < count.syncMode0.wordCount; i++) {
+            for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
                 if (i == count.syncMode0.wordCount - 1)
                     cpu->writeMemory32(addr, 0xffffff);
                 else

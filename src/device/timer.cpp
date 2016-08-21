@@ -57,26 +57,14 @@ namespace timer {
 
 
 		if (current == target) {
-			if (mode.irqWhenTarget == Bit::set) {
-				if (_cpu != nullptr) ((mips::CPU*)_cpu)->interrupt->IRQ(4 + which);
-			}
-
-			if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) {
-				current = 0;
-			}
-
-			mode.reachedTarget = Bit::set;
+			if (mode.irqWhenTarget) static_cast<mips::CPU*>(_cpu)->interrupt->IRQ(4 + which);
+			if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) current = 0;
+			mode.reachedTarget = true;
 		}
-
 		else if (current == 0xffff) {
-			if (mode.irqWhenFFFF == Bit::set) {
-				if (_cpu != nullptr) ((mips::CPU*)_cpu)->interrupt->IRQ(4 + which);
-			}
-			if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) {
-				current = 0;
-			}
-
-			mode.reachedFFFF = Bit::set;
+			if (mode.irqWhenFFFF) static_cast<mips::CPU*>(_cpu)->interrupt->IRQ(4 + which);
+			if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) current = 0;
+			mode.reachedFFFF = true;
 		}
 	}
 	uint8_t Timer::read(uint32_t address)
@@ -96,15 +84,14 @@ namespace timer {
 		if (address < 8) {
 			mode._byte[address - 4] = data;
 			if (address - 4 == 1) {
-				mode.reachedFFFF = Bit::cleared;
-				mode.reachedTarget = Bit::cleared;
+				mode.reachedFFFF = false;
+				mode.reachedTarget = false;
 			}
 			return;
 		}
 		if (address < 12) {
 			target &= (0xff) << ((address-8) * 8);
 			target |= data << ((address-8) * 8);
-			return;
 		}
 	}
 }
