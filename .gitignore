@@ -43,3 +43,6 @@ install_manifest.txt
 *.vsp
 
 *.make
+*.opendb
+*.db
+*.ttf

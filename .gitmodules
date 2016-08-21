@@ -5,3 +5,6 @@
 [submodule "externals/imgui"]
 	path = externals/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "externals/SDL_net"]
+	path = externals/SDL_net
+	url = https://github.com/JaCzekanski/SDL_net.git
