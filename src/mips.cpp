@@ -17,7 +17,6 @@ const char *regNames[]
     = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
        "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
-
 uint8_t CPU::readMemory(uint32_t address) {
     //if (address >= 0xfffe0130 && address < 0xfffe0134) {
     //    printf("R Unhandled memory control\n");
@@ -31,6 +30,7 @@ uint8_t CPU::readMemory(uint32_t address) {
     }
     if (address >= 0x1f800000 && address < 0x1f800400) return scratchpad[address - 0x1f800000];
 
+	if (address >= 0x1fc00000 && address < 0x1fc80000) return bios[address - 0x1fc00000];
 #define IO(begin, end, periph) \
     if (address >= (begin) && address < (end)) return periph->read(address - (begin))
 
@@ -69,7 +69,6 @@ uint8_t CPU::readMemory(uint32_t address) {
     }
 #undef IO
 
-    if (address >= 0x1fc00000 && address < 0x1fc80000) return bios[address - 0x1fc00000];
 
     //printf("R Unhandled address at 0x%08x\n", address);
     return 0;

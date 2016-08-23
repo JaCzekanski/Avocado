@@ -434,7 +434,7 @@ void sltu(CPU *cpu, Opcode i) {
 }
 
 void branch(CPU *cpu, Opcode i) {
-    switch (i.rt) {
+    switch (i.rt & 0x11) {
         case 0:
             // Branch On Less Than Zero
             // BLTZ rs, offset
@@ -458,7 +458,7 @@ void branch(CPU *cpu, Opcode i) {
                 cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
             }
             break;
-
+			
         case 16:
             // Branch On Less Than Zero And Link
             // bltzal rs, offset
@@ -551,7 +551,8 @@ void bne(CPU *cpu, Opcode i) {
 // ADDI rt, rs, imm
 void addi(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rt, i.rs, i.offset);
-    cpu->reg[i.rt] = (int32_t)cpu->reg[i.rs] + i.offset;
+	// TODO: check and exception
+    cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 }
 
 // Add Immediate Unsigned Word
