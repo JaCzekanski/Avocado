@@ -11,6 +11,7 @@ project "Avocado"
 			".", 
 			"src", 
 			"externals/imgui",
+			"externals/SDL_net",
 			"/usr/include/SDL2"
 		}
 	libdirs { os.findlib("SDL2") }
@@ -19,6 +20,7 @@ project "Avocado"
 	}
 
 	files { 
+		"externals/SDL_net/SDLnet*.c",
 		"src/**.h", 
 		"src/**.cpp"
 	}
@@ -32,7 +34,12 @@ project "Avocado"
 		optimize "Full"
 
     configuration { "windows" }
-        links { "OpenGL32" }
+		defines { "WIN32" }
+        links { 
+        	"OpenGL32",
+        	"ws2_32",
+        	"Iphlpapi"
+        }
 		defines {"_CRT_SECURE_NO_WARNINGS"}
 
 	configuration { "linux", "gmake" }
