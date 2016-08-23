@@ -14,9 +14,9 @@ private:
 	static const int BUFFER_SIZE = 2048;
 
 	IPaddress ip;
-	TCPsocket listener;
-	TCPsocket client;
-	SDLNet_SocketSet socketSet;
+	TCPsocket listener = nullptr;
+	TCPsocket client = nullptr;
+	SDLNet_SocketSet socketSet = nullptr;
 
 	// Communication
 	PacketState state = PacketState::waitingForStart;
