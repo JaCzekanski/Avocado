@@ -45,11 +45,13 @@ project "Avocado"
 	configuration { "linux", "gmake" }
 		toolset "clang"
         links { "GL" }
-		buildoptions { 
-			"-stdlib=libc++",
-			"-std=c++14",
-			"-Wno-write-strings",
-			"-fno-operator-names",
-			"-fno-exceptions",
-			"-Wall"
-		}
+		
+		filter {"language:C++"}
+			buildoptions { 
+				"-stdlib=libc++",
+				"-std=c++14",
+				"-Wno-write-strings",
+				"-fno-operator-names",
+				"-fno-exceptions",
+				"-Wall"
+			}
