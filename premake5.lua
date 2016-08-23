@@ -5,6 +5,7 @@ project "Avocado"
 	kind "ConsoleApp"
 	language "c++"
 	targetdir "build/%{cfg.buildcfg}"
+	objdir "build/obj/%{cfg.buildcfg}"
 	
 	includedirs { 
 			".", 
@@ -14,29 +15,34 @@ project "Avocado"
 		}
 	libdirs { os.findlib("SDL2") }
 	links { 
-			"SDL2",
-			"GL"
+			"SDL2"
 	}
 
 	files { 
 		"src/**.h", 
-		"src/**.cpp", 
-		"externals/imgui/*.cpp",
-		"externals/imgui/examples/sdl_opengl_example/imgui_impl_sdl.cpp"
-	}
-	buildoptions { 
-			"-stdlib=libc++",
-			"-std=c++11",
-			"-Wno-write-strings",
-			"-fno-operator-names",
-			"-fno-exceptions"
+		"src/**.cpp"
 	}
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }
-		flags { "Symbols" }	
+		flags { "Symbols" }
 	
 	filter "configurations:Release"
 		defines { "NDEBUG" }
 		optimize "Full"
-		
+
+    configuration { "windows" }
+        links { "OpenGL32" }
+		defines {"_CRT_SECURE_NO_WARNINGS"}
+
+	configuration { "linux", "gmake" }
+		toolset "clang"
+        links { "GL" }
+		buildoptions { 
+			"-stdlib=libc++",
+			"-std=c++14",
+			"-Wno-write-strings",
+			"-fno-operator-names",
+			"-fno-exceptions",
+			"-Wall"
+		}

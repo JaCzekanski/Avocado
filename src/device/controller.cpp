@@ -45,14 +45,14 @@ namespace controller {
 			return rand();
 		}
 		if (address >= 8 && address < 10) { // MODE
-			__debugbreak();
+//			__debugbreak();
 		}
 		if (address >= 10 && address < 12) { // CTRL
 //			__debugbreak();
 			return rand();
 		}
 		if (address >= 14 && address < 16) { // BAUD
-			__debugbreak();
+//			__debugbreak();
 		}
 		return 0;
 	}

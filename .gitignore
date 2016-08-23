@@ -46,3 +46,8 @@ install_manifest.txt
 *.opendb
 *.db
 *.ttf
+
+
+*.sln
+*.vcxproj
+*.filters
