@@ -70,8 +70,8 @@ namespace timer {
 	uint8_t Timer::read(uint32_t address)
 	{
 		if (address < 4) return current >> (address * 8);
-		if (address < 8) return mode._byte[address];
-		if (address < 12) return target >> ((address - 8) * 8);
+		if (address >= 4 && address < 8) return mode._byte[address];
+		if (address >= 8 && address < 12) return target >> ((address - 8) * 8);
 		return 0;
 	}
 	void Timer::write(uint32_t address, uint8_t data)
@@ -81,7 +81,7 @@ namespace timer {
 			current |= data << (address * 8);
 			return;
 		}
-		if (address < 8) {
+		if (address >= 4 && address < 8) {
 			mode._byte[address - 4] = data;
 			if (address - 4 == 1) {
 				mode.reachedFFFF = false;
@@ -89,7 +89,7 @@ namespace timer {
 			}
 			return;
 		}
-		if (address < 12) {
+		if (address >= 8 && address < 12) {
 			target &= (0xff) << ((address-8) * 8);
 			target |= data << ((address-8) * 8);
 		}
