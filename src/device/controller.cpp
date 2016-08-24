@@ -32,49 +32,49 @@ namespace controller {
 
 	uint8_t Controller::read(uint32_t address)
 	{
-		if (address < 4 && !fifo.empty()) { // RX
+		if (address == 0 && !fifo.empty()) { // RX
 			uint8_t value =  fifo.front();
 			fifo.pop_front();
 			return value;
 		}
-		if (address >= 4 && address < 8) { // STAT
-//			if (address == 4) return 
+		if (address == 4) { // STAT
+			return rand();
 //				(1 << 0) |
 //				((!fifo.empty()) << 1) |
 //				(1 << 2);
-			return rand();
 		}
 		if (address >= 8 && address < 10) { // MODE
-//			__debugbreak();
+			return mode >> ((address - 8) * 8);
 		}
 		if (address >= 10 && address < 12) { // CTRL
-//			__debugbreak();
-			return rand();
+			return control >> ((address - 10) * 8);
 		}
 		if (address >= 14 && address < 16) { // BAUD
-//			__debugbreak();
+			return baud >> ((address - 14) * 8);
 		}
 		return 0;
 	}
 
 	void Controller::write(uint32_t address, uint8_t data)
 	{
-		if (address < 4) { // TX
-			if (address == 0) {
-				handleByte(data);
-			}
+		if (address == 0) { // TX
+			handleByte(data);
 			return;
 		}
 
-		if (address >= 8 && address < 12) { // MODE
+		if (address >= 8 && address < 10) { // MODE
+			mode &= 0xff << (address - 8);
+			mode |= data << (address - 8);
 			return;
 		}
 		if (address >= 10 && address < 12) { // CTRL
-			control &= 0xff << (address - 12);
-			control |= data << (address - 12);
+			control &= 0xff << (address - 10);
+			control |= data << (address - 10);
 			return;
 		}
 		if (address >= 14 && address < 16) { // BAUD
+			baud &= 0xff << (address - 14);
+			baud |= data << (address - 14);
 			return;
 		}
 	}

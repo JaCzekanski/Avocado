@@ -179,6 +179,9 @@ class GPU : public Device {
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
         SCREEN = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 640, 480);
 		output = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 640, 480);
+
+
+		SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
     }
 };
 }

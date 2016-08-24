@@ -48,7 +48,7 @@ struct PrimaryInstruction {
     char *mnemnic;
 };
 
-void exception(mips::CPU *cpu);
+void exception(mips::CPU *cpu, mips::cop0::CAUSE::Exception cause);
 
 void dummy(mips::CPU *cpu, Opcode i);
 void invalid(mips::CPU *cpu, Opcode i);

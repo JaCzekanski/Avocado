@@ -37,7 +37,9 @@ class Controller : public Device {
 	void *_cpu = nullptr;
 	DigitalController state;
 
+	uint16_t mode;
 	uint16_t control;
+	uint16_t baud;
 
 	void handleByte(uint8_t byte);
 	std::deque<uint8_t> fifo;

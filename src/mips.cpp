@@ -217,34 +217,8 @@ bool CPU::executeInstructions(int count) {
 
 
 void CPU::checkForInterrupts() {
-	using namespace mips::cop0;
-
 	if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
-		cop0.cause.exception = CAUSE::Exception::interrupt;
-		cop0.cause.interruptPending = 4;
-
-		if (shouldJump) {
-			cop0.cause.isInDelaySlot = true;
-			cop0.epc = PC - 4;  // EPC - return address from trap
-		}
-		else {
-			cop0.epc = PC;  // EPC - return address from trap
-		}
-
-		cop0.status.oldInterruptEnable = cop0.status.previousInterruptEnable;
-		cop0.status.oldMode = cop0.status.previousMode;
-
-		cop0.status.previousInterruptEnable = cop0.status.interruptEnable;
-		cop0.status.previousMode = cop0.status.mode;
-
-		cop0.status.interruptEnable = false;
-		cop0.status.mode = STATUS::Mode::kernel;
-
-		if (cop0.status.bootExceptionVectors == STATUS::BootExceptionVectors::rom)
-			PC = 0xbfc00180;
-		else
-			PC = 0x80000080;
-
+		mipsInstructions::exception(this, cop0::CAUSE::Exception::interrupt);
 		printf("-%s\n", interrupt->getStatus().c_str());
 	}
 }
@@ -268,6 +242,7 @@ bool CPU::loadExeFile(std::string exePath)
 	for (int i = 0; i < 32; i++) reg[i] = 0;
 	hi = 0;
 	lo = 0;
+	reg[29] = exe.s_addr;
 	return false;
 }
 
