@@ -195,9 +195,14 @@ bool CPU::executeInstructions(int count) {
         }
         op.instruction(this, _opcode);
 
-        if (disassemblyEnabled) {
-            printf("   0x%08x  %08x:    %s %s\n", PC, _opcode.opcode, _mnemonic, _disasm.c_str());
-        }
+       if (disassemblyEnabled) {
+           printf("   0x%08x  %08x:    %s %s\n", PC, _opcode.opcode, _mnemonic, _disasm.c_str());
+       }
+
+		if (exception) {
+			exception = false;
+			return true;
+		}
 
         if (state != State::run) return false;
         if (isJumpCycle) {
@@ -258,6 +263,11 @@ bool CPU::loadExeFile(std::string exePath)
 
 	PC = exe.pc0;
 	shouldJump = false;
+	jumpPC = 0;
+
+	for (int i = 0; i < 32; i++) reg[i] = 0;
+	hi = 0;
+	lo = 0;
 	return false;
 }
 

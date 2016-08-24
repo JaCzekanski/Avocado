@@ -57,6 +57,7 @@ struct CPU {
     uint32_t reg[32];
     cop0::COP0 cop0;
     uint32_t hi, lo;
+	bool exception;
     CPU() {
         PC = 0xBFC00000;
         jumpPC = 0;
@@ -64,6 +65,7 @@ struct CPU {
         for (int i = 0; i < 32; i++) reg[i] = 0;
         hi = 0;
         lo = 0;
+		exception = false;
 
         memoryControl = new Dummy("MemCtrl", 0x1f801000);
 		controller = new controller::Controller();

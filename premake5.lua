@@ -33,25 +33,23 @@ project "Avocado"
 		defines { "NDEBUG" }
 		optimize "Full"
 
-    configuration { "windows" }
+	configuration { "windows" }
 		defines { "WIN32" }
-        links { 
-        	"OpenGL32",
-        	"ws2_32",
-        	"Iphlpapi"
-        }
+		links { 
+			"OpenGL32",
+			"ws2_32",
+			"Iphlpapi"
+		}
 		defines {"_CRT_SECURE_NO_WARNINGS"}
 
 	configuration { "linux", "gmake" }
 		toolset "clang"
-        links { "GL" }
-		
-		filter {"language:C++"}
-			buildoptions { 
-				"-stdlib=libc++",
-				"-std=c++14",
-				"-Wno-write-strings",
-				"-fno-operator-names",
-				"-fno-exceptions",
-				"-Wall"
-			}
+		links { "GL" }
+		buildoptions { 
+			"-stdlib=libc++",
+			"-std=c++14",
+			"-Wno-write-strings",
+			"-fno-operator-names",
+			"-fno-exceptions",
+			"-Wall"
+		}
