@@ -37,35 +37,51 @@ inline int distance(int x1, int y1, int x2, int y2) {
     return (int)sqrtf((float)((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)));
 }
 
-void GPU::drawPolygon(int x[3], int y[3], int c[3], int t[3]) {
+void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex, bool textured) {
 	int baseX = 0;
 	int baseY = 0;
 
-	if (t != nullptr)
-	{
-		// TODO: struct
-		baseX = (t[0] & 0x003f0000) >> 16;
-		baseY = (t[0] & 0xffc00000) >> 22;
+	int clutX = 0;
+	int clutY = 0;
 
-		baseX *= (t[1] & 0x0f); // N * 64
-		baseY *= (t[1] & 0x10) >> 4; // N* 256
+	if (textured)
+	{
+		// t[0] ClutYyXx
+		// t[1] PageYyXx
+		// t[2] 0000YyXx
+		// t[3] 0000YyXx
+
+		// TODO: struct
+		clutX = ((t[0] & 0x003f0000) >> 16) * 16;
+		clutY = ((t[0] & 0xffc00000) >> 22);
+
+		baseX = ((t[1] & 0x0f0000) >> 16) * 64; // N * 64
+		baseY = ((t[1] & 0x100000) >> 20) * 256; // N* 256
 
 		int depth = (t[1] & 0x180) >> 7;
+		printf("x: %d y: %d depth: %d\n", baseX, baseY,  depth);
 	}
 
 
-#define texX(t) ((baseX + (t&0xff))/1024.f)
-#define texY(t) ((baseY + ((t&0xff00)>>8))/512.f)
+#define texX(x) ((!textured)?0:(baseX + (x&0xff)))
+#define texY(x) ((!textured)?0:(baseY + ((x&0xff00)>>8)))
 
-	for (int i = 0; i < 3; i++)
+	for (int i : {0, 1, 2})
 	{
 		int r = c[i] & 0xff;
 		int g = (c[i] >> 8) & 0xff;
 		int b = (c[i] >> 16) & 0xff;
-		if (t != nullptr) {
+		renderList.push_back({ x[i], y[i], r, g, b, texX(t[i]), texY(t[i]) });
+	}
+
+	if (isFourVertex)
+	{
+		for (int i : {1, 2, 3})
+		{
+			int r = c[i] & 0xff;
+			int g = (c[i] >> 8) & 0xff;
+			int b = (c[i] >> 16) & 0xff;
 			renderList.push_back({ x[i], y[i], r, g, b, texX(t[i]), texY(t[i]) });
-		} else {
-			renderList.push_back({ x[i], y[i], r, g, b, 0, 0 });
 		}
 	}
 
@@ -292,8 +308,8 @@ void GPU::writeGP0(uint32_t data) {
 
         int ptr = 0;
         int x[4], y[4];
-        int color[4];
-        int texcoord[4];
+        int color[4] = {0};
+        int texcoord[4] = { 0 };
         for (int i = 0; i < (isFourVertex ? 4 : 3); i++) {
             x[i] = (arguments[ptr] & 0xffff);
             y[i] = ((arguments[ptr++] >> 16) & 0xffff);
@@ -302,8 +318,7 @@ void GPU::writeGP0(uint32_t data) {
             if (isTextureMapped) texcoord[i] = arguments[ptr++];
             if (isShaded && i < (isFourVertex ? 4 : 3) - 1) color[i + 1] = arguments[ptr++];
         }
-        drawPolygon(x, y, color, texcoord);
-        if (isFourVertex) drawPolygon(x + 1, y + 1, color + 1, texcoord);
+        drawPolygon(x, y, color, texcoord, isFourVertex, isTextureMapped);
     } else if (command >= 0x40 && command < 0x60) {  // Lines
         bool isShaded = (command & 0x10) != 0;              // True - Gouroud shading, false - flat shading
 

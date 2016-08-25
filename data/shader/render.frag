@@ -11,6 +11,6 @@ void main()
 {
 	vec4 col = vec4(fragColor, 1.0);
 	//vec4 test = vec4(fragTexcoord, 1.0, 1.0);
-	//vec4 tex = vec4(texture(vram, fragTexcoord).rgb, 1.0);
-	outColor = col; //mix(col, tex, 0.5);
+	vec4 tex = vec4(texture(vram, fragTexcoord).rgb, 1.0);
+	outColor = mix(col, tex, 0.5);
 }

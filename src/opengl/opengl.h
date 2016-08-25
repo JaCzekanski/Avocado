@@ -15,10 +15,16 @@ namespace opengl
 	{
 		int position[2];
 		int color[3];
-		float texcoord[2];
+		int texcoord[2];
 	};
 
-	const int bufferSize = 1024 * 512;
+	struct BlitStruct
+	{
+		float pos[2];
+		float tex[2];
+	};
+
+	const int bufferSize = 1024 * 1024;
 	const int resWidth = 640;
 	const int resHeight = 480;
 

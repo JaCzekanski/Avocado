@@ -75,6 +75,29 @@ union GP1_08 {
     };
 
     GP1_08() : _reg(0) {}
+
+	int getHorizontalResoulution()
+    {
+		if (horizontalResolution2 == HorizontalResolution2::r386) return 368;
+		switch (horizontalResolution1)
+		{
+		case HorizontalResolution::r256:
+			return 256;
+		case HorizontalResolution::r320:
+			return 320;
+		case HorizontalResolution::r512:
+			return 512;
+		case HorizontalResolution::r640:
+			return 640;
+		}
+    }
+
+	int getVerticalResoulution()
+    {
+		if (verticalResolution == VerticalResolution::r240) return 240;
+		return 480;
+    }
+
 };
 
 class GPU : public Device {
@@ -141,9 +164,11 @@ class GPU : public Device {
     int dmaDirection = 0;
 
     // GP1(0x05)
+public:
     int displayAreaStartX = 0;
     int displayAreaStartY = 0;
 
+private:
     // GP1(0x06)
     int displayRangeX1 = 0;
     int displayRangeX2 = 0;
@@ -152,12 +177,14 @@ class GPU : public Device {
     int displayRangeY1 = 0;
     int displayRangeY2 = 0;
 
+public:
     GP1_08 gp1_08;
+private:
 
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-    void drawPolygon(int x[3], int y[3], int color[3], int tex[3] = nullptr);
+    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 

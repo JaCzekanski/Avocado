@@ -21,7 +21,7 @@ const int gpuFrequency = cpuFrequency * 11 / 7;
 
 
 SDL_Window *window;
-
+bool viewFullVram = false;
 
 int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -121,6 +121,7 @@ int main(int argc, char **argv) {
 			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
 			if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
 			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
+			if (event.key.keysym.sym == SDLK_q) viewFullVram = !viewFullVram;
 //			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
 			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
 

@@ -11,6 +11,6 @@ void main()
 {
 	vec2 pos = vec2(position.x / 1024.f, position.y/512.f);
 	fragColor = vec3(color.r / 255.f, color.g/255.f, color.b/255.f);
-	fragTexcoord = texcoord;
-	gl_Position = vec4(pos, 0.0, 1.0);
+	fragTexcoord = vec2(texcoord.x / 1024.f, texcoord.y / 512.f);
+	gl_Position = vec4(pos.x * 2.f - 1.f, pos.y * 2.f - 1.f, 0.0, 1.0);
 }
