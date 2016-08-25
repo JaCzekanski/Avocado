@@ -1,8 +1,7 @@
 #pragma once
 #include "device.h"
-#include <SDL.h>
-
-struct SDL_Renderer;
+#include <vector>
+#include <src/opengl/opengl.h>
 
 namespace device {
 namespace gpu {
@@ -82,7 +81,6 @@ class GPU : public Device {
     void *pixels;
     int stride;
 
-    uint16_t VRAM[512][1024];
     uint32_t fifo[16];
     uint32_t tmpGP0 = 0;
     uint32_t tmpGP1 = 0;
@@ -159,30 +157,20 @@ class GPU : public Device {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-    SDL_Renderer *renderer;
-    void drawPolygon(int x[3], int y[3], int color[3]);
+    void drawPolygon(int x[3], int y[3], int color[3], int tex[3] = nullptr);
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 
    public:
-	   SDL_Texture *texture;
-	   SDL_Texture *SCREEN;
-	   SDL_Texture *output;
     bool odd = false;
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    void render();
-    void setRenderer(SDL_Renderer *renderer) {
-        this->renderer = renderer;
-        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
-        SCREEN = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 640, 480);
-		output = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 640, 480);
+	std::vector<opengl::Vertex>& GPU::render();
 
-
-		SDL_LockTexture(SCREEN, NULL, &pixels, &stride);
-    }
+	std::vector<opengl::Vertex> renderList;
+	uint16_t VRAM[512][1024];
 };
 }
 }

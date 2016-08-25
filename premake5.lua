@@ -12,6 +12,7 @@ project "Avocado"
 			"src", 
 			"externals/imgui",
 			"externals/SDL_net",
+			"externals/glad/include",
 			"/usr/include/SDL2"
 		}
 	libdirs { os.findlib("SDL2") }
@@ -21,6 +22,7 @@ project "Avocado"
 
 	files { 
 		"externals/SDL_net/SDLnet*.c",
+		"externals/glad/src/glad.c",
 		"src/**.h", 
 		"src/**.cpp"
 	}

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string>
 #include <SDL.h>
+#include "opengl/opengl.h"
 #include "utils/file.h"
 #include "utils/string.h"
 #include "mips.h"
@@ -18,17 +19,9 @@ bool cpuRunning = true;
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
 
-void render(SDL_Renderer* renderer, device::gpu::GPU* gpu)
-{
-	gpu->render();
 
-	SDL_Rect dst = { 0, 0, 320, 240 };
-	SDL_RenderCopy(renderer, gpu->output, NULL, &dst);
+SDL_Window *window;
 
-	dst = { 320, 0, 320, 240 };
-	SDL_RenderCopy(renderer, gpu->texture, NULL, &dst);
-	SDL_RenderPresent(renderer);
-}
 
 int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -36,30 +29,44 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+	opengl::init();
+
 //	GdbStub gdbStub;
 //	if (!gdbStub.initialize()) {
 //		printf("Cannot initialize networking");
 //		return 1;
 //	}
 
-    SDL_Window *window;
-    SDL_Renderer *renderer;
 
-	window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth, opengl::resHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 	if (window == nullptr)
 	{
 		printf("Cannot create window\n");
 		return 1;
 	}
 
+	SDL_GLContext glContext = SDL_GL_CreateContext(window);
+	if (glContext == nullptr)
+	{
+		printf("Cannot initialize opengl\n");
+		return 1;
+	}
+	
+	if (!opengl::loadExtensions())
+	{
+		printf("Cannot initialize glad\n");
+		return 1;
+	}
+
+	if (!opengl::setup())
+	{
+		printf("Cannot setup graphics\n");
+		return 1;
+	}
+	
+
+
 	SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-	if (renderer == nullptr) {
-        printf("Cannot create renderer\n");
-        return 1;
-    }
-
 
     auto _bios = getFileContents("data/bios/SCPH1001.BIN");
     if (_bios.empty()) {
@@ -85,10 +92,6 @@ int main(int argc, char **argv) {
     int frames = 0;
 
 	bool emulatorRunning = true;
-
-    gpu->setRenderer(renderer);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
-    SDL_RenderClear(renderer);
 
     SDL_Event event;
 
@@ -185,7 +188,8 @@ int main(int argc, char **argv) {
                 std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames);
                 SDL_SetWindowTitle(window, title.c_str());
 
-				render(renderer, gpu);
+				opengl::render(gpu);
+				SDL_GL_SwapWindow(window);
             }
 			else if (gpuLine > 0x10) {
 				gpu->odd = gpuOdd;
@@ -193,6 +197,8 @@ int main(int argc, char **argv) {
         }
     }
 	//gdbStub.uninitialize();
+	SDL_GL_DeleteContext(glContext);
+	SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
 }
