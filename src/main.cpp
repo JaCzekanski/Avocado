@@ -19,7 +19,6 @@ bool cpuRunning = true;
 const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
 
-
 SDL_Window *window;
 bool viewFullVram = false;
 
@@ -29,60 +28,54 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-	opengl::init();
+    opengl::init();
 
-//	GdbStub gdbStub;
-//	if (!gdbStub.initialize()) {
-//		printf("Cannot initialize networking");
-//		return 1;
-//	}
+    //	GdbStub gdbStub;
+    //	if (!gdbStub.initialize()) {
+    //		printf("Cannot initialize networking");
+    //		return 1;
+    //	}
 
+    window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth,
+                              opengl::resHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    if (window == nullptr) {
+        printf("Cannot create window\n");
+        return 1;
+    }
 
-	window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth, opengl::resHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-	if (window == nullptr)
-	{
-		printf("Cannot create window\n");
-		return 1;
-	}
+    SDL_GLContext glContext = SDL_GL_CreateContext(window);
+    if (glContext == nullptr) {
+        printf("Cannot initialize opengl\n");
+        return 1;
+    }
 
-	SDL_GLContext glContext = SDL_GL_CreateContext(window);
-	if (glContext == nullptr)
-	{
-		printf("Cannot initialize opengl\n");
-		return 1;
-	}
-	
-	if (!opengl::loadExtensions())
-	{
-		printf("Cannot initialize glad\n");
-		return 1;
-	}
+    if (!opengl::loadExtensions()) {
+        printf("Cannot initialize glad\n");
+        return 1;
+    }
 
-	if (!opengl::setup())
-	{
-		printf("Cannot setup graphics\n");
-		return 1;
-	}
-	
+    if (!opengl::setup()) {
+        printf("Cannot setup graphics\n");
+        return 1;
+    }
 
+    SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
-	SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-
-    auto _bios = getFileContents("data/bios/SCPH1001.BIN");
+    auto _bios = getFileContents("data/bios/DTLH3000.BIN");
     if (_bios.empty()) {
         printf("Cannot open BIOS");
         return 1;
     }
     memcpy(cpu.bios, &_bios[0], _bios.size());
 
-	auto _exp = getFileContents("data/bios/expansion.rom");
-	if (!_exp.empty()) {
-		memcpy(cpu.expansion, &_exp[0], _exp.size());
-	}
+    auto _exp = getFileContents("data/bios/expansion.rom");
+    if (!_exp.empty()) {
+        memcpy(cpu.expansion, &_exp[0], _exp.size());
+    }
 
     device::gpu::GPU *gpu = new device::gpu::GPU();
     cpu.setGPU(gpu);
-	cpu.state = mips::CPU::State::run;
+    cpu.state = mips::CPU::State::run;
 
     int gpuLine = 0;
     int gpuDot = 0;
@@ -91,32 +84,33 @@ int main(int argc, char **argv) {
     int cycles = 0;
     int frames = 0;
 
-	bool emulatorRunning = true;
+    bool emulatorRunning = true;
 
     SDL_Event event;
 
-	device::controller::DigitalController buttons;
+    device::controller::DigitalController buttons;
 
     while (emulatorRunning) {
-		int pendingEvents = 0;
-		//if (!cpuRunning) SDL_WaitEvent(&event);
-		//else pendingEvents = SDL_PollEvent(&event);
-		pendingEvents = SDL_PollEvent(&event);
-        
-		if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) emulatorRunning = false;
+        int pendingEvents = 0;
+        // if (!cpuRunning) SDL_WaitEvent(&event);
+        // else pendingEvents = SDL_PollEvent(&event);
+        pendingEvents = SDL_PollEvent(&event);
+
+        if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE))
+            emulatorRunning = false;
         if (event.type == SDL_KEYDOWN) {
             if (event.key.keysym.sym == SDLK_SPACE) {
-				cpu.memoryAccessLogging = !cpu.memoryAccessLogging;
+                cpu.memoryAccessLogging = !cpu.memoryAccessLogging;
                 printf("MAL %d\n", cpu.memoryAccessLogging);
             }
             if (event.key.keysym.sym == SDLK_l) {
-				std::string exePath = "data/exe/";
-				char filename[128];
-				printf("\nEnter exe name: ");
-				scanf("%s", filename);
-				exePath += filename;
-				cpu.loadExeFile(exePath);
-			}
+                std::string exePath = "data/exe/";
+                char filename[128];
+                printf("\nEnter exe name: ");
+                scanf("%s", filename);
+                exePath += filename;
+                cpu.loadExeFile(exePath);
+            }
             if (event.key.keysym.sym == SDLK_b) cpu.biosLog = !cpu.biosLog;
 			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
 			if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
@@ -130,7 +124,7 @@ int main(int argc, char **argv) {
 			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
 			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
 			if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = true;
-            if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
+			if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
 			cpu.controller->setState(buttons);
         }
 		if (event.type == SDL_KEYUP) {
@@ -162,44 +156,44 @@ int main(int argc, char **argv) {
             printf("CPU Halted\n");
             cpuRunning = false;
         }
-		cycles += 7;
+        cycles += 7;
 
-		for (int i = 0; i < 11; i++) {
-			cpu.timer0->step();
-			cpu.timer1->step();
-			cpu.timer2->step();
+        for (int i = 0; i < 11; i++) {
+            cpu.timer0->step();
+            cpu.timer1->step();
+            cpu.timer2->step();
             gpuDot++;
 
-			if (gpuDot < 3412) continue;
+            if (gpuDot < 3412) continue;
 
             gpuDot = 0;
             gpuLine++;
-			if (gpuLine == 0x100) {
-				gpu->odd = false;
-				gpu->step();
-				cpu.interrupt->IRQ(0);
-				continue;
+            if (gpuLine == 0x100) {
+                gpu->odd = false;
+                gpu->step();
+                cpu.interrupt->IRQ(0);
+                continue;
             }
-			if (gpuLine >= 263) {
+            if (gpuLine >= 263) {
                 gpuLine = 0;
                 frames++;
                 gpuOdd = !gpuOdd;
                 gpu->step();
 
-                std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(), cpu.interrupt->getStatus().c_str(), frames);
+                std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(),
+                                                  cpu.interrupt->getStatus().c_str(), frames);
                 SDL_SetWindowTitle(window, title.c_str());
 
-				opengl::render(gpu);
-				SDL_GL_SwapWindow(window);
+                opengl::render(gpu);
+                SDL_GL_SwapWindow(window);
+            } else if (gpuLine > 0x10) {
+                gpu->odd = gpuOdd;
             }
-			else if (gpuLine > 0x10) {
-				gpu->odd = gpuOdd;
-			}
         }
     }
-	//gdbStub.uninitialize();
-	SDL_GL_DeleteContext(glContext);
-	SDL_DestroyWindow(window);
+    // gdbStub.uninitialize();
+    SDL_GL_DeleteContext(glContext);
+    SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
 }

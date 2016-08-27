@@ -76,32 +76,28 @@ union GP1_08 {
 
     GP1_08() : _reg(0) {}
 
-	int getHorizontalResoulution()
-    {
-		if (horizontalResolution2 == HorizontalResolution2::r386) return 368;
-		switch (horizontalResolution1)
-		{
-		case HorizontalResolution::r256:
-			return 256;
-		case HorizontalResolution::r320:
-			return 320;
-		case HorizontalResolution::r512:
-			return 512;
-		case HorizontalResolution::r640:
-			return 640;
-		}
+    int getHorizontalResoulution() {
+        if (horizontalResolution2 == HorizontalResolution2::r386) return 368;
+        switch (horizontalResolution1) {
+            case HorizontalResolution::r256:
+                return 256;
+            case HorizontalResolution::r320:
+                return 320;
+            case HorizontalResolution::r512:
+                return 512;
+            case HorizontalResolution::r640:
+                return 640;
+        }
     }
 
-	int getVerticalResoulution()
-    {
-		if (verticalResolution == VerticalResolution::r240) return 240;
-		return 480;
+    int getVerticalResoulution() {
+        if (verticalResolution == VerticalResolution::r240) return 240;
+        return 480;
     }
-
 };
 
 class GPU : public Device {
-    void *pixels;
+    void* pixels;
     int stride;
 
     uint32_t fifo[16];
@@ -164,11 +160,11 @@ class GPU : public Device {
     int dmaDirection = 0;
 
     // GP1(0x05)
-public:
+   public:
     int displayAreaStartX = 0;
     int displayAreaStartY = 0;
 
-private:
+   private:
     // GP1(0x06)
     int displayRangeX1 = 0;
     int displayRangeX2 = 0;
@@ -177,14 +173,15 @@ private:
     int displayRangeY1 = 0;
     int displayRangeY2 = 0;
 
-public:
+   public:
     GP1_08 gp1_08;
-private:
 
+   private:
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
+    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false,
+                     bool textured = false);
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 
@@ -194,10 +191,10 @@ private:
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-	std::vector<opengl::Vertex>& GPU::render();
+    std::vector<opengl::Vertex>& GPU::render();
 
-	std::vector<opengl::Vertex> renderList;
-	uint16_t VRAM[512][1024];
+    std::vector<opengl::Vertex> renderList;
+    uint16_t VRAM[512][1024];
 };
 }
 }

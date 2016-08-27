@@ -20,6 +20,8 @@ namespace opengl
 	GLuint blitVbo;
 
 	GLuint vramTex;
+	GLuint renderTex;
+
 	GLuint framebuffer;
 
 	void init()
@@ -31,7 +33,7 @@ namespace opengl
 		//SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		//SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-		//SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 	}
 
 	bool loadExtensions()
@@ -69,10 +71,16 @@ namespace opengl
 		glVertexAttribIPointer(renderShader->getAttrib("position"), 2, GL_UNSIGNED_INT, sizeof(Vertex), 0);
 		glVertexAttribIPointer(renderShader->getAttrib("color"), 3, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(2 * sizeof(int)));
 		glVertexAttribIPointer(renderShader->getAttrib("texcoord"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(5 * sizeof(int)));
+		glVertexAttribIPointer(renderShader->getAttrib("bitcount"), 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(7 * sizeof(int)));
+		glVertexAttribIPointer(renderShader->getAttrib("clut"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(8 * sizeof(int)));
+		glVertexAttribIPointer(renderShader->getAttrib("texpage"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(10 * sizeof(int)));
 
 		glEnableVertexAttribArray(renderShader->getAttrib("position"));
 		glEnableVertexAttribArray(renderShader->getAttrib("color"));
 		glEnableVertexAttribArray(renderShader->getAttrib("texcoord"));
+		glEnableVertexAttribArray(renderShader->getAttrib("bitcount"));
+		glEnableVertexAttribArray(renderShader->getAttrib("clut"));
+		glEnableVertexAttribArray(renderShader->getAttrib("texpage"));
 
 
 		glBindVertexArray(0);
@@ -126,8 +134,6 @@ namespace opengl
 	void createVramTexture()
 	{
 		glGenTextures(1, &vramTex);
-
-		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, vramTex);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
@@ -141,13 +147,28 @@ namespace opengl
 		glUniform1i(renderShader->getUniform("vram"), 0);
 
 		blitShader->use();
-		glUniform1i(blitShader->getUniform("vram"), 0);
+		glUniform1i(blitShader->getUniform("renderBuffer"), 0);
+	}
+
+	void createRenderTexture()
+	{
+		glGenTextures(1, &renderTex);
+		glBindTexture(GL_TEXTURE_2D, renderTex);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 
 		glGenFramebuffers(1, &framebuffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTex, 0);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	}
 
 	bool setup()
@@ -157,6 +178,8 @@ namespace opengl
 		createRenderBuffer();
 		createBlitBuffer();
 		createVramTexture();
+		createRenderTexture();
+
 
 		return true;
 	}
@@ -185,7 +208,7 @@ namespace opengl
 		glBindVertexArray(blitVao);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, vramTex);
+		glBindTexture(GL_TEXTURE_2D, renderTex);
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
@@ -206,6 +229,10 @@ namespace opengl
 		glBindTexture(GL_TEXTURE_2D, vramTex);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
 
+		// Update Render texture
+		glBindTexture(GL_TEXTURE_2D, renderTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
+
 		auto &renderList = gpu->render();
 
 		// Update renderlist
@@ -219,6 +246,10 @@ namespace opengl
 
 		glViewport(0, 0, resWidth, resHeight);
 		renderSecondStage();
+
+		// Read back rendered texture to VRAM
+		glBindTexture(GL_TEXTURE_2D, renderTex);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
 
 		renderList.clear();
 	}

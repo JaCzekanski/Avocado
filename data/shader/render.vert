@@ -1,16 +1,25 @@
-#version 330 
+#version 330 core
 
 in uvec2 position;
 in uvec3 color;
-in vec2 texcoord;
+in uvec2 texcoord;
+in uint bitcount;
+in uvec2 clut;
+in uvec2 texpage;
 
 out vec3 fragColor;
 out vec2 fragTexcoord;
+flat out uint fragBitcount;
+flat out uvec2 fragClut;
+flat out uvec2 fragTexpage;
 
 void main()
 {
 	vec2 pos = vec2(position.x / 1024.f, position.y/512.f);
 	fragColor = vec3(color.r / 255.f, color.g/255.f, color.b/255.f);
-	fragTexcoord = vec2(texcoord.x / 1024.f, texcoord.y / 512.f);
+	fragTexcoord = vec2(texcoord.x, texcoord.y);
+	fragBitcount = bitcount;
+	fragClut = clut;
+	fragTexpage = texpage;
 	gl_Position = vec4(pos.x * 2.f - 1.f, pos.y * 2.f - 1.f, 0.0, 1.0);
 }
