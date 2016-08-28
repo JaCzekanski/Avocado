@@ -9,8 +9,9 @@ flat in uvec2 fragTexpage;
 out vec4 outColor;
 
 uniform sampler2D vram;
-uniform float renderingPositionX;
-uniform float renderingPositionY;
+
+uniform uvec2 drawingAreaTopLeft;
+uniform uvec2 drawingAreaBottomRight;
 
 const float W = 1024.f;
 const float H = 512.f;
@@ -92,6 +93,12 @@ vec4 read16bit(vec2 coord)
 
 void main()
 {
+	uint x = uint(gl_FragCoord.x );
+	uint y = uint(gl_FragCoord.y );
+
+	if (x < drawingAreaTopLeft.x || x > drawingAreaBottomRight.x ||
+		y < drawingAreaTopLeft.y || y > drawingAreaBottomRight.y) discard;
+
 	vec4 color;
 	if (fragBitcount == 4U) color = clut4bit(fragTexcoord, fragClut);
 	else if (fragBitcount == 8U) color = clut8bit(fragTexcoord, fragClut);

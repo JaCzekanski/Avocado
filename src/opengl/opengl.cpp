@@ -167,7 +167,7 @@ bool setup() {
     return true;
 }
 
-void renderFirstStage(const std::vector<Vertex> &renderList, int offsetX, int offsetY) {
+void renderFirstStage(const std::vector<Vertex> &renderList, device::gpu::GPU *gpu) {
     // First stage - render calls to VRAM
     if (renderList.empty()) {
         return;
@@ -176,7 +176,9 @@ void renderFirstStage(const std::vector<Vertex> &renderList, int offsetX, int of
     glBindVertexArray(renderVao);
     glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
 
-    glUniform2i(renderShader->getUniform("drawingOffset"), offsetX, offsetY);
+    glUniform2i(renderShader->getUniform("drawingOffset"), gpu->drawingOffsetX, gpu->drawingOffsetY);
+    glUniform2ui(renderShader->getUniform("drawingAreaTopLeft"), gpu->drawingAreaX1, gpu->drawingAreaY1);
+    glUniform2ui(renderShader->getUniform("drawingAreaBottomRight"), gpu->drawingAreaX2, gpu->drawingAreaY2);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, vramTex);
@@ -225,7 +227,7 @@ void render(device::gpu::GPU *gpu) {
     }
 
     glViewport(0, 0, 1024, 512);
-    renderFirstStage(renderList, gpu->drawingOffsetX, gpu->drawingOffsetY);
+    renderFirstStage(renderList, gpu);
 
     glViewport(0, 0, resWidth, resHeight);
     renderSecondStage();

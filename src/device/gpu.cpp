@@ -143,7 +143,7 @@ uint8_t GPU::read(uint32_t address) {
     if (address < 4) {
         if (gpuReadMode == 0)
             return GPUREAD >> (address * 8);
-        else if (gpuReadMode == 1) {
+        if (gpuReadMode == 1) {
             static int write = 0;
             uint32_t word = 0;
             word |= VRAM[currY][currX];
@@ -160,7 +160,8 @@ uint8_t GPU::read(uint32_t address) {
                 }
             }
             return word >> (address * 8);
-        } else if (gpuReadMode == 2)
+        } 
+		if (gpuReadMode == 2)
             return GPUREAD >> (address * 8);
     }
     if (address >= 4 && address < 8) {

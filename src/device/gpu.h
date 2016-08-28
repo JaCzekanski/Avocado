@@ -134,6 +134,7 @@ class GPU : public Device {
     int textureWindowOffsetX = 0;
     int textureWindowOffsetY = 0;
 
+public:
     // GP0(0xe3)
     int drawingAreaX1 = 0;
     int drawingAreaY1 = 0;
@@ -142,7 +143,6 @@ class GPU : public Device {
     int drawingAreaX2 = 0;
     int drawingAreaY2 = 0;
 
-   public:
     // GP0(0xe5)
     int drawingOffsetX = 0;
     int drawingOffsetY = 0;
