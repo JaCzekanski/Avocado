@@ -13,9 +13,12 @@ flat out uint fragBitcount;
 flat out uvec2 fragClut;
 flat out uvec2 fragTexpage;
 
+
+uniform ivec2 drawingOffset;
+
 void main()
 {
-	vec2 pos = vec2(position.x / 1024.f, position.y/512.f);
+	vec2 pos = vec2((int(position.x) + drawingOffset.x) / 1024.f, (int(position.y) + drawingOffset.y) / 512.f);
 	fragColor = vec3(color.r / 255.f, color.g/255.f, color.b/255.f);
 	fragTexcoord = vec2(texcoord.x, texcoord.y);
 	fragBitcount = bitcount;

@@ -66,7 +66,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
         baseX = ((t[1] & 0x0f0000) >> 16) * 64;   // N * 64
         baseY = ((t[1] & 0x100000) >> 20) * 256;  // N* 256
 
-        int depth = (t[1] & 0x180) >> 7;
+        int depth = (t[1] & 0x1800000) >> 23;
         if (depth == 0) bitcount = 4;
         if (depth == 1) bitcount = 8;
         if (depth == 2) bitcount = 16;

@@ -9,6 +9,8 @@ flat in uvec2 fragTexpage;
 out vec4 outColor;
 
 uniform sampler2D vram;
+uniform float renderingPositionX;
+uniform float renderingPositionY;
 
 const float W = 1024.f;
 const float H = 512.f;
@@ -27,8 +29,9 @@ vec4 vramRead(int x, int y)
 	return texelFetch(vram, ivec2(x, y), 0);
 }
 
-vec4 clut4bit(vec2 coord, uvec2 clut)
+vec4 readClut(vec2 coord, uvec2 clut)
 {
+
 	int texX = int(coord.x / 4.0)&0xff;
 	int texY = int(coord.y) & 0xff;
 
@@ -39,13 +42,13 @@ vec4 clut4bit(vec2 coord, uvec2 clut)
 	uint index = internalToPsxColor(firstStage);
 
 	uint part = uint(mod(coord.x, 8.0));
-	uint which = index >> (part * 2u);
-	which = which & 3u;
+	uint which = index >> (part * (fragBitcount/2u));
+	which = which & (fragBitcount-1u);
 
 	return vramRead( int(clut.x + which), int(clut.y));
-}
 
-vec4 clut8bit(vec2 coord, uvec2 clut)
+}
+vec4 clut4bit(vec2 coord, uvec2 clut)
 {
 	int texX = int(coord.x / 4.0)&0xff;
 	int texY = int(coord.y) & 0xff;
@@ -59,6 +62,24 @@ vec4 clut8bit(vec2 coord, uvec2 clut)
 	uint part = uint(mod(coord.x, 4.0));
 	uint which = index >> (part * 4u);
 	which = which & 15u;
+
+	return vramRead( int(clut.x + which), int(clut.y));
+}
+
+vec4 clut8bit(vec2 coord, uvec2 clut)
+{
+	int texX = int(coord.x / 2.0)&0xff;
+	int texY = int(coord.y) & 0xff;
+
+	texX += int(fragTexpage.x);
+	texY += int(fragTexpage.y);
+
+	vec4 firstStage = vramRead(texX, texY);
+	uint index = internalToPsxColor(firstStage);
+
+	uint part = uint(mod(coord.x, 2.0));
+	uint which = index >> (part * 8u);
+	which = which & 0xffU;
 
 	return vramRead( int(clut.x + which), int(clut.y));
 }

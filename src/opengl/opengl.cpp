@@ -97,8 +97,8 @@ namespace opengl
 		*/
 		float sx = (float)screenX / 1024.f;
 		float sy = (float)screenY / 512.f;
-		float sw = (float)screenW / 1024.f;
-		float sh = (float)screenH / 512.f;;
+		float sw = sx + (float)screenW / 1024.f;
+		float sh = sy + (float)screenH / 512.f;;
 		return {
 			{ 0.f, 0.f, sx, sy },
 			{ 1.f, 0.f, sw, sy },
@@ -179,12 +179,11 @@ namespace opengl
 		createBlitBuffer();
 		createVramTexture();
 		createRenderTexture();
-
-
+		
 		return true;
 	}
 
-	void renderFirstStage(const std::vector<Vertex> &renderList)
+	void renderFirstStage(const std::vector<Vertex> &renderList, int offsetX, int offsetY)
 	{
 		// First stage - render calls to VRAM
 		if (renderList.empty()) {
@@ -193,6 +192,8 @@ namespace opengl
 		renderShader->use();
 		glBindVertexArray(renderVao);
 		glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
+
+		glUniform2i(renderShader->getUniform("drawingOffset"), offsetX, offsetY);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, vramTex);
@@ -242,7 +243,7 @@ namespace opengl
 		}
 
 		glViewport(0, 0, 1024, 512);
-		renderFirstStage(renderList);
+		renderFirstStage(renderList, gpu->drawingOffsetX, gpu->drawingOffsetY);
 
 		glViewport(0, 0, resWidth, resHeight);
 		renderSecondStage();
