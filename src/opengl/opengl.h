@@ -13,8 +13,8 @@ struct Vertex {
     int color[3];
     int texcoord[2];
     int bitcount;
-	int clut[2]; // clut position
-	int texpage[2]; // texture page position
+    int clut[2];     // clut position
+    int texpage[2];  // texture page position
 };
 
 struct BlitStruct {

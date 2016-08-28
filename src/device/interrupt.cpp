@@ -7,9 +7,9 @@ namespace interrupt {
 Interrupt::Interrupt() {}
 
 void Interrupt::step() {
-	// notify cop0
-	mips::CPU *cpu = (mips::CPU *)_cpu;
-	cpu->cop0.cause.interruptPending = interruptPending() ? 4 : 0;
+    // notify cop0
+    mips::CPU *cpu = (mips::CPU *)_cpu;
+    cpu->cop0.cause.interruptPending = interruptPending() ? 4 : 0;
 }
 
 uint8_t Interrupt::read(uint32_t address) {
@@ -24,7 +24,7 @@ void Interrupt::write(uint32_t address, uint8_t data) {
     }
     if (address >= 0x4 && address < 0x6) mask._byte[address - 4] = data;
 
-	step();
+    step();
 }
 }
 }

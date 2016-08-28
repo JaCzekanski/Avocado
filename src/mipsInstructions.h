@@ -23,9 +23,9 @@ union Opcode {
     // sh - 5bit shift amount
     // fun - 6bit function field
 
-	// Example:
-	// addu  rd,rs,rt
-	// rd = rs+rt
+    // Example:
+    // addu  rd,rs,rt
+    // rd = rs+rt
 
     struct {
         uint32_t fun : 6;

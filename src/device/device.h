@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 namespace device {
-	typedef uint32_t Bit;
+typedef uint32_t Bit;
 class Device {
    public:
     virtual ~Device(){};

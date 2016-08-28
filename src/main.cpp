@@ -112,47 +112,45 @@ int main(int argc, char **argv) {
                 cpu.loadExeFile(exePath);
             }
             if (event.key.keysym.sym == SDLK_b) cpu.biosLog = !cpu.biosLog;
-			if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
-			if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
-			if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
-			if (event.key.keysym.sym == SDLK_q) viewFullVram = !viewFullVram;
-//			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
-			if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
+            if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
+            if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
+            if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
+            if (event.key.keysym.sym == SDLK_q) viewFullVram = !viewFullVram;
+            //			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
+            if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
 
-			if (event.key.keysym.sym == SDLK_UP) buttons.up = true;
-			if (event.key.keysym.sym == SDLK_DOWN) buttons.down = true;
-			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
-			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
-			if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = true;
-			if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
-			cpu.controller->setState(buttons);
+            if (event.key.keysym.sym == SDLK_UP) buttons.up = true;
+            if (event.key.keysym.sym == SDLK_DOWN) buttons.down = true;
+            if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
+            if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
+            if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = true;
+            if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
+            cpu.controller->setState(buttons);
         }
-		if (event.type == SDL_KEYUP) {
-			if (event.key.keysym.sym == SDLK_UP) buttons.up = false;
-			if (event.key.keysym.sym == SDLK_DOWN) buttons.down = false;
-			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = false;
-			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = false;
-			if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = false;
-			if (event.key.keysym.sym == SDLK_KP_3) buttons.start = false;
-			cpu.controller->setState(buttons);
-		}
-		if (event.type == SDL_DROPFILE)
-		{
-			// TODO: SDL_free fails after few times
-			cpu.loadExeFile(event.drop.file);
-			SDL_free(event.drop.file);
-		}
-		//gdbStub.handle(cpu);
-		if (cpu.state != mips::CPU::State::run) SDL_Delay(10);
-		if (pendingEvents) continue;
+        if (event.type == SDL_KEYUP) {
+            if (event.key.keysym.sym == SDLK_UP) buttons.up = false;
+            if (event.key.keysym.sym == SDLK_DOWN) buttons.down = false;
+            if (event.key.keysym.sym == SDLK_LEFT) buttons.left = false;
+            if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = false;
+            if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = false;
+            if (event.key.keysym.sym == SDLK_KP_3) buttons.start = false;
+            cpu.controller->setState(buttons);
+        }
+        if (event.type == SDL_DROPFILE) {
+            // TODO: SDL_free fails after few times
+            cpu.loadExeFile(event.drop.file);
+            SDL_free(event.drop.file);
+        }
+        // gdbStub.handle(cpu);
+        if (cpu.state != mips::CPU::State::run) SDL_Delay(10);
+        if (pendingEvents) continue;
 
-		if (!cpuRunning) {
-			if (cpu.state == mips::CPU::State::run) cpuRunning = true;
-			continue;
-		}
+        if (!cpuRunning) {
+            if (cpu.state == mips::CPU::State::run) cpuRunning = true;
+            continue;
+        }
 
-
-		if (!cpu.executeInstructions(7)) {
+        if (!cpu.executeInstructions(7)) {
             printf("CPU Halted\n");
             cpuRunning = false;
         }

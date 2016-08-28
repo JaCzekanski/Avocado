@@ -15,7 +15,8 @@ extern char *_mnemonic;
 extern std::string _disasm;
 
 namespace mipsInstructions {
-PrimaryInstruction OpcodeTable[64] = {  // R type
+PrimaryInstruction OpcodeTable[64] = {
+    // R type
     {0, special, "special"},
     {1, branch, "branch"},
     {2, j, "j"},
@@ -86,7 +87,7 @@ PrimaryInstruction OpcodeTable[64] = {  // R type
     {60, invalid, "INVALID"},
     {61, invalid, "INVALID"},
     {62, invalid, "INVALID"},
-    { 63, invalid, "INVALID" },
+    {63, invalid, "INVALID"},
     //{63, breakpoint, "BREAKPOINT"}
 };
 
@@ -166,55 +167,50 @@ PrimaryInstruction SpecialTable[64] = {
 
 int part = 0;
 
-
-
-inline bool isOverflow(uint32_t result, uint32_t a, uint32_t b)
-{
+inline bool isOverflow(uint32_t result, uint32_t a, uint32_t b) {
 #define SIGN(x) ((x)&0x80000000)
-	return !(SIGN(a) ^ SIGN(b)) && (SIGN(result) ^ SIGN(a));
+    return !(SIGN(a) ^ SIGN(b)) && (SIGN(result) ^ SIGN(a));
 #undef SIGN
 }
 
-void exception(mips::CPU* cpu, cop0::CAUSE::Exception cause) {
-	cpu->cop0.cause.exception = cause;
+void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
+    cpu->cop0.cause.exception = cause;
 
-	if (cpu->shouldJump) {
-		cpu->cop0.cause.isInDelaySlot = true;
-		cpu->cop0.epc = cpu->PC - 4;  // EPC - return address from trap
-	} else {
-		cpu->cop0.epc = cpu->PC;
-	}
+    if (cpu->shouldJump) {
+        cpu->cop0.cause.isInDelaySlot = true;
+        cpu->cop0.epc = cpu->PC - 4;  // EPC - return address from trap
+    } else {
+        cpu->cop0.epc = cpu->PC;
+    }
 
-	cpu->cop0.status.oldInterruptEnable = cpu->cop0.status.previousInterruptEnable;
-	cpu->cop0.status.oldMode = cpu->cop0.status.previousMode;
+    cpu->cop0.status.oldInterruptEnable = cpu->cop0.status.previousInterruptEnable;
+    cpu->cop0.status.oldMode = cpu->cop0.status.previousMode;
 
-	cpu->cop0.status.previousInterruptEnable = cpu->cop0.status.interruptEnable;
-	cpu->cop0.status.previousMode = cpu->cop0.status.mode;
+    cpu->cop0.status.previousInterruptEnable = cpu->cop0.status.interruptEnable;
+    cpu->cop0.status.previousMode = cpu->cop0.status.mode;
 
-	cpu->cop0.status.interruptEnable = false;
-	cpu->cop0.status.mode = cop0::STATUS::Mode::kernel;
+    cpu->cop0.status.interruptEnable = false;
+    cpu->cop0.status.mode = cop0::STATUS::Mode::kernel;
 
-	if (cpu->cop0.status.bootExceptionVectors == cop0::STATUS::BootExceptionVectors::rom) {
-		cpu->PC = 0xbfc00180;
-	} else {
-		cpu->PC = 0x80000080;
-	}
+    if (cpu->cop0.status.bootExceptionVectors == cop0::STATUS::BootExceptionVectors::rom) {
+        cpu->PC = 0xbfc00180;
+    } else {
+        cpu->PC = 0x80000080;
+    }
 
-	cpu->exception = true;
+    cpu->exception = true;
 }
 
-void dummy(CPU *cpu, Opcode i) {
-	
-}
+void dummy(CPU *cpu, Opcode i) {}
 
 void invalid(CPU *cpu, Opcode i) {
     printf("Invalid opcode (%s) at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
-	cpu->state = CPU::State::halted;
+    cpu->state = CPU::State::halted;
 }
 
 void notImplemented(CPU *cpu, Opcode i) {
     printf("Opcode %s not implemented at 0x%08x: 0x%08x\n", OpcodeTable[i.op].mnemnic, cpu->PC, i.opcode);
-	cpu->state = CPU::State::halted;
+    cpu->state = CPU::State::halted;
 }
 
 void special(CPU *cpu, Opcode i) {
@@ -274,12 +270,11 @@ void srav(CPU *cpu, Opcode i) {
 // JR rs
 void jr(CPU *cpu, Opcode i) {
     disasm("r%d", i.rs);
-	uint32_t addr = cpu->reg[i.rs];
-	if (addr & 3) 
-	{
-		exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
-		return;
-	}
+    uint32_t addr = cpu->reg[i.rs];
+    if (addr & 3) {
+        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        return;
+    }
     cpu->shouldJump = true;
     cpu->jumpPC = addr;
 }
@@ -288,13 +283,12 @@ void jr(CPU *cpu, Opcode i) {
 // JALR
 void jalr(CPU *cpu, Opcode i) {
     disasm("r%d r%d", i.rd, i.rs);
-	uint32_t addr = cpu->reg[i.rs];
-	if (addr & 3)
-	{
-		// TODO: not working correctly
-		exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
-		return;
-	}
+    uint32_t addr = cpu->reg[i.rs];
+    if (addr & 3) {
+        // TODO: not working correctly
+        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        return;
+    }
     cpu->shouldJump = true;
     cpu->jumpPC = addr;
     cpu->reg[i.rd] = cpu->PC + 8;
@@ -302,15 +296,11 @@ void jalr(CPU *cpu, Opcode i) {
 
 // Syscall
 // SYSCALL
-void syscall(CPU *cpu, Opcode i) {
-	exception(cpu, cop0::CAUSE::Exception::syscall);
-}
+void syscall(CPU *cpu, Opcode i) { exception(cpu, cop0::CAUSE::Exception::syscall); }
 
 // Break
 // BREAK
-void break_(CPU *cpu, Opcode i) {
-	exception(cpu, cop0::CAUSE::Exception::breakpoint);
-}
+void break_(CPU *cpu, Opcode i) { exception(cpu, cop0::CAUSE::Exception::breakpoint); }
 
 // Move From Hi
 // MFHI rd
@@ -393,18 +383,17 @@ void divu(CPU *cpu, Opcode i) {
     }
 }
 
-
 // add rd, rs, rt
 void add(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
 
-	uint32_t a = cpu->reg[i.rs];
-	uint32_t b = cpu->reg[i.rt];
-	uint32_t result = a + b;
+    uint32_t a = cpu->reg[i.rs];
+    uint32_t b = cpu->reg[i.rt];
+    uint32_t result = a + b;
 
-	if (isOverflow(result, a, b)) {
-		exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
-		return;
+    if (isOverflow(result, a, b)) {
+        exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
+        return;
     }
     cpu->reg[i.rd] = result;
 }
@@ -420,14 +409,14 @@ void addu(CPU *cpu, Opcode i) {
 // sub rd, rs, rt
 void sub(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-	uint32_t a = cpu->reg[i.rs];
-	uint32_t b = cpu->reg[i.rt];
-	uint32_t result = a - b;
+    uint32_t a = cpu->reg[i.rs];
+    uint32_t b = cpu->reg[i.rt];
+    uint32_t result = a - b;
 
-	if (isOverflow(result, a, b)) {
-		exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
-		return;
-	}
+    if (isOverflow(result, a, b)) {
+        exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
+        return;
+    }
     cpu->reg[i.rd] = result;
 }
 
@@ -512,7 +501,7 @@ void branch(CPU *cpu, Opcode i) {
                 cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
             }
             break;
-			
+
         case 16:
             // Branch On Less Than Zero And Link
             // bltzal rs, offset
@@ -605,14 +594,14 @@ void bne(CPU *cpu, Opcode i) {
 // ADDI rt, rs, imm
 void addi(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rt, i.rs, i.offset);
-	uint32_t a = cpu->reg[i.rs];
-	uint32_t b = i.offset;
-	uint32_t result = a + b;
+    uint32_t a = cpu->reg[i.rs];
+    uint32_t b = i.offset;
+    uint32_t result = a + b;
 
-	if (isOverflow(result, a, b)) {
-		exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
-		return;
-	}
+    if (isOverflow(result, a, b)) {
+        exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
+        return;
+    }
     cpu->reg[i.rt] = result;
 }
 
@@ -759,12 +748,12 @@ void lb(CPU *cpu, Opcode i) {
 void lh(CPU *cpu, Opcode i) {
     disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-	if (addr & 1) // non aligned address
-	{
-		exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
-		return;
-	}
-	cpu->reg[i.rt] = (int32_t)(int16_t)cpu->readMemory16(addr);
+    if (addr & 1)  // non aligned address
+    {
+        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        return;
+    }
+    cpu->reg[i.rt] = (int32_t)(int16_t)cpu->readMemory16(addr);
 }
 
 // Load Word Left
@@ -782,12 +771,12 @@ void lwl(CPU *cpu, Opcode i) {
         case 0:
             result = (word << 24) | (rt & 0xffffff);
             break;
-		case 1:
-			result = (word << 16) | (rt & 0xffff);
-			break;
-		case 2:
-			result = (word << 8) | (rt & 0xff);
-			break;
+        case 1:
+            result = (word << 16) | (rt & 0xffff);
+            break;
+        case 2:
+            result = (word << 8) | (rt & 0xff);
+            break;
         case 3:
             result = word;
             break;
@@ -800,11 +789,11 @@ void lwl(CPU *cpu, Opcode i) {
 void lw(CPU *cpu, Opcode i) {
     disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-	if (addr & 3) // non aligned address
-	{
-		exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
-		return;
-	}
+    if (addr & 3)  // non aligned address
+    {
+        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        return;
+    }
     cpu->reg[i.rt] = cpu->readMemory32(addr);
 }
 
@@ -821,11 +810,11 @@ void lbu(CPU *cpu, Opcode i) {
 void lhu(CPU *cpu, Opcode i) {
     disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-	if (addr & 1) // non aligned address
-	{
-		exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
-		return;
-	}
+    if (addr & 1)  // non aligned address
+    {
+        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        return;
+    }
     cpu->reg[i.rt] = cpu->readMemory16(addr);
 }
 
@@ -870,11 +859,11 @@ void sb(CPU *cpu, Opcode i) {
 void sh(CPU *cpu, Opcode i) {
     disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-	if (addr & 1) // non aligned address
-	{
-		exception(cpu, cop0::CAUSE::Exception::addressErrorStore);
-		return;
-	}
+    if (addr & 1)  // non aligned address
+    {
+        exception(cpu, cop0::CAUSE::Exception::addressErrorStore);
+        return;
+    }
     cpu->writeMemory16(addr, cpu->reg[i.rt]);
 }
 
@@ -892,12 +881,12 @@ void swl(CPU *cpu, Opcode i) {
         case 0:
             result = (word & 0xffffff00) | ((rt >> 24) & 0xff);
             break;
-		case 1:
-			result = (word & 0xffff0000) | ((rt >> 16) & 0xffff);
-			break;
-		case 2:
-			result = (word & 0xff000000) | ((rt >> 8) & 0xffffff);
-			break;
+        case 1:
+            result = (word & 0xffff0000) | ((rt >> 16) & 0xffff);
+            break;
+        case 2:
+            result = (word & 0xff000000) | ((rt >> 8) & 0xffffff);
+            break;
         case 3:
             result = rt;
             break;
@@ -910,11 +899,11 @@ void swl(CPU *cpu, Opcode i) {
 void sw(CPU *cpu, Opcode i) {
     disasm("r%d, %d(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-	if (addr & 3) // non aligned address
-	{
-		exception(cpu, cop0::CAUSE::Exception::addressErrorStore);
-		return;
-	}
+    if (addr & 3)  // non aligned address
+    {
+        exception(cpu, cop0::CAUSE::Exception::addressErrorStore);
+        return;
+    }
     cpu->writeMemory32(addr, cpu->reg[i.rt]);
 }
 
@@ -950,6 +939,6 @@ void swr(CPU *cpu, Opcode i) {
 void breakpoint(CPU *cpu, Opcode i) {
     disasm("");
     printf("Breakpoint at 0x%08x\n", cpu->PC);
-	cpu->state = CPU::State::halted;
+    cpu->state = CPU::State::halted;
 }
 };

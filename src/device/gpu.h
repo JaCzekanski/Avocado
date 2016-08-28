@@ -142,12 +142,12 @@ class GPU : public Device {
     int drawingAreaX2 = 0;
     int drawingAreaY2 = 0;
 
-public:
+   public:
     // GP0(0xe5)
     int drawingOffsetX = 0;
     int drawingOffsetY = 0;
-private:
 
+   private:
     // GP0(0xe6)
     int setMaskWhileDrawing = 0;
     int checkMaskBeforeDraw = 0;

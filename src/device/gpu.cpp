@@ -37,11 +37,10 @@ inline int distance(int x1, int y1, int x2, int y2) {
     return (int)sqrtf((float)((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)));
 }
 
-template<typename T>
-inline T clamp(T number, int range)
-{
-	if (number > range) number = range;
-	return number;
+template <typename T>
+inline T clamp(T number, int range) {
+    if (number > range) number = range;
+    return number;
 }
 
 void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex, bool textured) {
@@ -87,7 +86,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
             int r = c[i] & 0xff;
             int g = (c[i] >> 8) & 0xff;
             int b = (c[i] >> 16) & 0xff;
-            renderList.push_back({x[i], y[i], r, g, b, texX(t[i]), texY(t[i]), bitcount, clutX, clutY, baseX, baseY });
+            renderList.push_back({x[i], y[i], r, g, b, texX(t[i]), texY(t[i]), bitcount, clutX, clutY, baseX, baseY});
         }
     }
 
@@ -360,9 +359,12 @@ void GPU::writeGP0(uint32_t data) {
         int w = 1;
         int h = 1;
 
-		if (size == 1) w = h = 1;
-        else if (size == 2) w = h = 8;
-        else if (size == 3) w = h = 16;
+        if (size == 1)
+            w = h = 1;
+        else if (size == 2)
+            w = h = 8;
+        else if (size == 3)
+            w = h = 16;
         else {
             w = clamp(arguments[(isTextureMapped ? 2 : 1)] & 0xffff, 1023);
             h = clamp((arguments[(isTextureMapped ? 2 : 1)] & 0xffff0000) >> 16, 511);
@@ -373,29 +375,28 @@ void GPU::writeGP0(uint32_t data) {
         int _x[4] = {x, x + w, x, x + w};
         int _y[4] = {y, y, y + h, y + h};
         int _c[4] = {(int)argument, (int)argument, (int)argument, (int)argument};
-		int _t[4];
+        int _t[4];
 
-		if (isTextureMapped)
-		{
-#define tex(x, y) ((x&0xff)|((y&0xff)<<8));
-			int texX = arguments[1] & 0xff;
-			int texY = (arguments[1] & 0xff00) >> 8;
+        if (isTextureMapped) {
+#define tex(x, y) ((x & 0xff) | ((y & 0xff) << 8));
+            int texX = arguments[1] & 0xff;
+            int texY = (arguments[1] & 0xff00) >> 8;
 
-			_t[0] = arguments[1];
-			_t[1] = (gp0_e1._reg << 16) | tex(texX+w, texY);
-			_t[2] = tex(texX, texY + h);
-			_t[3] = tex(texX + w, texY + h);
+            _t[0] = arguments[1];
+            _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);
+            _t[2] = tex(texX, texY + h);
+            _t[3] = tex(texX + w, texY + h);
 #undef tex
-		}
+        }
 
-		drawPolygon(_x, _y, _c, _t, true, isTextureMapped);
+        drawPolygon(_x, _y, _c, _t, true, isTextureMapped);
     } else if (command == 0xA0) {  // Copy rectangle ( CPU -> VRAM )
         if (currentArgument <= 2) {
             argumentCount = 3;
             finished = false;
-			startX = currX = clamp(arguments[0] & 0xffff, 1023);
+            startX = currX = clamp(arguments[0] & 0xffff, 1023);
             startY = currY = clamp((arguments[0] & 0xffff0000) >> 16, 511);
-			
+
             endX = clamp(startX + (arguments[1] & 0xffff) - 1, 1023) + 1;
             endY = clamp(startY + ((arguments[1] & 0xffff0000) >> 16) - 1, 511) + 1;
         } else {
@@ -403,12 +404,12 @@ void GPU::writeGP0(uint32_t data) {
             finished = false;
             uint32_t byte = arguments[2];
 
-			// TODO: ugly code
+            // TODO: ugly code
             VRAM[currY][currX++] = byte & 0xffff;
-			if (currX >= endX) {
-				currX = startX;
-				if (++currY >= endY) finished = true;
-			}
+            if (currX >= endX) {
+                currX = startX;
+                if (++currY >= endY) finished = true;
+            }
 
             VRAM[currY][currX++] = (byte >> 16) & 0xffff;
             if (currX >= endX) {
@@ -419,20 +420,20 @@ void GPU::writeGP0(uint32_t data) {
     } else if (command == 0xC0) {  // Copy rectangle ( VRAM -> CPU )
         finished = true;
         gpuReadMode = 1;
-		startX = currX = clamp(arguments[0] & 0xffff, 1023);
-		startY = currY = clamp((arguments[0] & 0xffff0000) >> 16, 511);
-		endX = clamp(startX + (arguments[1] & 0xffff) - 1, 1023) + 1;
-		endY = clamp(startY + ((arguments[1] & 0xffff0000) >> 16) - 1, 511) + 1;
+        startX = currX = clamp(arguments[0] & 0xffff, 1023);
+        startY = currY = clamp((arguments[0] & 0xffff0000) >> 16, 511);
+        endX = clamp(startX + (arguments[1] & 0xffff) - 1, 1023) + 1;
+        endY = clamp(startY + ((arguments[1] & 0xffff0000) >> 16) - 1, 511) + 1;
     } else if (command == 0x80) {  // Copy rectangle ( VRAM -> VRAM )
         finished = true;
-		int srcX = clamp(arguments[0] & 0xffff, 1023);
-		int srcY = clamp((arguments[0] & 0xffff0000) >> 16, 511);
+        int srcX = clamp(arguments[0] & 0xffff, 1023);
+        int srcY = clamp((arguments[0] & 0xffff0000) >> 16, 511);
 
-		int dstX = clamp(arguments[1] & 0xffff, 1023);
-		int dstY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
+        int dstX = clamp(arguments[1] & 0xffff, 1023);
+        int dstY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
 
-		int width = clamp((arguments[2] & 0xffff) - 1, 1023) + 1;
-		int height = clamp((arguments[2] & 0xffff0000) >> 16 - 1, 511) + 1;
+        int width = clamp((arguments[2] & 0xffff) - 1, 1023) + 1;
+        int height = clamp((arguments[2] & 0xffff0000) >> 16 - 1, 511) + 1;
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
