@@ -16,6 +16,7 @@ namespace controller {
 			fifo.push_back(0x5a);
 			fifo.push_back(~state._byte[0]);
 			fifo.push_back(~state._byte[1]);
+
 			printf("JOYPAD --> 0x%04x\n", state._reg);
 			selected = false;
 		}
@@ -33,15 +34,21 @@ namespace controller {
 	uint8_t Controller::read(uint32_t address)
 	{
 		if (address == 0 && !fifo.empty()) { // RX
+
+			if (!fifo.empty()) {
+				((mips::CPU*)_cpu)->interrupt->IRQ(7);
+			}
 			uint8_t value =  fifo.front();
 			fifo.pop_front();
+
 			return value;
 		}
 		if (address == 4) { // STAT
-			return rand();
-//				(1 << 0) |
-//				((!fifo.empty()) << 1) |
-//				(1 << 2);
+			return rand() |
+				(1 << 0) | // must be set
+				((!fifo.empty()) << 1) |
+				(1 << 2) |
+				(1 << 7);
 		}
 		if (address >= 8 && address < 10) { // MODE
 			return mode >> ((address - 8) * 8);
@@ -70,6 +77,12 @@ namespace controller {
 		if (address >= 10 && address < 12) { // CTRL
 			control &= 0xff << (address - 10);
 			control |= data << (address - 10);
+
+			// handle bit4
+			if (control & (1<<4))
+			{
+				// clear bit 3 and 9 in stat
+			}
 			return;
 		}
 		if (address >= 14 && address < 16) { // BAUD

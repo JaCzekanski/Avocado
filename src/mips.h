@@ -69,6 +69,7 @@ struct CPU {
 
         memoryControl = new Dummy("MemCtrl", 0x1f801000);
 		controller = new controller::Controller();
+		controller->setCPU(this);
         serial = new Dummy("Serial", 0x1f801050, false);
 
         interrupt = new interrupt::Interrupt();

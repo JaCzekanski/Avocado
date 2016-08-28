@@ -126,6 +126,7 @@ int main(int argc, char **argv) {
 			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
 			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
 			if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = true;
+            if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
 			cpu.controller->setState(buttons);
         }
 		if (event.type == SDL_KEYUP) {
@@ -134,6 +135,7 @@ int main(int argc, char **argv) {
 			if (event.key.keysym.sym == SDLK_LEFT) buttons.left = false;
 			if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = false;
 			if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = false;
+			if (event.key.keysym.sym == SDLK_KP_3) buttons.start = false;
 			cpu.controller->setState(buttons);
 		}
 		if (event.type == SDL_DROPFILE)
