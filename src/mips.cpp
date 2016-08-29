@@ -216,7 +216,7 @@ bool CPU::executeInstructions(int count) {
 void CPU::checkForInterrupts() {
     if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
         mipsInstructions::exception(this, cop0::CAUSE::Exception::interrupt);
-        printf("-%s\n", interrupt->getStatus().c_str());
+        //printf("-%s\n", interrupt->getStatus().c_str());
     }
 }
 
