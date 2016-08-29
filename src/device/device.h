@@ -3,6 +3,23 @@
 
 namespace device {
 typedef uint32_t Bit;
+
+union Reg16 {
+	uint16_t _reg;
+	uint8_t _byte[2];
+
+	Reg16() : _reg(0) {}
+};
+
+
+union Reg32 {
+	uint32_t _reg;
+	uint8_t _byte[4];
+
+	Reg32() : _reg(0) {}
+};
+
+
 class Device {
    public:
     virtual ~Device(){};
