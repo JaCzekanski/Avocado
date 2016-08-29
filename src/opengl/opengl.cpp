@@ -194,9 +194,15 @@ void renderSecondStage() {
 
 void render(device::gpu::GPU *gpu) {
     // Update screen position
+
+	int screenWidth = opengl::resWidth;
+	int screenHeight = opengl::resHeight;
+
     std::vector<BlitStruct> bb;
     if (viewFullVram) {
-        bb = makeBlitBuf(0, 0, 1024, 512);
+		screenWidth = 1024;
+		screenHeight = 512;
+        bb = makeBlitBuf(0, 0, screenWidth, screenHeight);
     } else {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
@@ -223,7 +229,7 @@ void render(device::gpu::GPU *gpu) {
     glViewport(0, 0, 1024, 512);
     renderFirstStage(renderList, gpu);
 
-    glViewport(0, 0, resWidth, resHeight);
+    glViewport(0, 0, screenWidth, screenHeight);
     renderSecondStage();
 
     // Read back rendered texture to VRAM
