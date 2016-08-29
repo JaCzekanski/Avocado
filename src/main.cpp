@@ -126,7 +126,11 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
             if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
             if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = true;
+            if (event.key.keysym.sym == SDLK_KP_8) buttons.triangle = true;
+            if (event.key.keysym.sym == SDLK_KP_4) buttons.square = true;
+            if (event.key.keysym.sym == SDLK_KP_6) buttons.circle = true;
             if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
+            if (event.key.keysym.sym == SDLK_KP_1) buttons.select = true;
             cpu.controller->setState(buttons);
         }
         if (event.type == SDL_KEYUP) {
@@ -135,7 +139,11 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_LEFT) buttons.left = false;
             if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = false;
             if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = false;
+            if (event.key.keysym.sym == SDLK_KP_8) buttons.triangle = false;
+            if (event.key.keysym.sym == SDLK_KP_4) buttons.square = false;
+            if (event.key.keysym.sym == SDLK_KP_6) buttons.circle = false;
             if (event.key.keysym.sym == SDLK_KP_3) buttons.start = false;
+            if (event.key.keysym.sym == SDLK_KP_1) buttons.select = false;
             cpu.controller->setState(buttons);
         }
         if (event.type == SDL_DROPFILE) {

@@ -19,7 +19,6 @@ void Controller::handleByte(uint8_t byte) {
         printf("JOYPAD --> 0x%04x\n", state._reg);
         selected = false;
     }
-    printf("JOYPAD: 0x%02x\n", byte);
 }
 
 Controller::Controller() {}
