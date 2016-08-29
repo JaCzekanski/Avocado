@@ -134,7 +134,7 @@ class GPU : public Device {
     int textureWindowOffsetX = 0;
     int textureWindowOffsetY = 0;
 
-public:
+   public:
     // GP0(0xe3)
     int drawingAreaX1 = 0;
     int drawingAreaY1 = 0;
@@ -182,8 +182,7 @@ public:
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false,
-                     bool textured = false);
+    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 

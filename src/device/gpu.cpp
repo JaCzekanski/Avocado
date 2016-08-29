@@ -33,9 +33,7 @@ void swap(int &a, int &b) {
     a = t;
 }
 
-inline int distance(int x1, int y1, int x2, int y2) {
-    return (int)sqrtf((float)((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)));
-}
+inline int distance(int x1, int y1, int x2, int y2) { return (int)sqrtf((float)((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))); }
 
 template <typename T>
 inline T clamp(T number, int range) {
@@ -78,7 +76,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
         int r = c[i] & 0xff;
         int g = (c[i] >> 8) & 0xff;
         int b = (c[i] >> 16) & 0xff;
-        renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}});
+        renderList.push_back({x[i], y[i], r, g, b, texX(t[i]), texY(t[i]), bitcount, clutX, clutY, baseX, baseY});
     }
 
     if (isFourVertex) {
@@ -86,7 +84,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
             int r = c[i] & 0xff;
             int g = (c[i] >> 8) & 0xff;
             int b = (c[i] >> 16) & 0xff;
-            renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}});
+            renderList.push_back({x[i], y[i], r, g, b, texX(t[i]), texY(t[i]), bitcount, clutX, clutY, baseX, baseY});
         }
     }
 
@@ -123,8 +121,7 @@ uint32_t to24bit(uint16_t color) {
 
 void GPU::step() {
     // Calculate GPUSTAT
-    GPUSTAT = (gp0_e1._reg & 0x7FF) | (textureDisableAllowed << 15) | (setMaskWhileDrawing << 11)
-              | (checkMaskBeforeDraw << 12)
+    GPUSTAT = (gp0_e1._reg & 0x7FF) | (textureDisableAllowed << 15) | (setMaskWhileDrawing << 11) | (checkMaskBeforeDraw << 12)
 
               | (1 << 13) | ((uint8_t)gp1_08.reverseFlag << 14) | ((uint8_t)gp0_e1.textureDisable << 15)
 
@@ -141,8 +138,7 @@ void GPU::step() {
 
 uint8_t GPU::read(uint32_t address) {
     if (address < 4) {
-        if (gpuReadMode == 0)
-            return GPUREAD >> (address * 8);
+        if (gpuReadMode == 0) return GPUREAD >> (address * 8);
         if (gpuReadMode == 1) {
             static int write = 0;
             uint32_t word = 0;
@@ -160,9 +156,8 @@ uint8_t GPU::read(uint32_t address) {
                 }
             }
             return word >> (address * 8);
-        } 
-		if (gpuReadMode == 2)
-            return GPUREAD >> (address * 8);
+        }
+        if (gpuReadMode == 2) return GPUREAD >> (address * 8);
     }
     if (address >= 4 && address < 8) {
         step();
@@ -224,8 +219,7 @@ void GPU::writeGP0(uint32_t data) {
             bool isShaded = (command & 0x10) != 0;       // True - Gouroud shading, false - flat shading
 
             // Because first color is in argument (cmd+arg, not args[])
-            argumentCount
-                = (isFourVertex ? 4 : 3) * (isTextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0);
+            argumentCount = (isFourVertex ? 4 : 3) * (isTextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0);
             finished = false;
         } else if (command >= 0x40 && command < 0x60) {    // Lines
             isManyArguments = (command & 8) != 0;          // True - n points, false - 2 points (0x55555555 terminated)
@@ -434,7 +428,7 @@ void GPU::writeGP0(uint32_t data) {
         int dstY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
 
         int width = clamp((arguments[2] & 0xffff) - 1, 1023) + 1;
-        int height = clamp(((arguments[2] & 0xffff0000) >> 16) - 1, 511) + 1;
+        int height = clamp((arguments[2] & 0xffff0000) >> 16 - 1, 511) + 1;
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {

@@ -60,16 +60,11 @@ void createRenderBuffer() {
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
     glVertexAttribIPointer(renderShader->getAttrib("position"), 2, GL_UNSIGNED_INT, sizeof(Vertex), 0);
-    glVertexAttribIPointer(renderShader->getAttrib("color"), 3, GL_UNSIGNED_INT, sizeof(Vertex),
-                           (void *)(2 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("texcoord"), 2, GL_UNSIGNED_INT, sizeof(Vertex),
-                           (void *)(5 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("bitcount"), 1, GL_UNSIGNED_INT, sizeof(Vertex),
-                           (void *)(7 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("clut"), 2, GL_UNSIGNED_INT, sizeof(Vertex),
-                           (void *)(8 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("texpage"), 2, GL_UNSIGNED_INT, sizeof(Vertex),
-                           (void *)(10 * sizeof(int)));
+    glVertexAttribIPointer(renderShader->getAttrib("color"), 3, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(2 * sizeof(int)));
+    glVertexAttribIPointer(renderShader->getAttrib("texcoord"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(5 * sizeof(int)));
+    glVertexAttribIPointer(renderShader->getAttrib("bitcount"), 1, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(7 * sizeof(int)));
+    glVertexAttribIPointer(renderShader->getAttrib("clut"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(8 * sizeof(int)));
+    glVertexAttribIPointer(renderShader->getAttrib("texpage"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(10 * sizeof(int)));
 
     glEnableVertexAttribArray(renderShader->getAttrib("position"));
     glEnableVertexAttribArray(renderShader->getAttrib("color"));
@@ -111,8 +106,7 @@ void createBlitBuffer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(blitVertex) * sizeof(BlitStruct), blitVertex.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(blitShader->getAttrib("position"), 2, GL_FLOAT, GL_FALSE, sizeof(BlitStruct), 0);
-    glVertexAttribPointer(blitShader->getAttrib("texcoord"), 2, GL_FLOAT, GL_FALSE, sizeof(BlitStruct),
-                          (void *)(2 * sizeof(float)));
+    glVertexAttribPointer(blitShader->getAttrib("texcoord"), 2, GL_FLOAT, GL_FALSE, sizeof(BlitStruct), (void *)(2 * sizeof(float)));
 
     glEnableVertexAttribArray(blitShader->getAttrib("position"));
     glEnableVertexAttribArray(blitShader->getAttrib("texcoord"));

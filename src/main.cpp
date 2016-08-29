@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
     //		return 1;
     //	}
 
-    window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth,
-                              opengl::resHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth, opengl::resHeight,
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (window == nullptr) {
         printf("Cannot create window\n");
         return 1;

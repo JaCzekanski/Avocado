@@ -2,8 +2,7 @@
 
 namespace device {
 Dummy::Dummy() : name("") {}
-Dummy::Dummy(std::string name, uint32_t baseAddress, bool verbose)
-    : name(name), baseAddress(baseAddress), verbose(verbose) {}
+Dummy::Dummy(std::string name, uint32_t baseAddress, bool verbose) : name(name), baseAddress(baseAddress), verbose(verbose) {}
 
 void Dummy::step() {}
 
