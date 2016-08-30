@@ -46,6 +46,8 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 addr -= 4;
             }
             control.enabled = CHCR::Enabled::stop;
+
+
         } else if (control.syncMode == CHCR::SyncMode::syncBlockToDmaRequests) {
             uint32_t addr = baseAddress.address;
             int blockCount = count.syncMode1.blockCount;

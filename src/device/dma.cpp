@@ -4,7 +4,7 @@
 
 namespace device {
 namespace dma {
-DMA::DMA() : dma2(2), dma6(6) {}
+DMA::DMA() : dma2(2), dma3(3), dma6(6) {}
 
 void DMA::step() {}
 
@@ -56,6 +56,14 @@ void DMA::write(uint32_t address, uint8_t data) {
     }
 
     if (channel == 2) return dma2.write(address % 0x10, data);  // GPU
+	if (channel == 3) {
+		printf("CDROM DMA 0x%02x    0x%02x\n", address, data);
+		if (address == 0x0b)
+		{
+			dmaStatus |= (1 << (24 + 3));
+		}
+		return dma3.write(address % 0x10, data);  // CDROM
+	}
     if (channel == 6) return dma6.write(address % 0x10, data);  // reverse clear OT
 
     printf("W Unimplemented DMA channel %d\n", channel);
