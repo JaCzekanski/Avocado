@@ -1,10 +1,10 @@
 sudo: false
-language: generic
-os: linux
+language: cpp
 
 matrix:
   include:
     - compiler: clang
+      os: linux
       addons:
         apt:
           sources:
