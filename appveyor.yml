@@ -16,7 +16,7 @@ install:
   - 7z x premake.zip
   
   # generate solution
-  - ../premake5.exe %TOOLSET% --headless
+  - premake5.exe %TOOLSET% --headless
 
 configuration:
   - Debug
