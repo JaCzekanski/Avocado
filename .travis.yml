@@ -25,6 +25,18 @@ matrix:
 #          sources:
 #            - ubuntu-toolchain-r-test
 
+before_install:
+  - if [ "$COMPILER_NAME" == "clang++" ]; then export CXXFLAGS="-stdlib=libc++" && export LDFLAGS="-stdlib=libc++"; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then svn co --quiet $LIBCXXURL libcxx && pushd libcxx/lib && bash buildit && sudo cp ./libc++.so.1.0 /usr/lib/; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then sudo mkdir /usr/include/c++/v1 && pushd .. && sudo cp -r include/* /usr/include/c++/v1/; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then pushd /usr/lib && sudo ln -sf libc++.so.1.0 libc++.so; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then sudo ln -sf libc++.so.1.0 libc++.so.1 && popd && popd && popd; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then svn co --quiet $LIBCXXABIURL libcxxabi && pushd libcxxabi/lib && bash buildit && sudo cp ./libc++abi.so.1.0 /usr/lib/; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then pushd .. && sudo cp -r include/* /usr/include/c++/v1; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then pushd /usr/lib && sudo ln -sf libc++abi.so.1.0 libc++abi.so; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then sudo ln -sf libc++abi.so.1.0 libc++abi.so.1 && popd && popd && popd; fi
+
+
 install:
   - export BASE=$PWD
 

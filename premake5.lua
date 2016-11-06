@@ -63,7 +63,7 @@ project "Avocado"
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }
-		symbols "On"
+		flags { "Symbols" }
 	
 	filter "configurations:Release"
 		defines { "NDEBUG" }
