@@ -11,12 +11,16 @@ project "SDL_net"
 	language "c"
 	location "build/libs/SDL_net"
 	includedirs { 
-		"externals/SDL_net",
-		"/usr/include/SDL2"
+		"externals/SDL_net"
 	}
 	files { 
 		"externals/SDL_net/SDLnet*.c"
 	}
+
+	configuration { "linux", "gmake" }
+		buildoptions { 
+			"`pkg-config --cflags sdl2`"
+		}
 
 project "glad"
 	kind "StaticLib"
