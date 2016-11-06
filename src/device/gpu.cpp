@@ -76,7 +76,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
         int r = c[i] & 0xff;
         int g = (c[i] >> 8) & 0xff;
         int b = (c[i] >> 16) & 0xff;
-        renderList.push_back({x[i], y[i], r, g, b, texX(t[i]), texY(t[i]), bitcount, clutX, clutY, baseX, baseY});
+        renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}});
     }
 
     if (isFourVertex) {
@@ -84,7 +84,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
             int r = c[i] & 0xff;
             int g = (c[i] >> 8) & 0xff;
             int b = (c[i] >> 16) & 0xff;
-            renderList.push_back({x[i], y[i], r, g, b, texX(t[i]), texY(t[i]), bitcount, clutX, clutY, baseX, baseY});
+            renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}});
         }
     }
 
@@ -428,7 +428,7 @@ void GPU::writeGP0(uint32_t data) {
         int dstY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
 
         int width = clamp((arguments[2] & 0xffff) - 1, 1023) + 1;
-        int height = clamp((arguments[2] & 0xffff0000) >> 16 - 1, 511) + 1;
+        int height = clamp(((arguments[2] & 0xffff0000) >> 16) - 1, 511) + 1;
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
