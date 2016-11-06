@@ -95,9 +95,8 @@ std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screen
     float sh = sy + (float)screenH / 512.f;
     ;
     return {
-        {0.f, 0.f, sx, sy}, {1.f, 0.f, sw, sy}, {1.f, 1.f, sw, sh},
-
-        {0.f, 0.f, sx, sy}, {1.f, 1.f, sw, sh}, {0.f, 1.f, sx, sh},
+        {{0.f, 0.f}, {sx, sy}}, {{1.f, 0.f}, {sw, sy}}, {{1.f, 1.f}, {sw, sh}},
+		{{0.f, 0.f}, {sx, sy}}, {{1.f, 1.f}, {sw, sh}}, {{0.f, 1.f}, {sx, sh}},
     };
 }
 

@@ -10,7 +10,7 @@ DMAChannel::DMAChannel(int channel) : channel(channel) {}
 void DMAChannel::step() {}
 
 uint8_t DMAChannel::read(uint32_t address) {
-    if (address >= 0x0 && address < 0x4) return baseAddress._byte[address];
+    if (address < 0x4) return baseAddress._byte[address];
     if (address >= 0x4 && address < 0x8) return count._byte[address - 4];
     if (address >= 0x8 && address < 0xc) return control._byte[address - 8];
 
@@ -21,7 +21,7 @@ uint8_t DMAChannel::read(uint32_t address) {
 void DMAChannel::write(uint32_t address, uint8_t data) {
     mips::CPU *cpu = (mips::CPU *)_cpu;
 
-    if (address >= 0x0 && address < 0x4)
+    if (address < 0x4)
         baseAddress._byte[address] = data;
     else if (address >= 0x4 && address < 0x8)
         count._byte[address - 4] = data;

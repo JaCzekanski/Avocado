@@ -33,8 +33,8 @@ project "glad"
 project "Avocado"
 	kind "ConsoleApp"
 	language "c++"
+	location "build/libs/Avocado"
 	targetdir "build/%{cfg.buildcfg}"
-	objdir "build/obj/%{cfg.buildcfg}"
 
 	includedirs { 
 		".", 
@@ -42,6 +42,7 @@ project "Avocado"
 		"externals/imgui",
 		"externals/SDL_net",
 		"externals/glad/include",
+		"externals/glm",
 		"/usr/include/SDL2"
 	}
 	libdirs { os.findlib("SDL2") }
@@ -79,10 +80,12 @@ project "Avocado"
 		buildoptions { 
 			"-stdlib=libc++",
 			"-std=c++14",
+			"-Wall",
 			"-Wno-write-strings",
+			"-Wno-unused-private-field",
+			"-Wno-unused-const-variable",
 			"-fno-operator-names",
-			"-fno-exceptions",
-			"-Wall"
+			"-fno-exceptions"
 		}
 	configuration "headless"
 		defines { "HEADLESS" }

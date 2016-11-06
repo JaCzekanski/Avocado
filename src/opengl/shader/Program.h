@@ -20,7 +20,7 @@ class Program {
 
     std::string getName() { return name; }
 
-    bool Program::load();
+    bool load();
     std::string getError();
 
     GLuint get();

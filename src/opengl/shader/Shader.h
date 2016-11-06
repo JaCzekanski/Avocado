@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <glm\glm.hpp>
+#include <glm/glm.hpp>
 #include <glad/glad.h>
 
 enum class ShaderType { Vertex, Fragment };

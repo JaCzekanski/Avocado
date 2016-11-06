@@ -8,3 +8,6 @@
 [submodule "externals/SDL_net"]
 	path = externals/SDL_net
 	url = https://github.com/JaCzekanski/SDL_net.git
+[submodule "externals/glm"]
+	path = externals/glm
+	url = https://github.com/g-truc/glm.git
