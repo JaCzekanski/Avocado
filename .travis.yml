@@ -8,6 +8,26 @@ compiler:
   - clang
   - gcc
 
+matrix:
+include:
+  - compiler: gcc
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-5
+    env: COMPILER=g++-5
+  - compiler: clang
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-precise-3.9
+        packages:
+          - clang-3.9
+    env: COMPILER=clang++-3.9
+
 env:
   - PREMAKE_VERSION=5.0.0-alpha5
 
