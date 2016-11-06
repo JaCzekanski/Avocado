@@ -11,7 +11,8 @@ project "SDL_net"
 	language "c"
 	location "build/libs/SDL_net"
 	includedirs { 
-		"externals/SDL_net"
+		"externals/SDL_net",
+		"externals/SDL2/include"
 	}
 	files { 
 		"externals/SDL_net/SDLnet*.c"
@@ -49,12 +50,6 @@ project "Avocado"
 		"externals/glad/include",
 		"externals/glm"
 	}
-	libdirs { os.findlib("SDL2") }
-	links { 
-			"SDL2",
-			"SDL_net",
-			"glad"
-	}
 
 	files { 
 		"src/**.h", 
@@ -68,6 +63,17 @@ project "Avocado"
 	filter "configurations:Release"
 		defines { "NDEBUG" }
 		optimize "Full"
+
+	configuration "headless"
+		defines { "HEADLESS" }
+
+	configuration "not headless"
+		libdirs { os.findlib("SDL2") }
+		links { 
+				"SDL2",
+				"SDL_net",
+				"glad"
+		}
 
 	configuration { "windows" }
 		defines { "WIN32" }
@@ -94,6 +100,3 @@ project "Avocado"
 			"-fno-operator-names",
 			"-fno-exceptions"
 		}
-
-	configuration "headless"
-		defines { "HEADLESS" }

@@ -1,0 +1,26 @@
+os:
+  - Visual Studio 2015
+
+environment:
+  matrix:
+  - TOOLSET: vs2010
+  - TOOLSET: vs2013
+  - TOOLSET: vs2015
+
+before_build:
+  - git submodule update --init --recursive
+
+install:
+  # premake
+  - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha5/premake-5.0.0-alpha5-windows.zip' 'premake.zip'
+  - 7z x premake.zip
+  
+  # generate solution
+  - ../premake5.exe %TOOLSET% --headless
+
+configuration:
+  - Debug
+  - Release
+
+build:
+  project: Avocado.sln
