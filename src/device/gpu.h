@@ -193,7 +193,7 @@ class GPU : public Device {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    std::vector<opengl::Vertex>& GPU::render();
+    std::vector<opengl::Vertex>& render();
 
     std::vector<opengl::Vertex> renderList;
     uint16_t VRAM[512][1024];

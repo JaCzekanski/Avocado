@@ -1,5 +1,6 @@
 #include "controller.h"
 #include "../mips.h"
+#include <stdlib.h>
 
 namespace device {
 namespace controller {

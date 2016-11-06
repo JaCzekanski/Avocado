@@ -1,6 +1,11 @@
 workspace "Avocado"
 	configurations { "Debug", "Release" }
 
+newoption {
+		trigger = "headless",
+		description = "Build without window creation"
+}
+
 project "Avocado"
 	kind "ConsoleApp"
 	language "c++"
@@ -55,3 +60,5 @@ project "Avocado"
 			"-fno-exceptions",
 			"-Wall"
 		}
+	configuration "headless"
+		defines { "HEADLESS" }

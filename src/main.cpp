@@ -23,11 +23,11 @@ SDL_Window *window;
 bool viewFullVram = false;
 
 int main(int argc, char **argv) {
+#ifndef HEADLESS
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
         return 1;
     }
-
     opengl::init();
 
     //	GdbStub gdbStub;
@@ -58,10 +58,10 @@ int main(int argc, char **argv) {
         printf("Cannot setup graphics\n");
         return 1;
     }
-
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+#endif
 
-    auto _bios = getFileContents("data/bios/DTLH3000.BIN");
+    auto _bios = getFileContents("data/bios/SCPH1002.BIN");
     if (_bios.empty()) {
         printf("Cannot open BIOS");
         return 1;
@@ -94,7 +94,9 @@ int main(int argc, char **argv) {
         int pendingEvents = 0;
         // if (!cpuRunning) SDL_WaitEvent(&event);
         // else pendingEvents = SDL_PollEvent(&event);
+#ifndef HEADLESS
         pendingEvents = SDL_PollEvent(&event);
+#endif
 
         if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE))
             emulatorRunning = false;
@@ -178,20 +180,24 @@ int main(int argc, char **argv) {
                 gpuOdd = !gpuOdd;
                 gpu->step();
 
+#ifndef HEADLESS
                 std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(),
                                                   cpu.interrupt->getStatus().c_str(), frames);
                 SDL_SetWindowTitle(window, title.c_str());
 
                 opengl::render(gpu);
                 SDL_GL_SwapWindow(window);
+#endif
             } else if (gpuLine > 0x10) {
                 gpu->odd = gpuOdd;
             }
         }
     }
     // gdbStub.uninitialize();
+#ifndef HEADLESS
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
+#endif
     return 0;
 }
