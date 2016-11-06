@@ -54,4 +54,4 @@ before_script:
   - ./premake5 gmake --headless
 
 script:
-  - make -j
+  - make config=release -j

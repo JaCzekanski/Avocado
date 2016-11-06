@@ -11,7 +11,8 @@ project "SDL_net"
 	language "c"
 	location "build/libs/SDL_net"
 	includedirs { 
-		"externals/SDL_net"
+		"externals/SDL_net",
+		"externals/SDL2/include"
 	}
 	files { 
 		"externals/SDL_net/SDLnet*.c"
@@ -21,6 +22,9 @@ project "SDL_net"
 		buildoptions { 
 			"`pkg-config --cflags sdl2`"
 		}
+
+	configuration { "windows" }
+		defines { "WIN32" }
 
 project "glad"
 	kind "StaticLib"
@@ -46,19 +50,20 @@ project "Avocado"
 		"src", 
 		"externals/imgui",
 		"externals/SDL_net",
+		"externals/SDL2/include",
 		"externals/glad/include",
 		"externals/glm"
-	}
-	libdirs { os.findlib("SDL2") }
-	links { 
-			"SDL2",
-			"SDL_net",
-			"glad"
 	}
 
 	files { 
 		"src/**.h", 
 		"src/**.cpp"
+	}
+	
+	links { 
+		"SDL2",
+		"SDL_net",
+		"glad"
 	}
 
 	filter "configurations:Debug"
@@ -69,14 +74,22 @@ project "Avocado"
 		defines { "NDEBUG" }
 		optimize "Full"
 
+	configuration "headless"
+		defines { "HEADLESS" }
+
 	configuration { "windows" }
 		defines { "WIN32" }
+		libdirs { os.findlib("SDL2") }
+		libdirs { 
+			"externals/SDL2/lib/x86"
+		}
 		links { 
 			"OpenGL32",
 			"ws2_32",
 			"Iphlpapi"
 		}
 		defines {"_CRT_SECURE_NO_WARNINGS"}
+
 
 	configuration { "linux", "gmake" }
 		buildoptions { 
@@ -94,6 +107,3 @@ project "Avocado"
 			"-fno-operator-names",
 			"-fno-exceptions"
 		}
-
-	configuration "headless"
-		defines { "HEADLESS" }
