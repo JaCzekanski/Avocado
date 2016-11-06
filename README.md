@@ -1,4 +1,9 @@
-Avocado - Playstation 1 modern emulator project
-===============================================
+# Avocado 
+Modern Playstation 1 emulator project.
 
-Thanks to Andrew Chambers https://github.com/andrewchambers/cmips
+
+
+Build   | Status
+--------|--------
+Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)
+
