@@ -89,6 +89,7 @@ struct CPU {
         timer2->setCPU(this);
 
         cdrom = new cdrom::CDROM();
+		cdrom->setCPU(this);
         mdec = new Dummy("MDEC", 0x1f801820);
         spu = new Dummy("SPU", 0x1f801c00, false);
         expansion2 = new Dummy("Expansion2", 0x1f802000, false);
@@ -106,11 +107,11 @@ struct CPU {
     timer::Timer *timer0 = nullptr;
     timer::Timer *timer1 = nullptr;
     timer::Timer *timer2 = nullptr;
+	dma::DMA *dma = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
     Dummy *serial = nullptr;
-    dma::DMA *dma = nullptr;
     cdrom::CDROM *cdrom = nullptr;
     gpu::GPU *gpu = nullptr;
     Dummy *mdec = nullptr;
@@ -121,6 +122,8 @@ struct CPU {
     void writeMemory(uint32_t address, uint8_t data);
 
     void checkForInterrupts();
+
+	void decodeBiosFunction();
 
    public:
     void setGPU(gpu::GPU *gpu) {

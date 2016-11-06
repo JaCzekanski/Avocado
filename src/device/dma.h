@@ -52,7 +52,9 @@ class DMA : public Device {
     // BCR dma6Count;
 
     dmaChannel::DMA2Channel dma2;
+public:
 	dmaChannel::DMA3Channel dma3;
+private:
     dmaChannel::DMA6Channel dma6;
 
     void *_cpu = nullptr;

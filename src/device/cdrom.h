@@ -12,6 +12,7 @@ class CDROM : public Device {
     std::deque<uint8_t> CDROM_interrupt;
 
     void *_cpu = nullptr;
+	int readSector = 0;
 
    public:
     CDROM();

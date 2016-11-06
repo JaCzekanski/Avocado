@@ -6,6 +6,7 @@
 #include "psxExe.h"
 #include "utils/file.h"
 #include <cstdlib>
+#include "bios/functions.h"
 #include <cstring>
 
 extern bool disassemblyEnabled;
@@ -167,6 +168,31 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
     if (memoryAccessLogging) printf("W32: 0x%08x - 0x%08x\n", address, data);
 }
 
+void CPU::decodeBiosFunction()
+{
+	using namespace bios;
+	if ((PC & 0xf0) == 0xA0) {
+		for (auto function : A0)
+		{
+			if (function.number != reg[9]) continue;
+
+
+			printf("BIOS A0: %s(", function.name);
+			for (int i = 0 ;i< function.argc; i++)
+			{
+				if (i > 4) break;
+				printf("0x%x%s", reg[4 + i], i == (function.argc - 1)? "" : ", ");
+			}
+			printf(")\n");
+
+			return;
+		}
+	}
+	printf("%x(0x%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", (PC & 0xf0) >> 4, reg[9], reg[4], reg[5], reg[6], reg[7]);
+	//if (reg[9] == 0x40) state = State::stop;
+}
+
+
 bool CPU::executeInstructions(int count) {
     mipsInstructions::Opcode _opcode;
 
@@ -179,19 +205,6 @@ bool CPU::executeInstructions(int count) {
         const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
         _mnemonic = op.mnemnic;
 
-        if ((PC & 0x0fffffff) == 0xa0 && biosLog) {
-            printf("BIOS A(0x%02x) r4: 0x%08x r5: 0x%08x r6: 0x%08x \n", reg[9], reg[4], reg[5], reg[6]);
-        }
-        if ((PC & 0x0fffffff) == 0xb0 && (biosLog || reg[9] == 0x3d)) {
-            if (reg[9] == 0x3d) {
-                printf("%c", reg[4]);
-            } else {
-                printf("BIOS B(0x%02x)\n", reg[9]);
-            }
-        }
-        if ((PC & 0x0fffffff) == 0xc0 && biosLog) {
-            printf("BIOS C(0x%02x)\n", reg[9]);
-        }
         op.instruction(this, _opcode);
 
         if (disassemblyEnabled) {
@@ -208,8 +221,16 @@ bool CPU::executeInstructions(int count) {
             PC = jumpPC & 0xFFFFFFFC;
             jumpPC = 0;
             shouldJump = false;
-        } else
-            PC += 4;
+
+			uint32_t maskedPc = PC & 0x1FFFFF;
+			if (biosLog && (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0)) decodeBiosFunction();
+
+			if (maskedPc == 0xb0 && reg[9] == 0x3d) {
+				printf("%c", reg[4]);
+			}
+		} else {
+			PC += 4;
+		}
     }
     return true;
 }
