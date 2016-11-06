@@ -23,6 +23,9 @@ project "SDL_net"
 			"`pkg-config --cflags sdl2`"
 		}
 
+	configuration { "windows" }
+		defines { "WIN32" }
+
 project "glad"
 	kind "StaticLib"
 	language "c"
@@ -47,6 +50,7 @@ project "Avocado"
 		"src", 
 		"externals/imgui",
 		"externals/SDL_net",
+		"externals/SDL2/include",
 		"externals/glad/include",
 		"externals/glm"
 	}
@@ -54,6 +58,11 @@ project "Avocado"
 	files { 
 		"src/**.h", 
 		"src/**.cpp"
+	}
+	
+	links { 
+		"SDL_net",
+		"glad"
 	}
 
 	filter "configurations:Debug"
@@ -64,15 +73,14 @@ project "Avocado"
 		defines { "NDEBUG" }
 		optimize "Full"
 
+
 	configuration "headless"
 		defines { "HEADLESS" }
 
 	configuration "not headless"
 		libdirs { os.findlib("SDL2") }
 		links { 
-				"SDL2",
-				"SDL_net",
-				"glad"
+			"SDL2",
 		}
 
 	configuration { "windows" }
