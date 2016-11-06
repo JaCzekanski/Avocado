@@ -3,7 +3,7 @@ os:
 
 environment:
   matrix:
-  - TOOLSET: vs2013
+#  - TOOLSET: vs2013
   - TOOLSET: vs2015
 
 before_build:
@@ -26,7 +26,7 @@ before_build:
   - premake5.exe %TOOLSET% --headless
 
 configuration:
-  - Debug
+#  - Debug
   - Release
 
 build:
