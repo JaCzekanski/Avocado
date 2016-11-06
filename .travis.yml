@@ -12,6 +12,8 @@ env:
   - PREMAKE_VERSION=5.0.0-alpha5
 
 install:
+  - export BASE=$PWD
+
   # Build SDL2 from externals
   - mkdir buildsdl
   - export PREFIX=$PWD/buildsdl
@@ -22,6 +24,7 @@ install:
   - make -j
   - make install
 
+  - cd $BASE
   # Download and build premake5 from source
   # new versions have problems with build on travis-ci enviroment
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
@@ -32,6 +35,7 @@ install:
   - mv premake-`echo $PREMAKE_VERSION`/bin/release/premake5 premake5
 
 before_script:
+  - cd $BASE
   - ./premake5 gmake --headless
 
 script:
