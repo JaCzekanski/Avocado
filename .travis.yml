@@ -1,5 +1,8 @@
 sudo: false
-language: cpp
+language: generic
+
+cache:
+  apt: true
 
 matrix:
   include:
