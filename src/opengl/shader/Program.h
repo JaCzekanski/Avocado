@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "Shader.h"
+#include "Attribute.h"
 #include <glad/glad.h>
 
 class Program {
@@ -25,6 +26,6 @@ class Program {
 
     GLuint get();
     bool use();
-    GLint getAttrib(const GLchar *name);
+    Attribute getAttrib(const GLchar *name);
     GLint getUniform(const GLchar *name);
 };

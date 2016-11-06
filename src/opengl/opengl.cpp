@@ -59,19 +59,12 @@ void createRenderBuffer() {
     glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-    glVertexAttribIPointer(renderShader->getAttrib("position"), 2, GL_UNSIGNED_INT, sizeof(Vertex), 0);
-    glVertexAttribIPointer(renderShader->getAttrib("color"), 3, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(2 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("texcoord"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(5 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("bitcount"), 1, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(7 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("clut"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(8 * sizeof(int)));
-    glVertexAttribIPointer(renderShader->getAttrib("texpage"), 2, GL_UNSIGNED_INT, sizeof(Vertex), (void *)(10 * sizeof(int)));
-
-    glEnableVertexAttribArray(renderShader->getAttrib("position"));
-    glEnableVertexAttribArray(renderShader->getAttrib("color"));
-    glEnableVertexAttribArray(renderShader->getAttrib("texcoord"));
-    glEnableVertexAttribArray(renderShader->getAttrib("bitcount"));
-    glEnableVertexAttribArray(renderShader->getAttrib("clut"));
-    glEnableVertexAttribArray(renderShader->getAttrib("texpage"));
+    renderShader->getAttrib("position").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 0);
+    renderShader->getAttrib("color").pointer(3, GL_UNSIGNED_INT, sizeof(Vertex), 2 * sizeof(int));
+    renderShader->getAttrib("texcoord").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 5 * sizeof(int));
+    renderShader->getAttrib("bitcount").pointer(1, GL_UNSIGNED_INT, sizeof(Vertex), 7 * sizeof(int));
+    renderShader->getAttrib("clut").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 8 * sizeof(int));
+    renderShader->getAttrib("texpage").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 10 * sizeof(int));
 
     glBindVertexArray(0);
 }
@@ -88,10 +81,10 @@ std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screen
     float sy = (float)screenY / 512.f;
     float sw = sx + (float)screenW / 1024.f;
     float sh = sy + (float)screenH / 512.f;
-    ;
+
     return {
         {{0.f, 0.f}, {sx, sy}}, {{1.f, 0.f}, {sw, sy}}, {{1.f, 1.f}, {sw, sh}},
-		{{0.f, 0.f}, {sx, sy}}, {{1.f, 1.f}, {sw, sh}}, {{0.f, 1.f}, {sx, sh}},
+        {{0.f, 0.f}, {sx, sy}}, {{1.f, 1.f}, {sw, sh}}, {{0.f, 1.f}, {sx, sh}},
     };
 }
 
@@ -105,11 +98,8 @@ void createBlitBuffer() {
     glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(blitVertex) * sizeof(BlitStruct), blitVertex.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(blitShader->getAttrib("position"), 2, GL_FLOAT, GL_FALSE, sizeof(BlitStruct), 0);
-    glVertexAttribPointer(blitShader->getAttrib("texcoord"), 2, GL_FLOAT, GL_FALSE, sizeof(BlitStruct), (void *)(2 * sizeof(float)));
-
-    glEnableVertexAttribArray(blitShader->getAttrib("position"));
-    glEnableVertexAttribArray(blitShader->getAttrib("texcoord"));
+    blitShader->getAttrib("position").pointer(2, GL_FLOAT, sizeof(BlitStruct), 0);
+    blitShader->getAttrib("texcoord").pointer(2, GL_FLOAT, sizeof(BlitStruct), 2 * sizeof(float));
 
     glBindVertexArray(0);
 }
@@ -195,13 +185,13 @@ void renderSecondStage() {
 void render(device::gpu::GPU *gpu) {
     // Update screen position
 
-	int screenWidth = opengl::resWidth;
-	int screenHeight = opengl::resHeight;
+    int screenWidth = opengl::resWidth;
+    int screenHeight = opengl::resHeight;
 
     std::vector<BlitStruct> bb;
     if (viewFullVram) {
-		screenWidth = 1024;
-		screenHeight = 512;
+        screenWidth = 1024;
+        screenHeight = 512;
         bb = makeBlitBuf(0, 0, screenWidth, screenHeight);
     } else {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),

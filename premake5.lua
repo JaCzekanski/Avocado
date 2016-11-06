@@ -43,6 +43,7 @@ project "Avocado"
 	language "c++"
 	location "build/libs/Avocado"
 	targetdir "build/%{cfg.buildcfg}"
+	debugdir "."
 	flags { "C++14" }
 
 	includedirs { 

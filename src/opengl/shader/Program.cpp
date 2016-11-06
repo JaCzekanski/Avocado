@@ -72,13 +72,13 @@ bool Program::use() {
     return true;
 }
 
-GLint Program::getAttrib(const GLchar *name) {
+Attribute Program::getAttrib(const GLchar *name) {
     if (!initialized) return 0;
     GLint loc = glGetAttribLocation(programId, name);
     if (loc == -1) {
         printf("GL: Cannot find attribute %s in program %s\n", name, this->name.c_str());
     }
-    return loc;
+    return Attribute(loc);
 }
 
 GLint Program::getUniform(const GLchar *name) {
