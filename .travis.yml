@@ -8,6 +8,9 @@ compiler:
   - clang
   - gcc
 
+env:
+  - PREMAKE_VERSION=5.0.0-alpha5
+
 install:
   # Build SDL2 from externals
   - mkdir buildsdl
@@ -21,7 +24,6 @@ install:
 
   # Download and build premake5 from source
   # new versions have problems with build on travis-ci enviroment
-  - export PREMAKE_VERSION=5.0.0-alpha5
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
   - unzip premake.zip
   - cd premake-`echo $PREMAKE_VERSION`/build/gmake.unix
@@ -30,7 +32,7 @@ install:
   - mv premake-`echo $PREMAKE_VERSION`/bin/release/premake5 premake5
 
 before_script:
-  - premake5 gmake --headless
+  - ./premake5 gmake --headless
 
 script:
   - make -j
