@@ -20,8 +20,8 @@ install:
   - make install
 
   # Download and build premake5 from source
-  # 5.0.0-alpha10 has problems with build on travis-ci enviroment
-  - export PREMAKE_VERSION=5.0.0-alpha9
+  # new versions have problems with build on travis-ci enviroment
+  - export PREMAKE_VERSION=5.0.0-alpha5
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
   - unzip premake.zip
   - cd premake-`echo $PREMAKE_VERSION`/build/gmake.unix
