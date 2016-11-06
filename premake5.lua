@@ -6,28 +6,52 @@ newoption {
 		description = "Build without window creation"
 }
 
+project "SDL_net"
+	kind "StaticLib"
+	language "c"
+	location "build/libs/SDL_net"
+	includedirs { 
+		"externals/SDL_net",
+		"/usr/include/SDL2"
+	}
+	files { 
+		"externals/SDL_net/SDLnet*.c"
+	}
+
+project "glad"
+	kind "StaticLib"
+	language "c"
+	location "build/libs/glad"
+	includedirs { 
+		"externals/glad/include"
+	}
+	files { 
+		"externals/glad/src/*.c",
+	}
+
+
 project "Avocado"
 	kind "ConsoleApp"
 	language "c++"
 	targetdir "build/%{cfg.buildcfg}"
 	objdir "build/obj/%{cfg.buildcfg}"
-	
+
 	includedirs { 
-			".", 
-			"src", 
-			"externals/imgui",
-			"externals/SDL_net",
-			"externals/glad/include",
-			"/usr/include/SDL2"
-		}
+		".", 
+		"src", 
+		"externals/imgui",
+		"externals/SDL_net",
+		"externals/glad/include",
+		"/usr/include/SDL2"
+	}
 	libdirs { os.findlib("SDL2") }
 	links { 
-			"SDL2"
+			"SDL2",
+			"SDL_net",
+			"glad"
 	}
 
 	files { 
-		"externals/SDL_net/SDLnet*.c",
-		"externals/glad/src/glad.c",
 		"src/**.h", 
 		"src/**.cpp"
 	}
