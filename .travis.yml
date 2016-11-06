@@ -1,21 +1,57 @@
-language: cpp
+sudo: false
+language: generic
 
-os: linux
+cache:
+  apt: true
 
-compiler:
-  - gcc
-
-before_install:
-  - sudo add-apt-repository -y ppa:zoogie/sdl2-snapshots
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
+matrix:
+  include:
+    - os: linux
+      env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
+      addons:
+        apt:
+          packages:
+            - clang-3.8
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.8
+# Problems with clang specific options and gcc
+#    - os: linux
+#      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
+#      addons:
+#        apt:
+#          packages:
+#            - g++-5
+#          sources:
+#            - ubuntu-toolchain-r-test
 
 install:
-  - sudo apt-get install -qq libsdl2-dev
-  - sudo apt-get install -qq g++-4.8
-  - export CXX="g++-4.8"
-  - export CC="gcc-4.8"
+  - export BASE=$PWD
+
+  # Build SDL2 from externals
+  - mkdir buildsdl
+  - export PREFIX=$PWD/buildsdl
+  - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+  - export PATH=$PATH:$PWD/buildsdl/bin
+  - cd externals/SDL2
+  - ./configure --prefix=$PREFIX
+  - make -j
+  - make install
+
+  - cd $BASE
+  - export PREMAKE_VERSION=5.0.0-alpha5
+  # Download and build premake5 from source
+  # new versions have problems with build on travis-ci enviroment
+  - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
+  - unzip premake.zip
+  - cd premake-`echo $PREMAKE_VERSION`/build/gmake.unix
+  - make config=release
+  - cd ../../..
+  - mv premake-`echo $PREMAKE_VERSION`/bin/release/premake5 premake5
+
+before_script:
+  - cd $BASE
+  - ./premake5 gmake --headless
 
 script:
-  - chmod a+x .travis.sh
-  - ./.travis.sh
+  - make -j
