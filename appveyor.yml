@@ -12,6 +12,14 @@ before_build:
   # premake
   - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha5/premake-5.0.0-alpha5-windows.zip' 'premake.zip'
   - 7z x premake.zip
+
+
+  # SDL
+  - cd externals
+  - rmdir /S SDL2
+  - ps: Start-FileDownload 'https://www.libsdl.org/release/SDL2-devel-2.0.4-VC.zip' 'SDL.zip'
+  - 7z x SDL.zip 
+  - ren SDL2-2.0.4 SDL2
   
   # generate solution
   - premake5.exe %TOOLSET% --headless

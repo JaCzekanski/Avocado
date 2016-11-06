@@ -61,6 +61,7 @@ project "Avocado"
 	}
 	
 	links { 
+		"SDL2",
 		"SDL_net",
 		"glad"
 	}
@@ -73,24 +74,22 @@ project "Avocado"
 		defines { "NDEBUG" }
 		optimize "Full"
 
-
 	configuration "headless"
 		defines { "HEADLESS" }
 
-	configuration "not headless"
-		libdirs { os.findlib("SDL2") }
-		links { 
-			"SDL2",
-		}
-
 	configuration { "windows" }
 		defines { "WIN32" }
+		libdirs { os.findlib("SDL2") }
+		libdirs { 
+			"externals/SDL2/lib/x86"
+		}
 		links { 
 			"OpenGL32",
 			"ws2_32",
 			"Iphlpapi"
 		}
 		defines {"_CRT_SECURE_NO_WARNINGS"}
+
 
 	configuration { "linux", "gmake" }
 		buildoptions { 
