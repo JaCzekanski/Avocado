@@ -24,9 +24,6 @@ matrix:
             - clang-3.9
       env: COMPILER=clang++-3.9
 
-env:
-  - PREMAKE_VERSION=5.0.0-alpha5
-
 install:
   - export BASE=$PWD
 
@@ -41,6 +38,7 @@ install:
   - make install
 
   - cd $BASE
+  - export PREMAKE_VERSION=5.0.0-alpha5
   # Download and build premake5 from source
   # new versions have problems with build on travis-ci enviroment
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
