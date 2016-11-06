@@ -39,6 +39,7 @@ project "Avocado"
 	language "c++"
 	location "build/libs/Avocado"
 	targetdir "build/%{cfg.buildcfg}"
+	flags { "C++14" }
 
 	includedirs { 
 		".", 
@@ -62,7 +63,7 @@ project "Avocado"
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }
-		flags { "Symbols" }
+		symbols "On"
 	
 	filter "configurations:Release"
 		defines { "NDEBUG" }
@@ -86,8 +87,6 @@ project "Avocado"
 		}
 		links { "GL" }
 		buildoptions { 
-			"-stdlib=libc++",
-			"-std=c++14",
 			"-Wall",
 			"-Wno-write-strings",
 			"-Wno-unused-private-field",
@@ -95,5 +94,6 @@ project "Avocado"
 			"-fno-operator-names",
 			"-fno-exceptions"
 		}
+
 	configuration "headless"
 		defines { "HEADLESS" }

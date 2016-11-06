@@ -5,7 +5,8 @@
 #include <deque>
 #include "psxExe.h"
 #include "utils/file.h"
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstring>
 
 extern bool disassemblyEnabled;
 extern char *_mnemonic;

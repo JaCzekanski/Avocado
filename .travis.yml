@@ -15,14 +15,15 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.8
-    - os: linux
-      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
-      addons:
-        apt:
-          packages:
-            - g++-5
-          sources:
-            - ubuntu-toolchain-r-test
+# Problems with clang specific options and gcc
+#    - os: linux
+#      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
+#      addons:
+#        apt:
+#          packages:
+#            - g++-5
+#          sources:
+#            - ubuntu-toolchain-r-test
 
 install:
   - export BASE=$PWD
