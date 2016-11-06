@@ -2,8 +2,8 @@ workspace "Avocado"
 	configurations { "Debug", "Release" }
 
 newoption {
-		trigger = "headless",
-		description = "Build without window creation"
+	trigger = "headless",
+	description = "Build without window creation"
 }
 
 project "SDL_net"
@@ -42,8 +42,7 @@ project "Avocado"
 		"externals/imgui",
 		"externals/SDL_net",
 		"externals/glad/include",
-		"externals/glm",
-		"/usr/include/SDL2"
+		"externals/glm"
 	}
 	libdirs { os.findlib("SDL2") }
 	links { 
@@ -75,7 +74,12 @@ project "Avocado"
 		defines {"_CRT_SECURE_NO_WARNINGS"}
 
 	configuration { "linux", "gmake" }
-		toolset "clang"
+		buildoptions { 
+			"`pkg-config --cflags sdl2`"
+		}
+		linkoptions { 
+			"`pkg-config --libs sdl2`"
+		}
 		links { "GL" }
 		buildoptions { 
 			"-stdlib=libc++",

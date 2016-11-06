@@ -1,21 +1,26 @@
+sudo: false
+
 language: cpp
 
 os: linux
 
 compiler:
+  - clang
   - gcc
 
-before_install:
-  - sudo add-apt-repository -y ppa:zoogie/sdl2-snapshots
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
-
 install:
-  - sudo apt-get install -qq libsdl2-dev
-  - sudo apt-get install -qq g++-4.8
-  - export CXX="g++-4.8"
-  - export CC="gcc-4.8"
+  # Build SDL2 in externals
+  - mkdir buildsdl
+  - export PREFIX=$PWD/buildsdl
+  - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+  - export PATH=$PATH:$PWD/buildsdl/bin
+  - cd externals/SDL2
+  - ./configure --prefix=$PREFIX
+  - make -j
+  - make install
+
+before_script:
+  - premake5 gmake --headless
 
 script:
-  - chmod a+x .travis.sh
-  - ./.travis.sh
+  - make -j
