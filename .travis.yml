@@ -9,7 +9,7 @@ compiler:
   - gcc
 
 install:
-  # Build SDL2 in externals
+  # Build SDL2 from externals
   - mkdir buildsdl
   - export PREFIX=$PWD/buildsdl
   - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
@@ -18,6 +18,15 @@ install:
   - ./configure --prefix=$PREFIX
   - make -j
   - make install
+
+  # Download and build premake5 from source
+  - export PREMAKE_VERSION=5.0.0-alpha10
+  - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
+  - unzip premake.zip
+  - cd premake-`echo $PREMAKE_VERSION`/build/gmake.unix
+  - make config=release
+  - cd ../../..
+  - mv premake-`echo $PREMAKE_VERSION`/bin/release/premake5 premake5
 
 before_script:
   - premake5 gmake --headless
