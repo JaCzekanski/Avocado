@@ -10,7 +10,7 @@ DMAChannel::DMAChannel(int channel) : channel(channel) {}
 void DMAChannel::step() {}
 
 uint8_t DMAChannel::read(uint32_t address) {
-    if (address >= 0x0 && address < 0x4) return baseAddress._byte[address];
+    if (address < 0x4) return baseAddress._byte[address];
     if (address >= 0x4 && address < 0x8) return count._byte[address - 4];
     if (address >= 0x8 && address < 0xc) return control._byte[address - 8];
 
@@ -21,7 +21,7 @@ uint8_t DMAChannel::read(uint32_t address) {
 void DMAChannel::write(uint32_t address, uint8_t data) {
     mips::CPU *cpu = (mips::CPU *)_cpu;
 
-    if (address >= 0x0 && address < 0x4)
+    if (address < 0x4)
         baseAddress._byte[address] = data;
     else if (address >= 0x4 && address < 0x8)
         count._byte[address - 4] = data;
@@ -32,7 +32,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.startTrigger = CHCR::StartTrigger::clear;
 
         if (control.syncMode == CHCR::SyncMode::startImmediately) {
-            printf("DMA%d mode: word @ 0x%08x\n", channel, baseAddress.address);
+//            printf("DMA%d mode: word @ 0x%08x\n", channel, baseAddress.address);
 
             // TODO: Check Transfer Direction
             // TODO: Check Memory Address Step
@@ -54,7 +54,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             if (control.transferDirection == CHCR::TransferDirection::toMainRam)  // VRAM READ
             {
-                printf("DMA%d VRAM -> CPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
+ //               printf("DMA%d VRAM -> CPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
@@ -63,7 +63,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
             } else if (control.transferDirection == CHCR::TransferDirection::fromMainRam)  // VRAM WRITE
             {
-                printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
+ //               printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
@@ -73,7 +73,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             }
 
         } else if (control.syncMode == CHCR::SyncMode::linkedListMode) {
-            printf("DMA%d linked list\n", channel);
+ //           printf("DMA%d linked list\n", channel);
             int addr = baseAddress.address;
 
             for (;;) {

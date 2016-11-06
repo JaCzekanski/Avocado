@@ -1,8 +1,7 @@
 #pragma once
 #include "device.h"
-#include <SDL.h>
-
-struct SDL_Renderer;
+#include <vector>
+#include <src/opengl/opengl.h>
 
 namespace device {
 namespace gpu {
@@ -76,13 +75,31 @@ union GP1_08 {
     };
 
     GP1_08() : _reg(0) {}
+
+    int getHorizontalResoulution() {
+        if (horizontalResolution2 == HorizontalResolution2::r386) return 368;
+        switch (horizontalResolution1) {
+            case HorizontalResolution::r256:
+                return 256;
+            case HorizontalResolution::r320:
+                return 320;
+            case HorizontalResolution::r512:
+                return 512;
+            case HorizontalResolution::r640:
+                return 640;
+        }
+    }
+
+    int getVerticalResoulution() {
+        if (verticalResolution == VerticalResolution::r240) return 240;
+        return 480;
+    }
 };
 
 class GPU : public Device {
-    void *pixels;
+    void* pixels;
     int stride;
 
-    uint16_t VRAM[512][1024];
     uint32_t fifo[16];
     uint32_t tmpGP0 = 0;
     uint32_t tmpGP1 = 0;
@@ -117,6 +134,7 @@ class GPU : public Device {
     int textureWindowOffsetX = 0;
     int textureWindowOffsetY = 0;
 
+   public:
     // GP0(0xe3)
     int drawingAreaX1 = 0;
     int drawingAreaY1 = 0;
@@ -129,6 +147,7 @@ class GPU : public Device {
     int drawingOffsetX = 0;
     int drawingOffsetY = 0;
 
+   private:
     // GP0(0xe6)
     int setMaskWhileDrawing = 0;
     int checkMaskBeforeDraw = 0;
@@ -143,9 +162,11 @@ class GPU : public Device {
     int dmaDirection = 0;
 
     // GP1(0x05)
+   public:
     int displayAreaStartX = 0;
     int displayAreaStartY = 0;
 
+   private:
     // GP1(0x06)
     int displayRangeX1 = 0;
     int displayRangeX2 = 0;
@@ -154,32 +175,27 @@ class GPU : public Device {
     int displayRangeY1 = 0;
     int displayRangeY2 = 0;
 
+   public:
     GP1_08 gp1_08;
 
+   private:
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-    SDL_Renderer *renderer;
-    void drawPolygon(int x[3], int y[3], int color[3]);
+    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 
    public:
-	   SDL_Texture *texture;
-	   SDL_Texture *SCREEN;
-	   SDL_Texture *output;
     bool odd = false;
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    void render();
-    void setRenderer(SDL_Renderer *renderer) {
-        this->renderer = renderer;
-        texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
-        SCREEN = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING, 640, 480);
-		output = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 640, 480);
-    }
+    std::vector<opengl::Vertex>& render();
+
+    std::vector<opengl::Vertex> renderList;
+    uint16_t VRAM[512][1024];
 };
 }
 }

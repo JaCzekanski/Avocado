@@ -5,8 +5,8 @@
 namespace device {
 class Dummy : public Device {
     std::string name;
-    bool verbose = true;
     uint32_t baseAddress = 0;
+    bool verbose = true;
 
    public:
     Dummy();

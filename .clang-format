@@ -2,7 +2,7 @@
 BasedOnStyle: Google
 Language: Cpp
 IndentWidth: 4
-ColumnLimit: 120
+ColumnLimit: 140
 PointerAlignment: Left
 AlignTrailingComments: true
 BreakBeforeBinaryOperators: All 

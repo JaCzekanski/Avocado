@@ -23,6 +23,10 @@ union Opcode {
     // sh - 5bit shift amount
     // fun - 6bit function field
 
+    // Example:
+    // addu  rd,rs,rt
+    // rd = rs+rt
+
     struct {
         uint32_t fun : 6;
         uint32_t sh : 5;
@@ -43,6 +47,8 @@ struct PrimaryInstruction {
     _Instruction instruction;
     char *mnemnic;
 };
+
+void exception(mips::CPU *cpu, mips::cop0::CAUSE::Exception cause);
 
 void dummy(mips::CPU *cpu, Opcode i);
 void invalid(mips::CPU *cpu, Opcode i);
