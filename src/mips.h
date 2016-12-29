@@ -68,7 +68,7 @@ struct CPU {
         lo = 0;
         exception = false;
 
-        memoryControl = new Dummy("MemCtrl", 0x1f801000);
+        memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
         controller = new controller::Controller();
         controller->setCPU(this);
         serial = new Dummy("Serial", 0x1f801050, false);
@@ -89,7 +89,7 @@ struct CPU {
         timer2->setCPU(this);
 
         cdrom = new cdrom::CDROM();
-		cdrom->setCPU(this);
+        cdrom->setCPU(this);
         mdec = new Dummy("MDEC", 0x1f801820);
         spu = new Dummy("SPU", 0x1f801c00, false);
         expansion2 = new Dummy("Expansion2", 0x1f802000, false);
@@ -107,7 +107,7 @@ struct CPU {
     timer::Timer *timer0 = nullptr;
     timer::Timer *timer1 = nullptr;
     timer::Timer *timer2 = nullptr;
-	dma::DMA *dma = nullptr;
+    dma::DMA *dma = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
@@ -123,7 +123,7 @@ struct CPU {
 
     void checkForInterrupts();
 
-	void decodeBiosFunction();
+    void decodeBiosFunction();
 
    public:
     void setGPU(gpu::GPU *gpu) {

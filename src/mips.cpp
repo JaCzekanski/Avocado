@@ -19,6 +19,8 @@ namespace mips {
 const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
                           "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
+bool reallyMAL = false;
+
 uint8_t CPU::readMemory(uint32_t address) {
     // if (address >= 0xfffe0130 && address < 0xfffe0134) {
     //    printf("R Unhandled memory control\n");
@@ -33,8 +35,11 @@ uint8_t CPU::readMemory(uint32_t address) {
     if (address >= 0x1f800000 && address < 0x1f800400) return scratchpad[address - 0x1f800000];
 
     if (address >= 0x1fc00000 && address < 0x1fc80000) return bios[address - 0x1fc00000];
-#define IO(begin, end, periph) \
-    if (address >= (begin) && address < (end)) return periph->read(address - (begin))
+#define IO(begin, end, periph)                   \
+    if (address >= (begin) && address < (end)) { \
+        reallyMAL = true;                        \
+        return periph->read(address - (begin));  \
+    }
 
     // IO Ports
     if (address >= 0x1f801000 && address <= 0x1f803000) {
@@ -127,7 +132,8 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
 
 uint8_t CPU::readMemory8(uint32_t address) {
     uint8_t data = readMemory(address);
-    if (memoryAccessLogging) printf("R8:  0x%08x - 0x%02x\n", address, data);
+    if (memoryAccessLogging && reallyMAL) printf("R8:  0x%08x - 0x%02x\n", address, data);
+    reallyMAL = false;
     return data;
 }
 
@@ -135,7 +141,8 @@ uint16_t CPU::readMemory16(uint32_t address) {
     uint16_t data = 0;
     data |= readMemory(address + 0);
     data |= readMemory(address + 1) << 8;
-    if (memoryAccessLogging) printf("R16: 0x%08x - 0x%04x\n", address, data);
+    if (memoryAccessLogging && reallyMAL) printf("R16: 0x%08x - 0x%04x\n", address, data);
+    reallyMAL = false;
     return data;
 }
 
@@ -145,19 +152,22 @@ uint32_t CPU::readMemory32(uint32_t address) {
     data |= readMemory(address + 1) << 8;
     data |= readMemory(address + 2) << 16;
     data |= readMemory(address + 3) << 24;
-    if (memoryAccessLogging) printf("R32: 0x%08x - 0x%08x\n", address, data);
+    if (memoryAccessLogging && reallyMAL) printf("R32: 0x%08x - 0x%08x\n", address, data);
+    reallyMAL = false;
     return data;
 }
 
 void CPU::writeMemory8(uint32_t address, uint8_t data) {
     writeMemory(address, data);
-    if (memoryAccessLogging) printf("W8:  0x%08x - 0x%02x\n", address, data);
+    if (memoryAccessLogging && reallyMAL) printf("W8:  0x%08x - 0x%02x\n", address, data);
+    reallyMAL = false;
 }
 
 void CPU::writeMemory16(uint32_t address, uint16_t data) {
     writeMemory(address + 0, data & 0xff);
     writeMemory(address + 1, data >> 8);
-    if (memoryAccessLogging) printf("W16: 0x%08x - 0x%04x\n", address, data);
+    if (memoryAccessLogging && reallyMAL) printf("W16: 0x%08x - 0x%04x\n", address, data);
+    reallyMAL = false;
 }
 
 void CPU::writeMemory32(uint32_t address, uint32_t data) {
@@ -165,33 +175,29 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
     writeMemory(address + 1, data >> 8);
     writeMemory(address + 2, data >> 16);
     writeMemory(address + 3, data >> 24);
-    if (memoryAccessLogging) printf("W32: 0x%08x - 0x%08x\n", address, data);
+    if (memoryAccessLogging && reallyMAL) printf("W32: 0x%08x - 0x%08x\n", address, data);
+    reallyMAL = false;
 }
 
-void CPU::decodeBiosFunction()
-{
-	using namespace bios;
-	if ((PC & 0xf0) == 0xA0) {
-		for (auto function : A0)
-		{
-			if (function.number != reg[9]) continue;
+void CPU::decodeBiosFunction() {
+    using namespace bios;
+    if ((PC & 0xf0) == 0xA0) {
+        for (auto function : A0) {
+            if (function.number != reg[9]) continue;
 
+            printf("BIOS A0: %s(", function.name);
+            for (int i = 0; i < function.argc; i++) {
+                if (i > 4) break;
+                printf("0x%x%s", reg[4 + i], i == (function.argc - 1) ? "" : ", ");
+            }
+            printf(")\n");
 
-			printf("BIOS A0: %s(", function.name);
-			for (int i = 0 ;i< function.argc; i++)
-			{
-				if (i > 4) break;
-				printf("0x%x%s", reg[4 + i], i == (function.argc - 1)? "" : ", ");
-			}
-			printf(")\n");
-
-			return;
-		}
-	}
-	printf("%x(0x%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", (PC & 0xf0) >> 4, reg[9], reg[4], reg[5], reg[6], reg[7]);
-	//if (reg[9] == 0x40) state = State::stop;
+            return;
+        }
+    }
+    printf("%x(0x%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", (PC & 0xf0) >> 4, reg[9], reg[4], reg[5], reg[6], reg[7]);
+    // if (reg[9] == 0x40) state = State::stop;
 }
-
 
 bool CPU::executeInstructions(int count) {
     mipsInstructions::Opcode _opcode;
@@ -222,15 +228,15 @@ bool CPU::executeInstructions(int count) {
             jumpPC = 0;
             shouldJump = false;
 
-			uint32_t maskedPc = PC & 0x1FFFFF;
-			if (biosLog && (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0)) decodeBiosFunction();
+            uint32_t maskedPc = PC & 0x1FFFFF;
+            if (biosLog && (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0)) decodeBiosFunction();
 
-			if (maskedPc == 0xb0 && reg[9] == 0x3d) {
-				printf("%c", reg[4]);
-			}
-		} else {
-			PC += 4;
-		}
+            if (maskedPc == 0xb0 && reg[9] == 0x3d) {
+                // printf("%c", reg[4]);
+            }
+        } else {
+            PC += 4;
+        }
     }
     return true;
 }
@@ -238,7 +244,7 @@ bool CPU::executeInstructions(int count) {
 void CPU::checkForInterrupts() {
     if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
         mipsInstructions::exception(this, cop0::CAUSE::Exception::interrupt);
-        //printf("-%s\n", interrupt->getStatus().c_str());
+        // printf("-%s\n", interrupt->getStatus().c_str());
     }
 }
 

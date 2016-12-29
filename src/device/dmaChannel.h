@@ -78,6 +78,7 @@ class DMAChannel : public Device {
     virtual void writeDevice(uint32_t data) {}
 
    public:
+    bool irqFlag = false;
     DMAChannel(int channel);
     void step();
     uint8_t read(uint32_t address);

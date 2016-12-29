@@ -22,10 +22,9 @@ const int gpuFrequency = cpuFrequency * 11 / 7;
 SDL_Window *window;
 bool viewFullVram = false;
 
-void dumpRam(mips::CPU *cpu)
-{	
-	std::vector<uint8_t> ram(cpu->ram, &cpu->ram[0x200000-1]);
-	putFileContents("ram.bin", ram);
+void dumpRam(mips::CPU *cpu) {
+    std::vector<uint8_t> ram(cpu->ram, &cpu->ram[0x200000 - 1]);
+    putFileContents("ram.bin", ram);
 }
 
 int main(int argc, char **argv) {
@@ -45,7 +44,8 @@ int main(int argc, char **argv) {
     window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth, opengl::resHeight,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (window == nullptr) {
-        printf("Cannot create window\n");
+        printf("Cannot create window (%s)\n", SDL_GetError());
+        __debugbreak();
         return 1;
     }
 
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 #endif
 
-    auto _bios = getFileContents("data/bios/SCPH1002.BIN");
+    auto _bios = getFileContents("data/bios/SCPH1000.BIN");
     if (_bios.empty()) {
         printf("Cannot open BIOS");
         return 1;
@@ -98,8 +98,8 @@ int main(int argc, char **argv) {
 
     while (emulatorRunning) {
         int pendingEvents = 0;
-        // if (!cpuRunning) SDL_WaitEvent(&event);
-        // else pendingEvents = SDL_PollEvent(&event);
+// if (!cpuRunning) SDL_WaitEvent(&event);
+// else pendingEvents = SDL_PollEvent(&event);
 #ifndef HEADLESS
         pendingEvents = SDL_PollEvent(&event);
 #endif
@@ -108,8 +108,7 @@ int main(int argc, char **argv) {
             emulatorRunning = false;
         if (event.type == SDL_KEYDOWN) {
             if (event.key.keysym.sym == SDLK_SPACE) {
-                cpu.memoryAccessLogging = !cpu.memoryAccessLogging;
-                printf("MAL %d\n", cpu.memoryAccessLogging);
+                disassemblyEnabled = true;
             }
             if (event.key.keysym.sym == SDLK_l) {
                 std::string exePath = "data/exe/";
@@ -123,13 +122,16 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
             if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
             if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
-			if (event.key.keysym.sym == SDLK_r) dumpRam(&cpu);
-			if (event.key.keysym.sym == SDLK_q) {
-				viewFullVram = !viewFullVram;
+            if (event.key.keysym.sym == SDLK_m) cpu.memoryAccessLogging = !cpu.memoryAccessLogging;
+            if (event.key.keysym.sym == SDLK_r) dumpRam(&cpu);
+            if (event.key.keysym.sym == SDLK_q) {
+                viewFullVram = !viewFullVram;
 
-				if (viewFullVram) SDL_SetWindowSize(window, 1024, 512);
-				else SDL_SetWindowSize(window, opengl::resWidth, opengl::resHeight);
-			}
+                if (viewFullVram)
+                    SDL_SetWindowSize(window, 1024, 512);
+                else
+                    SDL_SetWindowSize(window, opengl::resWidth, opengl::resHeight);
+            }
             //			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
             if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
 
@@ -145,8 +147,8 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_KP_1) buttons.select = true;
             if (event.key.keysym.sym == SDLK_KP_7) buttons.l1 = true;
             if (event.key.keysym.sym == SDLK_KP_DIVIDE) buttons.l2 = true;
-			if (event.key.keysym.sym == SDLK_KP_9) buttons.r1 = true;
-			if (event.key.keysym.sym == SDLK_KP_MULTIPLY) buttons.r2 = true;
+            if (event.key.keysym.sym == SDLK_KP_9) buttons.r1 = true;
+            if (event.key.keysym.sym == SDLK_KP_MULTIPLY) buttons.r2 = true;
 
             cpu.controller->setState(buttons);
         }
@@ -161,10 +163,10 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_KP_6) buttons.circle = false;
             if (event.key.keysym.sym == SDLK_KP_3) buttons.start = false;
             if (event.key.keysym.sym == SDLK_KP_1) buttons.select = false;
-			if (event.key.keysym.sym == SDLK_KP_7) buttons.l1 = false;
-			if (event.key.keysym.sym == SDLK_KP_DIVIDE) buttons.l2 = false;
-			if (event.key.keysym.sym == SDLK_KP_9) buttons.r1 = false;
-			if (event.key.keysym.sym == SDLK_KP_MULTIPLY) buttons.r2 = false;
+            if (event.key.keysym.sym == SDLK_KP_7) buttons.l1 = false;
+            if (event.key.keysym.sym == SDLK_KP_DIVIDE) buttons.l2 = false;
+            if (event.key.keysym.sym == SDLK_KP_9) buttons.r1 = false;
+            if (event.key.keysym.sym == SDLK_KP_MULTIPLY) buttons.r2 = false;
             cpu.controller->setState(buttons);
         }
         if (event.type == SDL_DROPFILE) {
@@ -222,7 +224,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-    // gdbStub.uninitialize();
+// gdbStub.uninitialize();
 #ifndef HEADLESS
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

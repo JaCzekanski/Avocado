@@ -74,7 +74,7 @@ PrimaryInstruction OpcodeTable[64] = {
     {48, notImplemented, "lwc0"},
     {49, notImplemented, "lwc1"},
     {50, dummy, "lwc2"},
-    {51, notImplemented, "lwc3"},
+    {51, dummy, "lwc3"},
     {52, invalid, "INVALID"},
     {53, invalid, "INVALID"},
     {54, invalid, "INVALID"},

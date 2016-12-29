@@ -40,11 +40,11 @@ void DMA::write(uint32_t address, uint8_t data) {
         if (address >= 0xF0 && address < 0xf4) {
             control._byte[address - 0xf0] = data;
             return;
-        } else if (address >= 0xF4 && address< 0xf8) { 
+        } else if (address >= 0xF4 && address < 0xf8) {
             static uint32_t t = 0;
             t &= ~(0xff << 8 * (address - 0xf4));
             t |= data << 8 * (address - 0xf4);
-			
+
             dmaStatus &= 0xff8000;
             dmaStatus |= t & 0xff8000;
 
@@ -57,14 +57,18 @@ void DMA::write(uint32_t address, uint8_t data) {
     }
 
     if (channel == 2) return dma2.write(address % 0x10, data);  // GPU
-	if (channel == 3) {
-		printf("CDROM DMA 0x%02x    0x%02x\n", address, data);
-		if (address == 0x0b && dmaStatus & (1<<(16+ 3)))
-		{
-			dmaStatus |= (1 << (24 + 3)) | (1<<31);
-		}
-		return dma3.write(address % 0x10, data);  // CDROM
-	}
+    if (channel == 3) {
+        printf("CDROM DMA 0x%02x    0x%02x\n", address, data);
+        dma3.write(address % 0x10, data);  // CDROM
+
+        if (dma3.irqFlag) {
+            dmaStatus |= 1 << 31;
+            dmaStatus |= 1 << (24 + channel);
+            dma3.irqFlag = false;
+        }
+        ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+        return;
+    }
     if (channel == 6) return dma6.write(address % 0x10, data);  // reverse clear OT
 
     printf("W Unimplemented DMA channel %d\n", channel);
