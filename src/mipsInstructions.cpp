@@ -177,7 +177,7 @@ void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
     if (cpu->shouldJump) {
-        cpu->cop0.cause.isInDelaySlot = true;
+        cpu->cop0.cause.isInDelaySlot = !true;
         cpu->cop0.epc = cpu->PC - 4;  // EPC - return address from trap
     } else {
         cpu->cop0.epc = cpu->PC;
@@ -733,7 +733,8 @@ void cop0(CPU *cpu, Opcode i) {
 }
 
 // Coprocessor two
-void cop2(CPU *cpu, Opcode i) { printf("COP2: 0x%08x\n", i.opcode); }
+void cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
+}
 
 // Load Byte
 // LB rt, offset(base)

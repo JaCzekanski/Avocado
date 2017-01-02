@@ -58,15 +58,14 @@ void DMA::write(uint32_t address, uint8_t data) {
 
     if (channel == 2) return dma2.write(address % 0x10, data);  // GPU
     if (channel == 3) {
-        printf("CDROM DMA 0x%02x    0x%02x\n", address, data);
         dma3.write(address % 0x10, data);  // CDROM
 
         if (dma3.irqFlag) {
             dmaStatus |= 1 << 31;
             dmaStatus |= 1 << (24 + channel);
             dma3.irqFlag = false;
+            ((mips::CPU*)_cpu)->interrupt->IRQ(3);
         }
-        ((mips::CPU*)_cpu)->interrupt->IRQ(3);
         return;
     }
     if (channel == 6) return dma6.write(address % 0x10, data);  // reverse clear OT

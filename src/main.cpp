@@ -14,6 +14,7 @@ char *_mnemonic;
 std::string _disasm = "";
 
 mips::CPU cpu;
+device::gpu::GPU *gpu;
 bool cpuRunning = true;
 
 const int cpuFrequency = 44100 * 768;
@@ -26,6 +27,59 @@ void dumpRam(mips::CPU *cpu) {
     std::vector<uint8_t> ram(cpu->ram, &cpu->ram[0x200000 - 1]);
     putFileContents("ram.bin", ram);
 }
+
+int gpuLine = 0;
+int gpuDot = 0;
+bool gpuOdd = false;
+int frames = 0;
+
+void emulateGpuCycles(int cycles) {
+    // for (int i = 0; i<cycles; i++) cpu.timer0->step();
+    // for (int i = 0; i<cycles; i++) cpu.timer1->step();
+    // for (int i = 0; i<cycles; i++) cpu.timer2->step();
+
+    gpuDot += cycles;
+
+    int newLines = gpuDot / 3413;
+    if (newLines == 0) return;
+
+    cpu.timer1->step();
+
+    gpuDot %= 3413;
+    if (gpuLine < 0x100 && gpuLine + newLines >= 0x100) {
+        gpu->odd = false;
+        gpu->step();
+        cpu.interrupt->IRQ(0);
+    }
+    gpuLine += newLines;
+    if (gpuLine >= 263) {
+        gpuLine %= 263;
+        frames++;
+        gpuOdd = !gpuOdd;
+        gpu->step();
+
+#ifndef HEADLESS
+        std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(),
+                                          cpu.interrupt->getStatus().c_str(), frames);
+        SDL_SetWindowTitle(window, title.c_str());
+
+        opengl::render(gpu);
+        SDL_GL_SwapWindow(window);
+#endif
+    } else if (gpuLine > 0x10) {
+        gpu->odd = gpuOdd;
+    }
+}
+
+struct EvCB {
+    uint32_t clazz;
+    uint32_t status;
+    uint32_t spec;
+    uint32_t mode;
+    uint32_t ptr;
+    uint32_t unk1;
+    uint32_t unk2;
+};
 
 int main(int argc, char **argv) {
 #ifndef HEADLESS
@@ -45,7 +99,6 @@ int main(int argc, char **argv) {
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (window == nullptr) {
         printf("Cannot create window (%s)\n", SDL_GetError());
-        __debugbreak();
         return 1;
     }
 
@@ -67,7 +120,7 @@ int main(int argc, char **argv) {
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 #endif
 
-    auto _bios = getFileContents("data/bios/SCPH1000.BIN");
+    auto _bios = getFileContents("data/bios/SCPH1001.BIN");  // DTLH3000.BIN BOOTS
     if (_bios.empty()) {
         printf("Cannot open BIOS");
         return 1;
@@ -79,21 +132,13 @@ int main(int argc, char **argv) {
         memcpy(cpu.expansion, &_exp[0], _exp.size());
     }
 
-    device::gpu::GPU *gpu = new device::gpu::GPU();
+    gpu = new device::gpu::GPU();
     cpu.setGPU(gpu);
     cpu.state = mips::CPU::State::run;
 
-    int gpuLine = 0;
-    int gpuDot = 0;
-    bool gpuOdd = false;
-
     int cycles = 0;
-    int frames = 0;
-
     bool emulatorRunning = true;
-
     SDL_Event event;
-
     device::controller::DigitalController buttons;
 
     while (emulatorRunning) {
@@ -118,11 +163,22 @@ int main(int argc, char **argv) {
                 exePath += filename;
                 cpu.loadExeFile(exePath);
             }
+            if (event.key.keysym.sym == SDLK_e) {
+                // Print EvCB
+                uint32_t addr = cpu.readMemory32(0x120);
+                uint32_t size = cpu.readMemory32(0x120 + 4) / 0x1c;
+
+                EvCB *eventArray = (EvCB *)&cpu.ram[addr & 0x1FFFF];
+
+                for (int i = 0; i < size; i++) {
+                    if (eventArray[i].clazz == 0) break;
+                    printf("Event %d  0x%08x 0x%08x 0x%08x\n", i, eventArray[i].clazz, eventArray[i].spec, eventArray[i].status);
+                }
+            }
             if (event.key.keysym.sym == SDLK_b) cpu.biosLog = !cpu.biosLog;
             if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
             if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
             if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
-            if (event.key.keysym.sym == SDLK_m) cpu.memoryAccessLogging = !cpu.memoryAccessLogging;
             if (event.key.keysym.sym == SDLK_r) dumpRam(&cpu);
             if (event.key.keysym.sym == SDLK_q) {
                 viewFullVram = !viewFullVram;
@@ -183,46 +239,15 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        if (!cpu.executeInstructions(7)) {
+        cpu.cdrom->step();
+
+        if (!cpu.executeInstructions(70)) {
             printf("CPU Halted\n");
             cpuRunning = false;
         }
-        cycles += 7;
+        cycles += 700;
 
-        for (int i = 0; i < 11; i++) {
-            cpu.timer0->step();
-            cpu.timer1->step();
-            cpu.timer2->step();
-            gpuDot++;
-
-            if (gpuDot < 3412) continue;
-
-            gpuDot = 0;
-            gpuLine++;
-            if (gpuLine == 0x100) {
-                gpu->odd = false;
-                gpu->step();
-                cpu.interrupt->IRQ(0);
-                continue;
-            }
-            if (gpuLine >= 263) {
-                gpuLine = 0;
-                frames++;
-                gpuOdd = !gpuOdd;
-                gpu->step();
-
-#ifndef HEADLESS
-                std::string title = string_format("IMASK: %s, ISTAT: %s, frame: %d,", cpu.interrupt->getMask().c_str(),
-                                                  cpu.interrupt->getStatus().c_str(), frames);
-                SDL_SetWindowTitle(window, title.c_str());
-
-                opengl::render(gpu);
-                SDL_GL_SwapWindow(window);
-#endif
-            } else if (gpuLine > 0x10) {
-                gpu->odd = gpuOdd;
-            }
-        }
+        emulateGpuCycles(110);
     }
 // gdbStub.uninitialize();
 #ifndef HEADLESS

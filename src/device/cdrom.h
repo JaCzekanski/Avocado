@@ -21,7 +21,6 @@ class CDROM : public Device {
         CDROM_Status() : _reg(0x18) {}
     };
 
-    CDROM_Status status;
     std::deque<uint8_t> CDROM_params;
     std::deque<uint8_t> CDROM_response;
     std::deque<uint8_t> CDROM_interrupt;
@@ -45,6 +44,8 @@ class CDROM : public Device {
     }
 
    public:
+    bool shellOpen = false;
+    CDROM_Status status;
     CDROM();
     void step();
     uint8_t read(uint32_t address);

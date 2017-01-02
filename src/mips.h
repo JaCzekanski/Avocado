@@ -8,6 +8,11 @@
 #include "device/timer.h"
 #include "device/dummy.h"
 #include "device/controller.h"
+
+namespace bios {
+struct Function;
+}
+
 namespace mips {
 using namespace device;
 /*
@@ -104,6 +109,7 @@ struct CPU {
    public:
     interrupt::Interrupt *interrupt = nullptr;
     controller::Controller *controller = nullptr;
+    cdrom::CDROM *cdrom = nullptr;
     timer::Timer *timer0 = nullptr;
     timer::Timer *timer1 = nullptr;
     timer::Timer *timer2 = nullptr;
@@ -112,7 +118,6 @@ struct CPU {
    private:
     Dummy *memoryControl = nullptr;
     Dummy *serial = nullptr;
-    cdrom::CDROM *cdrom = nullptr;
     gpu::GPU *gpu = nullptr;
     Dummy *mdec = nullptr;
     Dummy *spu = nullptr;
@@ -123,7 +128,7 @@ struct CPU {
 
     void checkForInterrupts();
 
-    void decodeBiosFunction();
+    void handleBiosFunction();
 
    public:
     void setGPU(gpu::GPU *gpu) {
@@ -137,13 +142,13 @@ struct CPU {
     void writeMemory8(uint32_t address, uint8_t data);
     void writeMemory16(uint32_t address, uint16_t data);
     void writeMemory32(uint32_t address, uint32_t data);
-
+    void printFunctionInfo(int type, bios::Function f);
+    void findFunctionInTable(const std::vector<bios::Function> &functions, int functionNumber);
     bool executeInstructions(int count);
 
     // Helpers
-    bool biosLog = false;
+    bool biosLog = true;
     bool printStackTrace = false;
-    bool memoryAccessLogging = false;
     bool loadExeFile(std::string exePath);
 };
 };
