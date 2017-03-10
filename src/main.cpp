@@ -92,8 +92,8 @@ int main(int argc, char **argv) {
 
     while (emulatorRunning) {
         int pendingEvents = 0;
-        // if (!cpuRunning) SDL_WaitEvent(&event);
-        // else pendingEvents = SDL_PollEvent(&event);
+// if (!cpuRunning) SDL_WaitEvent(&event);
+// else pendingEvents = SDL_PollEvent(&event);
 #ifndef HEADLESS
         pendingEvents = SDL_PollEvent(&event);
 #endif
@@ -117,12 +117,14 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_c) cpu.interrupt->IRQ(2);
             if (event.key.keysym.sym == SDLK_d) cpu.interrupt->IRQ(3);
             if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
-			if (event.key.keysym.sym == SDLK_q) {
-				viewFullVram = !viewFullVram;
+            if (event.key.keysym.sym == SDLK_q) {
+                viewFullVram = !viewFullVram;
 
-				if (viewFullVram) SDL_SetWindowSize(window, 1024, 512);
-				else SDL_SetWindowSize(window, opengl::resWidth, opengl::resHeight);
-			}
+                if (viewFullVram)
+                    SDL_SetWindowSize(window, 1024, 512);
+                else
+                    SDL_SetWindowSize(window, opengl::resWidth, opengl::resHeight);
+            }
             //			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
             if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
 
@@ -206,7 +208,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-    // gdbStub.uninitialize();
+// gdbStub.uninitialize();
 #ifndef HEADLESS
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
