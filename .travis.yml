@@ -7,14 +7,14 @@ cache:
 matrix:
   include:
     - os: linux
-      env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
+      env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
       addons:
         apt:
           packages:
-            - clang-3.8
+            - clang-3.9
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.8
+            - llvm-toolchain-precise-3.9
 # Problems with clang specific options and gcc
 #    - os: linux
 #      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
@@ -43,7 +43,7 @@ install:
   # Download and build premake5 from source
   # new versions have problems with build on travis-ci enviroment
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
-  - unzip premake.zip
+  - unzip -q premake.zip
   - cd premake-`echo $PREMAKE_VERSION`/build/gmake.unix
   - make config=release
   - cd ../../..
@@ -54,4 +54,4 @@ before_script:
   - ./premake5 gmake --headless
 
 script:
-  - make config=release -j
+  - make config=release -j3
