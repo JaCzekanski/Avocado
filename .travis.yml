@@ -1,29 +1,27 @@
 sudo: false
 language: generic
 
-cache:
-  apt: true
+cache: ccache
 
 matrix:
   include:
     - os: linux
-      env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
+      env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
       addons:
         apt:
           packages:
-            - clang-3.8
+            - clang-3.9
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.8
-# Problems with clang specific options and gcc
-#    - os: linux
-#      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
-#      addons:
-#        apt:
-#          packages:
-#            - g++-5
-#          sources:
-#            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.9
+    - os: linux
+      env: COMPILER_NAME=gcc CXX=g++-6 CC=gcc-6
+      addons:
+        apt:
+          packages:
+            - g++-6
+          sources:
+            - ubuntu-toolchain-r-test
 
 install:
   - export BASE=$PWD
@@ -35,17 +33,17 @@ install:
   - export PATH=$PATH:$PWD/buildsdl/bin
   - cd externals/SDL2
   - ./configure --prefix=$PREFIX
-  - make -j
+  - make -j3
   - make install
 
   - cd $BASE
-  - export PREMAKE_VERSION=5.0.0-alpha5
+  - export PREMAKE_VERSION=5.0.0-alpha11
   # Download and build premake5 from source
   # new versions have problems with build on travis-ci enviroment
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
-  - unzip premake.zip
+  - unzip -q premake.zip
   - cd premake-`echo $PREMAKE_VERSION`/build/gmake.unix
-  - make config=release
+  - make config=release -j3
   - cd ../../..
   - mv premake-`echo $PREMAKE_VERSION`/bin/release/premake5 premake5
 
@@ -54,4 +52,10 @@ before_script:
   - ./premake5 gmake --headless
 
 script:
-  - make config=release -j
+  - make config=release -j3
+
+
+notifications:
+  email: false
+  slack:
+    secure: m2lZp7TTiYtJG67Bujmo+ShXDKektD/qzOLU3GnXycgUYqDsvqwc8BTxpJnLd2VZqcZlbs+SCFAYCs30mjgQkgAkGudPuaH2yg/kfjGgXQF8QZCawPxZN7oEEUFh45IHA114AqN9J6sy/okAYsDXiWQ2Ay1Bb0kwBdMtdv6fzH9taSXBQf5QOaxFcO9m814GgGEbYNs+W7m4Drl9/kWo6Ms2DD8x/X2HnIkf5laIX3KOa0aNYzfsDckrstHhMmjAgGldHZRnHH9Iw4cDkkYfT8Th6fuA1G0CAS4QXzPGvx4gtWNDMuV+LKsx0Xl+GYW3x06oKlN00/4ZobqNWECbs3lx7lhRacNIrtvViUvVDD2tdSCQKxZOMwpVRdZp7m3C0GX/IWiXx0pYsNBK7DkqiwekUgA3dTHR65X9DSX8yNWZBnmBjld2UwE/Qe462HWyYDGRDJAAr7ANs48JTabbExREnzK9r9XrvcwKbkSBkdQ3lZyXzsJH1WV7DQWkuhWCz/+iwXXMqo5TnnjC7CXSW0aUD3/sWiElwZrVVpJWRqxCyz8somCxS2S+8K2PbHRYafXSBwWpegTrWl9HsuuDotZHWLYv4dYAhr1Vrq1o6nKnrkO8aomvvsSpidfV/46mn9RMJbydUa+pcoJ4LFevbTzqjfxNm0d8hRtZe2VwAbI=
