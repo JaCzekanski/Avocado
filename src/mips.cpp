@@ -1,9 +1,10 @@
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
 #include "mips.h"
 #include "mipsInstructions.h"
-#include <cstdio>
 #include "psxExe.h"
 #include "utils/file.h"
-#include <cstdlib>
 #include "bios/functions.h"
 
 namespace mips {
@@ -55,7 +56,6 @@ uint8_t CPU::readMemory(uint32_t address) {
             return expansion2->read(address);
         }
         printf("R Unhandled IO at 0x%08x\n", address + 0x1f801000);
-        __debugbreak();
     }
 #undef IO
 
@@ -280,7 +280,8 @@ bool CPU::loadExeFile(std::string exePath) {
 }
 
 void CPU::dumpRam() {
-    std::vector<uint8_t> ram(ram, ram + 0x1fffff);
+    std::vector<uint8_t> ram;
+    ram.assign(this->ram, this->ram + 0x1fffff);
     putFileContents("ram.bin", ram);
 }
 }
