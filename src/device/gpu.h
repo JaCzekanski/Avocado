@@ -1,10 +1,18 @@
 #pragma once
 #include "device.h"
 #include <vector>
-#include <src/opengl/opengl.h>
 
 namespace device {
 namespace gpu {
+
+struct Vertex {
+    int position[2];
+    int color[3];
+    int texcoord[2];
+    int bitcount;
+    int clut[2];     // clut position
+    int texpage[2];  // texture page position
+};
 
 // Draw Mode setting
 union GP0_E1 {
@@ -193,9 +201,9 @@ class GPU : public Device {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    std::vector<OpenGL::Vertex>& render();
+    std::vector<Vertex>& render();
 
-    std::vector<OpenGL::Vertex> renderList;
+    std::vector<Vertex> renderList;
     uint16_t VRAM[512][1024];
 };
 }

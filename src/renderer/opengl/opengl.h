@@ -2,24 +2,10 @@
 #include <externals/glad/include/glad/glad.h>
 #include "shader/Program.h"
 #include <memory>
-
-namespace device {
-namespace gpu {
-class GPU;
-}
-}
+#include "../../device/gpu.h"
 
 class OpenGL {
    public:
-    struct Vertex {
-        int position[2];
-        int color[3];
-        int texcoord[2];
-        int bitcount;
-        int clut[2];     // clut position
-        int texpage[2];  // texture page position
-    };
-
     static const int resWidth = 640;
     static const int resHeight = 480;
 
@@ -63,6 +49,6 @@ class OpenGL {
     void createVramTexture();
     void createRenderTexture();
     std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480);
-    void renderFirstStage(const std::vector<Vertex>& renderList, device::gpu::GPU* gpu);
+    void renderFirstStage(const std::vector<device::gpu::Vertex>& renderList, device::gpu::GPU* gpu);
     void renderSecondStage();
 };

@@ -1,6 +1,5 @@
 #include "gpu.h"
 #include <cstdio>
-#include <SDL.h>
 
 namespace device {
 namespace gpu {
@@ -509,6 +508,6 @@ void GPU::writeGP1(uint32_t data) {
     } else
         printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 }
-std::vector<OpenGL::Vertex> &GPU::render() { return renderList; }
+std::vector<Vertex> &GPU::render() { return renderList; }
 }
 }

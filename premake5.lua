@@ -1,11 +1,6 @@
 workspace "Avocado"
 	configurations { "Debug", "Release" }
 
-newoption {
-	trigger = "headless",
-	description = "Build without window creation"
-}
-
 project "SDL_net"
 	kind "StaticLib"
 	language "c"
@@ -60,6 +55,10 @@ project "Avocado"
 		"src/**.h", 
 		"src/**.cpp"
 	}
+	removefiles {
+		"src/renderer/**.*",
+		"src/platform/**.*",
+	}
 	
 	links { 
 		"SDL2",
@@ -74,15 +73,18 @@ project "Avocado"
 	filter "configurations:Release"
 		defines { "NDEBUG" }
 		optimize "Full"
-
-	configuration "headless"
-		defines { "HEADLESS" }
-
+		
 	configuration { "windows" }
 		defines { "WIN32" }
 		libdirs { os.findlib("SDL2") }
 		libdirs { 
 			"externals/SDL2/lib/x86"
+		}
+		files { 
+			"src/renderer/opengl/**.cpp",
+			"src/renderer/opengl/**.h"
+			"src/platform/windows/**.cpp",
+			"src/platform/windows/**.h"
 		}
 		links { 
 			"OpenGL32",
@@ -98,6 +100,10 @@ project "Avocado"
 		}
 		linkoptions { 
 			"`pkg-config --libs sdl2`"
+		}
+		files { 
+			"src/platform/headless/**.cpp",
+			"src/platform/headless/**.h"
 		}
 		links { "GL" }
 		buildoptions { 

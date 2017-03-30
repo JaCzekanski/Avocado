@@ -5,6 +5,8 @@
 #include "shader/Program.h"
 #include "device/gpu.h"
 
+using namespace device::gpu;
+
 bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);

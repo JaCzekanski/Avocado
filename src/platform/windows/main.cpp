@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <string>
 #include <SDL.h>
-#include "opengl/opengl.h"
+#include "renderer/opengl/opengl.h"
 #include "utils/file.h"
 #include "utils/string.h"
 #include "mips.h"
@@ -95,7 +95,6 @@ void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::
 }
 
 int main(int argc, char **argv) {
-#ifndef HEADLESS
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
         return 1;
@@ -126,7 +125,6 @@ int main(int argc, char **argv) {
         return 1;
     }
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-#endif
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
@@ -151,10 +149,7 @@ int main(int argc, char **argv) {
     SDL_Event event;
 
     for (;;) {
-        int pendingEvents = 0;
-#ifndef HEADLESS
-        pendingEvents = SDL_PollEvent(&event);
-#endif
+        int pendingEvents = SDL_PollEvent(&event);
 
         if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) break;
         if (event.type == SDL_KEYDOWN) {
@@ -195,9 +190,7 @@ int main(int argc, char **argv) {
         if (cpu->state == mips::CPU::State::run) {
             emulateFrame(cpu, gpu);
 
-#ifndef HEADLESS
             opengl.render(gpu.get());
-#endif
             std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d,", cpu->interrupt->getMask().c_str(),
                                               cpu->interrupt->getStatus().c_str(), gpu->frames);
             SDL_SetWindowTitle(window, title.c_str());
@@ -206,10 +199,8 @@ int main(int argc, char **argv) {
             SDL_Delay(16);
         }
     }
-#ifndef HEADLESS
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
-#endif
     return 0;
 }
