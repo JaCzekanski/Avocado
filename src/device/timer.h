@@ -99,7 +99,8 @@ class Timer : public Device {
 
    public:
     Timer(int which);
-    void step();
+    void step() { step(1); }
+    void step(int cycles);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
     void setCPU(void *cpu) { this->_cpu = cpu; }

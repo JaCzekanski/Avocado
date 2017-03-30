@@ -121,19 +121,15 @@ uint32_t to24bit(uint16_t color) {
 
 void GPU::step() {
     // Calculate GPUSTAT
-    GPUSTAT = (gp0_e1._reg & 0x7FF) | (textureDisableAllowed << 15) | (setMaskWhileDrawing << 11) | (checkMaskBeforeDraw << 12)
-
-              | (1 << 13) | ((uint8_t)gp1_08.reverseFlag << 14) | ((uint8_t)gp0_e1.textureDisable << 15)
-
+    GPUSTAT = (gp0_e1._reg & 0x7FF) | (setMaskWhileDrawing << 11) | (checkMaskBeforeDraw << 12) | (1 << 13)  // always set
+              | ((uint8_t)gp1_08.reverseFlag << 14) | ((uint8_t)gp0_e1.textureDisable << 15) | ((uint8_t)gp1_08.horizontalResolution2 << 16)
+              | ((uint8_t)gp1_08.horizontalResolution1 << 17) | ((uint8_t)gp1_08.verticalResolution << 19)
+              | ((uint8_t)gp1_08.videoMode << 20) | ((uint8_t)gp1_08.colorDepth << 21) | (gp1_08.interlace << 22)
               | ((uint8_t)displayDisable << 23) | ((uint8_t)irqAcknowledge << 24)
-
-              | ((uint8_t)gp1_08.horizontalResolution2 << 16) | ((gp1_08._reg & 0x3f) << 17)
-
               | ((dmaDirection == 0 ? 0 : (dmaDirection == 1 ? 1 : (dmaDirection == 2 ? 1 : readyVramToCpu))) << 25)
-
               | (1 << 26)                           // Ready for DMA command
               | (readyVramToCpu << 27) | (1 << 28)  // Ready for receive DMA block
-              | (dmaDirection << 29) | (odd << 31);
+              | ((dmaDirection & 3) << 29) | (odd << 31);
 }
 
 uint8_t GPU::read(uint32_t address) {

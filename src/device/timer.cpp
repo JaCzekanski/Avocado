@@ -5,8 +5,8 @@
 namespace device {
 namespace timer {
 Timer::Timer(int which) : which(which) {}
-void Timer::step() {
-    ++cnt;
+void Timer::step(int cycles) {
+    cnt += cycles;
 
     if (which == 0) {
         if (mode.clockSource.clockSource0 == CounterMode::ClockSource0::dotClock
@@ -22,10 +22,7 @@ void Timer::step() {
     } else if (which == 1) {
         if (mode.clockSource.clockSource1 == CounterMode::ClockSource1::hblank
             || mode.clockSource.clockSource1 == CounterMode::ClockSource1::hblank_) {
-            // if (cnt >= 3412/4) {
-            //    cnt = 0;
-            current++;
-            //}
+            current += cnt % 3413;
         } else {  // System Clock
             if (cnt >= 2) {
                 cnt = 0;
