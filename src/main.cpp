@@ -5,7 +5,6 @@
 #include "utils/file.h"
 #include "utils/string.h"
 #include "mips.h"
-#include "gdbStub.h"
 
 #undef main
 
@@ -13,6 +12,7 @@ bool disassemblyEnabled = false;
 char *_mnemonic;
 std::string _disasm = "";
 
+OpenGL opengl;
 mips::CPU cpu;
 device::gpu::GPU *gpu;
 bool cpuRunning = true;
@@ -21,7 +21,6 @@ const int cpuFrequency = 44100 * 768;
 const int gpuFrequency = cpuFrequency * 11 / 7;
 
 SDL_Window *window;
-bool viewFullVram = false;
 
 void dumpRam(mips::CPU *cpu) {
     std::vector<uint8_t> ram(cpu->ram, &cpu->ram[0x200000 - 1]);
@@ -63,7 +62,7 @@ void emulateGpuCycles(int cycles) {
                                           cpu.interrupt->getStatus().c_str(), frames);
         SDL_SetWindowTitle(window, title.c_str());
 
-        opengl::render(gpu);
+        opengl.render(gpu);
         SDL_GL_SwapWindow(window);
 #endif
     } else if (gpuLine > 0x10) {
@@ -87,15 +86,8 @@ int main(int argc, char **argv) {
         printf("Cannot init SDL\n");
         return 1;
     }
-    opengl::init();
 
-    //	GdbStub gdbStub;
-    //	if (!gdbStub.initialize()) {
-    //		printf("Cannot initialize networking");
-    //		return 1;
-    //	}
-
-    window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, opengl::resWidth, opengl::resHeight,
+    window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (window == nullptr) {
         printf("Cannot create window (%s)\n", SDL_GetError());
@@ -108,12 +100,12 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!opengl::loadExtensions()) {
-        printf("Cannot initialize glad\n");
+    if (!opengl.init()) {
+        printf("Cannot initialize OpenGL\n");
         return 1;
     }
 
-    if (!opengl::setup()) {
+    if (!opengl.setup()) {
         printf("Cannot setup graphics\n");
         return 1;
     }
@@ -181,14 +173,13 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_f) cpu.cop0.status.interruptEnable = true;
             if (event.key.keysym.sym == SDLK_r) dumpRam(&cpu);
             if (event.key.keysym.sym == SDLK_q) {
-                viewFullVram = !viewFullVram;
-
+                bool viewFullVram = !opengl.getViewFullVram();
+                opengl.setViewFullVram(viewFullVram);
                 if (viewFullVram)
                     SDL_SetWindowSize(window, 1024, 512);
                 else
-                    SDL_SetWindowSize(window, opengl::resWidth, opengl::resHeight);
+                    SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
             }
-            //			if (event.key.keysym.sym == SDLK_b) gdbStub.sendBreak = true;
             if (event.key.keysym.sym == SDLK_ESCAPE) emulatorRunning = false;
 
             if (event.key.keysym.sym == SDLK_UP) buttons.up = true;
@@ -249,7 +240,6 @@ int main(int argc, char **argv) {
 
         emulateGpuCycles(110);
     }
-// gdbStub.uninitialize();
 #ifndef HEADLESS
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

@@ -5,25 +5,7 @@
 #include "shader/Program.h"
 #include "device/gpu.h"
 
-extern bool viewFullVram;
-namespace opengl {
-std::unique_ptr<Program> renderShader;
-std::unique_ptr<Program> blitShader;
-
-// emulated console GPU calls
-GLuint renderVao;  // attributes
-GLuint renderVbo;  // buffer
-
-// VRAM to screen blit
-GLuint blitVao;
-GLuint blitVbo;
-
-GLuint vramTex;
-GLuint renderTex;
-
-GLuint framebuffer;
-
-void init() {
+bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
@@ -32,11 +14,17 @@ void init() {
     // SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+    if (!loadExtensions()) {
+        printf("Cannot initialize glad\n");
+        return false;
+    }
+    return true;
 }
 
-bool loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress); }
+bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress); }
 
-bool loadShaders() {
+bool OpenGL::loadShaders() {
     renderShader = std::make_unique<Program>("data/shader/render");
     if (!renderShader->load()) {
         printf("Cannot load render shader: %s\n", renderShader->getError().c_str());
@@ -51,7 +39,7 @@ bool loadShaders() {
     return true;
 }
 
-void createRenderBuffer() {
+void OpenGL::createRenderBuffer() {
     glGenVertexArrays(1, &renderVao);
     glBindVertexArray(renderVao);
 
@@ -69,7 +57,7 @@ void createRenderBuffer() {
     glBindVertexArray(0);
 }
 
-std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480) {
+std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, int screenW, int screenH) {
     /* X,Y
 
        0,0      1,0
@@ -88,7 +76,7 @@ std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screen
     };
 }
 
-void createBlitBuffer() {
+void OpenGL::createBlitBuffer() {
     auto blitVertex = makeBlitBuf();
 
     glGenVertexArrays(1, &blitVao);
@@ -104,7 +92,7 @@ void createBlitBuffer() {
     glBindVertexArray(0);
 }
 
-void createVramTexture() {
+void OpenGL::createVramTexture() {
     glGenTextures(1, &vramTex);
     glBindTexture(GL_TEXTURE_2D, vramTex);
 
@@ -122,7 +110,7 @@ void createVramTexture() {
     glUniform1i(blitShader->getUniform("renderBuffer"), 0);
 }
 
-void createRenderTexture() {
+void OpenGL::createRenderTexture() {
     glGenTextures(1, &renderTex);
     glBindTexture(GL_TEXTURE_2D, renderTex);
 
@@ -140,7 +128,7 @@ void createRenderTexture() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-bool setup() {
+bool OpenGL::setup() {
     if (!loadShaders()) return false;
 
     createRenderBuffer();
@@ -151,7 +139,7 @@ bool setup() {
     return true;
 }
 
-void renderFirstStage(const std::vector<Vertex> &renderList, device::gpu::GPU *gpu) {
+void OpenGL::renderFirstStage(const std::vector<Vertex> &renderList, device::gpu::GPU *gpu) {
     // First stage - render calls to VRAM
     if (renderList.empty()) {
         return;
@@ -172,7 +160,7 @@ void renderFirstStage(const std::vector<Vertex> &renderList, device::gpu::GPU *g
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void renderSecondStage() {
+void OpenGL::renderSecondStage() {
     blitShader->use();
     glBindVertexArray(blitVao);
 
@@ -182,11 +170,11 @@ void renderSecondStage() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void render(device::gpu::GPU *gpu) {
+void OpenGL::render(device::gpu::GPU *gpu) {
     // Update screen position
 
-    int screenWidth = opengl::resWidth;
-    int screenHeight = opengl::resHeight;
+    int screenWidth = OpenGL::resWidth;
+    int screenHeight = OpenGL::resHeight;
 
     std::vector<BlitStruct> bb;
     if (viewFullVram) {
@@ -227,5 +215,4 @@ void render(device::gpu::GPU *gpu) {
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
 
     renderList.clear();
-}
 }

@@ -494,16 +494,21 @@ void GPU::writeGP1(uint32_t data) {
     } else if (command == 0x09) {  // Allow texture disable
         textureDisableAllowed = argument & 1;
     } else if (command >= 0x10 && command <= 0x1f) {  // get GPU Info
-		gpuReadMode = 2;
+        gpuReadMode = 2;
 
-		if (argument == 3) GPUREAD = (drawingAreaY1 << 10) | drawingAreaX1;
-		else if (argument == 4) GPUREAD = (drawingAreaY2 << 10) | drawingAreaX2;
-		else if (argument == 5) GPUREAD = (drawingOffsetY << 11) | drawingOffsetX;
-        else if (argument == 7) GPUREAD = 2;                         // GPU Version
-        else printf("Unimplemented GPU info request (arg: %d)!\n", argument);
+        if (argument == 3)
+            GPUREAD = (drawingAreaY1 << 10) | drawingAreaX1;
+        else if (argument == 4)
+            GPUREAD = (drawingAreaY2 << 10) | drawingAreaX2;
+        else if (argument == 5)
+            GPUREAD = (drawingOffsetY << 11) | drawingOffsetX;
+        else if (argument == 7)
+            GPUREAD = 2;  // GPU Version
+        else
+            printf("Unimplemented GPU info request (arg: %d)!\n", argument);
     } else
         printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 }
-std::vector<opengl::Vertex> &GPU::render() { return renderList; }
+std::vector<OpenGL::Vertex> &GPU::render() { return renderList; }
 }
 }
