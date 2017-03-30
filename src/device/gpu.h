@@ -188,6 +188,7 @@ class GPU : public Device {
 
    public:
     bool odd = false;
+    int frames = 0;
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);

@@ -149,6 +149,10 @@ struct CPU {
     // Helpers
     bool biosLog = true;
     bool printStackTrace = false;
+    bool disassemblyEnabled = false;
+    char *_mnemonic = "";
+    std::string _disasm;
     bool loadExeFile(std::string exePath);
+    void dumpRam();
 };
 };

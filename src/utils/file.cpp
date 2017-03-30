@@ -1,7 +1,5 @@
 #include "file.h"
 
-using namespace std;
-
 std::string getPath(std::string name) {
     int begin = 0, end = name.length() - 1;
 

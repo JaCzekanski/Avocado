@@ -4,15 +4,11 @@
 #include "utils/string.h"
 
 #define mnemonic(x) \
-    if (disassemblyEnabled) _mnemonic = x
+    if (cpu->disassemblyEnabled) cpu->_mnemonic = x
 #define disasm(fmt, ...) \
-    if (disassemblyEnabled) _disasm = string_format(fmt, ##__VA_ARGS__)
+    if (cpu->disassemblyEnabled) cpu->_disasm = string_format(fmt, ##__VA_ARGS__)
 
 using namespace mips;
-
-extern bool disassemblyEnabled;
-extern char *_mnemonic;
-extern std::string _disasm;
 
 namespace mipsInstructions {
 PrimaryInstruction OpcodeTable[64] = {

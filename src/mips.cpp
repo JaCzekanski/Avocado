@@ -1,20 +1,10 @@
 #include "mips.h"
 #include "mipsInstructions.h"
 #include <cstdio>
-#include <string>
-#include <deque>
 #include "psxExe.h"
 #include "utils/file.h"
 #include <cstdlib>
 #include "bios/functions.h"
-#include <cstring>
-#include <algorithm>
-
-extern bool disassemblyEnabled;
-extern char *_mnemonic;
-extern std::string _disasm;
-
-extern uint32_t htimer;
 
 namespace mips {
 const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
@@ -291,5 +281,10 @@ bool CPU::loadExeFile(std::string exePath) {
     lo = 0;
     reg[29] = exe.s_addr;
     return false;
+}
+
+void CPU::dumpRam() {
+    std::vector<uint8_t> ram(ram, ram + 0x200000 - 1);
+    putFileContents("ram.bin", ram);
 }
 }
