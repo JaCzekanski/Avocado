@@ -1,26 +1,6 @@
 workspace "Avocado"
 	configurations { "Debug", "Release" }
-
-project "SDL_net"
-	kind "StaticLib"
-	language "c"
-	location "build/libs/SDL_net"
-	includedirs { 
-		"externals/SDL_net",
-		"externals/SDL2/include"
-	}
-	files { 
-		"externals/SDL_net/SDLnet*.c"
-	}
-
-	configuration { "linux", "gmake" }
-		buildoptions { 
-			"`pkg-config --cflags sdl2`"
-		}
-
-	configuration { "windows" }
-		defines { "WIN32" }
-
+	
 project "glad"
 	kind "StaticLib"
 	language "c"
@@ -31,7 +11,6 @@ project "glad"
 	files { 
 		"externals/glad/src/*.c",
 	}
-
 
 project "Avocado"
 	kind "ConsoleApp"
@@ -45,7 +24,6 @@ project "Avocado"
 		".", 
 		"src", 
 		"externals/imgui",
-		"externals/SDL_net",
 		"externals/SDL2/include",
 		"externals/glad/include",
 		"externals/glm"
@@ -55,17 +33,12 @@ project "Avocado"
 		"src/**.h", 
 		"src/**.cpp"
 	}
+
 	removefiles {
 		"src/renderer/**.*",
-		"src/platform/**.*",
+		"src/platform/**.*"
 	}
 	
-	links { 
-		"SDL2",
-		"SDL_net",
-		"glad"
-	}
-
 	filter "configurations:Debug"
 		defines { "DEBUG" }
 		flags { "Symbols" }
@@ -82,30 +55,23 @@ project "Avocado"
 		}
 		files { 
 			"src/renderer/opengl/**.cpp",
-			"src/renderer/opengl/**.h"
+			"src/renderer/opengl/**.h",
 			"src/platform/windows/**.cpp",
 			"src/platform/windows/**.h"
 		}
 		links { 
-			"OpenGL32",
-			"ws2_32",
-			"Iphlpapi"
+			"SDL2",
+			"glad",
+			"OpenGL32"
 		}
 		defines {"_CRT_SECURE_NO_WARNINGS"}
 
 
 	configuration { "linux", "gmake" }
-		buildoptions { 
-			"`pkg-config --cflags sdl2`"
-		}
-		linkoptions { 
-			"`pkg-config --libs sdl2`"
-		}
 		files { 
 			"src/platform/headless/**.cpp",
 			"src/platform/headless/**.h"
 		}
-		links { "GL" }
 		buildoptions { 
 			"-Wall",
 			"-Wno-write-strings",

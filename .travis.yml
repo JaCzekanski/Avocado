@@ -28,15 +28,16 @@ matrix:
 install:
   - export BASE=$PWD
 
+  # Linux build does not support window and rendering for now
   # Build SDL2 from externals
-  - mkdir buildsdl
-  - export PREFIX=$PWD/buildsdl
-  - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-  - export PATH=$PATH:$PWD/buildsdl/bin
-  - cd externals/SDL2
-  - ./configure --prefix=$PREFIX
-  - make -j
-  - make install
+#  - mkdir buildsdl
+#  - export PREFIX=$PWD/buildsdl
+#  - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+#  - export PATH=$PATH:$PWD/buildsdl/bin
+#  - cd externals/SDL2
+#  - ./configure --prefix=$PREFIX
+#  - make -j
+#  - make install
 
   - cd $BASE
   - export PREMAKE_VERSION=5.0.0-alpha5
@@ -51,7 +52,7 @@ install:
 
 before_script:
   - cd $BASE
-  - ./premake5 gmake --headless
+  - ./premake5 gmake
 
 script:
   - make config=release -j
