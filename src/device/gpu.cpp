@@ -1,5 +1,6 @@
 #include "gpu.h"
 #include <cstdio>
+#include <cmath>
 
 namespace device {
 namespace gpu {

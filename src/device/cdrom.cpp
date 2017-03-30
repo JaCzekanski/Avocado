@@ -185,7 +185,6 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 writeResponse(0b00000010);
             } else {
                 printf("Unimplemented!");
-                __debugbreak();
             }
             //((mips::CPU*)_cpu)->interrupt->IRQ(2);
             CDROM_params.clear();
@@ -211,7 +210,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
     }
     if (address == 3) {
         if (status.index == 1) {  // Interrupt Flag Register R/W
-            if (data & 0x7 == 0x07 && !CDROM_interrupt.empty()) CDROM_interrupt.pop_front();
+            if ((data & 0x7) == 0x07 && !CDROM_interrupt.empty()) CDROM_interrupt.pop_front();
             // CDROM_params.push_back(data);
 
             if (data & 0x40)  // reset parameter fifo
