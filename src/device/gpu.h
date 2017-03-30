@@ -70,7 +70,7 @@ union GP1_08 {
         VerticalResolution verticalResolution : 1;
         VideoMode videoMode : 1;
         ColorDepth colorDepth : 1;
-        Bit interlace : 1;
+        uint8_t interlace : 1;
         HorizontalResolution2 horizontalResolution2 : 1;  // (0=256/320/512/640, 1=368)
         ReverseFlag reverseFlag : 1;
 

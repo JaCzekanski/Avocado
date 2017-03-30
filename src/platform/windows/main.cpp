@@ -8,36 +8,35 @@
 #undef main
 
 bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu, int cycles) {
+    const int LINE_VBLANK_START_NTSC = 243;
+    const int LINES_TOTAL_NTSC = 263;
     static int gpuLine = 0;
     static int gpuDot = 0;
-    static bool gpuOdd = false;
-    // for (int i = 0; i<cycles; i++) cpu->timer0->step();
-    // for (int i = 0; i<cycles; i++) cpu->timer1->step();
-    // for (int i = 0; i<cycles; i++) cpu->timer2->step();
 
     gpuDot += cycles;
 
     int newLines = gpuDot / 3413;
     if (newLines == 0) return false;
-
-    cpu->timer1->step();
-
     gpuDot %= 3413;
-    if (gpuLine < 0x100 && gpuLine + newLines >= 0x100) {
+    gpuLine += newLines;
+
+    if (gpuLine < LINE_VBLANK_START_NTSC) {
+        if (gpu->gp1_08.verticalResolution == device::gpu::GP1_08::VerticalResolution::r480 && gpu->gp1_08.interlace) {
+            gpu->odd = gpu->frames % 2;
+        } else {
+            gpu->odd = gpuLine % 2;
+        }
+    } else {
         gpu->odd = false;
+    }
+
+    if (gpuLine >= LINES_TOTAL_NTSC) {
+        gpuLine = 0;
+        gpu->frames++;
         gpu->step();
         cpu->interrupt->IRQ(0);
-    }
-    gpuLine += newLines;
-    if (gpuLine >= 263) {
-        gpuLine %= 263;
-        gpu->frames++;
-        gpuOdd = !gpuOdd;
-        gpu->step();
 
         return true;
-    } else if (gpuLine > 0x10) {
-        gpu->odd = gpuOdd;
     }
     return false;
 }
@@ -81,14 +80,17 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
 }
 
 void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu) {
+    int systemCycles = 110;
     for (;;) {
-        cpu->cdrom->step();
-
-        if (!cpu->executeInstructions(70)) {
+        if (!cpu->executeInstructions(systemCycles * 7 / 11)) {
             printf("CPU Halted\n");
             return;
         }
-        if (emulateGpuCycles(cpu, gpu, 110)) {
+
+        cpu->cdrom->step();
+        cpu->timer1->step(systemCycles);
+
+        if (emulateGpuCycles(cpu, gpu, systemCycles)) {
             return;  // frame emulated
         }
     }
