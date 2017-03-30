@@ -4,6 +4,7 @@
 #include "dma2Channel.h"
 #include "dma6Channel.h"
 #include "gpu.h"
+#include "dma3Channel.h"
 
 namespace device {
 namespace dma {
@@ -51,6 +52,11 @@ class DMA : public Device {
     // BCR dma6Count;
 
     dmaChannel::DMA2Channel dma2;
+
+   public:
+    dmaChannel::DMA3Channel dma3;
+
+   private:
     dmaChannel::DMA6Channel dma6;
 
     void *_cpu = nullptr;
@@ -68,6 +74,7 @@ class DMA : public Device {
     void setCPU(void *cpu) {
         this->_cpu = cpu;
         dma2.setCPU(_cpu);
+        dma3.setCPU(_cpu);
         dma6.setCPU(_cpu);
     }
 

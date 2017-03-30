@@ -1,18 +1,16 @@
 #include "mipsInstructions.h"
 #include "mips.h"
-#include <string>
 #include "utils/string.h"
 
+static const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+                                 "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
+
 #define mnemonic(x) \
-    if (disassemblyEnabled) _mnemonic = x
+    if (cpu->disassemblyEnabled) cpu->_mnemonic = x
 #define disasm(fmt, ...) \
-    if (disassemblyEnabled) _disasm = string_format(fmt, ##__VA_ARGS__)
+    if (cpu->disassemblyEnabled) cpu->_disasm = string_format(fmt, ##__VA_ARGS__)
 
 using namespace mips;
-
-extern bool disassemblyEnabled;
-extern char *_mnemonic;
-extern std::string _disasm;
 
 namespace mipsInstructions {
 PrimaryInstruction OpcodeTable[64] = {
@@ -74,7 +72,7 @@ PrimaryInstruction OpcodeTable[64] = {
     {48, notImplemented, "lwc0"},
     {49, notImplemented, "lwc1"},
     {50, dummy, "lwc2"},
-    {51, notImplemented, "lwc3"},
+    {51, dummy, "lwc3"},
     {52, invalid, "INVALID"},
     {53, invalid, "INVALID"},
     {54, invalid, "INVALID"},
@@ -177,7 +175,7 @@ void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
     if (cpu->shouldJump) {
-        cpu->cop0.cause.isInDelaySlot = true;
+        cpu->cop0.cause.isInDelaySlot = !true;
         cpu->cop0.epc = cpu->PC - 4;  // EPC - return address from trap
     } else {
         cpu->cop0.epc = cpu->PC;
@@ -733,7 +731,8 @@ void cop0(CPU *cpu, Opcode i) {
 }
 
 // Coprocessor two
-void cop2(CPU *cpu, Opcode i) { printf("COP2: 0x%08x\n", i.opcode); }
+void cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
+}
 
 // Load Byte
 // LB rt, offset(base)

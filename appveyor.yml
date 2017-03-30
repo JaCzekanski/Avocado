@@ -23,7 +23,7 @@ before_build:
   - cd ..
   
   # generate solution
-  - premake5.exe %TOOLSET% --headless
+  - premake5.exe %TOOLSET%
 
 configuration:
 #  - Debug

@@ -38,14 +38,25 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             // TODO: Check Memory Address Step
 
             int addr = baseAddress.address;
-            for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
-                if (i == count.syncMode0.wordCount - 1)
-                    cpu->writeMemory32(addr, 0xffffff);
-                else
-                    cpu->writeMemory32(addr, (addr - 4) & 0xffffff);
-                addr -= 4;
+            if (channel == 3)  // CDROM
+            {
+                printf("DMA%d CDROM -> CPU @ 0x%08x, count: 0x%04x\n", channel, addr, count.syncMode0.wordCount);
+                for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
+                    cpu->writeMemory32(addr, readDevice());
+                    addr += 4;
+                }
+                // cpu->cdrom->status.dataFifoEmpty = 0;
+            } else {
+                for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
+                    if (i == count.syncMode0.wordCount - 1)
+                        cpu->writeMemory32(addr, 0xffffff);
+                    else
+                        cpu->writeMemory32(addr, (addr - 4) & 0xffffff);
+                    addr -= 4;
+                }
             }
             control.enabled = CHCR::Enabled::stop;
+
         } else if (control.syncMode == CHCR::SyncMode::syncBlockToDmaRequests) {
             uint32_t addr = baseAddress.address;
             int blockCount = count.syncMode1.blockCount;
@@ -89,6 +100,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             }
         }
 
+        irqFlag = true;
         control.enabled = CHCR::Enabled::completed;
     }
 }

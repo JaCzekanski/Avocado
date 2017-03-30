@@ -8,6 +8,11 @@
 #include "device/timer.h"
 #include "device/dummy.h"
 #include "device/controller.h"
+
+namespace bios {
+struct Function;
+}
+
 namespace mips {
 using namespace device;
 /*
@@ -68,7 +73,7 @@ struct CPU {
         lo = 0;
         exception = false;
 
-        memoryControl = new Dummy("MemCtrl", 0x1f801000);
+        memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
         controller = new controller::Controller();
         controller->setCPU(this);
         serial = new Dummy("Serial", 0x1f801050, false);
@@ -89,6 +94,7 @@ struct CPU {
         timer2->setCPU(this);
 
         cdrom = new cdrom::CDROM();
+        cdrom->setCPU(this);
         mdec = new Dummy("MDEC", 0x1f801820);
         spu = new Dummy("SPU", 0x1f801c00, false);
         expansion2 = new Dummy("Expansion2", 0x1f802000, false);
@@ -103,15 +109,15 @@ struct CPU {
    public:
     interrupt::Interrupt *interrupt = nullptr;
     controller::Controller *controller = nullptr;
+    cdrom::CDROM *cdrom = nullptr;
     timer::Timer *timer0 = nullptr;
     timer::Timer *timer1 = nullptr;
     timer::Timer *timer2 = nullptr;
+    dma::DMA *dma = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
     Dummy *serial = nullptr;
-    dma::DMA *dma = nullptr;
-    cdrom::CDROM *cdrom = nullptr;
     gpu::GPU *gpu = nullptr;
     Dummy *mdec = nullptr;
     Dummy *spu = nullptr;
@@ -121,6 +127,8 @@ struct CPU {
     void writeMemory(uint32_t address, uint8_t data);
 
     void checkForInterrupts();
+
+    void handleBiosFunction();
 
    public:
     void setGPU(gpu::GPU *gpu) {
@@ -134,13 +142,17 @@ struct CPU {
     void writeMemory8(uint32_t address, uint8_t data);
     void writeMemory16(uint32_t address, uint16_t data);
     void writeMemory32(uint32_t address, uint32_t data);
-
+    void printFunctionInfo(int type, bios::Function f);
+    void findFunctionInTable(const std::vector<bios::Function> &functions, int functionNumber);
     bool executeInstructions(int count);
 
     // Helpers
-    bool biosLog = false;
+    bool biosLog = true;
     bool printStackTrace = false;
-    bool memoryAccessLogging = false;
+    bool disassemblyEnabled = false;
+    char *_mnemonic = "";
+    std::string _disasm;
     bool loadExeFile(std::string exePath);
+    void dumpRam();
 };
 };
