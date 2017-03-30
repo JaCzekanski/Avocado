@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string>
 #include <memory>
+#include <cassert>
 #include "utils/file.h"
 #include "mips.h"
 
