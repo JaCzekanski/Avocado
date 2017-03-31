@@ -9,45 +9,46 @@ bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::g
     static int gpuLine = 0;
     static int gpuDot = 0;
     static bool gpuOdd = false;
-    // for (int i = 0; i<cycles; i++) cpu->timer0->step();
-    // for (int i = 0; i<cycles; i++) cpu->timer1->step();
-    // for (int i = 0; i<cycles; i++) cpu->timer2->step();
 
     gpuDot += cycles;
 
     int newLines = gpuDot / 3413;
     if (newLines == 0) return false;
 
-    cpu->timer1->step();
-
     gpuDot %= 3413;
-    if (gpuLine < 0x100 && gpuLine + newLines >= 0x100) {
-        gpu->odd = false;
-        gpu->step();
+    gpuLine += newLines;
+	if (gpuLine == 264) gpuLine = 0;
+
+	if (gpuLine < 243) {
+		gpu->odd = gpu->frames % 2;
+	} else {
+		gpu->odd = false;
+	}
+    
+    gpu->step();
+	if (gpuLine == 243) {
         cpu->interrupt->IRQ(0);
     }
-    gpuLine += newLines;
     if (gpuLine >= 263) {
-        gpuLine %= 263;
         gpu->frames++;
-        gpuOdd = !gpuOdd;
-        gpu->step();
-
         return true;
-    } else if (gpuLine > 0x10) {
-        gpu->odd = gpuOdd;
-    }
+	}
     return false;
 }
 
 void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu) {
     for (;;) {
         cpu->cdrom->step();
+		
+		cpu->timer0->step(110);
+		cpu->timer1->step(110);
+	    cpu->timer2->step(110);
 
         if (!cpu->executeInstructions(70)) {
             printf("CPU Halted\n");
             return;
         }
+
         if (emulateGpuCycles(cpu, gpu, 110)) {
             return;  // frame emulated
         }
