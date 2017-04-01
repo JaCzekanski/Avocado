@@ -7,12 +7,19 @@
 #include "mips.h"
 #undef main
 
+int _prevCycles = 0;
+int _cycles = 0;
+
+const int CPU_CLOCK = 33868500;
+const int GPU_CLOCK_NTSC = 53690000;
+
 bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu, int cycles) {
     const int LINE_VBLANK_START_NTSC = 243;
     const int LINES_TOTAL_NTSC = 263;
     static int gpuLine = 0;
     static int gpuDot = 0;
 
+    _cycles += cycles;
     gpuDot += cycles;
 
     int newLines = gpuDot / 3413;
@@ -20,7 +27,7 @@ bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::g
     gpuDot %= 3413;
     gpuLine += newLines;
 
-    if (gpuLine < LINE_VBLANK_START_NTSC) {
+    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
         if (gpu->gp1_08.verticalResolution == device::gpu::GP1_08::VerticalResolution::r480 && gpu->gp1_08.interlace) {
             gpu->odd = gpu->frames % 2;
         } else {
@@ -30,7 +37,7 @@ bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::g
         gpu->odd = false;
     }
 
-    if (gpuLine >= LINES_TOTAL_NTSC) {
+    if (gpuLine == LINES_TOTAL_NTSC - 1) {
         gpuLine = 0;
         gpu->frames++;
         gpu->step();
@@ -80,9 +87,9 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
 }
 
 void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu) {
-    int systemCycles = 110;
+    int systemCycles = 991;
     for (;;) {
-        if (!cpu->executeInstructions(systemCycles * 7 / 11)) {
+        if (!cpu->executeInstructions(systemCycles * 200 / 317)) {
             printf("CPU Halted\n");
             return;
         }
@@ -194,8 +201,9 @@ int main(int argc, char **argv) {
             emulateFrame(cpu, gpu);
 
             opengl.render(gpu.get());
-            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d,", cpu->interrupt->getMask().c_str(),
-                                              cpu->interrupt->getStatus().c_str(), gpu->frames);
+            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, CPU cycles: %d", cpu->interrupt->getMask().c_str(),
+                                              cpu->interrupt->getStatus().c_str(), gpu->frames, (_cycles - _prevCycles) * 200 / 317);
+            _prevCycles = _cycles;
             SDL_SetWindowTitle(window, title.c_str());
             SDL_GL_SwapWindow(window);
         } else {

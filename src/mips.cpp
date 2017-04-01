@@ -270,15 +270,17 @@ bool CPU::loadExeFile(std::string exePath) {
         printf("Invalid exe t_size: 0x%08x\n", exe.t_size);
         return false;
     }
+
     for (size_t i = 0; i < exe.t_size; i++) {
         writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
     }
 
     PC = exe.pc0;
-    reg[28] = exe.gp0;
-    reg[29] = exe.s_addr + exe.s_size;
-    reg[30] = exe.s_addr + exe.s_size;
+    //    reg[28] = exe.gp0;
+    //    reg[29] = exe.s_addr + exe.s_size;
+    //    reg[30] = exe.s_addr + exe.s_size;
 
+    exception = false;
     shouldJump = false;
     jumpPC = 0;
     return true;

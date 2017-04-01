@@ -73,19 +73,15 @@ union STATUS {
     };
     uint32_t _reg;
 
-    STATUS() : _reg(0) {
-        cop0Enable = 1;
-        tlbShutdown = 1;
-        bootExceptionVectors = BootExceptionVectors::rom;
-    }
+    STATUS() : _reg(0) {}
 };
 
 struct COP0 {
-    uint32_t badVaddr;   // r8
-    STATUS status;       // r12
-    CAUSE cause;         // r13
-    uint32_t epc;        // r14
-    uint32_t revId = 2;  // r15
+    uint32_t badVaddr = 0;  // r8
+    STATUS status;          // r12
+    CAUSE cause;            // r13
+    uint32_t epc = 0;       // r14
+    uint32_t revId = 2;     // r15
 };
 };
 };

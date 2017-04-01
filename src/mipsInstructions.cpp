@@ -163,8 +163,6 @@ PrimaryInstruction SpecialTable[64] = {
     {63, invalid, "INVALID"},
 };
 
-int part = 0;
-
 inline bool isOverflow(uint32_t result, uint32_t a, uint32_t b) {
 #define SIGN(x) ((x)&0x80000000)
     return !(SIGN(a) ^ SIGN(b)) && (SIGN(result) ^ SIGN(a));
@@ -175,7 +173,7 @@ void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
     if (cpu->shouldJump) {
-        cpu->cop0.cause.isInDelaySlot = !true;
+        cpu->cop0.cause.isInDelaySlot = false;
         cpu->cop0.epc = cpu->PC - 4;  // EPC - return address from trap
     } else {
         cpu->cop0.epc = cpu->PC;

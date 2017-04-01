@@ -20,7 +20,7 @@ uint8_t Interrupt::read(uint32_t address) {
 
 void Interrupt::write(uint32_t address, uint8_t data) {
     if (address < 0x2) {
-        status._byte[address] &= data;
+        status._byte[address] &= data;  // write 0 to ACK
     }
     if (address >= 0x4 && address < 0x6) mask._byte[address - 4] = data;
 
