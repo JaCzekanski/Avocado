@@ -6,6 +6,7 @@
 #include "psxExe.h"
 #include "utils/file.h"
 #include "bios/functions.h"
+#include <cassert>
 
 namespace mips {
 uint8_t CPU::readMemory(uint32_t address) {
@@ -34,7 +35,7 @@ uint8_t CPU::readMemory(uint32_t address) {
                 return 0x5 >> ((address - 0x54) * 8);
             }
         }
-        if (address >= 0xdaa && address < 0xdad) {
+        if (address >= 0xda6 && address < 0xdad) {
             return rand();
         }
 
@@ -261,22 +262,26 @@ bool CPU::loadExeFile(std::string exePath) {
     auto _exe = getFileContents(exePath);
     PsxExe exe;
     if (_exe.empty()) return false;
+    assert(_exe.size() >= 0x800);
 
     memcpy(&exe, &_exe[0], sizeof(exe));
 
-    for (size_t i = 0x800; i < _exe.size(); i++) {
-        writeMemory8(exe.t_addr + i - 0x800, _exe[i]);
+    if (exe.t_size > _exe.size() - 0x800) {
+        printf("Invalid exe t_size: 0x%08x\n", exe.t_size);
+        return false;
+    }
+    for (size_t i = 0; i < exe.t_size; i++) {
+        writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
     }
 
     PC = exe.pc0;
+    reg[28] = exe.gp0;
+    reg[29] = exe.s_addr + exe.s_size;
+    reg[30] = exe.s_addr + exe.s_size;
+
     shouldJump = false;
     jumpPC = 0;
-
-    for (int i = 0; i < 32; i++) reg[i] = 0;
-    hi = 0;
-    lo = 0;
-    reg[29] = exe.s_addr;
-    return false;
+    return true;
 }
 
 void CPU::dumpRam() {

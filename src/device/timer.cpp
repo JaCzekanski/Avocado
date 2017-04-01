@@ -55,7 +55,6 @@ void Timer::step(int cycles) {
 }
 uint8_t Timer::read(uint32_t address) {
     if (address < 4) {
-        if (address == 0) printf("Timer%d current value: %d\n", which, current._reg);
         return current.read(address);
     } else if (address >= 4 && address < 8) {
         uint8_t v = mode.read(address - 4);

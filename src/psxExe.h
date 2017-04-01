@@ -11,16 +11,16 @@ struct PsxExe {
     uint32_t t_addr;
     uint32_t t_size;
 
-    uint32_t d_addr;
-    uint32_t d_size;
+    uint32_t d_addr;  // unknown
+    uint32_t d_size;  // unknown
 
-    uint32_t b_addr;
+    uint32_t b_addr;  // Memfill
     uint32_t b_size;
 
     uint32_t s_addr;
     uint32_t s_size;
 
-    uint32_t sp, fp, gp, ret, base;
+    uint32_t sp, fp, gp, ret, base;  // reserved, should be 0
 
     char license[60];
 };

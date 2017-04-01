@@ -59,7 +59,7 @@ union STATUS {
         Bit writeZeroAsParityBits : 1;
         Bit : 1;  // CM
         Bit cacheParityError : 1;
-        Bit : 1;  // TS
+        Bit tlbShutdown : 1;  // TS
 
         BootExceptionVectors bootExceptionVectors : 1;
         uint32_t : 2;
@@ -73,14 +73,19 @@ union STATUS {
     };
     uint32_t _reg;
 
-    STATUS() : _reg(0) {}
+    STATUS() : _reg(0) {
+        cop0Enable = 1;
+        tlbShutdown = 1;
+        bootExceptionVectors = BootExceptionVectors::rom;
+    }
 };
 
 struct COP0 {
-    uint32_t badVaddr;  // r8
-    STATUS status;      // r12
-    CAUSE cause;        // r13
-    uint32_t epc;       // r14
+    uint32_t badVaddr;   // r8
+    STATUS status;       // r12
+    CAUSE cause;         // r13
+    uint32_t epc;        // r14
+    uint32_t revId = 2;  // r15
 };
 };
 };

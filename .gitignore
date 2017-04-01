@@ -51,3 +51,5 @@ install_manifest.txt
 *.sln
 *.vcxproj
 *.filters
+
+ram.bin

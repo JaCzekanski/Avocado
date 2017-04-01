@@ -45,9 +45,11 @@ r30     fp    - frame pointer
 r31     ra    - return address
 */
 
-class GdbStub;
-
 struct CPU {
+    static const int BIOS_SIZE = 512 * 1024;
+    static const int RAM_SIZE = 2 * 1024 * 1024;
+    static const int SCRATCHPAD_SIZE = 1024;
+    static const int EXPANSION_SIZE = 8 * 1024 * 1024;
     enum class State {
         halted,  // Cannot be run until reset
         stop,    // after reset
@@ -56,7 +58,6 @@ struct CPU {
     } state
         = State::stop;
 
-    friend class GdbStub;
     uint32_t PC;
     uint32_t jumpPC;
     bool shouldJump;
@@ -64,6 +65,12 @@ struct CPU {
     cop0::COP0 cop0;
     uint32_t hi, lo;
     bool exception;
+
+    uint8_t bios[BIOS_SIZE];
+    uint8_t ram[RAM_SIZE];
+    uint8_t scratchpad[SCRATCHPAD_SIZE];
+    uint8_t expansion[EXPANSION_SIZE];
+
     CPU() {
         PC = 0xBFC00000;
         jumpPC = 0;
@@ -72,6 +79,11 @@ struct CPU {
         hi = 0;
         lo = 0;
         exception = false;
+
+        memset(bios, 0, BIOS_SIZE);
+        memset(ram, 0, RAM_SIZE);
+        memset(scratchpad, 0, SCRATCHPAD_SIZE);
+        memset(expansion, 0, EXPANSION_SIZE);
 
         memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
         controller = new controller::Controller();
@@ -99,11 +111,6 @@ struct CPU {
         spu = new Dummy("SPU", 0x1f801c00, false);
         expansion2 = new Dummy("Expansion2", 0x1f802000, false);
     }
-
-    uint8_t bios[512 * 1024];
-    uint8_t ram[2 * 1024 * 1024];
-    uint8_t scratchpad[1024];
-    uint8_t expansion[8192 * 1024];
 
     // Devices
    public:

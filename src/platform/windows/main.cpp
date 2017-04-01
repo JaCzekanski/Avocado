@@ -89,6 +89,7 @@ void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::
 
         cpu->cdrom->step();
         cpu->timer1->step(systemCycles);
+        cpu->timer2->step(systemCycles);
 
         if (emulateGpuCycles(cpu, gpu, systemCycles)) {
             return;  // frame emulated
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
-    auto _bios = getFileContents("data/bios/SCPH7001.BIN");  // DTLH3000.BIN BOOTS
+    auto _bios = getFileContents("data/bios/DTLH3000.BIN");  // DTLH3000.BIN BOOTS
     if (_bios.empty()) {
         printf("Cannot open BIOS");
     } else {
