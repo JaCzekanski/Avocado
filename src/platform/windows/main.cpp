@@ -180,6 +180,12 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_d) cpu->interrupt->IRQ(3);
             if (event.key.keysym.sym == SDLK_f) cpu->cop0.status.interruptEnable = true;
             if (event.key.keysym.sym == SDLK_r) cpu->dumpRam();
+            if (event.key.keysym.sym == SDLK_p) {
+                if (cpu->state == mips::CPU::State::pause)
+                    cpu->state = mips::CPU::State::run;
+                else if (cpu->state == mips::CPU::State::run)
+                    cpu->state = mips::CPU::State::pause;
+            }
             if (event.key.keysym.sym == SDLK_q) {
                 bool viewFullVram = !opengl.getViewFullVram();
                 opengl.setViewFullVram(viewFullVram);
