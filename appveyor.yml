@@ -10,7 +10,7 @@ before_build:
   - git submodule update --init --recursive
 
   # premake
-  - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha5/premake-5.0.0-alpha5-windows.zip' 'premake.zip'
+  - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-windows.zip' 'premake.zip'
   - 7z x premake.zip
 
 
