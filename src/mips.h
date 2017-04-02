@@ -8,6 +8,7 @@
 #include "device/timer.h"
 #include "device/dummy.h"
 #include "device/controller.h"
+#include <unordered_map>
 
 namespace bios {
 struct Function;
@@ -108,8 +109,7 @@ struct CPU {
     void writeMemory8(uint32_t address, uint8_t data);
     void writeMemory16(uint32_t address, uint16_t data);
     void writeMemory32(uint32_t address, uint32_t data);
-    void printFunctionInfo(int type, bios::Function f);
-    void findFunctionInTable(const std::vector<bios::Function> &functions, int functionNumber);
+    void printFunctionInfo(int type, uint8_t number, bios::Function f);
     bool executeInstructions(int count);
 
     // Helpers

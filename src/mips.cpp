@@ -214,8 +214,8 @@ void CPU::writeMemory32(uint32_t address, uint32_t data) {
     writeMemory(address + 3, data >> 24);
 }
 
-void CPU::printFunctionInfo(int type, bios::Function f) {
-    printf("  BIOS %02X(%02x): %s(", type, f.number, f.name);
+void CPU::printFunctionInfo(int type, uint8_t number, bios::Function f) {
+    printf("  BIOS %02X(%02x): %s(", type, number, f.name);
     for (int i = 0; i < f.argc; i++) {
         if (i > 4) break;
         printf("0x%x%s", reg[4 + i], i == (f.argc - 1) ? "" : ", ");
@@ -223,35 +223,26 @@ void CPU::printFunctionInfo(int type, bios::Function f) {
     printf(")\n");
 }
 
-void CPU::findFunctionInTable(const std::vector<bios::Function> &functions, int functionNumber) {
-    for (auto function : functions) {
-        if (function.number != functionNumber) {
-            continue;
-        }
-
-        if (function.callback != nullptr) {
-            bool log = function.callback(*this);
-            if (!log) return;
-        }
-
-        if (biosLog) {
-            printFunctionInfo(0xa0, function);
-            return;
-        }
-    }
-}
-
 void CPU::handleBiosFunction() {
+    std::unordered_map<uint8_t, bios::Function>::const_iterator function;
     uint32_t maskedPC = PC & 0x1FFFFF;
-    int functionNumber = reg[9];
+    uint8_t functionNumber = reg[9];
+    bool log = biosLog;
 
-    if (maskedPC == 0xA0)
-        findFunctionInTable(bios::A0, functionNumber);
-    else if (maskedPC == 0xB0)
-        findFunctionInTable(bios::B0, functionNumber);
-    else {
-        if (biosLog) printf("%x(0x%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", (PC & 0xf0) >> 4, reg[9], reg[4], reg[5], reg[6], reg[7]);
+    if (maskedPC == 0xA0) {
+        function = bios::A0.find(functionNumber);
+        if (function == bios::A0.end()) return;
+        if (function->second.callback != nullptr) log = function->second.callback(*this);
+    } else if (maskedPC == 0xB0) {
+        function = bios::B0.find(functionNumber);
+        if (function == bios::B0.end()) return;
+        if (function->second.callback != nullptr) log = function->second.callback(*this);
+    } else {
+        if (log) printf("%x(0x%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", maskedPC, functionNumber, reg[4], reg[5], reg[6], reg[7]);
+        return;
     }
+
+    if (log) printFunctionInfo(maskedPC, function->first, function->second);
 }
 
 bool CPU::executeInstructions(int count) {
