@@ -71,49 +71,8 @@ struct CPU {
     uint8_t scratchpad[SCRATCHPAD_SIZE];
     uint8_t expansion[EXPANSION_SIZE];
 
-    CPU() {
-        PC = 0xBFC00000;
-        jumpPC = 0;
-        shouldJump = false;
-        for (int i = 0; i < 32; i++) reg[i] = 0;
-        hi = 0;
-        lo = 0;
-        exception = false;
-
-        memset(bios, 0, BIOS_SIZE);
-        memset(ram, 0, RAM_SIZE);
-        memset(scratchpad, 0, SCRATCHPAD_SIZE);
-        memset(expansion, 0, EXPANSION_SIZE);
-
-        memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
-        controller = new controller::Controller();
-        controller->setCPU(this);
-        serial = new Dummy("Serial", 0x1f801050, false);
-
-        interrupt = new interrupt::Interrupt();
-        interrupt->setCPU(this);
-
-        dma = new dma::DMA();
-        dma->setCPU(this);
-
-        timer0 = new timer::Timer(0);
-        timer0->setCPU(this);
-
-        timer1 = new timer::Timer(1);
-        timer1->setCPU(this);
-
-        timer2 = new timer::Timer(2);
-        timer2->setCPU(this);
-
-        cdrom = new cdrom::CDROM();
-        cdrom->setCPU(this);
-        mdec = new Dummy("MDEC", 0x1f801820);
-        spu = new Dummy("SPU", 0x1f801c00, false);
-        expansion2 = new Dummy("Expansion2", 0x1f802000, false);
-    }
-
-    // Devices
    public:
+    // Devices
     interrupt::Interrupt *interrupt = nullptr;
     controller::Controller *controller = nullptr;
     cdrom::CDROM *cdrom = nullptr;
@@ -132,12 +91,12 @@ struct CPU {
 
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
-
     void checkForInterrupts();
-
     void handleBiosFunction();
 
    public:
+    CPU();
+
     void setGPU(gpu::GPU *gpu) {
         this->gpu = gpu;
         dma->setGPU(gpu);
