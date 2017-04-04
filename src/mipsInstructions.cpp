@@ -173,9 +173,10 @@ void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
     if (cpu->shouldJump) {
-        cpu->cop0.cause.isInDelaySlot = false;
-        cpu->cop0.epc = cpu->PC - 4;  // EPC - return address from trap
+        cpu->cop0.cause.isInDelaySlot = true;
+        cpu->cop0.epc = cpu->PC - 4;
     } else {
+        cpu->cop0.cause.isInDelaySlot = false;
         cpu->cop0.epc = cpu->PC;
     }
 
@@ -194,6 +195,7 @@ void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
         cpu->PC = 0x80000080;
     }
 
+    cpu->shouldJump = false;
     cpu->exception = true;
 }
 
