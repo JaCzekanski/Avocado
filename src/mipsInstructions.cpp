@@ -292,7 +292,10 @@ void jalr(CPU *cpu, Opcode i) {
 
 // Syscall
 // SYSCALL
-void syscall(CPU *cpu, Opcode i) { exception(cpu, cop0::CAUSE::Exception::syscall); }
+void syscall(CPU *cpu, Opcode i) {
+    printf("  SYSCALL(%d)\n", cpu->reg[4]);
+    exception(cpu, cop0::CAUSE::Exception::syscall);
+}
 
 // Break
 // BREAK
@@ -477,7 +480,7 @@ void branch(CPU *cpu, Opcode i) {
         case 0:
             // Branch On Less Than Zero
             // BLTZ rs, offset
-            mnemonic("BLTZ");
+            mnemonic("bltz");
             disasm("r%d, %d", i.rs, i.offset);
 
             if ((int32_t)cpu->reg[i.rs] < 0) {
@@ -489,7 +492,7 @@ void branch(CPU *cpu, Opcode i) {
         case 1:
             // Branch On Greater Than Or Equal To Zero
             // BGEZ rs, offset
-            mnemonic("BGEZ");
+            mnemonic("bgez");
             disasm("r%d, %d", i.rs, i.offset);
 
             if ((int32_t)cpu->reg[i.rs] >= 0) {
@@ -501,7 +504,7 @@ void branch(CPU *cpu, Opcode i) {
         case 16:
             // Branch On Less Than Zero And Link
             // bltzal rs, offset
-            mnemonic("BLTZAL");
+            mnemonic("bltzal");
             disasm("r%d, %d", i.rs, i.offset);
 
             cpu->reg[31] = cpu->PC + 8;
@@ -514,7 +517,7 @@ void branch(CPU *cpu, Opcode i) {
         case 17:
             // Branch On Greater Than Or Equal To Zero And Link
             // BGEZAL rs, offset
-            mnemonic("BGEZAL");
+            mnemonic("bgezal");
             disasm("r%d, %d", i.rs, i.offset);
 
             cpu->reg[31] = cpu->PC + 8;
@@ -589,7 +592,7 @@ void bne(CPU *cpu, Opcode i) {
 // Add Immediate Word
 // ADDI rt, rs, imm
 void addi(CPU *cpu, Opcode i) {
-    disasm("r%d, r%d, %d", i.rt, i.rs, i.offset);
+    disasm("r%d, r%d, 0x%hx", i.rt, i.rs, i.offset);
     uint32_t a = cpu->reg[i.rs];
     uint32_t b = i.offset;
     uint32_t result = a + b;
@@ -604,7 +607,7 @@ void addi(CPU *cpu, Opcode i) {
 // Add Immediate Unsigned Word
 // ADDIU rt, rs, imm
 void addiu(CPU *cpu, Opcode i) {
-    disasm("r%d, r%d, %d", i.rt, i.rs, i.offset);
+    disasm("r%d, r%d, 0x%hx", i.rt, i.rs, i.offset);
     cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 }
 
@@ -701,6 +704,10 @@ void cop0(CPU *cpu, Opcode i) {
 
             switch (i.rd) {
                 case 12:
+                    if (cpu->reg[i.rt] & (1 << 17)) {
+                        printf("Panic, SwC not handled\n");
+                        cpu->state = CPU::State::halted;
+                    }
                     cpu->cop0.status._reg = cpu->reg[i.rt];
                     break;
 
@@ -739,7 +746,7 @@ void cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
 // Load Byte
 // LB rt, offset(base)
 void lb(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
+    disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     cpu->reg[i.rt] = ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24;
 }
@@ -747,7 +754,7 @@ void lb(CPU *cpu, Opcode i) {
 // Load Halfword
 // LH rt, offset(base)
 void lh(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
+    disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
     {
@@ -788,7 +795,7 @@ void lwl(CPU *cpu, Opcode i) {
 // Load Word
 // LW rt, offset(base)
 void lw(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
+    disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 3)  // non aligned address
     {
