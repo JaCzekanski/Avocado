@@ -22,6 +22,18 @@ inline bool dbgOutputChar(mips::CPU& cpu) {
     return false;  // Do not log function call
 }
 
+inline bool dbgOutputString(mips::CPU& cpu) {
+    for (int i = 0; i < 80; i++) {
+        char c = cpu.readMemory8(cpu.reg[4] + i);
+        if (c == 0) {
+            printf("\n");
+            return false;
+        }
+        putchar(c);
+    }
+    return false;  // Do not log function call
+}
+
 inline bool haltSystem(mips::CPU& cpu) {
     cpu.state = mips::CPU::State::halted;
     return true;
@@ -90,7 +102,7 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x3B, {"std_in_getchar", 0}},
     {0x3C, {"std_out_putchar", 1, dbgOutputChar}},  // char
     {0x3D, {"std_in_gets", 1}},                     // dst
-    {0x3E, {"std_out_puts", 1}},                    // src
+    {0x3E, {"std_out_puts", 1, dbgOutputString}},   // src
     {0x3F, {"printf", 4, noLog}},                   // txt,param1,param2,etc.
     {0x40, {"SystemErrorUnresolvedException", 0, haltSystem}},
     {0x41, {"LoadExeHeader", 2}},  // filename,headerbuf
@@ -207,7 +219,7 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x3C, {"std_in_getchar", 0}},
     {0x3D, {"std_out_putchar", 1, dbgOutputChar}},  // char,
     {0x3E, {"std_in_gets", 1}},                     // dst,
-    {0x3F, {"std_out_puts", 1}},                    // src,
+    {0x3F, {"std_out_puts", 1, dbgOutputString}},   // src,
     {0x40, {"chdir", 1}},                           // name,
     {0x41, {"FormatDevice", 1}},                    // devicename,
     {0x42, {"firstfile", 2}},                       // filename, direntry,

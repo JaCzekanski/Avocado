@@ -238,11 +238,12 @@ void CPU::handleBiosFunction() {
         if (function == bios::B0.end()) return;
         if (function->second.callback != nullptr) log = function->second.callback(*this);
     } else {
-        if (log) printf("%x(0x%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", maskedPC, functionNumber, reg[4], reg[5], reg[6], reg[7]);
+        if (log)
+            printf("  BIOS %02X(%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", maskedPC >> 4, functionNumber, reg[4], reg[5], reg[6], reg[7]);
         return;
     }
 
-    if (log) printFunctionInfo(maskedPC, function->first, function->second);
+    if (log) printFunctionInfo(maskedPC >> 4, function->first, function->second);
 }
 
 bool CPU::executeInstructions(int count) {
@@ -315,6 +316,12 @@ bool CPU::loadExeFile(std::string exePath) {
     exception = false;
     shouldJump = false;
     jumpPC = 0;
+
+    // Reset timers
+    writeMemory16(0x1f801104, 0x1c00);
+    writeMemory16(0x1f801114, 0x1c00);
+    writeMemory16(0x1f801124, 0x1c00);
+
     return true;
 }
 
