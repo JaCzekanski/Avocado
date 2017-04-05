@@ -156,7 +156,7 @@ uint8_t GPU::read(uint32_t address) {
         if (gpuReadMode == 2) return GPUREAD >> (address * 8);
     }
     if (address >= 4 && address < 8) {
-        step();
+        if (address == 4) step();
         return GPUSTAT >> ((address - 4) * 8);
     }
     return 0;

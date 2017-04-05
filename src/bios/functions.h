@@ -191,7 +191,7 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x14, {"StopPad", 0}},
     {0x15, {"OutdatedPadInitAndStart", 4}},  // type, button_dest, unused, unused,
     {0x16, {"OutdatedPadGetButtons", 0}},
-    {0x17, {"ReturnFromException", 0}},
+    {0x17, {"ReturnFromException", 0, noLog}},
     {0x18, {"SetDefaultExitFromException", 0}},
     {0x19, {"SetCustomExitFromException", 1}},  // addr,
     {0x1A, {"SystemError", 0, haltSystem}},

@@ -40,7 +40,6 @@ bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::g
     if (gpuLine == LINES_TOTAL_NTSC - 1) {
         gpuLine = 0;
         gpu->frames++;
-        gpu->step();
         cpu->interrupt->IRQ(0);
 
         return true;
