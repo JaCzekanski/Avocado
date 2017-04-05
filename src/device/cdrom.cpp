@@ -1,6 +1,8 @@
 #include "cdrom.h"
 #include "../mips.h"
 #include <cstdio>
+#include <cassert>
+#include "../utils/bcd.h"
 
 namespace device {
 namespace cdrom {
@@ -89,15 +91,15 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 writeResponse(0b00000010 | (shellOpen << 4));
             } else if (data == 0x02)  // Setloc
             {
-                uint8_t minute = readParam();
-                uint8_t second = readParam();
-                uint8_t sector = readParam();
+                uint8_t minute = bcdToBinary(readParam());
+                uint8_t second = bcdToBinary(readParam());
+                uint8_t sector = bcdToBinary(readParam());
                 printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
 
-                // sect size: 2352
-                if (second >= 2) second -= 2;
-                readSector = sector + (second * 75) + (minute * 60 * 75);
-                if (readSector < 0) readSector = 0;
+                assert(second >= 2);
+
+                readSector = sector + ((second - 2) * 75) + (minute * 60 * 75);
+                assert(readSector >= 0);
 
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
@@ -107,10 +109,8 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
 
-                for (int i = 0; i < 10; i++) {
-                    CDROM_interrupt.push_back(1);
-                    writeResponse(0b00100010);
-                }
+                CDROM_interrupt.push_back(1);
+                writeResponse(0b00100010);
             } else if (data == 0x0e)  // Setmode
             {
                 CDROM_interrupt.push_back(3);
@@ -136,8 +136,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 writeResponse(9);
             } else if (data == 0x15)  // SeekL
             {
-                int sectorSize = 2352;
-                fseek(((mips::CPU*)_cpu)->dma->dma3.f, readSector * sectorSize + 24, SEEK_SET);
+                ((mips::CPU*)_cpu)->dma->dma3.sector = readSector;
 
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
@@ -219,6 +218,13 @@ void CDROM::write(uint32_t address, uint8_t data) {
             }
 
             printf("CDROM%d.%d<-W  INTE   0x%02x\n", address, status.index, data);
+            return;
+        } else if (status.index == 0) {  // Before data read - Request reg
+            printf("CDROM%d.%d<-W  REQ    0x%02x\n", address, status.index, data);
+            if (data == 0x80) {
+                CDROM_interrupt.push_back(1);
+                writeResponse(0b00100010);
+            }
             return;
         }
     }
