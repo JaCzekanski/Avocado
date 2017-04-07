@@ -41,7 +41,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             if (channel == 3)  // CDROM
             {
                 printf("DMA%d CDROM -> CPU @ 0x%08x, count: 0x%04x\n", channel, addr, count.syncMode0.wordCount);
-                beforeRead();
+                beforeRead(count.syncMode0.wordCount);
                 for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
                     cpu->writeMemory32(addr, readDevice());
                     addr += 4;

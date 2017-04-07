@@ -100,6 +100,8 @@ void CDROM::write(uint32_t address, uint8_t data) {
 
                 readSector = sector + ((second - 2) * 75) + (minute * 60 * 75);
                 assert(readSector >= 0);
+                ((mips::CPU*)_cpu)->dma->dma3.sector = readSector;
+                ((mips::CPU*)_cpu)->dma->dma3.doSeek = true;
 
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
@@ -113,6 +115,12 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 writeResponse(0b00100010);
             } else if (data == 0x0e)  // Setmode
             {
+                uint8_t setmode = CDROM_params.front();
+                CDROM_params.pop_front();
+
+                sectorSize = setmode & (1 << 5) ? true : false;
+                ((mips::CPU*)_cpu)->dma->dma3.sectorSize = sectorSize;
+
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
             } else if (data == 0x09)  // Pause
@@ -133,10 +141,11 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b01000010);
                 writeResponse(1);
-                writeResponse(9);
+                writeResponse(2);
             } else if (data == 0x15)  // SeekL
             {
                 ((mips::CPU*)_cpu)->dma->dma3.sector = readSector;
+                ((mips::CPU*)_cpu)->dma->dma3.doSeek = true;
 
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
@@ -160,6 +169,8 @@ void CDROM::write(uint32_t address, uint8_t data) {
                     writeResponse(0x01);
                     writeResponse(0x10);
                     writeResponse(0xc2);
+                } else {
+                    printf("Unimplemented test CDROM opcode!\n");
                 }
             } else if (data == 0x1A)  // GetId
             {
@@ -206,6 +217,10 @@ void CDROM::write(uint32_t address, uint8_t data) {
             // printf("CDROM%d.%d<-W  PARAM: 0x%02x\n", address, status.index, data);
             return;
         }
+        if (status.index == 1) {  // Interrupt enable
+            printf("CDROM%d.%d<-W  INTE: 0x%02x\n", address, status.index, data);
+            return;
+        }
     }
     if (address == 3) {
         if (status.index == 1) {  // Interrupt Flag Register R/W
@@ -217,13 +232,16 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 CDROM_params.clear();
             }
 
-            printf("CDROM%d.%d<-W  INTE   0x%02x\n", address, status.index, data);
+            printf("CDROM%d.%d<-W  INTF   0x%02x\n", address, status.index, data);
             return;
         } else if (status.index == 0) {  // Before data read - Request reg
             printf("CDROM%d.%d<-W  REQ    0x%02x\n", address, status.index, data);
-            if (data == 0x80) {
+            if (data & 0x80) {  // want data
                 CDROM_interrupt.push_back(1);
                 writeResponse(0b00100010);
+            } else {
+                // clear data fifo
+                status.dataFifoEmpty = true;
             }
             return;
         }

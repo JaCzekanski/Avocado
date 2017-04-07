@@ -4,14 +4,18 @@
 
 namespace device {
 namespace dma {
-DMA::DMA() : dma2(2), dma3(3), dma6(6) {}
+DMA::DMA() : dma0(0), dma1(1), dma2(2), dma3(3), dma4(4), dma5(5), dma6(6) {}
 
 void DMA::step() {}
 
 uint8_t DMA::read(uint32_t address) {
     int channel = address / 0x10;
+    if (channel == 0) return dma0.read(address % 0x10);  // MDECin
+    if (channel == 1) return dma1.read(address % 0x10);  // MDECout
     if (channel == 2) return dma2.read(address % 0x10);  // GPU
     if (channel == 3) return dma3.read(address % 0x10);  // CDROM
+    if (channel == 4) return dma4.read(address % 0x10);  // SPU
+    if (channel == 5) return dma5.read(address % 0x10);  // PIO
     if (channel == 6) return dma6.read(address % 0x10);  // reverse clear OT
     if (channel > 6)                                     // control
     {
@@ -20,7 +24,7 @@ uint8_t DMA::read(uint32_t address) {
             return control._byte[address - 0xf0];
         }
         if (address >= 0xf4 && address < 0xf8) {
-            dmaStatus &= ~0xff000000;
+            dmaStatus &= ~0x7f000000;
             return dmaStatus >> ((address - 0xf4) * 8);
         }
     } else {
@@ -60,7 +64,7 @@ void DMA::write(uint32_t address, uint8_t data) {
     if (channel == 3) {
         dma3.write(address % 0x10, data);  // CDROM
 
-        if (dma3.irqFlag) {
+        if (dma3.irqFlag && dmaStatus & (1 << (16 + 3))) {
             dmaStatus |= 1 << 31;
             dmaStatus |= 1 << (24 + channel);
             dma3.irqFlag = false;
@@ -68,6 +72,7 @@ void DMA::write(uint32_t address, uint8_t data) {
         }
         return;
     }
+    if (channel == 4) return dma4.write(address % 0x10, data);
     if (channel == 6) return dma6.write(address % 0x10, data);  // reverse clear OT
 
     printf("W Unimplemented DMA channel %d\n", channel);

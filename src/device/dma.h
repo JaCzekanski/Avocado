@@ -51,6 +51,11 @@ class DMA : public Device {
     // MADDR dma6Address;
     // BCR dma6Count;
 
+    dmaChannel::DMAChannel dma0;  // MDECin
+    dmaChannel::DMAChannel dma1;  // MDECout
+    dmaChannel::DMAChannel dma4;  // SPU
+    dmaChannel::DMAChannel dma5;  // PIO?
+
     dmaChannel::DMA2Channel dma2;
 
    public:
@@ -73,8 +78,12 @@ class DMA : public Device {
 
     void setCPU(void *cpu) {
         this->_cpu = cpu;
+        dma0.setCPU(_cpu);
+        dma1.setCPU(_cpu);
         dma2.setCPU(_cpu);
         dma3.setCPU(_cpu);
+        dma4.setCPU(_cpu);
+        dma5.setCPU(_cpu);
         dma6.setCPU(_cpu);
     }
 

@@ -103,6 +103,39 @@ void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::
     }
 }
 
+struct EvCB {
+    uint32_t clazz;
+    uint32_t status;
+    uint32_t spec;
+    uint32_t mode;
+    uint32_t ptr;
+    uint32_t _;
+    uint32_t __;
+};
+
+void getEVCB(std::unique_ptr<mips::CPU> &cpu, bool ready) {
+    uint32_t addr = cpu->readMemory32(0x120);
+    uint32_t size = cpu->readMemory32(0x120 + 4);
+
+    EvCB evcb;
+    for (int n = 0; n < size / 0x1c; n++) {
+        for (int i = 0; i < 0x1c; i++) {
+            *((uint8_t *)&evcb + i) = cpu->readMemory8(addr + (n * 0x1c) + i);
+        }
+        if (evcb.clazz == 0) return;
+        if (ready) evcb.status = 0x4000;
+        for (int i = 0; i < 0x1c; i++) {
+            cpu->writeMemory8(addr + (n * 0x1c) + i, *((uint8_t *)&evcb + i));
+        }
+        printf("EvCB %d\n", n);
+        printf("class: 0x%08x\n", evcb.clazz);
+        printf("status: 0x%08x\n", evcb.status);
+        printf("spec: 0x%08x\n", evcb.spec);
+        printf("mode: 0x%08x\n", evcb.mode);
+        printf("ptr: 0x%08x\n\n", evcb.ptr);
+    }
+}
+
 int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -177,7 +210,11 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_b) cpu->biosLog = !cpu->biosLog;
             if (event.key.keysym.sym == SDLK_c) cpu->interrupt->IRQ(2);
             if (event.key.keysym.sym == SDLK_d) cpu->interrupt->IRQ(3);
+            if (event.key.keysym.sym == SDLK_s) cpu->interrupt->IRQ(9);
+            if (event.key.keysym.sym == SDLK_o) cpu->cdrom->shellOpen = !cpu->cdrom->shellOpen;
             if (event.key.keysym.sym == SDLK_f) cpu->cop0.status.interruptEnable = true;
+            if (event.key.keysym.sym == SDLK_w) getEVCB(cpu, true);
+            if (event.key.keysym.sym == SDLK_e) getEVCB(cpu, false);
             if (event.key.keysym.sym == SDLK_r) cpu->dumpRam();
             if (event.key.keysym.sym == SDLK_p) {
                 if (cpu->state == mips::CPU::State::pause)
