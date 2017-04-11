@@ -4,6 +4,7 @@
 
 namespace device {
 namespace gpu {
+const int MAX_ARGS = 32;
 
 union PolygonArgs {
     struct {
@@ -36,7 +37,7 @@ union LineArgs {
 
     LineArgs(uint8_t arg) : _(arg) {}
 
-    int getArgumentCount() const { return (polyLine ? 256 : (isShaded ? 2 : 1) * 2); }
+    int getArgumentCount() const { return (polyLine ? MAX_ARGS : (isShaded ? 2 : 1) * 2); }
 };
 
 union RectangleArgs {
@@ -61,7 +62,7 @@ union RectangleArgs {
     }
 };
 
-enum class Command { Nop, FillRectangle, Polygon, Line, Rectangle, CopyCpuToVram, CopyVramToCpu, CopyVramToVram };
+enum class Command { None, FillRectangle, Polygon, Line, Rectangle, CopyCpuToVram1, CopyCpuToVram2, CopyVramToCpu, CopyVramToVram };
 
 struct Vertex {
     int position[2];
@@ -239,15 +240,23 @@ class GPU {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
+    Command cmd = Command::None;
+    uint8_t command = 0;
+    uint32_t arguments[33];
+    int currentArgument = 0;
+    int argumentCount = 0;
+
     uint32_t to15bit(uint32_t color);
     uint32_t to24bit(uint16_t color);
 
-    void cmdFillRectangle(const uint8_t command, uint32_t argument, uint32_t arguments[32]);
-    void cmdPolygon(const PolygonArgs arg, uint32_t argument, uint32_t arguments[]);
-    void cmdLine(const LineArgs arg, uint32_t argument, uint32_t arguments[]);
-    void cmdRectangle(const RectangleArgs command, uint32_t argument, uint32_t arguments[32]);
-    void cmdVramToCpu(uint8_t command, uint32_t argument, uint32_t arguments[32]);
-    void cmdVramToVram(uint8_t command, uint32_t argument, uint32_t arguments[32]);
+    void cmdFillRectangle(const uint8_t command, uint32_t arguments[]);
+    void cmdPolygon(const PolygonArgs arg, uint32_t arguments[]);
+    void cmdLine(const LineArgs arg, uint32_t arguments[]);
+    void cmdRectangle(const RectangleArgs command, uint32_t arguments[]);
+    void cmdCpuToVram1(const uint8_t command, uint32_t arguments[]);
+    void cmdCpuToVram2(const uint8_t command, uint32_t arguments[]);
+    void cmdVramToCpu(const uint8_t command, uint32_t arguments[]);
+    void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
 
     void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
 
