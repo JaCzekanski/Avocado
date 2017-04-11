@@ -5,6 +5,49 @@
 namespace device {
 namespace gpu {
 
+union PolygonArgs {
+    struct {
+        uint8_t : 1;
+        uint8_t semiTransparency : 1;
+        uint8_t isTextureMapped : 1;
+        uint8_t isQuad : 1;
+        uint8_t isShaded : 1;
+        uint8_t : 3;
+    };
+    uint8_t _;
+
+    PolygonArgs(uint8_t arg) : _(arg) {}
+};
+
+union LineArgs {
+    struct {
+        uint8_t : 1;
+        uint8_t semiTransparency : 1;
+        uint8_t : 1;
+        uint8_t polyLine : 1;
+        uint8_t isShaded : 1;
+        uint8_t : 3;
+    };
+    uint8_t _;
+
+    LineArgs(uint8_t arg) : _(arg) {}
+};
+
+union RectangleArgs {
+    struct {
+        uint8_t : 1;
+        uint8_t semiTransparency : 1;
+        uint8_t isTextureMapped : 1;
+        uint8_t size : 2;
+        uint8_t : 3;
+    };
+    uint8_t _;
+
+    RectangleArgs(uint8_t arg) : _(arg) {}
+};
+
+enum class Command { Nop, Polygon, Line, Rectangle, CopyCpuToVram, CopyVramToCpu, CopyVramToVram };
+
 struct Vertex {
     int position[2];
     int color[3];
@@ -190,7 +233,12 @@ class GPU : public Device {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
+    void cmdPolygon(const PolygonArgs arg, uint32_t argument, uint32_t arguments[]);
+    void cmdLine(const LineArgs arg, uint32_t argument, uint32_t arguments[], int argumentCount);
+    void cmdRectangle(const RectangleArgs command, uint32_t argument, uint32_t arguments[32]);
+
     void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
+
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 

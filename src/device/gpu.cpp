@@ -92,6 +92,89 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
 #undef texY
 }
 
+void GPU::cmdPolygon(const PolygonArgs arg, uint32_t argument, uint32_t arguments[]) {
+    int ptr = 0;
+    int x[4], y[4];
+    int color[4] = {0};
+    int texcoord[4] = {0};
+    for (int i = 0; i < (arg.isQuad ? 4 : 3); i++) {
+        x[i] = arguments[ptr] & 0xffff;
+        y[i] = (arguments[ptr++] >> 16) & 0xffff;
+
+        if (!arg.isShaded || i == 0) color[i] = argument & 0xffffff;
+        if (arg.isTextureMapped) texcoord[i] = arguments[ptr++];
+        if (arg.isShaded && i < (arg.isQuad ? 4 : 3) - 1) color[i + 1] = arguments[ptr++];
+    }
+    drawPolygon(x, y, color, texcoord, arg.isQuad, arg.isTextureMapped);
+}
+
+void GPU::cmdLine(const LineArgs arg, uint32_t argument, uint32_t arguments[32], int argumentCount) {
+    int ptr = 0;
+    int sx, sy, sc;
+    int ex = 0, ey = 0, ec = 0;
+    for (int i = 0; i < argumentCount - 1; i++) {
+        if (i == 0) {
+            sx = arguments[ptr] & 0xffff;
+            sy = (arguments[ptr++] & 0xffff0000) >> 16;
+            sc = argument & 0xffffff;
+        } else {
+            sx = ex;
+            sy = ey;
+            sc = ec;
+        }
+
+        if (arg.isShaded)
+            ec = arguments[ptr++];
+        else
+            ec = argument & 0xffffff;
+        ex = arguments[ptr] & 0xffff;
+        ey = (arguments[ptr++] & 0xffff0000) >> 16;
+
+        int x[3] = {sx, sx + 1, ex};
+        int y[3] = {sy, sy + 1, ey};
+        int c[3] = {sc, sc, sc};
+
+        drawPolygon(x, y, c);
+    }
+}
+
+void GPU::cmdRectangle(const RectangleArgs arg, uint32_t argument, uint32_t arguments[32]) {
+    int w = 1;
+    int h = 1;
+
+    if (arg.size == 1)
+        w = h = 1;
+    else if (arg.size == 2)
+        w = h = 8;
+    else if (arg.size == 3)
+        w = h = 16;
+    else {
+        w = clamp(arguments[(arg.isTextureMapped ? 2 : 1)] & 0xffff, 1023);
+        h = clamp((arguments[(arg.isTextureMapped ? 2 : 1)] & 0xffff0000) >> 16, 511);
+    }
+    int x = arguments[0] & 0xffff;
+    int y = (arguments[0] & 0xffff0000) >> 16;
+
+    int _x[4] = {x, x + w, x, x + w};
+    int _y[4] = {y, y, y + h, y + h};
+    int _c[4] = {(int)argument, (int)argument, (int)argument, (int)argument};
+    int _t[4];
+
+    if (arg.isTextureMapped) {
+#define tex(x, y) ((x & 0xff) | ((y & 0xff) << 8));
+        int texX = arguments[1] & 0xff;
+        int texY = (arguments[1] & 0xff00) >> 8;
+
+        _t[0] = arguments[1];
+        _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);
+        _t[2] = tex(texX, texY + h);
+        _t[3] = tex(texX + w, texY + h);
+#undef tex
+    }
+
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped);
+}
+
 uint32_t to15bit(uint32_t color) {
     uint32_t newColor = 0;
     newColor |= (color & 0xf80000) >> 19;
@@ -186,13 +269,15 @@ void GPU::write(uint32_t address, uint8_t data) {
 
 void GPU::writeGP0(uint32_t data) {
     static bool finished = true;
-    static uint32_t command = 0;
+    static uint8_t command = 0;
     static uint32_t argument = 0;
     static uint32_t arguments[32];
     static int currentArgument = 0;
     static int argumentCount = 0;
 
     static bool isManyArguments = false;
+
+    static Command cmd = Command::Nop;
 
     if (finished) {
         command = data >> 24;
@@ -217,28 +302,34 @@ void GPU::writeGP0(uint32_t data) {
             // Because first color is in argument (cmd+arg, not args[])
             argumentCount = (isFourVertex ? 4 : 3) * (isTextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0);
             finished = false;
+            cmd = Command::Polygon;
         } else if (command >= 0x40 && command < 0x60) {  // Lines
             isManyArguments = (command & 8) != 0;        // True - n points, false - 2 points (0x55555555 terminated)
             bool isShaded = (command & 0x10) != 0;       // True - Gouroud shading, false - flat shading
 
             argumentCount = (isManyArguments ? 256 : (isShaded ? 2 : 1) * 2);
             finished = false;
+            cmd = Command::Line;
         } else if (command >= 0x60 && command < 0x80) {  // Rectangles
             bool istextureMapped = (command & 4) != 0;   // True - texcoords, false - no texcoords
             int size = (command & 0x18) >> 3;            // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
 
             argumentCount = (size == 0 ? 2 : 1) + (istextureMapped ? 1 : 0);
             finished = false;
+            cmd = Command::Rectangle;
         } else if (command == 0xa0) {  // Copy rectangle (CPU -> VRAM)
             argumentCount = 2;
             finished = false;
+            cmd = Command::CopyCpuToVram;
         } else if (command == 0xc0) {  // Copy rectangle (VRAM -> CPU)
             readyVramToCpu = true;
             argumentCount = 2;
             finished = false;
+            cmd = Command::CopyVramToCpu;
         } else if (command == 0x80) {  // Copy rectangle (VRAM -> VRAM)
             argumentCount = 3;
             finished = false;
+            cmd = Command::CopyVramToVram;
         } else if (command == 0xE1) {  // Draw mode setting
             gp0_e1._reg = argument;
         } else if (command == 0xe2) {  // Texture window setting
@@ -272,6 +363,14 @@ void GPU::writeGP0(uint32_t data) {
         return;
     }
     finished = true;
+
+    if (cmd == Command::Polygon)
+        cmdPolygon(command, argument, arguments);
+    else if (cmd == Command::Line)
+        cmdLine(command, argument, arguments, argumentCount);
+    else if (cmd == Command::Rectangle)
+        cmdRectangle(command, argument, arguments);
+
     if (command == 0x02) {  // fill rectangle
         currX = (arguments[0] & 0xffff);
         currY = (arguments[0] & 0xffff0000) > 16;
@@ -292,94 +391,6 @@ void GPU::writeGP0(uint32_t data) {
                 if (++currY >= endY) break;
             }
         }
-    } else if (command >= 0x20 && command < 0x40) {  // Polygons
-        bool isSemiTransparent = (command & 2) != 0;
-        bool isTextureMapped = (command & 4) != 0;  // True - texcoords, false - no texcoords
-        bool isFourVertex = (command & 8) != 0;     // True - 4 vertex, false - 3 vertex
-        bool isShaded = (command & 0x10) != 0;      // True - Gouroud shading, false - flat shading
-
-        int ptr = 0;
-        int x[4], y[4];
-        int color[4] = {0};
-        int texcoord[4] = {0};
-        for (int i = 0; i < (isFourVertex ? 4 : 3); i++) {
-            x[i] = (arguments[ptr] & 0xffff);
-            y[i] = ((arguments[ptr++] >> 16) & 0xffff);
-
-            if (!isShaded || i == 0) color[i] = argument & 0xffffff;
-            if (isTextureMapped) texcoord[i] = arguments[ptr++];
-            if (isShaded && i < (isFourVertex ? 4 : 3) - 1) color[i + 1] = arguments[ptr++];
-        }
-        drawPolygon(x, y, color, texcoord, isFourVertex, isTextureMapped);
-    } else if (command >= 0x40 && command < 0x60) {  // Lines
-        bool isShaded = (command & 0x10) != 0;       // True - Gouroud shading, false - flat shading
-
-        int ptr = 0;
-        int sx, sy, sc;
-        int ex = 0, ey = 0, ec = 0;
-        for (int i = 0; i < argumentCount - 1; i++) {
-            if (i == 0) {
-                sx = arguments[ptr] & 0xffff;
-                sy = (arguments[ptr++] & 0xffff0000) >> 16;
-                sc = argument & 0xffffff;
-            } else {
-                sx = ex;
-                sy = ey;
-                sc = ec;
-            }
-
-            if (isShaded)
-                ec = arguments[ptr++];
-            else
-                ec = argument & 0xffffff;
-            ex = arguments[ptr] & 0xffff;
-            ey = (arguments[ptr++] & 0xffff0000) >> 16;
-
-            int x[3] = {sx, sx + 1, ex};
-            int y[3] = {sy, sy + 1, ey};
-            int c[3] = {sc, sc, sc};
-
-            drawPolygon(x, y, c);
-        }
-    } else if (command >= 0x60 && command < 0x80) {  // Rectangles
-        bool isSemiTransparent = (command & 2) != 0;
-        bool isTextureMapped = (command & 4) != 0;  // True - texcoords, false - no texcoords
-        int size = (command & 0x18) >> 3;           // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
-
-        int w = 1;
-        int h = 1;
-
-        if (size == 1)
-            w = h = 1;
-        else if (size == 2)
-            w = h = 8;
-        else if (size == 3)
-            w = h = 16;
-        else {
-            w = clamp(arguments[(isTextureMapped ? 2 : 1)] & 0xffff, 1023);
-            h = clamp((arguments[(isTextureMapped ? 2 : 1)] & 0xffff0000) >> 16, 511);
-        }
-        int x = arguments[0] & 0xffff;
-        int y = (arguments[0] & 0xffff0000) >> 16;
-
-        int _x[4] = {x, x + w, x, x + w};
-        int _y[4] = {y, y, y + h, y + h};
-        int _c[4] = {(int)argument, (int)argument, (int)argument, (int)argument};
-        int _t[4];
-
-        if (isTextureMapped) {
-#define tex(x, y) ((x & 0xff) | ((y & 0xff) << 8));
-            int texX = arguments[1] & 0xff;
-            int texY = (arguments[1] & 0xff00) >> 8;
-
-            _t[0] = arguments[1];
-            _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);
-            _t[2] = tex(texX, texY + h);
-            _t[3] = tex(texX + w, texY + h);
-#undef tex
-        }
-
-        drawPolygon(_x, _y, _c, _t, true, isTextureMapped);
     } else if (command == 0xA0) {  // Copy rectangle ( CPU -> VRAM )
         if (currentArgument <= 2) {
             argumentCount = 3;
