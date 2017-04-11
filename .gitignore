@@ -53,3 +53,5 @@ install_manifest.txt
 *.filters
 
 ram.bin
+
+.vs/

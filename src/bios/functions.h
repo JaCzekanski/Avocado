@@ -87,7 +87,7 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x2C, {"memmove", 3}},            // dst,src,len     ;Bugged
     {0x2D, {"memcmp", 3}},             // src1,src2,len    ;Bugged
     {0x2E, {"memchr", 3}},             // src,scanbyte,len
-    {0x2F, {"rand", 0}},
+    {0x2F, {"rand", 0, noLog}},
     {0x30, {"srand", 1}},            // seed
     {0x31, {"qsort", 4}},            // base,nel,width,callback
     {0x32, {"strtod", 2}},           // src,src_end   //ABSENT cop1 !!!

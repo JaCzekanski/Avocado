@@ -217,11 +217,11 @@ void GPU::writeGP0(uint32_t data) {
             // Because first color is in argument (cmd+arg, not args[])
             argumentCount = (isFourVertex ? 4 : 3) * (isTextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0);
             finished = false;
-        } else if (command >= 0x40 && command < 0x60) {    // Lines
-            isManyArguments = (command & 8) != 0;          // True - n points, false - 2 points (0x55555555 terminated)
-            bool isShaded = ((command & 0x10) >> 4) != 0;  // True - Gouroud shading, false - flat shading
+        } else if (command >= 0x40 && command < 0x60) {  // Lines
+            isManyArguments = (command & 8) != 0;        // True - n points, false - 2 points (0x55555555 terminated)
+            bool isShaded = (command & 0x10) != 0;       // True - Gouroud shading, false - flat shading
 
-            argumentCount = (isManyArguments ? 0xff : (isShaded ? 2 : 1) * 2);
+            argumentCount = (isManyArguments ? 256 : (isShaded ? 2 : 1) * 2);
             finished = false;
         } else if (command >= 0x60 && command < 0x80) {  // Rectangles
             bool istextureMapped = (command & 4) != 0;   // True - texcoords, false - no texcoords
@@ -293,9 +293,10 @@ void GPU::writeGP0(uint32_t data) {
             }
         }
     } else if (command >= 0x20 && command < 0x40) {  // Polygons
-        bool isTextureMapped = (command & 4) != 0;   // True - texcoords, false - no texcoords
-        bool isFourVertex = (command & 8) != 0;      // True - 4 vertex, false - 3 vertex
-        bool isShaded = (command & 0x10) != 0;       // True - Gouroud shading, false - flat shading
+        bool isSemiTransparent = (command & 2) != 0;
+        bool isTextureMapped = (command & 4) != 0;  // True - texcoords, false - no texcoords
+        bool isFourVertex = (command & 8) != 0;     // True - 4 vertex, false - 3 vertex
+        bool isShaded = (command & 0x10) != 0;      // True - Gouroud shading, false - flat shading
 
         int ptr = 0;
         int x[4], y[4];
@@ -316,36 +317,34 @@ void GPU::writeGP0(uint32_t data) {
         int ptr = 0;
         int sx, sy, sc;
         int ex = 0, ey = 0, ec = 0;
-        for (int i = 0; i < argumentCount; i++) {
+        for (int i = 0; i < argumentCount - 1; i++) {
             if (i == 0) {
                 sx = arguments[ptr] & 0xffff;
                 sy = (arguments[ptr++] & 0xffff0000) >> 16;
-                if (isShaded)
-                    sc = arguments[ptr++];
-                else
-                    sc = command & 0xffffff;
+                sc = argument & 0xffffff;
             } else {
                 sx = ex;
                 sy = ey;
                 sc = ec;
             }
 
-            ex = arguments[ptr] & 0xffff;
-            ey = (arguments[ptr++] & 0xffff0000) >> 16;
             if (isShaded)
                 ec = arguments[ptr++];
             else
-                ec = command & 0xffffff;
+                ec = argument & 0xffffff;
+            ex = arguments[ptr] & 0xffff;
+            ey = (arguments[ptr++] & 0xffff0000) >> 16;
 
-            int x[3] = {sx, sx, ex};
-            int y[3] = {sy, sy, ey};
+            int x[3] = {sx, sx + 1, ex};
+            int y[3] = {sy, sy + 1, ey};
             int c[3] = {sc, sc, sc};
 
             drawPolygon(x, y, c);
         }
     } else if (command >= 0x60 && command < 0x80) {  // Rectangles
-        bool isTextureMapped = (command & 4) != 0;   // True - texcoords, false - no texcoords
-        int size = (command & 0x18) >> 3;            // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
+        bool isSemiTransparent = (command & 2) != 0;
+        bool isTextureMapped = (command & 4) != 0;  // True - texcoords, false - no texcoords
+        int size = (command & 0x18) >> 3;           // 0 - free size, 1 - 1x1, 2 - 8x8, 3 - 16x16
 
         int w = 1;
         int h = 1;
