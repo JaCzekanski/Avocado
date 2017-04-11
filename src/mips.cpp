@@ -90,7 +90,12 @@ uint8_t CPU::readMemory(uint32_t address) {
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
         IO(0x800, 0x804, cdrom);
-        IO(0x810, 0x818, gpu);
+        if (address >= 0x810 && address < 0x818) {
+            static Reg32 d;
+            if (((address - 0x810) & 3) == 0) d._reg = gpu->read(address - 0x810);
+
+            return d.read((address - 0x810) & 3);
+        }
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
         if (address >= 0x1000 && address < 0x1043) {
@@ -145,7 +150,12 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
         IO(0x800, 0x804, cdrom);
-        IO(0x810, 0x818, gpu);
+        if (address >= 0x810 && address < 0x818) {
+            static Reg32 d;
+            d.write((address - 0x810) & 3, data);
+            if (((address - 0x810) & 3) == 3) gpu->write(address - 0x810, d._reg);
+            return;
+        }
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
         IO(0x1000, 0x1043, expansion2);

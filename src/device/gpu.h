@@ -17,6 +17,10 @@ union PolygonArgs {
     uint8_t _;
 
     PolygonArgs(uint8_t arg) : _(arg) {}
+
+    int getArgumentCount() const { return (isQuad ? 4 : 3) * (isTextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0); }
+
+    int getVertexCount() const { return isQuad ? 4 : 3; }
 };
 
 union LineArgs {
@@ -31,6 +35,8 @@ union LineArgs {
     uint8_t _;
 
     LineArgs(uint8_t arg) : _(arg) {}
+
+    int getArgumentCount() const { return (polyLine ? 256 : (isShaded ? 2 : 1) * 2); }
 };
 
 union RectangleArgs {
@@ -44,9 +50,18 @@ union RectangleArgs {
     uint8_t _;
 
     RectangleArgs(uint8_t arg) : _(arg) {}
+
+    int getArgumentCount() const { return (size == 0 ? 2 : 1) + (isTextureMapped ? 1 : 0); }
+
+    int getSize() const {
+        if (size == 1) return 1;
+        if (size == 2) return 8;
+        if (size == 3) return 16;
+        return 0;
+    }
 };
 
-enum class Command { Nop, Polygon, Line, Rectangle, CopyCpuToVram, CopyVramToCpu, CopyVramToVram };
+enum class Command { Nop, FillRectangle, Polygon, Line, Rectangle, CopyCpuToVram, CopyVramToCpu, CopyVramToVram };
 
 struct Vertex {
     int position[2];
@@ -147,16 +162,7 @@ union GP1_08 {
     }
 };
 
-class GPU : public Device {
-    void* pixels;
-    int stride;
-
-    uint32_t fifo[16];
-    uint32_t tmpGP0 = 0;
-    uint32_t tmpGP1 = 0;
-    int whichGP0Byte = 0;
-    int whichGP1Byte = 0;
-
+class GPU {
     /* 0 - nothing
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
@@ -233,9 +239,15 @@ class GPU : public Device {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
+    uint32_t to15bit(uint32_t color);
+    uint32_t to24bit(uint16_t color);
+
+    void cmdFillRectangle(const uint8_t command, uint32_t argument, uint32_t arguments[32]);
     void cmdPolygon(const PolygonArgs arg, uint32_t argument, uint32_t arguments[]);
-    void cmdLine(const LineArgs arg, uint32_t argument, uint32_t arguments[], int argumentCount);
+    void cmdLine(const LineArgs arg, uint32_t argument, uint32_t arguments[]);
     void cmdRectangle(const RectangleArgs command, uint32_t argument, uint32_t arguments[32]);
+    void cmdVramToCpu(uint8_t command, uint32_t argument, uint32_t arguments[32]);
+    void cmdVramToVram(uint8_t command, uint32_t argument, uint32_t arguments[32]);
 
     void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
 
@@ -246,8 +258,8 @@ class GPU : public Device {
     bool odd = false;
     int frames = 0;
     void step();
-    uint8_t read(uint32_t address);
-    void write(uint32_t address, uint8_t data);
+    uint32_t read(uint32_t address);
+    void write(uint32_t address, uint32_t data);
 
     std::vector<Vertex>& render();
 
