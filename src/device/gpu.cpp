@@ -4,39 +4,8 @@
 
 namespace device {
 namespace gpu {
-uint32_t colorMean(int *colors, int n) {
-    int r = 0, g = 0, b = 0;
-    for (int i = 0; i < n; i++) {
-        b += (colors[i] & 0xff0000) >> 16;
-        g += (colors[i] & 0xff00) >> 8;
-        r += (colors[i] & 0xff);
-    }
-    b /= n;
-    g /= n;
-    r /= n;
-
-    return 0xff << 24 | (r & 0xff) | (g & 0xff) << 8 | (b & 0xff) << 16;
-}
-
-inline int min(int a, int b, int c) {
-    if (a < b) return (a < c) ? a : c;
-    return (b < c) ? b : c;
-}
-inline int max(int a, int b, int c) {
-    if (a > b) return (a > c) ? a : c;
-    return (b > c) ? b : c;
-}
-
-void swap(int &a, int &b) {
-    int t = b;
-    b = a;
-    a = t;
-}
-
-inline int distance(int x1, int y1, int x2, int y2) { return (int)sqrtf((float)((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))); }
-
 template <typename T>
-inline T clamp(T number, int range) {
+T clamp(T number, size_t range) {
     if (number > range) number = range;
     return number;
 }
@@ -69,8 +38,8 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
         if (depth == 2) bitcount = 16;
     }
 
-#define texX(x) ((!textured) ? 0 : (x & 0xff))
-#define texY(x) ((!textured) ? 0 : ((x & 0xff00) >> 8))
+#define texX(x) ((!textured) ? 0 : ((x)&0xff))
+#define texY(x) ((!textured) ? 0 : (((x)&0xff00) >> 8))
 
     for (int i : {0, 1, 2}) {
         int r = c[i] & 0xff;
@@ -279,9 +248,9 @@ void GPU::step() {
               | ((uint8_t)gp1_08.horizontalResolution1 << 17) | ((uint8_t)gp1_08.verticalResolution << 19)
               | ((uint8_t)gp1_08.videoMode << 20) | ((uint8_t)gp1_08.colorDepth << 21) | (gp1_08.interlace << 22)
               | ((uint8_t)displayDisable << 23) | ((uint8_t)irqAcknowledge << 24)
-              | ((dmaDirection == 0 ? 0 : (dmaDirection == 1 ? 1 : (dmaDirection == 2 ? 1 : readyVramToCpu))) << 25)
-              | (1 << 26)                           // Ready for DMA command
-              | (readyVramToCpu << 27) | (1 << 28)  // Ready for receive DMA block
+              | ((dmaDirection == 0 ? 0 : (dmaDirection == 1 ? 1 : (dmaDirection == 2 ? 1 : (cmd != Command::CopyCpuToVram2)))) << 25)
+              | (1 << 26)                                             // Ready for DMA command
+              | ((cmd != Command::CopyCpuToVram2) << 27) | (1 << 28)  // Ready for receive DMA block
               | ((dmaDirection & 3) << 29) | (odd << 31);
 }
 
@@ -323,48 +292,60 @@ void GPU::writeGP0(uint32_t data) {
         currentArgument = 1;
 
         if (command == 0x00) {
-        }  // NOP
-        else if (command == 0x01) {
-        }                            // Clear Cache
-        else if (command == 0x02) {  // Fill rectangle
+            // NOP
+        } else if (command == 0x01) {
+            // Clear Cache
+        } else if (command == 0x02) {
+            // Fill rectangle
             cmd = Command::FillRectangle;
             argumentCount = 2;
-        } else if (command >= 0x20 && command < 0x40) {  // Polygons
+        } else if (command >= 0x20 && command < 0x40) {
+            // Polygons
             cmd = Command::Polygon;
             argumentCount = PolygonArgs(command).getArgumentCount();
-        } else if (command >= 0x40 && command < 0x60) {  // Lines
+        } else if (command >= 0x40 && command < 0x60) {
+            // Lines
             cmd = Command::Line;
             argumentCount = LineArgs(command).getArgumentCount();
-        } else if (command >= 0x60 && command < 0x80) {  // Rectangles
+        } else if (command >= 0x60 && command < 0x80) {
+            // Rectangles
             cmd = Command::Rectangle;
             argumentCount = RectangleArgs(command).getArgumentCount();
-        } else if (command == 0xa0) {  // Copy rectangle (CPU -> VRAM)
+        } else if (command == 0xa0) {
+            // Copy rectangle (CPU -> VRAM)
             cmd = Command::CopyCpuToVram1;
             argumentCount = 2;
-        } else if (command == 0xc0) {  // Copy rectangle (VRAM -> CPU)
+        } else if (command == 0xc0) {
+            // Copy rectangle (VRAM -> CPU)
             cmd = Command::CopyVramToCpu;
             argumentCount = 2;
-            readyVramToCpu = true;
-        } else if (command == 0x80) {  // Copy rectangle (VRAM -> VRAM)
+        } else if (command == 0x80) {
+            // Copy rectangle (VRAM -> VRAM)
             cmd = Command::CopyVramToVram;
             argumentCount = 3;
-        } else if (command == 0xE1) {  // Draw mode setting
+        } else if (command == 0xE1) {
+            // Draw mode setting
             gp0_e1._reg = arguments[0];
-        } else if (command == 0xe2) {  // Texture window setting
+        } else if (command == 0xe2) {
+            // Texture window setting
             textureWindowMaskX = arguments[0] & 0x1f;
             textureWindowMaskY = (arguments[0] & 0x3e0) >> 5;
             textureWindowOffsetX = (arguments[0] & 0x7c00) >> 10;
             textureWindowOffsetY = (arguments[0] & 0xf8000) >> 15;
-        } else if (command == 0xe3) {  // Drawing area top left
+        } else if (command == 0xe3) {
+            // Drawing area top left
             drawingAreaX1 = arguments[0] & 0x3ff;
             drawingAreaY1 = (arguments[0] & 0xFFC00) >> 10;
-        } else if (command == 0xe4) {  // Drawing area bottom right
+        } else if (command == 0xe4) {
+            // Drawing area bottom right
             drawingAreaX2 = arguments[0] & 0x3ff;
             drawingAreaY2 = (arguments[0] & 0xFFC00) >> 10;
-        } else if (command == 0xe5) {  // Drawing offset
+        } else if (command == 0xe5) {
+            // Drawing offset
             drawingOffsetX = arguments[0] & 0x7ff;
             drawingOffsetY = (arguments[0] & 0x3FF800) >> 11;
-        } else if (command == 0xe6) {  // Mask bit setting
+        } else if (command == 0xe6) {
+            // Mask bit setting
             setMaskWhileDrawing = arguments[0] & 1;
             checkMaskBeforeDraw = (arguments[0] & 2) >> 1;
         } else
@@ -404,7 +385,6 @@ void GPU::writeGP1(uint32_t data) {
     uint32_t argument = data & 0xffffff;
 
     if (command == 0x00) {  // Reset GPU
-
         irqAcknowledge = false;
         displayDisable = true;
         dmaDirection = 0;

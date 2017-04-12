@@ -153,6 +153,7 @@ union GP1_08 {
             case HorizontalResolution::r512:
                 return 512;
             case HorizontalResolution::r640:
+            default:
                 return 640;
         }
     }
@@ -164,6 +165,7 @@ union GP1_08 {
 };
 
 class GPU {
+    std::vector<Vertex> renderList;
     /* 0 - nothing
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
@@ -178,12 +180,13 @@ class GPU {
     uint32_t GPUREAD = 0;
     uint32_t GPUSTAT = 0;
 
-    const float WIDTH = 640.f;
-    const float HEIGHT = 480.f;
+    Command cmd = Command::None;
+    uint8_t command = 0;
+    uint32_t arguments[33];
+    int currentArgument = 0;
+    int argumentCount = 0;
 
-    // GP0(0xc0)
-    bool readyVramToCpu = false;
-
+   public:
     GP0_E1 gp0_e1;
 
     // GP0(0xe2)
@@ -192,7 +195,6 @@ class GPU {
     int textureWindowOffsetX = 0;
     int textureWindowOffsetY = 0;
 
-   public:
     // GP0(0xe3)
     int drawingAreaX1 = 0;
     int drawingAreaY1 = 0;
@@ -205,7 +207,6 @@ class GPU {
     int drawingOffsetX = 0;
     int drawingOffsetY = 0;
 
-   private:
     // GP0(0xe6)
     int setMaskWhileDrawing = 0;
     int checkMaskBeforeDraw = 0;
@@ -220,11 +221,9 @@ class GPU {
     int dmaDirection = 0;
 
     // GP1(0x05)
-   public:
     int displayAreaStartX = 0;
     int displayAreaStartY = 0;
 
-   private:
     // GP1(0x06)
     int displayRangeX1 = 0;
     int displayRangeX2 = 0;
@@ -233,19 +232,12 @@ class GPU {
     int displayRangeY1 = 0;
     int displayRangeY2 = 0;
 
-   public:
     GP1_08 gp1_08;
 
-   private:
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-    Command cmd = Command::None;
-    uint8_t command = 0;
-    uint32_t arguments[33];
-    int currentArgument = 0;
-    int argumentCount = 0;
-
+   private:
     uint32_t to15bit(uint32_t color);
     uint32_t to24bit(uint16_t color);
 
@@ -272,7 +264,6 @@ class GPU {
 
     std::vector<Vertex>& render();
 
-    std::vector<Vertex> renderList;
     uint16_t VRAM[512][1024];
 };
 }
