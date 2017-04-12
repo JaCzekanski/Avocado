@@ -41,15 +41,50 @@ union DPCR {
     DPCR() : _reg(0) {}
 };
 
+// 0x1f8010f4 - DICR,  DMA Interrupt Register
+union DICR {
+    struct {
+        uint32_t : 15;
+
+        uint32_t forceIRQ : 1;
+
+        union {
+            struct {
+                uint32_t enableDma0 : 1;
+                uint32_t enableDma1 : 1;
+                uint32_t enableDma2 : 1;
+                uint32_t enableDma3 : 1;
+                uint32_t enableDma4 : 1;
+                uint32_t enableDma5 : 1;
+                uint32_t enableDma6 : 1;
+            };
+            uint32_t enables;
+        };
+        uint32_t masterEnable : 1;
+
+        union {
+            struct {
+                uint32_t flagDma0 : 1;
+                uint32_t flagDma1 : 1;
+                uint32_t flagDma2 : 1;
+                uint32_t flagDma3 : 1;
+                uint32_t flagDma4 : 1;
+                uint32_t flagDma5 : 1;
+                uint32_t flagDma6 : 1;
+            };
+            uint32_t flags;
+        };
+        uint32_t masterFlag : 1;
+    };
+    uint32_t _reg;
+    uint8_t _byte[4];
+
+    DICR() : _reg(0) {}
+};
+
 class DMA : public Device {
     DPCR control;
-    uint32_t dmaStatus;
-    // uint32_t dma2Control;
-    // MADDR dma2Address;
-    // uint32_t dma2Count = 0;
-    // CHCR dma6Control;
-    // MADDR dma6Address;
-    // BCR dma6Count;
+    DICR status;
 
     dmaChannel::DMAChannel dma0;  // MDECin
     dmaChannel::DMAChannel dma1;  // MDECout

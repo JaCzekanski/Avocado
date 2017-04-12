@@ -24,8 +24,8 @@ uint8_t DMA::read(uint32_t address) {
             return control._byte[address - 0xf0];
         }
         if (address >= 0xf4 && address < 0xf8) {
-            dmaStatus &= ~0x7f000000;
-            return dmaStatus >> ((address - 0xf4) * 8);
+            status.masterFlag = status.forceIRQ || (status.masterEnable && (status.enables & status.flags));
+            return status._byte[address - 0xf4];
         }
     } else {
         printf("R Unimplemented DMA channel %d\n", channel);
@@ -45,14 +45,13 @@ void DMA::write(uint32_t address, uint8_t data) {
             control._byte[address - 0xf0] = data;
             return;
         } else if (address >= 0xF4 && address < 0xf8) {
-            static uint32_t t = 0;
-            t &= ~(0xff << 8 * (address - 0xf4));
-            t |= data << 8 * (address - 0xf4);
-
-            dmaStatus &= 0xff8000;
-            dmaStatus |= t & 0xff8000;
-
-            dmaStatus &= ~(t & 0x7f000000);
+            if (address == 0xf7) {
+                // Clear flags (by writing 1 to bit) which sets it to 0
+                // do not touch master flag
+                status._byte[address - 0xf7] &= ~(data & 0x7f);
+                return;
+            }
+            status._byte[address - 0xf4] = data;
             return;
         } else {
             printf("W Unimplemented DMA address 0x%08x\n", address);
@@ -60,20 +59,54 @@ void DMA::write(uint32_t address, uint8_t data) {
         }
     }
 
-    if (channel == 2) return dma2.write(address % 0x10, data);  // GPU
-    if (channel == 3) {
-        dma3.write(address % 0x10, data);  // CDROM
+    if (channel == 2) {
+        dma2.write(address % 0x10, data);  // GPU
 
-        if (dma3.irqFlag && dmaStatus & (1 << (16 + 3))) {
-            dmaStatus |= 1 << 31;
-            dmaStatus |= 1 << (24 + channel);
-            dma3.irqFlag = false;
-            ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+        if (dma2.irqFlag) {
+            dma2.irqFlag = false;
+            if (status.enableDma2) {
+                status.flagDma2 = 1;
+                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+            }
         }
         return;
     }
-    if (channel == 4) return dma4.write(address % 0x10, data);
-    if (channel == 6) return dma6.write(address % 0x10, data);  // reverse clear OT
+    if (channel == 3) {
+        dma3.write(address % 0x10, data);  // CDROM
+
+        if (dma3.irqFlag) {
+            dma3.irqFlag = false;
+            if (status.enableDma3) {
+                status.flagDma3 = 1;
+                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+            }
+        }
+        return;
+    }
+    if (channel == 4) {
+        dma4.write(address % 0x10, data);
+
+        if (dma4.irqFlag) {
+            dma4.irqFlag = false;
+            if (status.enableDma4) {
+                status.flagDma4 = 1;
+                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+            }
+        }
+        return;
+    }
+    if (channel == 6) {
+        dma6.write(address % 0x10, data);  // reverse clear OT
+
+        if (dma6.irqFlag) {
+            dma6.irqFlag = false;
+            if (status.enableDma6) {
+                status.flagDma6 = 1;
+                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+            }
+        }
+        return;
+    }
 
     printf("W Unimplemented DMA channel %d\n", channel);
     //    __debugbreak();
