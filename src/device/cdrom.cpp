@@ -126,7 +126,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
             } else if (data == 0x09)  // Pause
             {
                 CDROM_interrupt.push_back(3);
-                writeResponse(0b00100010);
+                writeResponse(0b00000010);
 
                 CDROM_interrupt.push_back(2);
                 writeResponse(0b00000010);
@@ -140,8 +140,37 @@ void CDROM::write(uint32_t address, uint8_t data) {
             {
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b01000010);
+                writeResponse(0);
                 writeResponse(1);
-                writeResponse(2);
+                writeResponse(0);
+                writeResponse(1);
+            } else if (data == 0x14)  // GetTD
+            {
+                int index = readParam();
+                CDROM_interrupt.push_back(3);
+                writeResponse(0b01000010);
+                if (index == 0)  // end of last track
+                {
+                    // get size (25B3 AF20)
+                    // divide by 2352 (4 1A86)
+                    // x / 60 / 75 - minute
+                    // (x % (60 * 75) / 75) + 2 - second
+                    int x = ((mips::CPU*)_cpu)->dma->dma3.fileSize;
+                    x /= 2352;
+                    int minute = x / 60 / 75;
+                    int second = ((x % (60 * 75)) / 75) + 2;
+
+                    writeResponse(minute / 10);
+                    writeResponse(minute % 10);
+                    writeResponse(second / 10);
+                    writeResponse(second % 10);
+                }
+                if (index == 1) {
+                    writeResponse(0);
+                    writeResponse(0);
+                    writeResponse(0);
+                    writeResponse(2);
+                }
             } else if (data == 0x15)  // SeekL
             {
                 ((mips::CPU*)_cpu)->dma->dma3.sector = readSector;

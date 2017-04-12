@@ -46,12 +46,18 @@ class DMA3Channel : public DMAChannel {
 
     int bytesReaded = 0;
 
+    int fileSize = 0;
+
     DMA3Channel(int channel) : DMAChannel(channel) {
         f = fopen("data/iso/mgs_cd1.iso", "rb");
         if (!f) {
             printf("cannot open .iso");
             exit(1);
         }
+
+        fseek(f, 0, SEEK_END);
+        fileSize = ftell(f);
+        rewind(f);
     }
 };
 }
