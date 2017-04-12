@@ -5,6 +5,7 @@ in vec2 fragTexcoord;
 flat in uint fragBitcount;
 flat in uvec2 fragClut;
 flat in uvec2 fragTexpage;
+flat in uint fragFlags;
 
 out vec4 outColor;
 
@@ -105,7 +106,7 @@ void main()
 	else if (fragBitcount == 16U) color = read16bit(fragTexcoord);
 	else color = vec4(fragColor, 0.0);
 
-	if (internalToPsxColor(color) == 0x0000u) discard;
+	if (((fragFlags & 1u) == 1u) && internalToPsxColor(color) == 0x0000u) discard;
 
 	outColor = color;
 }

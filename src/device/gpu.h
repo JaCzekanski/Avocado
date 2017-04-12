@@ -62,7 +62,7 @@ union RectangleArgs {
     }
 };
 
-enum class Command { None, FillRectangle, Polygon, Line, Rectangle, CopyCpuToVram1, CopyCpuToVram2, CopyVramToCpu, CopyVramToVram };
+enum class Command : int { None, FillRectangle, Polygon, Line, Rectangle, CopyCpuToVram1, CopyCpuToVram2, CopyVramToCpu, CopyVramToVram };
 
 struct Vertex {
     int position[2];
@@ -71,6 +71,12 @@ struct Vertex {
     int bitcount;
     int clut[2];     // clut position
     int texpage[2];  // texture page position
+    int flags;
+    /**
+     * 0b76543210
+     *          ^
+     *          Transparency enabled (yes for tris, no for rect)
+     */
 };
 
 // Draw Mode setting
@@ -250,7 +256,7 @@ class GPU {
     void cmdVramToCpu(const uint8_t command, uint32_t arguments[]);
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
 
-    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false);
+    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);

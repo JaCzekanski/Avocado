@@ -4,13 +4,17 @@
 
 namespace device {
 namespace gpu {
+
+const char* CommandStr[]
+    = {"None", "FillRectangle", "Polygon", "Line", "Rectangle", "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram"};
+
 template <typename T>
 T clamp(T number, size_t range) {
     if (number > range) number = range;
     return number;
 }
 
-void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex, bool textured) {
+void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex, bool textured, int flags) {
     int baseX = 0;
     int baseY = 0;
 
@@ -45,7 +49,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
         int r = c[i] & 0xff;
         int g = (c[i] >> 8) & 0xff;
         int b = (c[i] >> 16) & 0xff;
-        renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}});
+        renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags});
     }
 
     if (isFourVertex) {
@@ -53,7 +57,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
             int r = c[i] & 0xff;
             int g = (c[i] >> 8) & 0xff;
             int b = (c[i] >> 16) & 0xff;
-            renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}});
+            renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags});
         }
     }
 
@@ -94,7 +98,7 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
         if (arg.isShaded && i < arg.getVertexCount() - 1) c[i + 1] = arguments[ptr++];
     }
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped);
+    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, 1);
 
     cmd = Command::None;
 }
@@ -160,7 +164,7 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 #undef tex
     }
 
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped);
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency ? 1 : 0) << 0);
 
     cmd = Command::None;
 }
@@ -218,6 +222,7 @@ void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
+            // TODO: boundary check!
             VRAM[dstY + y][dstX + x] = VRAM[srcY + y][srcX + x];
         }
     }
@@ -450,6 +455,6 @@ void GPU::writeGP1(uint32_t data) {
     } else
         printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 }
-std::vector<Vertex> &GPU::render() { return renderList; }
+std::vector<Vertex>& GPU::render() { return renderList; }
 }
 }

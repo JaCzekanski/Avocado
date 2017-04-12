@@ -50,6 +50,7 @@ void OpenGL::createRenderBuffer() {
     renderShader->getAttrib("bitcount").pointer(1, GL_UNSIGNED_INT, sizeof(Vertex), 7 * sizeof(int));
     renderShader->getAttrib("clut").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 8 * sizeof(int));
     renderShader->getAttrib("texpage").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 10 * sizeof(int));
+    renderShader->getAttrib("flags").pointer(1, GL_UNSIGNED_INT, sizeof(Vertex), 12 * sizeof(int));
 
     glBindVertexArray(0);
 }
