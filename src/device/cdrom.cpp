@@ -105,7 +105,21 @@ void CDROM::write(uint32_t address, uint8_t data) {
 
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b00000010);
+            } else if (data == 0x03)  // Play NOT IMPLEMENTED
+            {
+                // int track = readParam();
+                // param or setloc used
+                CDROM_interrupt.push_back(3);
+                writeResponse(0b10000010);
             } else if (data == 0x06)  // ReadN
+            {
+                status.dataFifoEmpty = 1;
+                CDROM_interrupt.push_back(3);
+                writeResponse(0b00000010);
+
+                CDROM_interrupt.push_back(1);
+                writeResponse(0b00100010);
+            } else if (data == 0x1b)  // ReadS
             {
                 status.dataFifoEmpty = 1;
                 CDROM_interrupt.push_back(3);
@@ -140,10 +154,8 @@ void CDROM::write(uint32_t address, uint8_t data) {
             {
                 CDROM_interrupt.push_back(3);
                 writeResponse(0b01000010);
-                writeResponse(0);
-                writeResponse(1);
-                writeResponse(0);
-                writeResponse(1);
+                writeResponse(0x01);
+                writeResponse(0x01);
             } else if (data == 0x14)  // GetTD
             {
                 int index = readParam();
@@ -159,17 +171,14 @@ void CDROM::write(uint32_t address, uint8_t data) {
                     x /= 2352;
                     int minute = x / 60 / 75;
                     int second = ((x % (60 * 75)) / 75) + 2;
+                    printf("GetTD: minute: %d, second: %d", minute, second);
 
-                    writeResponse(minute / 10);
-                    writeResponse(minute % 10);
-                    writeResponse(second / 10);
-                    writeResponse(second % 10);
+                    writeResponse(((minute / 10) << 4) | (minute % 10));
+                    writeResponse(((second / 10) << 4) | (second % 10));
                 }
                 if (index == 1) {
-                    writeResponse(0);
-                    writeResponse(0);
-                    writeResponse(0);
-                    writeResponse(2);
+                    writeResponse(0x00);
+                    writeResponse(0x02);
                 }
             } else if (data == 0x15)  // SeekL
             {
