@@ -82,13 +82,13 @@ struct CPU {
     timer::Timer *timer1 = nullptr;
     timer::Timer *timer2 = nullptr;
     dma::DMA *dma = nullptr;
+    spu::SPU *spu = nullptr;
 
    private:
     Dummy *memoryControl = nullptr;
     Dummy *serial = nullptr;
     gpu::GPU *gpu = nullptr;
     Dummy *mdec = nullptr;
-    spu::SPU *spu = nullptr;
     Dummy *expansion2 = nullptr;
 
     uint8_t readMemory(uint32_t address);

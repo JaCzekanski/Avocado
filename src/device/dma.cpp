@@ -87,9 +87,23 @@ void DMA::write(uint32_t address, uint8_t data) {
         dma4.write(address % 0x10, data);
 
         if (dma4.irqFlag) {
+            ((mips::CPU*)_cpu)->spu->SPUSTAT._reg |= (1 << 6);  // IRQ9 flag
             dma4.irqFlag = false;
             if (status.enableDma4) {
                 status.flagDma4 = 1;
+                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+            }
+            ((mips::CPU*)_cpu)->interrupt->IRQ(9);
+        }
+        return;
+    }
+    if (channel == 5) {
+        dma5.write(address % 0x10, data);
+
+        if (dma5.irqFlag) {
+            dma5.irqFlag = false;
+            if (status.enableDma5) {
+                status.flagDma5 = 1;
                 ((mips::CPU*)_cpu)->interrupt->IRQ(3);
             }
         }
