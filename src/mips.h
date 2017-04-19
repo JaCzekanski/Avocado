@@ -9,6 +9,7 @@
 #include "device/dummy.h"
 #include "device/controller.h"
 #include <unordered_map>
+#include "device/spu.h"
 
 namespace bios {
 struct Function;
@@ -87,7 +88,7 @@ struct CPU {
     Dummy *serial = nullptr;
     gpu::GPU *gpu = nullptr;
     Dummy *mdec = nullptr;
-    Dummy *spu = nullptr;
+    spu::SPU *spu = nullptr;
     Dummy *expansion2 = nullptr;
 
     uint8_t readMemory(uint32_t address);

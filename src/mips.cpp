@@ -7,6 +7,7 @@
 #include "psxExe.h"
 #include "utils/file.h"
 #include "bios/functions.h"
+#include "device/spu.h"
 
 namespace mips {
 CPU::CPU() {
@@ -45,8 +46,11 @@ CPU::CPU() {
 
     cdrom = new cdrom::CDROM();
     cdrom->setCPU(this);
+
+    spu = new spu::SPU();
+    spu->setCPU(this);
+
     mdec = new Dummy("MDEC", 0x1f801820);
-    spu = new Dummy("SPU", 0x1f801c00, false);
     expansion2 = new Dummy("Expansion2", 0x1f802000, false);
 }
 
@@ -75,9 +79,6 @@ uint8_t CPU::readMemory(uint32_t address) {
             if (address >= 0x54 && address < 0x58) {
                 return 0x5 >> ((address - 0x54) * 8);
             }
-        }
-        if (address >= 0xda6 && address < 0xdad) {
-            return rand();
         }
 
         IO(0x00, 0x24, memoryControl);
