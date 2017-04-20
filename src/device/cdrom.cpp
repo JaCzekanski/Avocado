@@ -55,11 +55,9 @@ uint8_t CDROM::read(uint32_t address) {
     return 0;
 }
 
-uint8_t CDROM::stat() const { return (isReading << 5) | (shellOpen << 4) | (motor << 1); }
-
 void CDROM::cmdGetstat() {
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdSetloc() {
@@ -75,55 +73,56 @@ void CDROM::cmdSetloc() {
     ((mips::CPU*)_cpu)->dma->dma3.seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdPlay() {
     // Play NOT IMPLEMENTED
     // int track = readParam();
     // param or setloc used
+    stat.setMode(StatusCode::Mode::Playing);
+
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdReadN() {
     status.dataFifoEmpty = 1;
-    isReading = true;
+    stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
     CDROM_interrupt.push_back(1);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdPause() {
     status.dataFifoEmpty = 0;
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
-    isReading = false;
+    stat.setMode(StatusCode::Mode::None);
 
     CDROM_interrupt.push_back(2);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
     status.dataFifoEmpty = 0;  // ?
 }
 
 void CDROM::cmdInit() {
-    motor = true;
-    isReading = false;
+    stat.setMode(StatusCode::Mode::None);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
     CDROM_interrupt.push_back(2);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdDemute() {
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdSetmode() {
@@ -134,12 +133,12 @@ void CDROM::cmdSetmode() {
     ((mips::CPU*)_cpu)->dma->dma3.sectorSize = sectorSize;
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdGetTN() {
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
     writeResponse(0x01);
     writeResponse(0x01);
 }
@@ -147,7 +146,7 @@ void CDROM::cmdGetTN() {
 void CDROM::cmdGetTD() {
     int index = readParam();
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
     if (index == 0)  // end of last track
     {
         // get size (25B3 AF20)
@@ -173,10 +172,12 @@ void CDROM::cmdSeekL() {
     ((mips::CPU*)_cpu)->dma->dma3.seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
+
+    stat.setMode(StatusCode::Mode::Seeking);
 
     CDROM_interrupt.push_back(2);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
     status.dataFifoEmpty = 0;
 }
@@ -196,7 +197,7 @@ void CDROM::cmdTest() {
 
 void CDROM::cmdGetId() {
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
     CDROM_interrupt.push_back(2);
     writeResponse(0x02);
@@ -212,20 +213,22 @@ void CDROM::cmdGetId() {
 void CDROM::cmdReadS() {
     status.dataFifoEmpty = 1;
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
-    isReading = true;
+    stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(1);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdReadTOC() {
+    stat.setMode(StatusCode::Mode::Reading);
+
     CDROM_interrupt.push_back(3);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 
     CDROM_interrupt.push_back(2);
-    writeResponse(stat());
+    writeResponse(stat._reg);
 }
 
 void CDROM::handleCommand(uint8_t cmd) {
@@ -302,7 +305,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
     if (address == 3 && status.index == 0) {  // Request register
         if (data & 0x80) {                    // want data
             CDROM_interrupt.push_back(1);
-            writeResponse(stat());
+            writeResponse(stat._reg);
         } else {  // clear data fifo
             status.dataFifoEmpty = true;
         }

@@ -6,6 +6,45 @@ namespace device {
 namespace cdrom {
 
 class CDROM : public Device {
+    union StatusCode {
+        enum class Mode { None, Reading, Seeking, Playing };
+        struct {
+            uint8_t error : 1;
+            uint8_t motor : 1;
+            uint8_t seekError : 1;
+            uint8_t idError : 1;
+            uint8_t shellOpen : 1;
+            uint8_t read : 1;
+            uint8_t seek : 1;
+            uint8_t play : 1;
+        };
+        uint8_t _reg;
+
+        void setMode(Mode mode) {
+            error = seekError = idError = false;
+            read = seek = play = false;
+            motor = true;
+            if (mode == Mode::Reading) {
+                read = true;
+            } else if (mode == Mode::Seeking) {
+                seek = true;
+            } else if (mode == Mode::Playing) {
+                play = true;
+            }
+        }
+
+        void toggleShell() {
+            if (!shellOpen) {
+                shellOpen = true;
+                setMode(Mode::None);
+            } else {
+                shellOpen = false;
+            }
+        }
+
+        StatusCode() : _reg(0) {}
+    };
+
     union CDROM_Status {
         struct {
             uint8_t index : 2;
@@ -28,13 +67,11 @@ class CDROM : public Device {
     std::deque<uint8_t> CDROM_interrupt;
 
     bool sectorSize = false;  // 0 - 0x800, 1 - 0x924
-    bool isReading = false;
-    bool motor = false;
 
     void *_cpu = nullptr;
     int readSector = 0;
 
-    uint8_t stat() const;
+    StatusCode stat;
 
     void cmdGetstat();
     void cmdSetloc();
@@ -70,13 +107,14 @@ class CDROM : public Device {
     }
 
    public:
-    bool shellOpen = false;
     CDROM();
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
     void setCPU(void *cpu) { this->_cpu = cpu; }
+
+    void toggleShell() { stat.toggleShell(); }
 };
 }
 }
