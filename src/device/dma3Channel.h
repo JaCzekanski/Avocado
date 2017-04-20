@@ -37,18 +37,17 @@ class DMA3Channel : public DMAChannel {
             doSeek = false;
         }
 
-        printf("Reading from sector %d, byte: %d\n", sector, ftell(f));
+        printf("Sector 0x%x  ", sector);
     }
 
-   public:
     FILE *f;
     int sector = 0;
-    bool sectorSize = false;
     bool doSeek = true;
-
     int bytesReaded = 0;
-
     int fileSize = 0;
+
+   public:
+    bool sectorSize = false;
 
     DMA3Channel(int channel) : DMAChannel(channel) {
         f = fopen("data/iso/marilyn.iso", "rb");
@@ -61,6 +60,14 @@ class DMA3Channel : public DMAChannel {
         fileSize = ftell(f);
         rewind(f);
     }
+
+    void seekTo(uint32_t destSector) {
+        sector = destSector;
+        doSeek = true;
+        bytesReaded = 0;
+    }
+
+    size_t getIsoSize() const { return fileSize; }
 };
 }
 }
