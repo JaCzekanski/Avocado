@@ -1,6 +1,7 @@
 #include "spu.h"
 #include "../mips.h"
 #include <cassert>
+#include <cstring>
 
 namespace device {
 namespace spu {
