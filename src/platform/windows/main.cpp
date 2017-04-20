@@ -86,9 +86,9 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
 }
 
 void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu) {
-    int systemCycles = 991;
+    int systemCycles = 300;
     for (;;) {
-        if (!cpu->executeInstructions(systemCycles * 200 / 317)) {
+        if (!cpu->executeInstructions(systemCycles / 3)) {
             printf("CPU Halted\n");
             return;
         }
