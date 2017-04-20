@@ -22,8 +22,7 @@ class CDROM : public Device {
 
         void setMode(Mode mode) {
             error = seekError = idError = false;
-            read = seek = play = false;
-            motor = true;
+            motor = read = seek = play = false;
             if (mode == Mode::Reading) {
                 read = true;
             } else if (mode == Mode::Seeking) {

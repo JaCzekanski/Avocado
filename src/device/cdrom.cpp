@@ -112,6 +112,7 @@ void CDROM::cmdPause() {
 }
 
 void CDROM::cmdInit() {
+    stat.motor = 1;
     stat.setMode(StatusCode::Mode::None);
 
     CDROM_interrupt.push_back(3);
