@@ -136,6 +136,25 @@ void getEVCB(std::unique_ptr<mips::CPU> &cpu, bool ready) {
     }
 }
 
+void loadBios(std::unique_ptr<mips::CPU> &cpu) {
+    auto _bios = getFileContents("data/bios/SCPH1001.BIN");  // DTLH3000.BIN BOOTS
+    if (_bios.empty()) {
+        printf("Cannot open BIOS");
+    } else {
+        assert(_bios.size() == 512 * 1024);
+        std::copy(_bios.begin(), _bios.end(), cpu->bios);
+        cpu->state = mips::CPU::State::run;
+    }
+}
+
+void loadExpansion(std::unique_ptr<mips::CPU> &cpu) {
+    auto _exp = getFileContents("data/bios/expansion.rom");
+    if (!_exp.empty()) {
+        assert(_exp.size() < cpu->EXPANSION_SIZE);
+        std::copy(_exp.begin(), _exp.end(), cpu->expansion);
+    }
+}
+
 int main(int argc, char **argv) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -170,20 +189,8 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
-    auto _bios = getFileContents("data/bios/DTLH3000.BIN");  // DTLH3000.BIN BOOTS
-    if (_bios.empty()) {
-        printf("Cannot open BIOS");
-    } else {
-        assert(_bios.size() == 512 * 1024);
-        std::copy(_bios.begin(), _bios.end(), cpu->bios);
-        cpu->state = mips::CPU::State::run;
-    }
-
-    auto _exp = getFileContents("data/bios/expansion.rom");
-    if (!_exp.empty()) {
-        assert(_exp.size() < cpu->EXPANSION_SIZE);
-        std::copy(_exp.begin(), _exp.end(), cpu->expansion);
-    }
+    loadBios(cpu);
+    loadExpansion(cpu);
 
     auto gpu = std::make_unique<device::gpu::GPU>();
     cpu->setGPU(gpu.get());

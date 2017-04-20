@@ -21,6 +21,8 @@ class CDROM : public Device {
         CDROM_Status() : _reg(0x18) {}
     };
 
+    CDROM_Status status;
+    uint8_t interruptEnable = 0;
     std::deque<uint8_t> CDROM_params;
     std::deque<uint8_t> CDROM_response;
     std::deque<uint8_t> CDROM_interrupt;
@@ -29,6 +31,24 @@ class CDROM : public Device {
 
     void *_cpu = nullptr;
     int readSector = 0;
+
+    void cmdGetstat();
+    void cmdSetloc();
+    void cmdPlay();
+    void cmdReadN();
+    void cmdPause();
+    void cmdInit();
+    void cmdDemute();
+    void cmdSetmode();
+    void cmdGetTN();
+    void cmdGetTD();
+    void cmdSeekL();
+    void cmdTest();
+    void cmdGetId();
+    void cmdReadS();
+    void cmdReadTOC();
+
+    void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {
         CDROM_response.push_back(byte);
@@ -47,7 +67,6 @@ class CDROM : public Device {
 
    public:
     bool shellOpen = false;
-    CDROM_Status status;
     CDROM();
     void step();
     uint8_t read(uint32_t address);

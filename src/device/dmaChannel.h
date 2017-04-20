@@ -76,7 +76,7 @@ class DMAChannel : public Device {
 
     virtual uint32_t readDevice() { return 0; }
     virtual void writeDevice(uint32_t data) {}
-    virtual void beforeRead(int b) {}
+    virtual void beforeRead() {}
 
    public:
     bool irqFlag = false;

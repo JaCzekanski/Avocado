@@ -17,7 +17,13 @@ class DMA3Channel : public DMAChannel {
     }
     void writeDevice(uint32_t data) {}
 
-    void beforeRead(int blocks) override {
+    void beforeRead() override {
+        if (bytesReaded >= (!sectorSize ? 0x800 : 0x924)) {
+            bytesReaded = 0;
+            sector++;
+            doSeek = true;
+        }
+
         if (doSeek) {
             uint32_t whichByte = sector * SECTOR_SIZE;
             whichByte += 12;  // sync bits
@@ -31,11 +37,7 @@ class DMA3Channel : public DMAChannel {
             doSeek = false;
         }
 
-        if (bytesReaded == (!sectorSize ? 0x800 : 0x924)) {
-            bytesReaded = 0;
-            sector++;
-            doSeek = true;
-        }
+        printf("Reading from sector %d, byte: %d\n", sector, ftell(f));
     }
 
    public:
@@ -49,7 +51,7 @@ class DMA3Channel : public DMAChannel {
     int fileSize = 0;
 
     DMA3Channel(int channel) : DMAChannel(channel) {
-        f = fopen("data/iso/nes.iso", "rb");
+        f = fopen("data/iso/marilyn.iso", "rb");
         if (!f) {
             printf("cannot open .iso");
             exit(1);
