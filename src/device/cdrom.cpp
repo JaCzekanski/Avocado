@@ -61,7 +61,7 @@ uint8_t CDROM::read(uint32_t address) {
             return _status;
         }
     }
-    // printf("CDROM%d.%d->R    ?????\n", address, status.index);
+    printf("CDROM%d.%d->R    ?????\n", address, status.index);
     return 0;
 }
 
@@ -96,9 +96,8 @@ void CDROM::write(uint32_t address, uint8_t data) {
                 uint8_t sector = bcdToBinary(readParam());
                 printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
 
-                assert(second >= 2);
-
-                readSector = sector + ((second - 2) * 75) + (minute * 60 * 75);
+                readSector = sector + (second * 75) + (minute * 60 * 75);
+                readSector -= 2 * 75;
                 assert(readSector >= 0);
                 ((mips::CPU*)_cpu)->dma->dma3.sector = readSector;
                 ((mips::CPU*)_cpu)->dma->dma3.doSeek = true;

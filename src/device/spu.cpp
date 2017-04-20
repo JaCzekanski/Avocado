@@ -5,7 +5,7 @@
 namespace device {
 namespace spu {
 
-SPU::SPU() {}
+SPU::SPU() { memset(ram, 0, RAM_SIZE); }
 
 void SPU::step() {}
 
@@ -103,13 +103,17 @@ uint8_t SPU::read(uint32_t address) {
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        printf("SPUCNT READ 0x%04x\n", SPUCNT._reg);
+        // printf("SPUCNT READ 0x%04x\n", SPUCNT._reg);
         return SPUCNT.read(address - 0x1f801daa);
+    }
+
+    if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
+        return dataTransferControl._byte[address - 0x1f801dac];
     }
 
     if (address >= 0x1f801dae && address <= 0x1f801daf) {  // SPUSTAT
         SPUSTAT._reg = SPUCNT._reg & 0x3F;
-        printf("SPUSTAT READ 0x%04x\n", SPUSTAT._reg);
+        // printf("SPUSTAT READ 0x%04x\n", SPUSTAT._reg);
         return SPUSTAT.read(address - 0x1f801dae);
     }
 
@@ -123,6 +127,31 @@ void SPU::write(uint32_t address, uint8_t data) {
 
     if (address >= 0x1f801c00 && address < 0x1f801c00 + 0x10 * VOICE_COUNT) {
         writeVoice(address - 0x1f801c00, data);
+        return;
+    }
+
+    if (address >= 0x1f801d80 && address <= 0x1f801d83) {  // Main Volume L/R
+        mainVolume.write(address - 0x1f801d80, data);
+        return;
+    }
+
+    if (address >= 0x1f801d84 && address <= 0x1f801d87) {  // Reverb Volume L/R
+        reverbVolume.write(address - 0x1f801d84, data);
+        return;
+    }
+
+    if (address >= 0x1f801d88 && address <= 0x1f801d8b) {  // Voices Key On
+        voiceKeyOn.write(address - 0x1f801d88, data);
+        return;
+    }
+
+    if (address >= 0x1f801d8c && address <= 0x1f801d8f) {  // Voices Key Off
+        voiceKeyOff.write(address - 0x1f801d8c, data);
+        return;
+    }
+
+    if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voices Channel Reverb mode
+        voiceChannelReverbMode.write(address - 0x1f801d98, data);
         return;
     }
 
@@ -161,6 +190,12 @@ void SPU::write(uint32_t address, uint8_t data) {
         return;
     }
     printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+}
+
+void SPU::dumpRam() {
+    std::vector<uint8_t> ram;
+    ram.assign(this->ram, this->ram + RAM_SIZE - 1);
+    putFileContents("spu.bin", ram);
 }
 }
 }

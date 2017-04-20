@@ -53,5 +53,6 @@ install_manifest.txt
 *.filters
 
 ram.bin
+spu.bin
 
 .vs/

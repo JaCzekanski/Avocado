@@ -118,7 +118,7 @@ void getEVCB(std::unique_ptr<mips::CPU> &cpu, bool ready) {
     uint32_t size = cpu->readMemory32(0x120 + 4);
 
     EvCB evcb;
-    for (int n = 0; n < size / 0x1c; n++) {
+    for (size_t n = 0; n < size / 0x1c; n++) {
         for (int i = 0; i < 0x1c; i++) {
             *((uint8_t *)&evcb + i) = cpu->readMemory8(addr + (n * 0x1c) + i);
         }
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 
     auto _exp = getFileContents("data/bios/expansion.rom");
     if (!_exp.empty()) {
-        assert(_exp.size() < 8192 * 1024);
+        assert(_exp.size() < cpu->EXPANSION_SIZE);
         std::copy(_exp.begin(), _exp.end(), cpu->expansion);
     }
 
@@ -215,7 +215,10 @@ int main(int argc, char **argv) {
             if (event.key.keysym.sym == SDLK_f) cpu->cop0.status.interruptEnable = true;
             if (event.key.keysym.sym == SDLK_w) getEVCB(cpu, true);
             if (event.key.keysym.sym == SDLK_e) getEVCB(cpu, false);
-            if (event.key.keysym.sym == SDLK_r) cpu->dumpRam();
+            if (event.key.keysym.sym == SDLK_r) {
+                cpu->dumpRam();
+                cpu->spu->dumpRam();
+            }
             if (event.key.keysym.sym == SDLK_p) {
                 if (cpu->state == mips::CPU::State::pause)
                     cpu->state = mips::CPU::State::run;

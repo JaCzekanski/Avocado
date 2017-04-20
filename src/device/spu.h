@@ -34,6 +34,13 @@ class SPU : public Device {
 
     Voice voices[VOICE_COUNT];
 
+    Reg32 mainVolume;
+    Reg32 reverbVolume;
+    Reg32 voiceKeyOn;
+    Reg32 voiceKeyOff;
+
+    Reg32 voiceChannelReverbMode;
+
     Reg16 irqAddress;
     Reg16 dataAddress;
     uint32_t currentDataAddress;
@@ -55,6 +62,8 @@ class SPU : public Device {
     void write(uint32_t address, uint8_t data);
 
     void setCPU(void *cpu) { this->_cpu = cpu; }
+
+    void dumpRam();
 };
 }
 }
