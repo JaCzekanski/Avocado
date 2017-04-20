@@ -28,9 +28,13 @@ class CDROM : public Device {
     std::deque<uint8_t> CDROM_interrupt;
 
     bool sectorSize = false;  // 0 - 0x800, 1 - 0x924
+    bool isReading = false;
+    bool motor = false;
 
     void *_cpu = nullptr;
     int readSector = 0;
+
+    uint8_t stat() const;
 
     void cmdGetstat();
     void cmdSetloc();
