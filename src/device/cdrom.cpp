@@ -9,11 +9,11 @@ namespace cdrom {
 CDROM::CDROM() {}
 
 void CDROM::step() {
+    status.transmissionBusy = 0;
     if (!CDROM_interrupt.empty()) {
-        status.transmissionBusy = 1;
-        ((mips::CPU*)_cpu)->interrupt->IRQ(2);
-    } else {
-        status.transmissionBusy = 0;
+        if ((interruptEnable & 7) & (CDROM_interrupt.front() & 7)) {
+            ((mips::CPU*)_cpu)->interrupt->IRQ(2);
+        }
     }
 }
 
@@ -35,7 +35,7 @@ uint8_t CDROM::read(uint32_t address) {
     }
     if (address == 2) {  // CD Data
         printf("UNIMPLEMENTED CDROM READ!\n");
-        ((mips::CPU*)_cpu)->state = mips::CPU::State::pause;
+        //((mips::CPU*)_cpu)->state = mips::CPU::State::pause;
         return 0;
     }
     if (address == 3) {                                // CD Interrupt enable / flags
@@ -112,11 +112,12 @@ void CDROM::cmdPause() {
 }
 
 void CDROM::cmdInit() {
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+
     stat.motor = 1;
     stat.setMode(StatusCode::Mode::None);
 
-    CDROM_interrupt.push_back(3);
-    writeResponse(stat._reg);
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 }
@@ -184,15 +185,20 @@ void CDROM::cmdSeekL() {
 }
 
 void CDROM::cmdTest() {
-    if (readParam() == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
+    uint8_t opcode = readParam();
+    if (opcode == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
     {
         CDROM_interrupt.push_back(3);
         writeResponse(0x97);
         writeResponse(0x01);
         writeResponse(0x10);
         writeResponse(0xc2);
+    } else if (opcode == 0x03) {  // Force motor off, used in swap
+        stat.motor = 0;
+        CDROM_interrupt.push_back(3);
+        writeResponse(stat._reg);
     } else {
-        printf("Unimplemented test CDROM opcode!\n");
+        printf("Unimplemented test CDROM opcode (0x%x)!\n", opcode);
     }
 }
 
@@ -213,10 +219,10 @@ void CDROM::cmdGetId() {
 
 void CDROM::cmdReadS() {
     status.dataFifoEmpty = 1;
+    stat.setMode(StatusCode::Mode::Reading);
+
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
-
-    stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(1);
     writeResponse(stat._reg);
@@ -230,6 +236,13 @@ void CDROM::cmdReadTOC() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+}
+
+void CDROM::cmdUnlock() {
+    // Semi implemented
+    CDROM_interrupt.push_back(5);
+    writeResponse(0x11);
+    writeResponse(0x40);
 }
 
 void CDROM::handleCommand(uint8_t cmd) {
@@ -277,6 +290,8 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdGetId();
     else if (cmd == 0x1e)
         cmdReadTOC();
+    else if (cmd >= 0x50 && cmd <= 0x56)
+        cmdUnlock();
     else {
         printf("Unimplemented cmd 0x%x!\n", cmd);
     }

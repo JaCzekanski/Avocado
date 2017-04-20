@@ -80,6 +80,7 @@ void DMA::write(uint32_t address, uint8_t data) {
                 status.flagDma3 = 1;
                 ((mips::CPU*)_cpu)->interrupt->IRQ(3);
             }
+            ((mips::CPU*)_cpu)->cdrom->ackMoreData();
             //((mips::CPU*)_cpu)->interrupt->IRQ(2); // CDROM IRQ, new sector ?
         }
         return;

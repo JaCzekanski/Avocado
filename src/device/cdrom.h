@@ -87,7 +87,7 @@ class CDROM : public Device {
     void cmdGetId();
     void cmdReadS();
     void cmdReadTOC();
-
+    void cmdUnlock();
     void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {
@@ -114,6 +114,10 @@ class CDROM : public Device {
     void setCPU(void *cpu) { this->_cpu = cpu; }
 
     void toggleShell() { stat.toggleShell(); }
+    void ackMoreData() {
+        CDROM_interrupt.push_back(1);
+        writeResponse(stat._reg);
+    }
 };
 }
 }
