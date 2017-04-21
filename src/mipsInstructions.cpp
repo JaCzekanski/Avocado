@@ -6,7 +6,7 @@ static const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3
                                  "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
 #define mnemonic(x) \
-    if (cpu->disassemblyEnabled) cpu->_mnemonic = x
+    if (cpu->disassemblyEnabled) cpu->_mnemonic = (char*)(x)
 #define disasm(fmt, ...) \
     if (cpu->disassemblyEnabled) cpu->_disasm = string_format(fmt, ##__VA_ARGS__)
 
@@ -17,25 +17,25 @@ PrimaryInstruction OpcodeTable[64] = {
     // R type
     {0, special, "special"},
     {1, branch, "branch"},
-    {2, j, "j"},
-    {3, jal, "jal"},
-    {4, beq, "beq"},
-    {5, bne, "bne"},
-    {6, blez, "blez"},
-    {7, bgtz, "bgtz"},
+    {2, op_j, "j"},
+    {3, op_jal, "jal"},
+    {4, op_beq, "beq"},
+    {5, op_bne, "bne"},
+    {6, op_blez, "blez"},
+    {7, op_bgtz, "bgtz"},
 
-    {8, addi, "addi"},
-    {9, addiu, "addiu"},
-    {10, slti, "slti"},
-    {11, sltiu, "sltiu"},
-    {12, andi, "andi"},
-    {13, ori, "ori"},
-    {14, xori, "xori"},
-    {15, lui, "lui"},
+    {8, op_addi, "addi"},
+    {9, op_addiu, "addiu"},
+    {10, op_slti, "slti"},
+    {11, op_sltiu, "sltiu"},
+    {12, op_andi, "andi"},
+    {13, op_ori, "ori"},
+    {14, op_xori, "xori"},
+    {15, op_lui, "lui"},
 
-    {16, cop0, "cop0"},
+    {16, op_cop0, "cop0"},
     {17, notImplemented, "cop1"},
-    {18, cop2, "cop2"},
+    {18, op_cop2, "cop2"},
     {19, notImplemented, "cop3"},
     {20, invalid, "INVALID"},
     {21, invalid, "INVALID"},
@@ -51,22 +51,22 @@ PrimaryInstruction OpcodeTable[64] = {
     {30, invalid, "INVALID"},
     {31, invalid, "INVALID"},
 
-    {32, lb, "lb"},
-    {33, lh, "lh"},
-    {34, lwl, "lwl"},
-    {35, lw, "lw"},
-    {36, lbu, "lbu"},
-    {37, lhu, "lhu"},
-    {38, lwr, "lwr"},
+    {32, op_lb, "lb"},
+    {33, op_lh, "lh"},
+    {34, op_lwl, "lwl"},
+    {35, op_lw, "lw"},
+    {36, op_lbu, "lbu"},
+    {37, op_lhu, "lhu"},
+    {38, op_lwr, "lwr"},
     {39, invalid, "INVALID"},
 
-    {40, sb, "sb"},
-    {41, sh, "sh"},
-    {42, swl, "swl"},
-    {43, sw, "sw"},
+    {40, op_sb, "sb"},
+    {41, op_sh, "sh"},
+    {42, op_swl, "swl"},
+    {43, op_sw, "sw"},
     {44, invalid, "INVALID"},
     {45, invalid, "INVALID"},
-    {46, swr, "swr"},
+    {46, op_swr, "swr"},
     {47, invalid, "INVALID"},
 
     {48, notImplemented, "lwc0"},
@@ -90,55 +90,55 @@ PrimaryInstruction OpcodeTable[64] = {
 };
 
 PrimaryInstruction SpecialTable[64] = {
-    {0, sll, "sll"},
+    {0, op_sll, "sll"},
     {1, invalid, "INVALID"},
-    {2, srl, "srl"},
-    {3, sra, "sra"},
-    {4, sllv, "sllv"},
+    {2, op_srl, "srl"},
+    {3, op_sra, "sra"},
+    {4, op_sllv, "sllv"},
     {5, invalid, "INVALID"},
-    {6, srlv, "srlv"},
-    {7, srav, "srav"},
+    {6, op_srlv, "srlv"},
+    {7, op_srav, "srav"},
 
-    {8, jr, "jr"},
-    {9, jalr, "jalr"},
+    {8, op_jr, "jr"},
+    {9, op_jalr, "jalr"},
     {10, invalid, "INVALID"},
     {11, invalid, "INVALID"},
-    {12, syscall, "syscall"},
-    {13, break_, "break"},
+    {12, op_syscall, "syscall"},
+    {13, op_break, "break"},
     {14, invalid, "INVALID"},
     {15, invalid, "INVALID"},
 
-    {16, mfhi, "mfhi"},
-    {17, mthi, "mthi"},
-    {18, mflo, "mflo"},
-    {19, mtlo, "mtlo"},
+    {16, op_mfhi, "mfhi"},
+    {17, op_mthi, "mthi"},
+    {18, op_mflo, "mflo"},
+    {19, op_mtlo, "mtlo"},
     {20, invalid, "INVALID"},
     {21, invalid, "INVALID"},
     {22, invalid, "INVALID"},
     {23, invalid, "INVALID"},
 
-    {24, mult, "mult"},
-    {25, multu, "multu"},
-    {26, div, "div"},
-    {27, divu, "divu"},
+    {24, op_mult, "mult"},
+    {25, op_multu, "multu"},
+    {26, op_div, "div"},
+    {27, op_divu, "divu"},
     {28, invalid, "INVALID"},
     {29, invalid, "INVALID"},
     {30, invalid, "INVALID"},
     {31, invalid, "INVALID"},
 
-    {32, add, "add"},
-    {33, addu, "addu"},
-    {34, sub, "sub"},
-    {35, subu, "subu"},
-    {36, and, "and"},
-    {37, or, "or"},
-    {38, xor, "xor"},
-    {39, nor, "nor"},
+    {32, op_add, "add"},
+    {33, op_addu, "addu"},
+    {34, op_sub, "sub"},
+    {35, op_subu, "subu"},
+    {36, op_and, "and"},
+    {37, op_or, "or"},
+    {38, op_xor, "xor"},
+    {39, op_nor, "nor"},
 
     {40, invalid, "INVALID"},
     {41, invalid, "INVALID"},
-    {42, slt, "slt"},
-    {43, sltu, "sltu"},
+    {42, op_slt, "slt"},
+    {43, op_sltu, "sltu"},
     {44, invalid, "INVALID"},
     {45, invalid, "INVALID"},
     {46, invalid, "INVALID"},
@@ -219,7 +219,7 @@ void special(CPU *cpu, Opcode i) {
 
 // Shift Word Left Logical
 // SLL rd, rt, a
-void sll(CPU *cpu, Opcode i) {
+void op_sll(CPU *cpu, Opcode i) {
     if (i.rt == 0 && i.rd == 0 && i.sh == 0) {
         mnemonic("nop");
         disasm(" ");
@@ -231,42 +231,42 @@ void sll(CPU *cpu, Opcode i) {
 
 // Shift Word Right Logical
 // SRL rd, rt, a
-void srl(CPU *cpu, Opcode i) {
+void op_srl(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
     cpu->reg[i.rd] = cpu->reg[i.rt] >> i.sh;
 }
 
 // Shift Word Right Arithmetic
 // SRA rd, rt, a
-void sra(CPU *cpu, Opcode i) {
+void op_sra(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
     cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> i.sh;
 }
 
 // Shift Word Left Logical Variable
 // SLLV rd, rt, rs
-void sllv(CPU *cpu, Opcode i) {
+void op_sllv(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rt, i.rs);
     cpu->reg[i.rd] = cpu->reg[i.rt] << (cpu->reg[i.rs] & 0x1f);
 }
 
 // Shift Word Right Logical Variable
 // SRLV rd, rt, a
-void srlv(CPU *cpu, Opcode i) {
+void op_srlv(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rd, i.rt, i.sh);
     cpu->reg[i.rd] = cpu->reg[i.rt] >> (cpu->reg[i.rs] & 0x1f);
 }
 
 // Shift Word Right Arithmetic Variable
 // SRAV rd, rt, rs
-void srav(CPU *cpu, Opcode i) {
+void op_srav(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rt, i.rs);
     cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> (cpu->reg[i.rs] & 0x1f);
 }
 
 // Jump Register
 // JR rs
-void jr(CPU *cpu, Opcode i) {
+void op_jr(CPU *cpu, Opcode i) {
     disasm("r%d", i.rs);
     uint32_t addr = cpu->reg[i.rs];
     if (addr & 3) {
@@ -279,7 +279,7 @@ void jr(CPU *cpu, Opcode i) {
 
 // Jump Register
 // JALR
-void jalr(CPU *cpu, Opcode i) {
+void op_jalr(CPU *cpu, Opcode i) {
     disasm("r%d r%d", i.rd, i.rs);
     uint32_t addr = cpu->reg[i.rs];
     if (addr & 3) {
@@ -294,46 +294,46 @@ void jalr(CPU *cpu, Opcode i) {
 
 // Syscall
 // SYSCALL
-void syscall(CPU *cpu, Opcode i) {
+void op_syscall(CPU *cpu, Opcode i) {
     printf("  SYSCALL(%d)\n", cpu->reg[4]);
     exception(cpu, cop0::CAUSE::Exception::syscall);
 }
 
 // Break
 // BREAK
-void break_(CPU *cpu, Opcode i) { exception(cpu, cop0::CAUSE::Exception::breakpoint); }
+void op_break(CPU *cpu, Opcode i) { exception(cpu, cop0::CAUSE::Exception::breakpoint); }
 
 // Move From Hi
 // MFHI rd
-void mfhi(CPU *cpu, Opcode i) {
+void op_mfhi(CPU *cpu, Opcode i) {
     disasm("r%d", i.rd);
     cpu->reg[i.rd] = cpu->hi;
 }
 
 // Move To Hi
 // MTHI rd
-void mthi(CPU *cpu, Opcode i) {
+void op_mthi(CPU *cpu, Opcode i) {
     disasm("r%d", i.rs);
     cpu->hi = cpu->reg[i.rs];
 }
 
 // Move From Lo
 // MFLO rd
-void mflo(CPU *cpu, Opcode i) {
+void op_mflo(CPU *cpu, Opcode i) {
     disasm("r%d", i.rd);
     cpu->reg[i.rd] = cpu->lo;
 }
 
 // Move To Lo
 // MTLO rd
-void mtlo(CPU *cpu, Opcode i) {
+void op_mtlo(CPU *cpu, Opcode i) {
     disasm("r%d", i.rs);
     cpu->lo = cpu->reg[i.rs];
 }
 
 // Multiply
 // mult rs, rt
-void mult(CPU *cpu, Opcode i) {
+void op_mult(CPU *cpu, Opcode i) {
     disasm("r%d, r%d", i.rs, i.rt);
     uint64_t temp = (int64_t)(int32_t)cpu->reg[i.rs] * (int64_t)(int32_t)cpu->reg[i.rt];
     cpu->lo = temp & 0xffffffff;
@@ -342,7 +342,7 @@ void mult(CPU *cpu, Opcode i) {
 
 // Multiply Unsigned
 // multu rs, rt
-void multu(CPU *cpu, Opcode i) {
+void op_multu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d", i.rs, i.rt);
     uint64_t temp = (uint64_t)cpu->reg[i.rs] * (uint64_t)cpu->reg[i.rt];
     cpu->lo = temp & 0xffffffff;
@@ -350,7 +350,7 @@ void multu(CPU *cpu, Opcode i) {
 }
 // Divide
 // div rs, rt
-void div(CPU *cpu, Opcode i) {
+void op_div(CPU *cpu, Opcode i) {
     disasm("r%d, r%d", i.rs, i.rt);
 
     int32_t rs = (int32_t)cpu->reg[i.rs];
@@ -369,7 +369,7 @@ void div(CPU *cpu, Opcode i) {
 
 // Divide Unsigned Word
 // divu rs, rt
-void divu(CPU *cpu, Opcode i) {
+void op_divu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d", i.rs, i.rt);
 
     uint32_t rs = cpu->reg[i.rs];
@@ -385,7 +385,7 @@ void divu(CPU *cpu, Opcode i) {
 }
 
 // add rd, rs, rt
-void add(CPU *cpu, Opcode i) {
+void op_add(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
 
     uint32_t a = cpu->reg[i.rs];
@@ -401,14 +401,14 @@ void add(CPU *cpu, Opcode i) {
 
 // Add unsigned
 // addu rd, rs, rt
-void addu(CPU *cpu, Opcode i) {
+void op_addu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
 }
 
 // Subtract
 // sub rd, rs, rt
-void sub(CPU *cpu, Opcode i) {
+void op_sub(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     uint32_t a = cpu->reg[i.rs];
     uint32_t b = cpu->reg[i.rt];
@@ -423,28 +423,28 @@ void sub(CPU *cpu, Opcode i) {
 
 // Subtract unsigned
 // subu rd, rs, rt
-void subu(CPU *cpu, Opcode i) {
+void op_subu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
 }
 
 // And
 // and rd, rs, rt
-void and (CPU * cpu, Opcode i) {
+void op_and (CPU * cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = cpu->reg[i.rs] & cpu->reg[i.rt];
 }
 
 // Or
 // OR rd, rs, rt
-void or (CPU * cpu, Opcode i) {
+void op_or (CPU * cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = cpu->reg[i.rs] | cpu->reg[i.rt];
 }
 
 // Xor
 // XOR rd, rs, rt
-void xor
+void op_xor
     (CPU * cpu, Opcode i) {
         disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
         cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt];
@@ -452,14 +452,14 @@ void xor
 
     // Nor
     // NOR rd, rs, rt
-    void nor(CPU *cpu, Opcode i) {
+    void op_nor(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]);
 }
 
 // Set On Less Than Signed
 // SLT rd, rs, rt
-void slt(CPU *cpu, Opcode i) {
+void op_slt(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     if ((int32_t)cpu->reg[i.rs] < (int32_t)cpu->reg[i.rt])
         cpu->reg[i.rd] = 1;
@@ -469,7 +469,7 @@ void slt(CPU *cpu, Opcode i) {
 
 // Set On Less Than Unsigned
 // SLTU rd, rs, rt
-void sltu(CPU *cpu, Opcode i) {
+void op_sltu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     if (cpu->reg[i.rs] < cpu->reg[i.rt])
         cpu->reg[i.rd] = 1;
@@ -536,7 +536,7 @@ void branch(CPU *cpu, Opcode i) {
 
 // Jump
 // J target
-void j(CPU *cpu, Opcode i) {
+void op_j(CPU *cpu, Opcode i) {
     disasm("0x%x", i.target << 2);
     cpu->shouldJump = true;
     cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target << 2);
@@ -544,7 +544,7 @@ void j(CPU *cpu, Opcode i) {
 
 // Jump And Link
 // JAL target
-void jal(CPU *cpu, Opcode i) {
+void op_jal(CPU *cpu, Opcode i) {
     disasm("0x%x", (i.target << 2));
     cpu->shouldJump = true;
     cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target << 2);
@@ -553,7 +553,7 @@ void jal(CPU *cpu, Opcode i) {
 
 // Branch On Equal
 // BEQ rs, rt, offset
-void beq(CPU *cpu, Opcode i) {
+void op_beq(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rs, i.rt, i.offset);
     if (cpu->reg[i.rt] == cpu->reg[i.rs]) {
         cpu->shouldJump = true;
@@ -563,7 +563,7 @@ void beq(CPU *cpu, Opcode i) {
 
 // Branch On Greater Than Zero
 // BGTZ rs, offset
-void bgtz(CPU *cpu, Opcode i) {
+void op_bgtz(CPU *cpu, Opcode i) {
     disasm("r%d, %d", i.rs, i.offset);
     if ((int32_t)cpu->reg[i.rs] > 0) {
         cpu->shouldJump = true;
@@ -573,7 +573,7 @@ void bgtz(CPU *cpu, Opcode i) {
 
 // Branch On Less Than Or Equal To Zero
 // BLEZ rs, offset
-void blez(CPU *cpu, Opcode i) {
+void op_blez(CPU *cpu, Opcode i) {
     disasm("r%d, %d", i.rs, i.offset);
     if ((int32_t)cpu->reg[i.rs] <= 0) {
         cpu->shouldJump = true;
@@ -583,7 +583,7 @@ void blez(CPU *cpu, Opcode i) {
 
 // Branch On Not Equal
 // BNE rs, offset
-void bne(CPU *cpu, Opcode i) {
+void op_bne(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rs, i.rt, i.offset);
     if (cpu->reg[i.rt] != cpu->reg[i.rs]) {
         cpu->shouldJump = true;
@@ -593,7 +593,7 @@ void bne(CPU *cpu, Opcode i) {
 
 // Add Immediate Word
 // ADDI rt, rs, imm
-void addi(CPU *cpu, Opcode i) {
+void op_addi(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%hx", i.rt, i.rs, i.offset);
     uint32_t a = cpu->reg[i.rs];
     uint32_t b = i.offset;
@@ -608,14 +608,14 @@ void addi(CPU *cpu, Opcode i) {
 
 // Add Immediate Unsigned Word
 // ADDIU rt, rs, imm
-void addiu(CPU *cpu, Opcode i) {
+void op_addiu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%hx", i.rt, i.rs, i.offset);
     cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
 }
 
 // Set On Less Than Immediate
 // SLTI rd, rs, rt
-void slti(CPU *cpu, Opcode i) {
+void op_slti(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
     if ((int32_t)cpu->reg[i.rs] < (int32_t)i.offset)
         cpu->reg[i.rt] = 1;
@@ -625,7 +625,7 @@ void slti(CPU *cpu, Opcode i) {
 
 // Set On Less Than Immediate Unsigned
 // SLTIU rd, rs, rt
-void sltiu(CPU *cpu, Opcode i) {
+void op_sltiu(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
     if (cpu->reg[i.rs] < (uint32_t)i.offset)
         cpu->reg[i.rt] = 1;
@@ -635,34 +635,34 @@ void sltiu(CPU *cpu, Opcode i) {
 
 // And Immediate
 // ANDI rt, rs, imm
-void andi(CPU *cpu, Opcode i) {
+void op_andi(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
     cpu->reg[i.rt] = cpu->reg[i.rs] & i.imm;
 }
 
 // Or Immediete
 // ORI rt, rs, imm
-void ori(CPU *cpu, Opcode i) {
+void op_ori(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
     cpu->reg[i.rt] = cpu->reg[i.rs] | i.imm;
 }
 
 // Xor Immediate
 // XORI rt, rs, imm
-void xori(CPU *cpu, Opcode i) {
+void op_xori(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, 0x%x", i.rt, i.rs, i.imm);
     cpu->reg[i.rt] = cpu->reg[i.rs] ^ i.imm;
 }
 
 // Load Upper Immediate
 // LUI rt, imm
-void lui(CPU *cpu, Opcode i) {
+void op_lui(CPU *cpu, Opcode i) {
     disasm("r%d, 0x%x", i.rt, i.imm);
     cpu->reg[i.rt] = i.imm << 16;
 }
 
 // Coprocessor zero
-void cop0(CPU *cpu, Opcode i) {
+void op_cop0(CPU *cpu, Opcode i) {
     switch (i.rs) {
         case 0:
             // Move from co-processor zero
@@ -742,12 +742,12 @@ void cop0(CPU *cpu, Opcode i) {
 }
 
 // Coprocessor two
-void cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
+void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
 }
 
 // Load Byte
 // LB rt, offset(base)
-void lb(CPU *cpu, Opcode i) {
+void op_lb(CPU *cpu, Opcode i) {
     disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     cpu->reg[i.rt] = ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24;
@@ -755,7 +755,7 @@ void lb(CPU *cpu, Opcode i) {
 
 // Load Halfword
 // LH rt, offset(base)
-void lh(CPU *cpu, Opcode i) {
+void op_lh(CPU *cpu, Opcode i) {
     disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
@@ -768,7 +768,7 @@ void lh(CPU *cpu, Opcode i) {
 
 // Load Word Left
 // LWL rt, offset(base)
-void lwl(CPU *cpu, Opcode i) {
+void op_lwl(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
@@ -796,7 +796,7 @@ void lwl(CPU *cpu, Opcode i) {
 
 // Load Word
 // LW rt, offset(base)
-void lw(CPU *cpu, Opcode i) {
+void op_lw(CPU *cpu, Opcode i) {
     disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 3)  // non aligned address
@@ -809,7 +809,7 @@ void lw(CPU *cpu, Opcode i) {
 
 // Load Byte Unsigned
 // LBU rt, offset(base)
-void lbu(CPU *cpu, Opcode i) {
+void op_lbu(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     cpu->reg[i.rt] = cpu->readMemory8(addr);
@@ -817,7 +817,7 @@ void lbu(CPU *cpu, Opcode i) {
 
 // Load Halfword Unsigned
 // LHU rt, offset(base)
-void lhu(CPU *cpu, Opcode i) {
+void op_lhu(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
@@ -830,7 +830,7 @@ void lhu(CPU *cpu, Opcode i) {
 
 // Load Word Right
 // LWR rt, offset(base)
-void lwr(CPU *cpu, Opcode i) {
+void op_lwr(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
@@ -858,7 +858,7 @@ void lwr(CPU *cpu, Opcode i) {
 
 // Store Byte
 // SB rt, offset(base)
-void sb(CPU *cpu, Opcode i) {
+void op_sb(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     cpu->writeMemory8(addr, cpu->reg[i.rt]);
@@ -866,7 +866,7 @@ void sb(CPU *cpu, Opcode i) {
 
 // Store Halfword
 // SH rt, offset(base)
-void sh(CPU *cpu, Opcode i) {
+void op_sh(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
@@ -879,7 +879,7 @@ void sh(CPU *cpu, Opcode i) {
 
 // Store Word Left
 // SWL rt, offset(base)
-void swl(CPU *cpu, Opcode i) {
+void op_swl(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
@@ -906,7 +906,7 @@ void swl(CPU *cpu, Opcode i) {
 
 // Store Word
 // SW rt, offset(base)
-void sw(CPU *cpu, Opcode i) {
+void op_sw(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 3)  // non aligned address
@@ -919,7 +919,7 @@ void sw(CPU *cpu, Opcode i) {
 
 // Store Word Right
 // SWR rt, offset(base)
-void swr(CPU *cpu, Opcode i) {
+void op_swr(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;

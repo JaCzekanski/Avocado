@@ -151,17 +151,11 @@ union GP1_08 {
 
     int getHorizontalResoulution() {
         if (horizontalResolution2 == HorizontalResolution2::r386) return 368;
-        switch (horizontalResolution1) {
-            case HorizontalResolution::r256:
-                return 256;
-            case HorizontalResolution::r320:
-                return 320;
-            case HorizontalResolution::r512:
-                return 512;
-            case HorizontalResolution::r640:
-            default:
-                return 640;
-        }
+        if (horizontalResolution1 == HorizontalResolution::r256) return 256;
+        if (horizontalResolution1 == HorizontalResolution::r320) return 320;
+        if (horizontalResolution1 == HorizontalResolution::r512) return 512;
+        if (horizontalResolution1 == HorizontalResolution::r640) return 640;
+		return 640;
     }
 
     int getVerticalResoulution() {

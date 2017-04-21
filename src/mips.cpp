@@ -268,7 +268,7 @@ bool CPU::executeInstructions(int count) {
 
         bool isJumpCycle = shouldJump;
         const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
-        _mnemonic = op.mnemnic;
+        _mnemonic = (char*)op.mnemnic;
 
         op.instruction(this, _opcode);
 

@@ -118,7 +118,7 @@ struct CPU {
     bool biosLog = true;
     bool printStackTrace = false;
     bool disassemblyEnabled = false;
-    char *_mnemonic = "";
+    char *_mnemonic = (char*)"";
     std::string _disasm;
     bool loadBios(std::string name);
     bool loadExpansion(std::string name);

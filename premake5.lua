@@ -74,9 +74,5 @@ project "Avocado"
 		}
 		buildoptions { 
 			"-Wall",
-			"-Wno-write-strings",
-			"-Wno-unused-private-field",
-			"-Wno-unused-const-variable",
-			"-fno-operator-names",
 			"-fno-exceptions"
 		}
