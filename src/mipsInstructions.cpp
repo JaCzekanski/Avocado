@@ -487,7 +487,7 @@ void branch(CPU *cpu, Opcode i) {
 
             if ((int32_t)cpu->reg[i.rs] < 0) {
                 cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
             }
             break;
 
@@ -499,7 +499,7 @@ void branch(CPU *cpu, Opcode i) {
 
             if ((int32_t)cpu->reg[i.rs] >= 0) {
                 cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
             }
             break;
 
@@ -512,7 +512,7 @@ void branch(CPU *cpu, Opcode i) {
             cpu->reg[31] = cpu->PC + 8;
             if ((int32_t)cpu->reg[i.rs] < 0) {
                 cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
             }
             break;
 
@@ -525,7 +525,7 @@ void branch(CPU *cpu, Opcode i) {
             cpu->reg[31] = cpu->PC + 8;
             if ((int32_t)cpu->reg[i.rs] >= 0) {
                 cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
             }
             break;
 
@@ -537,17 +537,17 @@ void branch(CPU *cpu, Opcode i) {
 // Jump
 // J target
 void op_j(CPU *cpu, Opcode i) {
-    disasm("0x%x", i.target << 2);
+    disasm("0x%x", i.target * 4);
     cpu->shouldJump = true;
-    cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target << 2);
+    cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target * 4);
 }
 
 // Jump And Link
 // JAL target
 void op_jal(CPU *cpu, Opcode i) {
-    disasm("0x%x", (i.target << 2));
+    disasm("0x%x", (i.target * 4));
     cpu->shouldJump = true;
-    cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target << 2);
+    cpu->jumpPC = (cpu->PC & 0xf0000000) | (i.target * 4);
     cpu->reg[31] = cpu->PC + 8;
 }
 
@@ -557,7 +557,7 @@ void op_beq(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rs, i.rt, i.offset);
     if (cpu->reg[i.rt] == cpu->reg[i.rs]) {
         cpu->shouldJump = true;
-        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
     }
 }
 
@@ -567,7 +567,7 @@ void op_bgtz(CPU *cpu, Opcode i) {
     disasm("r%d, %d", i.rs, i.offset);
     if ((int32_t)cpu->reg[i.rs] > 0) {
         cpu->shouldJump = true;
-        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
     }
 }
 
@@ -577,7 +577,7 @@ void op_blez(CPU *cpu, Opcode i) {
     disasm("r%d, %d", i.rs, i.offset);
     if ((int32_t)cpu->reg[i.rs] <= 0) {
         cpu->shouldJump = true;
-        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
     }
 }
 
@@ -587,7 +587,7 @@ void op_bne(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, %d", i.rs, i.rt, i.offset);
     if (cpu->reg[i.rt] != cpu->reg[i.rs]) {
         cpu->shouldJump = true;
-        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset << 2);
+        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
     }
 }
 
