@@ -358,7 +358,7 @@ void op_div(CPU *cpu, Opcode i) {
     if (rt == 0) {
         cpu->lo = (rs < 0) ? 0x00000001 : 0xffffffff;
         cpu->hi = rs;
-    } else if (rs == 0x80000000 && rt == 0xffffffff) {
+    } else if ((uint32_t)rs == 0x80000000 && (uint32_t)rt == 0xffffffff) {
         cpu->lo = 0x80000000;
         cpu->hi = 0x00000000;
     } else {

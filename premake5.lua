@@ -74,5 +74,6 @@ project "Avocado"
 		}
 		buildoptions { 
 			"-Wall",
-			"-fno-exceptions"
+			"-Wextra",
+			"-Wno-unused-parameter",
 		}
