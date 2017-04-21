@@ -19,7 +19,7 @@ bool OpenGL::init() {
     return true;
 }
 
-bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress); }
+bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress) != 0; }
 
 bool OpenGL::loadShaders() {
     renderShader = std::make_unique<Program>("data/shader/render");

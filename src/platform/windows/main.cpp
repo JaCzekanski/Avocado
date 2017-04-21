@@ -2,6 +2,7 @@
 #include <string>
 #include <SDL.h>
 #include "renderer/opengl/opengl.h"
+#include "utils/string.h"
 #include "mips.h"
 #undef main
 

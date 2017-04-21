@@ -473,9 +473,9 @@ bool GPU::emulateGpuCycles(int cycles) {
 
     if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
         if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
-            odd = frames % 2;
+            odd = (frames % 2) != 0;
         } else {
-            odd = gpuLine % 2;
+            odd = (gpuLine % 2) != 0;
         }
     } else {
         odd = false;
