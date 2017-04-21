@@ -7,7 +7,7 @@ namespace dma {
 namespace dmaChannel {
 class DMA3Channel : public DMAChannel {
     static const int SECTOR_SIZE = 2352;
-    uint32_t readDevice() {
+    uint32_t readDevice() override {
         uint32_t data = 0;
         for (int i = 0; i < 4; i++) {
             data |= ((uint8_t)fgetc(f)) << (i * 8);
@@ -15,7 +15,7 @@ class DMA3Channel : public DMAChannel {
         bytesReaded += 4;
         return data;
     }
-    void writeDevice(uint32_t data) {}
+    void writeDevice(uint32_t data) override {}
 
     void beforeRead() override {
         if (bytesReaded >= (!sectorSize ? 0x800 : 0x924)) {

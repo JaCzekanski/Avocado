@@ -88,17 +88,15 @@ class DMA : public Device {
 
     dmaChannel::DMAChannel dma0;  // MDECin
     dmaChannel::DMAChannel dma1;  // MDECout
-    dmaChannel::DMAChannel dma4;  // SPU
-    dmaChannel::DMAChannel dma5;  // PIO?
-
     dmaChannel::DMA2Channel dma2;
-
    public:
     dmaChannel::DMA3Channel dma3;
-
    private:
+    dmaChannel::DMAChannel dma4;  // SPU
+    dmaChannel::DMAChannel dma5;  // PIO?
     dmaChannel::DMA6Channel dma6;
 
+   private:
     void *_cpu = nullptr;
     gpu::GPU *gpu = nullptr;
 
@@ -107,9 +105,9 @@ class DMA : public Device {
 
    public:
     DMA();
-    void step();
-    uint8_t read(uint32_t address);
-    void write(uint32_t address, uint8_t data);
+    void step() override;
+    uint8_t read(uint32_t address) override;
+    void write(uint32_t address, uint8_t data) override;
 
     void setCPU(void *cpu) {
         this->_cpu = cpu;
