@@ -302,6 +302,26 @@ void CPU::checkForInterrupts() {
     }
 }
 
+void CPU::emulateFrame() {
+    int systemCycles = 900;
+    for (;;) {
+        if (!executeInstructions(systemCycles / 3)) {
+            printf("CPU Halted\n");
+            return;
+        }
+
+        cdrom->step();
+        timer1->step(systemCycles);
+        timer2->step(systemCycles);
+
+        if (gpu->emulateGpuCycles(systemCycles)) {
+			interrupt->IRQ(0);
+            return;  // frame emulated
+        }
+    }
+}
+
+
 bool CPU::loadExeFile(std::string exePath) {
     auto _exe = getFileContents(exePath);
     PsxExe exe;
@@ -334,6 +354,30 @@ bool CPU::loadExeFile(std::string exePath) {
     writeMemory16(0x1f801124, 0x1c00);
 
     return true;
+}
+
+bool CPU::loadBios(std::string name) {
+	std::string path = "data/bios/";
+    auto _bios = getFileContents(path + name);
+    if (_bios.empty()) {
+        printf("Cannot open BIOS");
+		return false;
+    }
+    assert(_bios.size() == 512 * 1024);
+    std::copy(_bios.begin(), _bios.end(), bios);
+    state = mips::CPU::State::run;
+	return true;
+}
+
+bool CPU::loadExpansion(std::string name) {
+    std::string path = "data/bios/";
+    auto _exp = getFileContents(path + name);
+    if (_exp.empty()) {
+		return false;
+	}
+    assert(_exp.size() < EXPANSION_SIZE);
+    std::copy(_exp.begin(), _exp.end(), expansion);
+	return true;
 }
 
 void CPU::dumpRam() {

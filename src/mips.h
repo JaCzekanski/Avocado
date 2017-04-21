@@ -112,6 +112,7 @@ struct CPU {
     void writeMemory32(uint32_t address, uint32_t data);
     void printFunctionInfo(int type, uint8_t number, bios::Function f);
     bool executeInstructions(int count);
+	void emulateFrame();
 
     // Helpers
     bool biosLog = true;
@@ -119,6 +120,8 @@ struct CPU {
     bool disassemblyEnabled = false;
     char *_mnemonic = "";
     std::string _disasm;
+    bool loadBios(std::string name);
+    bool loadExpansion(std::string name);
     bool loadExeFile(std::string exePath);
     void dumpRam();
 };

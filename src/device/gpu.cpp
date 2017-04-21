@@ -456,5 +456,39 @@ void GPU::writeGP1(uint32_t data) {
         printf("GP1(0x%02x) args 0x%06x\n", command, argument);
 }
 std::vector<Vertex>& GPU::render() { return renderList; }
+
+
+bool GPU::emulateGpuCycles(int cycles) {
+    const int LINE_VBLANK_START_NTSC = 243;
+    const int LINES_TOTAL_NTSC = 263;
+    static int gpuLine = 0;
+    static int gpuDot = 0;
+
+    gpuDot += cycles;
+
+    int newLines = gpuDot / 3413;
+    if (newLines == 0) return false;
+    gpuDot %= 3413;
+    gpuLine += newLines;
+
+    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
+        if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
+            odd = frames % 2;
+        } else {
+            odd = gpuLine % 2;
+        }
+    } else {
+        odd = false;
+    }
+
+    if (gpuLine == LINES_TOTAL_NTSC - 1) {
+        gpuLine = 0;
+        frames++;
+        return true;
+    }
+    return false;
+}
+
+
 }
 }

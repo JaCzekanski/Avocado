@@ -269,6 +269,8 @@ class GPU {
     void write(uint32_t address, uint32_t data);
 
     std::vector<Vertex>& render();
+	
+	bool emulateGpuCycles(int cycles);
 
     uint16_t VRAM[512][1024];
 };

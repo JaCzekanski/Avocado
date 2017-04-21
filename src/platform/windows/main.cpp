@@ -2,50 +2,11 @@
 #include <string>
 #include <SDL.h>
 #include "renderer/opengl/opengl.h"
-#include "utils/file.h"
-#include "utils/string.h"
 #include "mips.h"
 #undef main
 
-int _prevCycles = 0;
-int _cycles = 0;
-
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
-
-bool emulateGpuCycles(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu, int cycles) {
-    const int LINE_VBLANK_START_NTSC = 243;
-    const int LINES_TOTAL_NTSC = 263;
-    static int gpuLine = 0;
-    static int gpuDot = 0;
-
-    _cycles += cycles;
-    gpuDot += cycles;
-
-    int newLines = gpuDot / 3413;
-    if (newLines == 0) return false;
-    gpuDot %= 3413;
-    gpuLine += newLines;
-
-    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
-        if (gpu->gp1_08.verticalResolution == device::gpu::GP1_08::VerticalResolution::r480 && gpu->gp1_08.interlace) {
-            gpu->odd = gpu->frames % 2;
-        } else {
-            gpu->odd = gpuLine % 2;
-        }
-    } else {
-        gpu->odd = false;
-    }
-
-    if (gpuLine == LINES_TOTAL_NTSC - 1) {
-        gpuLine = 0;
-        gpu->frames++;
-        cpu->interrupt->IRQ(0);
-
-        return true;
-    }
-    return false;
-}
 
 device::controller::DigitalController &getButtonState(SDL_Event &event) {
     static device::controller::DigitalController buttons;
@@ -85,24 +46,6 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
     return buttons;
 }
 
-void emulateFrame(std::unique_ptr<mips::CPU> &cpu, std::unique_ptr<device::gpu::GPU> &gpu) {
-    int systemCycles = 300;
-    for (;;) {
-        if (!cpu->executeInstructions(systemCycles / 3)) {
-            printf("CPU Halted\n");
-            return;
-        }
-
-        cpu->cdrom->step();
-        cpu->timer1->step(systemCycles);
-        cpu->timer2->step(systemCycles);
-
-        if (emulateGpuCycles(cpu, gpu, systemCycles)) {
-            return;  // frame emulated
-        }
-    }
-}
-
 struct EvCB {
     uint32_t clazz;
     uint32_t status;
@@ -136,26 +79,12 @@ void getEVCB(std::unique_ptr<mips::CPU> &cpu, bool ready) {
     }
 }
 
-void loadBios(std::unique_ptr<mips::CPU> &cpu) {
-    auto _bios = getFileContents("data/bios/SCPH1001.BIN");  // DTLH3000.BIN BOOTS
-    if (_bios.empty()) {
-        printf("Cannot open BIOS");
-    } else {
-        assert(_bios.size() == 512 * 1024);
-        std::copy(_bios.begin(), _bios.end(), cpu->bios);
-        cpu->state = mips::CPU::State::run;
-    }
-}
-
-void loadExpansion(std::unique_ptr<mips::CPU> &cpu) {
-    auto _exp = getFileContents("data/bios/expansion.rom");
-    if (!_exp.empty()) {
-        assert(_exp.size() < cpu->EXPANSION_SIZE);
-        std::copy(_exp.begin(), _exp.end(), cpu->expansion);
-    }
-}
-
 int main(int argc, char **argv) {
+	std::string bios = "SCPH1001.bin";
+	if (argc > 1) {
+		bios = std::string(argv[1]);
+	}
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
         return 1;
@@ -189,8 +118,8 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
-    loadBios(cpu);
-    loadExpansion(cpu);
+	printf("Using bios %s\n", bios.c_str());
+    cpu->loadBios(bios);
 
     auto gpu = std::make_unique<device::gpu::GPU>();
     cpu->setGPU(gpu.get());
@@ -250,12 +179,10 @@ int main(int argc, char **argv) {
         if (pendingEvents) continue;
 
         if (cpu->state == mips::CPU::State::run) {
-            emulateFrame(cpu, gpu);
+            cpu->emulateFrame();
 
             opengl.render(gpu.get());
-            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, CPU cycles: %d", cpu->interrupt->getMask().c_str(),
-                                              cpu->interrupt->getStatus().c_str(), gpu->frames, (_cycles - _prevCycles) * 200 / 317);
-            _prevCycles = _cycles;
+            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d", cpu->interrupt->getMask().c_str(), cpu->interrupt->getStatus().c_str(), gpu->frames);
             SDL_SetWindowTitle(window, title.c_str());
             SDL_GL_SwapWindow(window);
         } else {
