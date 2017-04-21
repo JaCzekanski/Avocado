@@ -34,7 +34,7 @@ uint8_t Controller::read(uint32_t address) {
         uint8_t value = fifo.front();
         fifo.pop_front();
 
-        ((mips::CPU*)_cpu)->interrupt->IRQ(7);
+        ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::CONTROLLER);
         return value;
     }
     if (address == 4) {

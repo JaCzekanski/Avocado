@@ -81,10 +81,10 @@ void getEVCB(std::unique_ptr<mips::CPU> &cpu, bool ready) {
 }
 
 int main(int argc, char **argv) {
-	std::string bios = "SCPH1001.bin";
-	if (argc > 1) {
-		bios = std::string(argv[1]);
-	}
+    std::string bios = "SCPH1001.bin";
+    if (argc > 1) {
+        bios = std::string(argv[1]);
+    }
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
-	printf("Using bios %s\n", bios.c_str());
+    printf("Using bios %s\n", bios.c_str());
     cpu->loadBios(bios);
 
     auto gpu = std::make_unique<device::gpu::GPU>();
@@ -145,9 +145,9 @@ int main(int argc, char **argv) {
                 cpu->loadExeFile(exePath);
             }
             if (event.key.keysym.sym == SDLK_b) cpu->biosLog = !cpu->biosLog;
-            if (event.key.keysym.sym == SDLK_c) cpu->interrupt->IRQ(2);
-            if (event.key.keysym.sym == SDLK_d) cpu->interrupt->IRQ(3);
-            if (event.key.keysym.sym == SDLK_s) cpu->interrupt->IRQ(9);
+            if (event.key.keysym.sym == SDLK_c) cpu->interrupt->IRQ(device::interrupt::CDROM);
+            if (event.key.keysym.sym == SDLK_d) cpu->interrupt->IRQ(device::interrupt::DMA);
+            if (event.key.keysym.sym == SDLK_s) cpu->interrupt->IRQ(device::interrupt::SPU);
             if (event.key.keysym.sym == SDLK_o) cpu->cdrom->toggleShell();
             if (event.key.keysym.sym == SDLK_f) cpu->cop0.status.interruptEnable = true;
             if (event.key.keysym.sym == SDLK_w) getEVCB(cpu, true);
@@ -183,7 +183,8 @@ int main(int argc, char **argv) {
             cpu->emulateFrame();
 
             opengl.render(gpu.get());
-            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d", cpu->interrupt->getMask().c_str(), cpu->interrupt->getStatus().c_str(), gpu->frames);
+            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d", cpu->interrupt->getMask().c_str(),
+                                              cpu->interrupt->getStatus().c_str(), gpu->frames);
             SDL_SetWindowTitle(window, title.c_str());
             SDL_GL_SwapWindow(window);
         } else {

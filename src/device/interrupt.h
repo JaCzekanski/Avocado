@@ -4,9 +4,22 @@
 
 namespace device {
 namespace interrupt {
+enum IrqNumber {
+    VBLANK = 0,
+    GPU = 1,
+    CDROM = 2,
+    DMA = 3,
+    TIMER0 = 4,
+    TIMER1 = 5,
+    TIMER2 = 6,
+    CONTROLLER = 7,
+    SIO = 8,
+    SPU = 9,
+    LIGHTPEN = 10
+};
 
 // Interrupt Channels
-union IRQS {
+union IRQ {
     struct {
         Bit vblank : 1;      // IRQ0
         Bit gpu : 1;         // IRQ1
@@ -24,12 +37,12 @@ union IRQS {
     uint16_t _reg;
     uint8_t _byte[2];
 
-    IRQS() : _reg(0) {}
+    IRQ() : _reg(0) {}
 };
 
 class Interrupt : public Device {
-    IRQS status;
-    IRQS mask;
+    IRQ status;
+    IRQ mask;
 
     void *_cpu = nullptr;
 
@@ -39,7 +52,7 @@ class Interrupt : public Device {
     uint8_t read(uint32_t address) override;
     void write(uint32_t address, uint8_t data) override;
 
-    void IRQ(int irq);
+    void IRQ(IrqNumber irq);
     bool interruptPending();
     std::string getMask();
     std::string getStatus();

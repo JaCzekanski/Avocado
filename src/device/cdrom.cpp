@@ -12,7 +12,7 @@ void CDROM::step() {
     status.transmissionBusy = 0;
     if (!CDROM_interrupt.empty()) {
         if ((interruptEnable & 7) & (CDROM_interrupt.front() & 7)) {
-            ((mips::CPU*)_cpu)->interrupt->IRQ(2);
+            ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::CDROM);
         }
     }
 }
@@ -295,7 +295,6 @@ void CDROM::handleCommand(uint8_t cmd) {
     else {
         printf("Unimplemented cmd 0x%x!\n", cmd);
     }
-    //((mips::CPU*)_cpu)->interrupt->IRQ(2);
     CDROM_params.clear();
     status.parameterFifoEmpty = 1;
     status.parameterFifoFull = 1;

@@ -68,6 +68,9 @@ struct CPU {
     uint32_t hi, lo;
     bool exception;
 
+    uint32_t tmpVal = 0;
+    int tmpReg = -1;
+
     uint8_t bios[BIOS_SIZE];
     uint8_t ram[RAM_SIZE];
     uint8_t scratchpad[SCRATCHPAD_SIZE];
@@ -112,13 +115,13 @@ struct CPU {
     void writeMemory32(uint32_t address, uint32_t data);
     void printFunctionInfo(int type, uint8_t number, bios::Function f);
     bool executeInstructions(int count);
-	void emulateFrame();
+    void emulateFrame();
 
     // Helpers
     bool biosLog = true;
     bool printStackTrace = false;
     bool disassemblyEnabled = false;
-    char *_mnemonic = (char*)"";
+    char *_mnemonic = (char *)"";
     std::string _disasm;
     bool loadBios(std::string name);
     bool loadExpansion(std::string name);

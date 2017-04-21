@@ -6,7 +6,7 @@ static const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3
                                  "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
 
 #define mnemonic(x) \
-    if (cpu->disassemblyEnabled) cpu->_mnemonic = (char*)(x)
+    if (cpu->disassemblyEnabled) cpu->_mnemonic = (char *)(x)
 #define disasm(fmt, ...) \
     if (cpu->disassemblyEnabled) cpu->_disasm = string_format(fmt, ##__VA_ARGS__)
 
@@ -90,84 +90,30 @@ PrimaryInstruction OpcodeTable[64] = {
 };
 
 PrimaryInstruction SpecialTable[64] = {
-    {0, op_sll, "sll"},
-    {1, invalid, "INVALID"},
-    {2, op_srl, "srl"},
-    {3, op_sra, "sra"},
-    {4, op_sllv, "sllv"},
-    {5, invalid, "INVALID"},
-    {6, op_srlv, "srlv"},
-    {7, op_srav, "srav"},
+    {0, op_sll, "sll"},       {1, invalid, "INVALID"},  {2, op_srl, "srl"},       {3, op_sra, "sra"},       {4, op_sllv, "sllv"},
+    {5, invalid, "INVALID"},  {6, op_srlv, "srlv"},     {7, op_srav, "srav"},
 
-    {8, op_jr, "jr"},
-    {9, op_jalr, "jalr"},
-    {10, invalid, "INVALID"},
-    {11, invalid, "INVALID"},
-    {12, op_syscall, "syscall"},
-    {13, op_break, "break"},
-    {14, invalid, "INVALID"},
-    {15, invalid, "INVALID"},
+    {8, op_jr, "jr"},         {9, op_jalr, "jalr"},     {10, invalid, "INVALID"}, {11, invalid, "INVALID"}, {12, op_syscall, "syscall"},
+    {13, op_break, "break"},  {14, invalid, "INVALID"}, {15, invalid, "INVALID"},
 
-    {16, op_mfhi, "mfhi"},
-    {17, op_mthi, "mthi"},
-    {18, op_mflo, "mflo"},
-    {19, op_mtlo, "mtlo"},
-    {20, invalid, "INVALID"},
-    {21, invalid, "INVALID"},
-    {22, invalid, "INVALID"},
-    {23, invalid, "INVALID"},
+    {16, op_mfhi, "mfhi"},    {17, op_mthi, "mthi"},    {18, op_mflo, "mflo"},    {19, op_mtlo, "mtlo"},    {20, invalid, "INVALID"},
+    {21, invalid, "INVALID"}, {22, invalid, "INVALID"}, {23, invalid, "INVALID"},
 
-    {24, op_mult, "mult"},
-    {25, op_multu, "multu"},
-    {26, op_div, "div"},
-    {27, op_divu, "divu"},
-    {28, invalid, "INVALID"},
-    {29, invalid, "INVALID"},
-    {30, invalid, "INVALID"},
-    {31, invalid, "INVALID"},
+    {24, op_mult, "mult"},    {25, op_multu, "multu"},  {26, op_div, "div"},      {27, op_divu, "divu"},    {28, invalid, "INVALID"},
+    {29, invalid, "INVALID"}, {30, invalid, "INVALID"}, {31, invalid, "INVALID"},
 
-    {32, op_add, "add"},
-    {33, op_addu, "addu"},
-    {34, op_sub, "sub"},
-    {35, op_subu, "subu"},
-    {36, op_and, "and"},
-    {37, op_or, "or"},
-    {38, op_xor, "xor"},
-    {39, op_nor, "nor"},
+    {32, op_add, "add"},      {33, op_addu, "addu"},    {34, op_sub, "sub"},      {35, op_subu, "subu"},    {36, op_and, "and"},
+    {37, op_or, "or"},        {38, op_xor, "xor"},      {39, op_nor, "nor"},
 
-    {40, invalid, "INVALID"},
-    {41, invalid, "INVALID"},
-    {42, op_slt, "slt"},
-    {43, op_sltu, "sltu"},
-    {44, invalid, "INVALID"},
-    {45, invalid, "INVALID"},
-    {46, invalid, "INVALID"},
-    {47, invalid, "INVALID"},
+    {40, invalid, "INVALID"}, {41, invalid, "INVALID"}, {42, op_slt, "slt"},      {43, op_sltu, "sltu"},    {44, invalid, "INVALID"},
+    {45, invalid, "INVALID"}, {46, invalid, "INVALID"}, {47, invalid, "INVALID"},
 
-    {48, invalid, "INVALID"},
-    {49, invalid, "INVALID"},
-    {50, invalid, "INVALID"},
-    {51, invalid, "INVALID"},
-    {52, invalid, "INVALID"},
-    {53, invalid, "INVALID"},
-    {54, invalid, "INVALID"},
-    {55, invalid, "INVALID"},
+    {48, invalid, "INVALID"}, {49, invalid, "INVALID"}, {50, invalid, "INVALID"}, {51, invalid, "INVALID"}, {52, invalid, "INVALID"},
+    {53, invalid, "INVALID"}, {54, invalid, "INVALID"}, {55, invalid, "INVALID"},
 
-    {56, invalid, "INVALID"},
-    {57, invalid, "INVALID"},
-    {58, invalid, "INVALID"},
-    {59, invalid, "INVALID"},
-    {60, invalid, "INVALID"},
-    {61, invalid, "INVALID"},
-    {62, invalid, "INVALID"},
-    {63, invalid, "INVALID"},
+    {56, invalid, "INVALID"}, {57, invalid, "INVALID"}, {58, invalid, "INVALID"}, {59, invalid, "INVALID"}, {60, invalid, "INVALID"},
+    {61, invalid, "INVALID"}, {62, invalid, "INVALID"}, {63, invalid, "INVALID"},
 };
-
-inline bool isOverflow(uint32_t result, uint32_t a, uint32_t b) {
-#define SIGN(x) ((x)&0x80000000)
-    return !(SIGN(a) ^ SIGN(b)) && (SIGN(result) ^ SIGN(a));
-#undef SIGN
-}
 
 void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
@@ -392,7 +338,7 @@ void op_add(CPU *cpu, Opcode i) {
     uint32_t b = cpu->reg[i.rt];
     uint32_t result = a + b;
 
-    if (isOverflow(result, a, b)) {
+    if (!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
         exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
@@ -414,7 +360,7 @@ void op_sub(CPU *cpu, Opcode i) {
     uint32_t b = cpu->reg[i.rt];
     uint32_t result = a - b;
 
-    if (isOverflow(result, a, b)) {
+    if (((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
         exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
@@ -430,29 +376,28 @@ void op_subu(CPU *cpu, Opcode i) {
 
 // And
 // and rd, rs, rt
-void op_and (CPU * cpu, Opcode i) {
+void op_and(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = cpu->reg[i.rs] & cpu->reg[i.rt];
 }
 
 // Or
 // OR rd, rs, rt
-void op_or (CPU * cpu, Opcode i) {
+void op_or(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = cpu->reg[i.rs] | cpu->reg[i.rt];
 }
 
 // Xor
 // XOR rd, rs, rt
-void op_xor
-    (CPU * cpu, Opcode i) {
-        disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
-        cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt];
-    }
+void op_xor(CPU *cpu, Opcode i) {
+    disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
+    cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt];
+}
 
-    // Nor
-    // NOR rd, rs, rt
-    void op_nor(CPU *cpu, Opcode i) {
+// Nor
+// NOR rd, rs, rt
+void op_nor(CPU *cpu, Opcode i) {
     disasm("r%d, r%d, r%d", i.rd, i.rs, i.rt);
     cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]);
 }
@@ -599,7 +544,7 @@ void op_addi(CPU *cpu, Opcode i) {
     uint32_t b = i.offset;
     uint32_t result = a + b;
 
-    if (isOverflow(result, a, b)) {
+    if (!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
         exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
         return;
     }

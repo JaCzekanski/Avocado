@@ -66,7 +66,7 @@ void DMA::write(uint32_t address, uint8_t data) {
             dma2.irqFlag = false;
             if (status.enableDma2) {
                 status.flagDma2 = 1;
-                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+                ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::DMA);
             }
         }
         return;
@@ -78,7 +78,7 @@ void DMA::write(uint32_t address, uint8_t data) {
             dma3.irqFlag = false;
             if (status.enableDma3) {
                 status.flagDma3 = 1;
-                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+                ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::DMA);
             }
             ((mips::CPU*)_cpu)->cdrom->ackMoreData();
             //((mips::CPU*)_cpu)->interrupt->IRQ(2); // CDROM IRQ, new sector ?
@@ -93,9 +93,9 @@ void DMA::write(uint32_t address, uint8_t data) {
             dma4.irqFlag = false;
             if (status.enableDma4) {
                 status.flagDma4 = 1;
-                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+                ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::DMA);
             }
-            ((mips::CPU*)_cpu)->interrupt->IRQ(9);
+            ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::SPU);
         }
         return;
     }
@@ -106,7 +106,7 @@ void DMA::write(uint32_t address, uint8_t data) {
             dma5.irqFlag = false;
             if (status.enableDma5) {
                 status.flagDma5 = 1;
-                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+                ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::DMA);
             }
         }
         return;
@@ -118,7 +118,7 @@ void DMA::write(uint32_t address, uint8_t data) {
             dma6.irqFlag = false;
             if (status.enableDma6) {
                 status.flagDma6 = 1;
-                ((mips::CPU*)_cpu)->interrupt->IRQ(3);
+                ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::DMA);
             }
         }
         return;

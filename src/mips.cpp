@@ -268,7 +268,7 @@ bool CPU::executeInstructions(int count) {
 
         bool isJumpCycle = shouldJump;
         const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
-        _mnemonic = (char*)op.mnemnic;
+        _mnemonic = (char *)op.mnemnic;
 
         op.instruction(this, _opcode);
 
@@ -315,12 +315,11 @@ void CPU::emulateFrame() {
         timer2->step(systemCycles);
 
         if (gpu->emulateGpuCycles(systemCycles)) {
-			interrupt->IRQ(0);
+            interrupt->IRQ(interrupt::VBLANK);
             return;  // frame emulated
         }
     }
 }
-
 
 bool CPU::loadExeFile(std::string exePath) {
     auto _exe = getFileContents(exePath);
@@ -357,27 +356,27 @@ bool CPU::loadExeFile(std::string exePath) {
 }
 
 bool CPU::loadBios(std::string name) {
-	std::string path = "data/bios/";
+    std::string path = "data/bios/";
     auto _bios = getFileContents(path + name);
     if (_bios.empty()) {
         printf("Cannot open BIOS");
-		return false;
+        return false;
     }
     assert(_bios.size() == 512 * 1024);
     std::copy(_bios.begin(), _bios.end(), bios);
     state = mips::CPU::State::run;
-	return true;
+    return true;
 }
 
 bool CPU::loadExpansion(std::string name) {
     std::string path = "data/bios/";
     auto _exp = getFileContents(path + name);
     if (_exp.empty()) {
-		return false;
-	}
+        return false;
+    }
     assert(_exp.size() < EXPANSION_SIZE);
     std::copy(_exp.begin(), _exp.end(), expansion);
-	return true;
+    return true;
 }
 
 void CPU::dumpRam() {

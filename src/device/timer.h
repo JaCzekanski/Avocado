@@ -1,5 +1,7 @@
 #pragma once
 #include "device.h"
+#include "interrupt.h"
+#include <cassert>
 
 namespace device {
 namespace timer {
@@ -104,6 +106,14 @@ class Timer : public Device {
     int cnt = 0;
 
     void *_cpu = nullptr;
+
+    interrupt::IrqNumber mapIrqNumber() const {
+        if (which == 0) return interrupt::IrqNumber::TIMER0;
+        if (which == 1) return interrupt::IrqNumber::TIMER1;
+        if (which == 2) return interrupt::IrqNumber::TIMER2;
+        assert(false);
+        return interrupt::TIMER0;
+    }
 
    public:
     Timer(int which);
