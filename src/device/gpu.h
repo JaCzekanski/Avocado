@@ -8,11 +8,11 @@ const int MAX_ARGS = 32;
 
 union PolygonArgs {
     struct {
-        uint8_t : 1;
+        uint8_t _brightnessCalculation : 1;
         uint8_t semiTransparency : 1;
         uint8_t isTextureMapped : 1;
         uint8_t isQuad : 1;
-        uint8_t isShaded : 1;
+        uint8_t gouroudShading : 1;
         uint8_t : 3;
     };
     uint8_t _;
@@ -22,7 +22,7 @@ union PolygonArgs {
     int getArgumentCount() const {
         int size = isQuad ? 4 : 3;
         if (isTextureMapped) size *= 2;
-        if (isShaded) size = size * 2 - 1;
+        if (gouroudShading) size = size * 2 - 1;
 
         return size;
     }
@@ -36,14 +36,14 @@ union LineArgs {
         uint8_t semiTransparency : 1;
         uint8_t : 1;
         uint8_t polyLine : 1;
-        uint8_t isShaded : 1;
+        uint8_t gouroudShading : 1;
         uint8_t : 3;
     };
     uint8_t _;
 
     LineArgs(uint8_t arg) : _(arg) {}
 
-    int getArgumentCount() const { return (polyLine ? MAX_ARGS - 1 : (isShaded ? 2 : 1) * 2); }
+    int getArgumentCount() const { return (polyLine ? MAX_ARGS - 1 : (gouroudShading ? 2 : 1) * 2); }
 };
 
 union RectangleArgs {

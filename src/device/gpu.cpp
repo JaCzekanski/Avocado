@@ -92,11 +92,12 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
         y[i] = (int32_t)(int16_t)((arguments[ptr++] >> 16) & 0xffff);
 
-        if (!arg.isShaded || i == 0) c[i] = arguments[0] & 0xffffff;
+        if (!arg.gouroudShading || i == 0) c[i] = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
-        if (arg.isShaded && i < arg.getVertexCount() - 1) c[i + 1] = arguments[ptr++];
+        if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1] = arguments[ptr++];
     }
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, 1);
+    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, (arg.semiTransparency ? 0 : 1)
+                                                                   << 0);  // Semi transparency problems in SCPH-101 menu
 
     cmd = Command::None;
 }
@@ -117,18 +118,20 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
             sc = ec;
         }
 
-        if (arg.isShaded)
+        if (arg.gouroudShading)
             ec = arguments[ptr++];
         else
             ec = arguments[0] & 0xffffff;
         ex = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
         ey = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
 
-        int x[3] = {sx, sx + 1, ex};
-        int y[3] = {sy, sy + 1, ey};
-        int c[3] = {sc, sc, ec};
+        int x[4] = {sx, sx + 1, ex + 1, ex};
+        int y[4] = {sy, sy + 1, ey + 1, ey};
+        int c[4] = {sc, sc, ec, ec};
 
-        drawPolygon(x, y, c);
+        // TODO: Switch to proprer line rendering
+
+        drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency ? 0 : 1) << 0);
     }
 
     cmd = Command::None;
@@ -163,7 +166,7 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 #undef tex
     }
 
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency ? 1 : 0) << 0);
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency ? 0 : 1) << 0);
 
     cmd = Command::None;
 }
