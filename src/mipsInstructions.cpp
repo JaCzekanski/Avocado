@@ -241,7 +241,7 @@ void op_jalr(CPU *cpu, Opcode i) {
 // Syscall
 // SYSCALL
 void op_syscall(CPU *cpu, Opcode i) {
-    printf("  SYSCALL(%d)\n", cpu->reg[4]);
+    if (cpu->biosLog) printf("  SYSCALL(%d)\n", cpu->reg[4]);
     exception(cpu, cop0::CAUSE::Exception::syscall);
 }
 
@@ -722,7 +722,7 @@ void op_lwl(CPU *cpu, Opcode i) {
     uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
 
     uint32_t result = 0;
-    switch (i.offset % 4) {
+    switch (addr % 4) {
         case 0:
             result = (word << 24) | (rt & 0xffffff);
             break;
@@ -784,7 +784,7 @@ void op_lwr(CPU *cpu, Opcode i) {
 
     uint32_t result = 0;
 
-    switch (i.offset % 4) {
+    switch (addr % 4) {
         case 0:
             result = word;
             break;
@@ -832,7 +832,7 @@ void op_swl(CPU *cpu, Opcode i) {
     uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
 
     uint32_t result = 0;
-    switch (i.offset % 4) {
+    switch (addr % 4) {
         case 0:
             result = (word & 0xffffff00) | ((rt >> 24) & 0xff);
             break;
@@ -873,7 +873,7 @@ void op_swr(CPU *cpu, Opcode i) {
 
     uint32_t result = 0;
 
-    switch (i.offset % 4) {
+    switch (addr % 4) {
         case 0:
             result = rt;
             break;
