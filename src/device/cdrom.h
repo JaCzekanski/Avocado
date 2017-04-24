@@ -22,7 +22,8 @@ class CDROM : public Device {
 
         void setMode(Mode mode) {
             error = seekError = idError = false;
-            motor = read = seek = play = false;
+            read = seek = play = false;
+            motor = true;
             if (mode == Mode::Reading) {
                 read = true;
             } else if (mode == Mode::Seeking) {
@@ -76,9 +77,13 @@ class CDROM : public Device {
     void cmdSetloc();
     void cmdPlay();
     void cmdReadN();
+    void cmdMotorOn();
+    void cmdStop();
     void cmdPause();
     void cmdInit();
+    void cmdMute();
     void cmdDemute();
+    void cmdSetFilter();
     void cmdSetmode();
     void cmdGetTN();
     void cmdGetTD();
@@ -115,6 +120,8 @@ class CDROM : public Device {
 
     void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
+        status.dataFifoEmpty = 1;
+
         CDROM_interrupt.push_back(1);
         writeResponse(stat._reg);
     }

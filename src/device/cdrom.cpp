@@ -87,7 +87,6 @@ void CDROM::cmdPlay() {
 }
 
 void CDROM::cmdReadN() {
-    status.dataFifoEmpty = 1;
     stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(3);
@@ -97,9 +96,28 @@ void CDROM::cmdReadN() {
     writeResponse(stat._reg);
 }
 
-void CDROM::cmdPause() {
-    status.dataFifoEmpty = 0;
+void CDROM::cmdMotorOn() {
+    stat.motor = 1;
 
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+
+    CDROM_interrupt.push_back(2);
+    writeResponse(stat._reg);
+}
+
+void CDROM::cmdStop() {
+    stat.setMode(StatusCode::Mode::None);
+    stat.motor = 0;
+
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+
+    CDROM_interrupt.push_back(2);
+    writeResponse(stat._reg);
+}
+
+void CDROM::cmdPause() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -107,8 +125,6 @@ void CDROM::cmdPause() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
-
-    status.dataFifoEmpty = 0;  // ?
 }
 
 void CDROM::cmdInit() {
@@ -118,11 +134,27 @@ void CDROM::cmdInit() {
     stat.motor = 1;
     stat.setMode(StatusCode::Mode::None);
 
+    sectorSize = false;
+    ((mips::CPU*)_cpu)->dma->dma3.sectorSize = sectorSize;
+
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 }
 
+void CDROM::cmdMute() {
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+}
+
 void CDROM::cmdDemute() {
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+}
+
+void CDROM::cmdSetFilter() {
+    // TODO: Stub!
+    int file = readParam();
+    int channel = readParam();
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 }
@@ -159,7 +191,7 @@ void CDROM::cmdGetTD() {
         x /= 2352;
         int minute = x / 60 / 75;
         int second = ((x % (60 * 75)) / 75) + 2;
-        printf("GetTD: minute: %d, second: %d", minute, second);
+        printf("GetTD: minute: %d, second: %d\n", minute, second);
 
         writeResponse(((minute / 10) << 4) | (minute % 10));
         writeResponse(((second / 10) << 4) | (second % 10));
@@ -218,7 +250,6 @@ void CDROM::cmdGetId() {
 }
 
 void CDROM::cmdReadS() {
-    status.dataFifoEmpty = 1;
     stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(3);
@@ -268,14 +299,22 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdPlay();
     else if (cmd == 0x06)
         cmdReadN();
+    else if (cmd == 0x07)
+        cmdMotorOn();
     else if (cmd == 0x1b)
         cmdReadS();
     else if (cmd == 0x0e)
         cmdSetmode();
+    else if (cmd == 0x08)
+        cmdStop();
     else if (cmd == 0x09)
         cmdPause();
+    else if (cmd == 0x0b)
+        cmdMute();
     else if (cmd == 0x0c)
         cmdDemute();
+    else if (cmd == 0x0d)
+        cmdSetFilter();
     else if (cmd == 0x13)
         cmdGetTN();
     else if (cmd == 0x14)
@@ -319,10 +358,12 @@ void CDROM::write(uint32_t address, uint8_t data) {
     }
     if (address == 3 && status.index == 0) {  // Request register
         if (data & 0x80) {                    // want data
+            status.dataFifoEmpty = 1;
+
             CDROM_interrupt.push_back(1);
             writeResponse(stat._reg);
         } else {  // clear data fifo
-            status.dataFifoEmpty = true;
+            status.dataFifoEmpty = 0;
         }
         return;
     }
@@ -338,9 +379,9 @@ void CDROM::write(uint32_t address, uint8_t data) {
             status.parameterFifoFull = 1;
         }
 
-        data &= 0x1f;
-        if ((data == 0x07 || data == 0x1f) && !CDROM_interrupt.empty()) CDROM_interrupt.pop_front();
-
+        if (!CDROM_interrupt.empty()) {
+            CDROM_interrupt.pop_front();
+        }
         return;
     }
 
