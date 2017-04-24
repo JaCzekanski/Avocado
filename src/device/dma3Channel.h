@@ -18,7 +18,7 @@ class DMA3Channel : public DMAChannel {
     void writeDevice(uint32_t data) override {}
 
     void beforeRead() override {
-        if (bytesReaded >= (!sectorSize ? 0x800 : 0x924)) {
+        if (bytesReaded >= (!sectorSize ? 0x800 : 0x924)) {  // 0x800 instead of 0x924 helps some games, hmm ...
             bytesReaded = 0;
             sector++;
             doSeek = true;
@@ -50,7 +50,8 @@ class DMA3Channel : public DMAChannel {
     bool sectorSize = false;
 
     DMA3Channel(int channel) : DMAChannel(channel) {
-        f = fopen("data/iso/marilyn.iso", "rb");
+        extern const char *CD_FILE;
+        f = fopen(CD_FILE, "rb");
         if (!f) {
             printf("cannot open .iso");
             exit(1);

@@ -48,32 +48,22 @@ union DICR {
 
         uint32_t forceIRQ : 1;
 
-        union {
-            struct {
-                uint32_t enableDma0 : 1;
-                uint32_t enableDma1 : 1;
-                uint32_t enableDma2 : 1;
-                uint32_t enableDma3 : 1;
-                uint32_t enableDma4 : 1;
-                uint32_t enableDma5 : 1;
-                uint32_t enableDma6 : 1;
-            };
-            uint32_t enables;
-        };
+        uint32_t enableDma0 : 1;
+        uint32_t enableDma1 : 1;
+        uint32_t enableDma2 : 1;
+        uint32_t enableDma3 : 1;
+        uint32_t enableDma4 : 1;
+        uint32_t enableDma5 : 1;
+        uint32_t enableDma6 : 1;
         uint32_t masterEnable : 1;
 
-        union {
-            struct {
-                uint32_t flagDma0 : 1;
-                uint32_t flagDma1 : 1;
-                uint32_t flagDma2 : 1;
-                uint32_t flagDma3 : 1;
-                uint32_t flagDma4 : 1;
-                uint32_t flagDma5 : 1;
-                uint32_t flagDma6 : 1;
-            };
-            uint32_t flags;
-        };
+        uint32_t flagDma0 : 1;
+        uint32_t flagDma1 : 1;
+        uint32_t flagDma2 : 1;
+        uint32_t flagDma3 : 1;
+        uint32_t flagDma4 : 1;
+        uint32_t flagDma5 : 1;
+        uint32_t flagDma6 : 1;
         uint32_t masterFlag : 1;
     };
     uint32_t _reg;
@@ -89,8 +79,10 @@ class DMA : public Device {
     dmaChannel::DMAChannel dma0;  // MDECin
     dmaChannel::DMAChannel dma1;  // MDECout
     dmaChannel::DMA2Channel dma2;
+
    public:
     dmaChannel::DMA3Channel dma3;
+
    private:
     dmaChannel::DMAChannel dma4;  // SPU
     dmaChannel::DMAChannel dma5;  // PIO?

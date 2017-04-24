@@ -6,6 +6,8 @@
 #include "mips.h"
 #undef main
 
+const char *CD_FILE = "data/iso/mgs_cd1.iso";
+
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
@@ -121,6 +123,8 @@ int main(int argc, char **argv) {
 
     printf("Using bios %s\n", bios.c_str());
     cpu->loadBios(bios);
+    //    cpu->loadExpansion("expansion.rom");
+    //    cpu->expansion[0x20018] = 0xff;
 
     auto gpu = std::make_unique<device::gpu::GPU>();
     cpu->setGPU(gpu.get());

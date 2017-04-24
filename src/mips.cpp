@@ -123,7 +123,7 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         if (!cop0.status.isolateCache) ram[address & 0x1FFFFF] = data;
         return;
     }
-    if (address >= 0x1f000000 && address < 0x1f010000) {
+    if (address >= 0x1f000000 && address < 0x1f000000 + EXPANSION_SIZE) {
         expansion[address - 0x1f000000] = data;
         return;
     }
@@ -303,13 +303,14 @@ void CPU::checkForInterrupts() {
 }
 
 void CPU::emulateFrame() {
-    int systemCycles = 900;
+    int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {
             printf("CPU Halted\n");
             return;
         }
 
+        dma->step();
         cdrom->step();
         timer1->step(systemCycles);
         timer2->step(systemCycles);

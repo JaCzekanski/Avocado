@@ -51,7 +51,7 @@ struct CPU {
     static const int BIOS_SIZE = 512 * 1024;
     static const int RAM_SIZE = 2 * 1024 * 1024;
     static const int SCRATCHPAD_SIZE = 1024;
-    static const int EXPANSION_SIZE = 512 * 1024;  // 8 * 1024 * 1024;
+    static const int EXPANSION_SIZE = 1 * 1024 * 1024;
     enum class State {
         halted,  // Cannot be run until reset
         stop,    // after reset
