@@ -14,8 +14,8 @@ void Timer::step(int cycles) {
             current._reg += cnt;
             cnt = 0;
         } else {  // System Clock
-            current._reg += cnt / 2;
-            cnt %= 2;
+            current._reg += cnt / 3;
+            cnt %= 3;
         }
     } else if (which == 1) {
         if (mode.clockSource.clockSource1 == CounterMode::ClockSource1::hblank
@@ -23,17 +23,17 @@ void Timer::step(int cycles) {
             current._reg += cnt / 3413;
             cnt %= 3413;
         } else {  // System Clock
-            current._reg += cnt / 2;
-            cnt %= 2;
+            current._reg += cnt / 3;
+            cnt %= 3;
         }
     } else if (which == 2) {
         if (mode.clockSource.clockSource2 == CounterMode::ClockSource2::systemClock_8
             || mode.clockSource.clockSource2 == CounterMode::ClockSource2::systemClock_8_) {
-            current._reg += cnt / (8 * 2);
-            cnt %= 8 * 2;
+            current._reg += cnt / (8 * 3);
+            cnt %= 8 * 3;
         } else {  // System Clock
-            current._reg += cnt / 2;
-            cnt %= 2;
+            current._reg += cnt / 3;
+            cnt %= 3;
         }
     }
 
