@@ -2,6 +2,8 @@
 #include "dmaChannel.h"
 #include <src/utils/file.h>
 
+extern const char *CD_FILE;
+
 namespace device {
 namespace dma {
 namespace dmaChannel {
@@ -50,7 +52,6 @@ class DMA3Channel : public DMAChannel {
     bool sectorSize = false;
 
     DMA3Channel(int channel) : DMAChannel(channel) {
-        extern const char *CD_FILE;
         f = fopen(CD_FILE, "rb");
         if (!f) {
             printf("cannot open .iso");
