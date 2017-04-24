@@ -19,7 +19,13 @@ union PolygonArgs {
 
     PolygonArgs(uint8_t arg) : _(arg) {}
 
-    int getArgumentCount() const { return (isQuad ? 4 : 3) * (isTextureMapped ? 2 : 1) * (isShaded ? 2 : 1) - (isShaded ? 1 : 0); }
+    int getArgumentCount() const {
+        int size = isQuad ? 4 : 3;
+        if (isTextureMapped) size *= 2;
+        if (isShaded) size = size * 2 - 1;
+
+        return size;
+    }
 
     int getVertexCount() const { return isQuad ? 4 : 3; }
 };
@@ -155,7 +161,7 @@ union GP1_08 {
         if (horizontalResolution1 == HorizontalResolution::r320) return 320;
         if (horizontalResolution1 == HorizontalResolution::r512) return 512;
         if (horizontalResolution1 == HorizontalResolution::r640) return 640;
-		return 640;
+        return 640;
     }
 
     int getVerticalResoulution() {
@@ -196,16 +202,16 @@ class GPU {
     int textureWindowOffsetY = 0;
 
     // GP0(0xe3)
-    int drawingAreaX1 = 0;
-    int drawingAreaY1 = 0;
+    int16_t drawingAreaX1 = 0;
+    int16_t drawingAreaY1 = 0;
 
     // GP0(0xe4)
-    int drawingAreaX2 = 0;
-    int drawingAreaY2 = 0;
+    int16_t drawingAreaX2 = 0;
+    int16_t drawingAreaY2 = 0;
 
     // GP0(0xe5)
-    int drawingOffsetX = 0;
-    int drawingOffsetY = 0;
+    int16_t drawingOffsetX = 0;
+    int16_t drawingOffsetY = 0;
 
     // GP0(0xe6)
     int setMaskWhileDrawing = 0;
@@ -221,16 +227,16 @@ class GPU {
     int dmaDirection = 0;
 
     // GP1(0x05)
-    int displayAreaStartX = 0;
-    int displayAreaStartY = 0;
+    int16_t displayAreaStartX = 0;
+    int16_t displayAreaStartY = 0;
 
     // GP1(0x06)
-    int displayRangeX1 = 0;
-    int displayRangeX2 = 0;
+    int16_t displayRangeX1 = 0;
+    int16_t displayRangeX2 = 0;
 
     // GP1(0x07)
-    int displayRangeY1 = 0;
-    int displayRangeY2 = 0;
+    int16_t displayRangeY1 = 0;
+    int16_t displayRangeY2 = 0;
 
     GP1_08 gp1_08;
 
@@ -263,8 +269,8 @@ class GPU {
     void write(uint32_t address, uint32_t data);
 
     std::vector<Vertex>& render();
-	
-	bool emulateGpuCycles(int cycles);
+
+    bool emulateGpuCycles(int cycles);
 
     uint16_t VRAM[512][1024];
 };

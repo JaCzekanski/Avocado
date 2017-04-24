@@ -54,9 +54,9 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
-            int r = c[i] & 0xff;
-            int g = (c[i] >> 8) & 0xff;
-            int b = (c[i] >> 16) & 0xff;
+            uint8_t r = c[i] & 0xff;
+            uint8_t g = (c[i] >> 8) & 0xff;
+            uint8_t b = (c[i] >> 16) & 0xff;
             renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags});
         }
     }
@@ -66,7 +66,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
 }
 
 void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
-    startX = currX = (arguments[1] & 0xffff);
+    startX = currX = arguments[1] & 0xffff;
     startY = currY = (arguments[1] & 0xffff0000) >> 16;
     endX = startX + (arguments[2] & 0xffff);
     endY = startY + ((arguments[2] & 0xffff0000) >> 16);
@@ -74,9 +74,7 @@ void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
     uint32_t color = to15bit(arguments[0] & 0xffffff);
 
     for (;;) {
-        if (currY < 512 && currX < 1023) {
-            VRAM[currY][currX] = color;
-        }
+        VRAM[currY % 512][currX % 1024] = color;
 
         if (currX++ >= endX) {
             currX = startX;
@@ -91,8 +89,8 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     int ptr = 1;
     int x[4], y[4], c[4] = {0}, tex[4] = {0};
     for (int i = 0; i < arg.getVertexCount(); i++) {
-        x[i] = arguments[ptr] & 0xffff;
-        y[i] = (arguments[ptr++] >> 16) & 0xffff;
+        x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
+        y[i] = (int32_t)(int16_t)((arguments[ptr++] >> 16) & 0xffff);
 
         if (!arg.isShaded || i == 0) c[i] = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
@@ -108,9 +106,10 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
     int sx = 0, sy = 0, sc = 0;
     int ex = 0, ey = 0, ec = 0;
     for (int i = 0; i < arg.getArgumentCount() - 1; i++) {
+        if (arguments[ptr] == 0x55555555) break;
         if (i == 0) {
-            sx = arguments[ptr] & 0xffff;
-            sy = (arguments[ptr++] & 0xffff0000) >> 16;
+            sx = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
+            sy = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
             sc = arguments[0] & 0xffffff;
         } else {
             sx = ex;
@@ -122,12 +121,12 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
             ec = arguments[ptr++];
         else
             ec = arguments[0] & 0xffffff;
-        ex = arguments[ptr] & 0xffff;
-        ey = (arguments[ptr++] & 0xffff0000) >> 16;
+        ex = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
+        ey = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
 
         int x[3] = {sx, sx + 1, ex};
         int y[3] = {sy, sy + 1, ey};
-        int c[3] = {sc, sc, sc};
+        int c[3] = {sc, sc, ec};
 
         drawPolygon(x, y, c);
     }
@@ -140,12 +139,12 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
     int h = arg.getSize();
 
     if (arg.size == 0) {
-        w = clamp(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff, 1023);
-        h = clamp((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16, 511);
+        w = clamp(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff, 1024);
+        h = clamp((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16, 512);
     }
 
-    int x = arguments[1] & 0xffff;
-    int y = (arguments[1] & 0xffff0000) >> 16;
+    int x = (int32_t)(int16_t)(arguments[1] & 0xffff);
+    int y = (int32_t)(int16_t)((arguments[1] & 0xffff0000) >> 16);
 
     int _x[4] = {x, x + w, x, x + w};
     int _y[4] = {y, y, y + h, y + h};
@@ -170,11 +169,11 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 }
 
 void GPU::cmdCpuToVram1(const uint8_t command, uint32_t arguments[]) {
-    startX = currX = clamp(arguments[1] & 0xffff, 1023);
-    startY = currY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
+    startX = currX = arguments[1] & 0xffff;
+    startY = currY = (arguments[1] & 0xffff0000) >> 16;
 
-    endX = clamp(startX + (arguments[2] & 0xffff) - 1, 1023) + 1;
-    endY = clamp(startY + ((arguments[2] & 0xffff0000) >> 16) - 1, 511) + 1;
+    endX = startX + (arguments[2] & 0xffff);
+    endY = startY + ((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::CopyCpuToVram2;
     argumentCount = 1;
@@ -185,13 +184,13 @@ void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
-    VRAM[currY][currX++] = byte & 0xffff;
+    VRAM[currY % 512][currX++ % 1024] = byte & 0xffff;
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
     }
 
-    VRAM[currY][currX++] = (byte >> 16) & 0xffff;
+    VRAM[currY % 512][currX++ % 1024] = (byte >> 16) & 0xffff;
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
@@ -202,28 +201,28 @@ void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
 
 void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
     gpuReadMode = 1;
-    startX = currX = clamp(arguments[1] & 0xffff, 1023);
-    startY = currY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
-    endX = clamp(startX + (arguments[2] & 0xffff) - 1, 1023) + 1;
-    endY = clamp(startY + ((arguments[2] & 0xffff0000) >> 16) - 1, 511) + 1;
+    startX = currX = arguments[1] & 0xffff;
+    startY = currY = (arguments[1] & 0xffff0000) >> 16;
+    endX = startX + (arguments[2] & 0xffff);
+    endY = startY + ((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::None;
 }
 
 void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
-    int srcX = clamp(arguments[1] & 0xffff, 1023);
-    int srcY = clamp((arguments[1] & 0xffff0000) >> 16, 511);
+    int srcX = arguments[1] & 0xffff;
+    int srcY = (arguments[1] & 0xffff0000) >> 16;
 
-    int dstX = clamp(arguments[2] & 0xffff, 1023);
-    int dstY = clamp((arguments[2] & 0xffff0000) >> 16, 511);
+    int dstX = arguments[2] & 0xffff;
+    int dstY = (arguments[2] & 0xffff0000) >> 16;
 
-    int width = clamp((arguments[3] & 0xffff) - 1, 1023) + 1;
-    int height = clamp(((arguments[3] & 0xffff0000) >> 16) - 1, 511) + 1;
+    int width = (arguments[3] & 0xffff) - 1;
+    int height = ((arguments[3] & 0xffff0000) >> 16) - 1;
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // TODO: boundary check!
-            VRAM[dstY + y][dstX + x] = VRAM[srcY + y][srcX + x];
+            VRAM[(dstY + y) % 512][(dstX + x) % 1024] = VRAM[(srcY + y) % 512][(srcX + x) % 1024];
         }
     }
 
@@ -347,14 +346,18 @@ void GPU::writeGP0(uint32_t data) {
             drawingAreaY2 = (arguments[0] & 0xFFC00) >> 10;
         } else if (command == 0xe5) {
             // Drawing offset
-            drawingOffsetX = arguments[0] & 0x7ff;
-            drawingOffsetY = (arguments[0] & 0x3FF800) >> 11;
+            drawingOffsetX = ((int16_t)((arguments[0] & 0x7ff) << 5)) >> 5;
+            drawingOffsetY = ((int16_t)(((arguments[0] & 0x3FF800) >> 11) << 5)) >> 5;
         } else if (command == 0xe6) {
             // Mask bit setting
             setMaskWhileDrawing = arguments[0] & 1;
             checkMaskBeforeDraw = (arguments[0] & 2) >> 1;
         } else
             printf("GP0(0x%02x) args 0x%06x\n", command, arguments[0]);
+
+        if (cmd == Command::None) {
+            // printf("GPU: 0x%02x\n", command);
+        }
 
         argumentCount++;
         return;
@@ -366,7 +369,7 @@ void GPU::writeGP0(uint32_t data) {
         if (argumentCount == MAX_ARGS && data == 0x55555555) argumentCount = currentArgument;
         if (currentArgument != argumentCount) return;
     }
-
+    // if (cmd != Command::CopyCpuToVram2)printf("%s(0x%x)\n", CommandStr[(int)cmd], command);
     if (cmd == Command::FillRectangle)
         cmdFillRectangle(command, arguments);
     else if (cmd == Command::Polygon)
@@ -457,7 +460,6 @@ void GPU::writeGP1(uint32_t data) {
 }
 std::vector<Vertex>& GPU::render() { return renderList; }
 
-
 bool GPU::emulateGpuCycles(int cycles) {
     const int LINE_VBLANK_START_NTSC = 243;
     const int LINES_TOTAL_NTSC = 263;
@@ -488,7 +490,5 @@ bool GPU::emulateGpuCycles(int cycles) {
     }
     return false;
 }
-
-
 }
 }
