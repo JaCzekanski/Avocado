@@ -312,6 +312,7 @@ void CPU::emulateFrame() {
 
         dma->step();
         cdrom->step();
+        timer0->step(systemCycles);
         timer1->step(systemCycles);
         timer2->step(systemCycles);
 
@@ -339,19 +340,14 @@ bool CPU::loadExeFile(std::string exePath) {
         writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
     }
 
-    PC = exe.pc0;
-    //    reg[28] = exe.gp0;
-    //    reg[29] = exe.s_addr + exe.s_size;
-    //    reg[30] = exe.s_addr + exe.s_size;
+    // PC = exe.pc0;
+    // reg[28] = exe.gp0;
+    // reg[29] = exe.s_addr + exe.s_size;
+    // reg[30] = exe.s_addr + exe.s_size;
 
     exception = false;
     shouldJump = false;
     jumpPC = 0;
-
-    // Reset timers
-    writeMemory16(0x1f801104, 0x1c00);
-    writeMemory16(0x1f801114, 0x1c00);
-    writeMemory16(0x1f801124, 0x1c00);
 
     return true;
 }
@@ -369,9 +365,8 @@ bool CPU::loadBios(std::string name) {
     return true;
 }
 
-bool CPU::loadExpansion(std::string name) {
-    std::string path = "data/bios/";
-    auto _exp = getFileContents(path + name);
+bool CPU::loadExpansion(std::string path) {
+    auto _exp = getFileContents(path);
     if (_exp.empty()) {
         return false;
     }

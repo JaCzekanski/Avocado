@@ -52,7 +52,7 @@ class DMA3Channel : public DMAChannel {
     bool sectorSize = false;
 
     DMA3Channel(int channel) : DMAChannel(channel) {
-        f = fopen(CD_FILE, "rb");
+        f = fopen("data/iso/marilyn.iso", "rb");
         if (!f) {
             printf("cannot open .iso");
             exit(1);
