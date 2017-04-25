@@ -77,6 +77,8 @@ union STATUS {
 };
 
 struct COP0 {
+    uint32_t bpc = 0;       // r3
+    uint32_t dcic = 0;      // r7
     uint32_t badVaddr = 0;  // r8
     STATUS status;          // r12
     CAUSE cause;            // r13

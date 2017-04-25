@@ -64,8 +64,7 @@ void CDROM::cmdSetloc() {
     uint8_t minute = bcdToBinary(readParam());
     uint8_t second = bcdToBinary(readParam());
     uint8_t sector = bcdToBinary(readParam());
-    printf("@ 0x%08x ", ((mips::CPU*)_cpu)->PC);
-    printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
+    if (verbose) printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
 
     readSector = sector + (second * 75) + (minute * 60 * 75);
     readSector -= 2 * 75;
@@ -277,18 +276,20 @@ void CDROM::cmdUnlock() {
 }
 
 void CDROM::handleCommand(uint8_t cmd) {
-    printf("CDROM  COMMAND: 0x%02x", cmd);
-    if (!CDROM_params.empty()) {
-        putchar('(');
-        bool first = true;
-        for (auto p : CDROM_params) {
-            if (!first) printf(", ");
-            printf("0x%02x", p);
-            first = false;
-        }
-        putchar(')');
-    }
-    printf("\n");
+    if (verbose) {
+		printf("CDROM  COMMAND: 0x%02x", cmd);
+		if (!CDROM_params.empty()) {
+			putchar('(');
+			bool first = true;
+			for (auto p : CDROM_params) {
+				if (!first) printf(", ");
+				printf("0x%02x", p);
+				first = false;
+			}
+			putchar(')');
+		}
+		printf("\n");
+	}
 
     CDROM_interrupt.clear();
     if (cmd == 0x01)

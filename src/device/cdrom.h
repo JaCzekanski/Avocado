@@ -60,6 +60,8 @@ class CDROM : public Device {
         CDROM_Status() : _reg(0x18) {}
     };
 
+	bool verbose = false;
+
     CDROM_Status status;
     uint8_t interruptEnable = 0;
     std::deque<uint8_t> CDROM_params;

@@ -9,6 +9,15 @@ std::string getPath(std::string name) {
     return name.substr(begin, end - begin);
 }
 
+std::string getFilenameExt(std::string name) {
+    int begin = 0, end = name.length() - 1;
+
+    std::size_t slash = name.find_last_of("/\\");
+    if (slash != std::string::npos) begin = slash + 1;
+
+    return name.substr(begin, end);
+}
+
 std::string getFilename(std::string name) {
     int begin = 0, end = name.length() - 1;
 

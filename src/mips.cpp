@@ -24,6 +24,10 @@ CPU::CPU() {
     memset(scratchpad, 0, SCRATCHPAD_SIZE);
     memset(expansion, 0, EXPANSION_SIZE);
 
+	for (int i = 0; i < 2; i++) {
+		loadDelaySlots[i] = {0};
+	}
+
     memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
     controller = new controller::Controller();
     controller->setCPU(this);
@@ -264,6 +268,14 @@ bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
 
+        if (cop0.dcic & (1<<24) && PC == cop0.bpc) {
+            cop0.dcic &= ~(1<<24); // disable breakpoint
+            state = State::pause;
+            return false;
+        }
+
+		moveLoadDelaySlots();
+
         _opcode.opcode = readMemory32(PC);
 
         bool isJumpCycle = shouldJump;
@@ -306,7 +318,7 @@ void CPU::emulateFrame() {
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {
-            printf("CPU Halted\n");
+            //printf("CPU Halted\n");
             return;
         }
 

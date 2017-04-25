@@ -85,8 +85,8 @@ PrimaryInstruction OpcodeTable[64] = {
     {60, invalid, "INVALID"},
     {61, invalid, "INVALID"},
     {62, invalid, "INVALID"},
-    {63, invalid, "INVALID"},
-    //{63, breakpoint, "BREAKPOINT"}
+    //{63, invalid, "INVALID"},
+    {63, op_breakpoint, "BREAKPOINT"}
 };
 
 PrimaryInstruction SpecialTable[64] = {
@@ -616,6 +616,14 @@ void op_cop0(CPU *cpu, Opcode i) {
             disasm("r%d, $%d", i.rt, i.rd);
 
             switch (i.rd) {
+                case 3:
+                    cpu->reg[i.rt] = cpu->cop0.bpc;
+                    break;
+
+                case 7:
+                    cpu->reg[i.rt] = cpu->cop0.dcic;
+                    break;
+
                 case 8:
                     cpu->reg[i.rt] = cpu->cop0.badVaddr;
                     break;
@@ -650,6 +658,14 @@ void op_cop0(CPU *cpu, Opcode i) {
             disasm("r%d, $%d", i.rt, i.rd);
 
             switch (i.rd) {
+               case 3:
+                    cpu->cop0.bpc = cpu->reg[i.rt];
+                    break;
+
+               case 7:
+                    cpu->cop0.dcic = cpu->reg[i.rt];
+                    break;
+
                 case 12:
                     if (cpu->reg[i.rt] & (1 << 17)) {
                         printf("Panic, SwC not handled\n");
@@ -695,7 +711,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
 void op_lb(CPU *cpu, Opcode i) {
     disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->reg[i.rt] = ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24;
+    cpu->loadDelaySlot(i.rt, ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24);
 }
 
 // Load Halfword
@@ -708,7 +724,7 @@ void op_lh(CPU *cpu, Opcode i) {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->reg[i.rt] = (int32_t)(int16_t)cpu->readMemory16(addr);
+    cpu->loadDelaySlot(i.rt, (int32_t)(int16_t)cpu->readMemory16(addr));
 }
 
 // Load Word Left
@@ -736,7 +752,7 @@ void op_lwl(CPU *cpu, Opcode i) {
             result = word;
             break;
     }
-    cpu->reg[i.rt] = result;
+    cpu->loadDelaySlot(i.rt, result);
 }
 
 // Load Word
@@ -749,7 +765,7 @@ void op_lw(CPU *cpu, Opcode i) {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->reg[i.rt] = cpu->readMemory32(addr);
+    cpu->loadDelaySlot(i.rt, cpu->readMemory32(addr));
 }
 
 // Load Byte Unsigned
@@ -757,7 +773,7 @@ void op_lw(CPU *cpu, Opcode i) {
 void op_lbu(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->reg[i.rt] = cpu->readMemory8(addr);
+    cpu->loadDelaySlot(i.rt, cpu->readMemory8(addr));
 }
 
 // Load Halfword Unsigned
@@ -770,7 +786,7 @@ void op_lhu(CPU *cpu, Opcode i) {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->reg[i.rt] = cpu->readMemory16(addr);
+    cpu->loadDelaySlot(i.rt, cpu->readMemory16(addr));
 }
 
 // Load Word Right
@@ -798,7 +814,7 @@ void op_lwr(CPU *cpu, Opcode i) {
             result = (rt & 0xffffff00) | (word >> 24);
             break;
     }
-    cpu->reg[i.rt] = result;
+    cpu->loadDelaySlot(i.rt, result);
 }
 
 // Store Byte
@@ -891,9 +907,10 @@ void op_swr(CPU *cpu, Opcode i) {
 }
 
 // BREAKPOINT
-void breakpoint(CPU *cpu, Opcode i) {
+void op_breakpoint(CPU *cpu, Opcode i) {
     disasm("");
-    printf("Breakpoint at 0x%08x\n", cpu->PC);
+//    printf("Breakpoint at 0x%08x\n", cpu->PC);
     cpu->state = CPU::State::halted;
+	cpu->PC += 4;
 }
 };

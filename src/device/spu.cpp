@@ -118,7 +118,7 @@ uint8_t SPU::read(uint32_t address) {
         return SPUSTAT.read(address - 0x1f801dae);
     }
 
-    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
+    // printf("UNHANDLED SPU READ AT 0x%08x\n", address);
 
     return 0;
 }
@@ -190,7 +190,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         SPUSTAT.write(address - 0x1f801dae, data);
         return;
     }
-    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+   // printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
 void SPU::dumpRam() {

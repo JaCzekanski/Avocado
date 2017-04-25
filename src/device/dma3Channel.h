@@ -39,7 +39,7 @@ class DMA3Channel : public DMAChannel {
             doSeek = false;
         }
 
-        printf("Sector 0x%x  ", sector);
+        if (verbose) printf("Sector 0x%x  ", sector);
     }
 
     FILE *f;
