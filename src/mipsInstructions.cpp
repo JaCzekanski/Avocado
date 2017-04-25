@@ -695,7 +695,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
 void op_lb(CPU *cpu, Opcode i) {
     disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->reg[i.rt] = ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24;
+    cpu->loadDelaySlot(i.rt, ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24);
 }
 
 // Load Halfword
@@ -708,7 +708,7 @@ void op_lh(CPU *cpu, Opcode i) {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->reg[i.rt] = (int32_t)(int16_t)cpu->readMemory16(addr);
+    cpu->loadDelaySlot(i.rt, (int32_t)(int16_t)cpu->readMemory16(addr));
 }
 
 // Load Word Left
@@ -717,26 +717,31 @@ void op_lwl(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
 
-    uint32_t rt = cpu->reg[i.rt];
-    uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t reg;
+    if (cpu->slots[0].reg == i.rt) {
+        reg = cpu->slots[0].data;
+    } else {
+        reg = cpu->reg[i.rt];
+    }
 
     uint32_t result = 0;
     switch (addr % 4) {
         case 0:
-            result = (word << 24) | (rt & 0xffffff);
+            result = (reg & 0x00ffffff) | (mem << 24);
             break;
         case 1:
-            result = (word << 16) | (rt & 0xffff);
+            result = (reg & 0x0000ffff) | (mem << 16);
             break;
         case 2:
-            result = (word << 8) | (rt & 0xff);
+            result = (reg & 0x000000ff) | (mem << 8);
             break;
         case 3:
-            result = word;
+            result = (reg & 0x00000000) | (mem);
             break;
     }
-    cpu->reg[i.rt] = result;
+    cpu->loadDelaySlot(i.rt, result);
 }
 
 // Load Word
@@ -749,7 +754,7 @@ void op_lw(CPU *cpu, Opcode i) {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->reg[i.rt] = cpu->readMemory32(addr);
+    cpu->loadDelaySlot(i.rt, cpu->readMemory32(addr));
 }
 
 // Load Byte Unsigned
@@ -757,7 +762,7 @@ void op_lw(CPU *cpu, Opcode i) {
 void op_lbu(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->reg[i.rt] = cpu->readMemory8(addr);
+    cpu->loadDelaySlot(i.rt, cpu->readMemory8(addr));
 }
 
 // Load Halfword Unsigned
@@ -770,7 +775,7 @@ void op_lhu(CPU *cpu, Opcode i) {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->reg[i.rt] = cpu->readMemory16(addr);
+    cpu->loadDelaySlot(i.rt, cpu->readMemory16(addr));
 }
 
 // Load Word Right
@@ -779,26 +784,31 @@ void op_lwr(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    uint32_t rt = cpu->reg[i.rt];
-    uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+
+    uint32_t reg;
+    if (cpu->slots[0].reg == i.rt) {
+        reg = cpu->slots[0].data;
+    } else {
+        reg = cpu->reg[i.rt];
+    }
 
     uint32_t result = 0;
-
     switch (addr % 4) {
         case 0:
-            result = word;
+            result = (reg & 0x00000000) | (mem);
             break;
         case 1:
-            result = (rt & 0xff000000) | (word >> 8);
+            result = (reg & 0xff000000) | (mem >> 8);
             break;
         case 2:
-            result = (rt & 0xffff0000) | (word >> 16);
+            result = (reg & 0xffff0000) | (mem >> 16);
             break;
         case 3:
-            result = (rt & 0xffffff00) | (word >> 24);
+            result = (reg & 0xffffff00) | (mem >> 24);
             break;
     }
-    cpu->reg[i.rt] = result;
+    cpu->loadDelaySlot(i.rt, result);
 }
 
 // Store Byte
@@ -828,22 +838,22 @@ void op_swl(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    uint32_t rt = cpu->reg[i.rt];
-    uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t reg = cpu->reg[i.rt];
 
     uint32_t result = 0;
     switch (addr % 4) {
         case 0:
-            result = (word & 0xffffff00) | ((rt >> 24) & 0xff);
+            result = (mem & 0xffffff00) | (reg >> 24);
             break;
         case 1:
-            result = (word & 0xffff0000) | ((rt >> 16) & 0xffff);
+            result = (mem & 0xffff0000) | (reg >> 16);
             break;
         case 2:
-            result = (word & 0xff000000) | ((rt >> 8) & 0xffffff);
+            result = (mem & 0xff000000) | (reg >> 8);
             break;
         case 3:
-            result = rt;
+            result = (mem & 0x00000000) | (reg);
             break;
     }
     cpu->writeMemory32(addr & 0xfffffffc, result);
@@ -868,23 +878,22 @@ void op_swr(CPU *cpu, Opcode i) {
     disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
 
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    uint32_t rt = cpu->reg[i.rt];
-    uint32_t word = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t reg = cpu->reg[i.rt];
 
     uint32_t result = 0;
-
     switch (addr % 4) {
         case 0:
-            result = rt;
+            result = (reg) | (mem & 0x00000000);
             break;
         case 1:
-            result = ((rt << 8) & 0xffffff00) | (word & 0xff);
+            result = (reg << 8) | (mem & 0x000000ff);
             break;
         case 2:
-            result = ((rt << 16) & 0xffff0000) | (word & 0xffff);
+            result = (reg << 16) | (mem & 0x0000ffff);
             break;
         case 3:
-            result = ((rt << 24) & 0xff000000) | (word & 0xffffff);
+            result = (reg << 24) | (mem & 0x00ffffff);
             break;
     }
     cpu->writeMemory32(addr & 0xfffffffc, result);

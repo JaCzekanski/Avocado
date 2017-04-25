@@ -24,6 +24,10 @@ CPU::CPU() {
     memset(scratchpad, 0, SCRATCHPAD_SIZE);
     memset(expansion, 0, EXPANSION_SIZE);
 
+    for (int i = 0; i < 2; i++) {
+        slots[i] = {0};
+    }
+
     memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
     controller = new controller::Controller();
     controller->setCPU(this);
@@ -257,6 +261,36 @@ void CPU::handleBiosFunction() {
     if (log) printFunctionInfo(maskedPC >> 4, function->first, function->second);
 }
 
+void CPU::loadDelaySlot(int r, uint32_t data) {
+#ifdef ENABLE_LOAD_DELAY_SLOTS
+    assert(r < REGISTER_COUNT);
+    if (r == 0) return;
+    if (r == slots[0].reg) slots[0].reg = 0;  // Override previous write to same register
+
+    slots[1].reg = r;
+    slots[1].data = data;
+    slots[1].prevData = reg[r];
+#else
+    reg[r] = data;
+#endif
+}
+
+void CPU::moveLoadDelaySlots() {
+#ifdef ENABLE_LOAD_DELAY_SLOTS
+    if (slots[0].reg != 0) {
+        assert(slots[0].reg < REGISTER_COUNT);
+
+        // If register contents has been changed during delay slot - ignore it
+        if (reg[slots[0].reg] == slots[0].prevData) {
+            reg[slots[0].reg] = slots[0].data;
+        }
+    }
+
+    slots[0] = slots[1];
+    slots[1].reg = 0;  // cancel
+#endif
+}
+
 bool CPU::executeInstructions(int count) {
     mipsInstructions::Opcode _opcode;
 
@@ -271,6 +305,8 @@ bool CPU::executeInstructions(int count) {
         _mnemonic = (char *)op.mnemnic;
 
         op.instruction(this, _opcode);
+
+        moveLoadDelaySlots();
 
         if (disassemblyEnabled) {
             printf("   0x%08x  %08x:    %s %s\n", PC, _opcode.opcode, _mnemonic, _disasm.c_str());

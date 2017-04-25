@@ -11,6 +11,12 @@
 #include <unordered_map>
 #include "device/spu.h"
 
+/**
+ * Accurate load delay slots, slightly slower.
+ * Not sure, if games depends on that (assembler should nop delay slot)
+ */
+#define ENABLE_LOAD_DELAY_SLOTS
+
 namespace bios {
 struct Function;
 }
@@ -47,7 +53,14 @@ r30     fp    - frame pointer
 r31     ra    - return address
 */
 
+struct LoadSlot {
+    uint32_t reg;
+    uint32_t data;
+    uint32_t prevData;
+};
+
 struct CPU {
+    static const int REGISTER_COUNT = 32;
     static const int BIOS_SIZE = 512 * 1024;
     static const int RAM_SIZE = 2 * 1024 * 1024;
     static const int SCRATCHPAD_SIZE = 1024;
@@ -67,9 +80,6 @@ struct CPU {
     cop0::COP0 cop0;
     uint32_t hi, lo;
     bool exception;
-
-    uint32_t tmpVal = 0;
-    int tmpReg = -1;
 
     uint8_t bios[BIOS_SIZE];
     uint8_t ram[RAM_SIZE];
@@ -98,6 +108,7 @@ struct CPU {
     void writeMemory(uint32_t address, uint8_t data);
     void checkForInterrupts();
     void handleBiosFunction();
+    void moveLoadDelaySlots();
 
    public:
     CPU();
@@ -106,6 +117,9 @@ struct CPU {
         this->gpu = gpu;
         dma->setGPU(gpu);
     }
+
+    LoadSlot slots[2];
+    void loadDelaySlot(int r, uint32_t data);
 
     uint8_t readMemory8(uint32_t address);
     uint16_t readMemory16(uint32_t address);
