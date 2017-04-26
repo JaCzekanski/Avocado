@@ -40,14 +40,14 @@ void Timer::step(int cycles) {
     if (current._reg == target._reg) {
         if (mode.irqWhenTarget) {
             mode.interruptRequest = false;
-            static_cast<mips::CPU*>(_cpu)->interrupt->IRQ(mapIrqNumber());
+            static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
         }
         if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) current._reg = 0;
         mode.reachedTarget = true;
     } else if (current._reg == 0xffff) {
         if (mode.irqWhenFFFF) {
             mode.interruptRequest = false;
-            static_cast<mips::CPU*>(_cpu)->interrupt->IRQ(mapIrqNumber());
+            static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
         }
         if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) current._reg = 0;
         mode.reachedFFFF = true;

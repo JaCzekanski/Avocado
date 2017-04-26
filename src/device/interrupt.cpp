@@ -5,7 +5,7 @@
 namespace device {
 namespace interrupt {
 Interrupt::Interrupt() {}
-void Interrupt::IRQ(IrqNumber irq) {
+void Interrupt::trigger(IrqNumber irq) {
     if (irq > 10) return;
     status._reg |= (1 << irq);
     step();

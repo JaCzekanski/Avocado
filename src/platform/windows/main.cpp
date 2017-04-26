@@ -6,8 +6,6 @@
 #include "mips.h"
 #undef main
 
-const char *CD_FILE = "data/iso/mgs_cd1.iso";
-
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
@@ -49,44 +47,9 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
     return buttons;
 }
 
-struct EvCB {
-    uint32_t clazz;
-    uint32_t status;
-    uint32_t spec;
-    uint32_t mode;
-    uint32_t ptr;
-    uint32_t _;
-    uint32_t __;
-};
-
-void getEVCB(std::unique_ptr<mips::CPU> &cpu, bool ready) {
-    uint32_t addr = cpu->readMemory32(0x120);
-    uint32_t size = cpu->readMemory32(0x120 + 4);
-
-    EvCB evcb;
-    for (size_t n = 0; n < size / 0x1c; n++) {
-        for (int i = 0; i < 0x1c; i++) {
-            *((uint8_t *)&evcb + i) = cpu->readMemory8(addr + (n * 0x1c) + i);
-        }
-        if (evcb.clazz == 0) return;
-        if (ready) evcb.status = 0x4000;
-        for (int i = 0; i < 0x1c; i++) {
-            cpu->writeMemory8(addr + (n * 0x1c) + i, *((uint8_t *)&evcb + i));
-        }
-        printf("EvCB %d\n", n);
-        printf("class: 0x%08x\n", evcb.clazz);
-        printf("status: 0x%08x\n", evcb.status);
-        printf("spec: 0x%08x\n", evcb.spec);
-        printf("mode: 0x%08x\n", evcb.mode);
-        printf("ptr: 0x%08x\n\n", evcb.ptr);
-    }
-}
-
 int main(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
-    if (argc > 1) {
-        bios = std::string(argv[1]);
-    }
+    std::string iso = "";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -123,65 +86,85 @@ int main(int argc, char **argv) {
 
     printf("Using bios %s\n", bios.c_str());
     cpu->loadBios(bios);
-    //    cpu->loadExpansion("expansion.rom");
-    //    cpu->expansion[0x20018] = 0xff;
+    // cpu->loadExpansion("expansion.rom");
+
+    cpu->cdrom->setShell(true);  // open shell
+    if (fileExists(iso)) {
+        bool success = cpu->dma->dma3.load(iso);
+        cpu->cdrom->setShell(!success);
+        if (!success) printf("Cannot load iso file: %s\n", iso.c_str());
+    }
 
     auto gpu = std::make_unique<device::gpu::GPU>();
     cpu->setGPU(gpu.get());
 
     SDL_Event event;
-
-    for (;;) {
-        int pendingEvents = SDL_PollEvent(&event);
-
-        if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) break;
-        if (event.type == SDL_KEYDOWN) {
-            if (event.key.keysym.sym == SDLK_ESCAPE) break;
-            if (event.key.keysym.sym == SDLK_SPACE) {
-                cpu->disassemblyEnabled = !cpu->disassemblyEnabled;
-            }
-            if (event.key.keysym.sym == SDLK_l) {
-                std::string exePath = "data/exe/";
-                char filename[128];
-                printf("\nEnter exe name: ");
-                scanf("%s", filename);
-                exePath += filename;
-                cpu->loadExeFile(exePath);
-            }
-            if (event.key.keysym.sym == SDLK_b) cpu->biosLog = !cpu->biosLog;
-            if (event.key.keysym.sym == SDLK_c) cpu->interrupt->IRQ(device::interrupt::CDROM);
-            if (event.key.keysym.sym == SDLK_d) cpu->interrupt->IRQ(device::interrupt::DMA);
-            if (event.key.keysym.sym == SDLK_s) cpu->interrupt->IRQ(device::interrupt::SPU);
-            if (event.key.keysym.sym == SDLK_o) cpu->cdrom->toggleShell();
-            if (event.key.keysym.sym == SDLK_f) cpu->cop0.status.interruptEnable = true;
-            if (event.key.keysym.sym == SDLK_w) getEVCB(cpu, true);
-            if (event.key.keysym.sym == SDLK_e) getEVCB(cpu, false);
-            if (event.key.keysym.sym == SDLK_r) {
-                cpu->dumpRam();
-                cpu->spu->dumpRam();
-            }
-            if (event.key.keysym.sym == SDLK_p) {
-                if (cpu->state == mips::CPU::State::pause)
+    for (bool running = true; running;) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
+            if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
+                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);
+                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(device::interrupt::DMA);
+                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(device::interrupt::SPU);
+                if (event.key.keysym.sym == SDLK_r) {
+                    cpu->dumpRam();
+                    cpu->spu->dumpRam();
+                }
+                if (event.key.keysym.sym == SDLK_F2) {
+                    printf("Soft reset\n");
+                    cpu->PC = 0xBFC00000;
+                    cpu->shouldJump = false;
                     cpu->state = mips::CPU::State::run;
-                else if (cpu->state == mips::CPU::State::run)
-                    cpu->state = mips::CPU::State::pause;
+                }
+                if (event.key.keysym.sym == SDLK_F3) {
+                    printf("Shell toggle\n");
+                    cpu->cdrom->toggleShell();
+                }
+                if (event.key.keysym.sym == SDLK_F5) {
+                    cpu->biosLog = !cpu->biosLog;
+                }
+                if (event.key.keysym.sym == SDLK_F6) {
+                    cpu->disassemblyEnabled = !cpu->disassemblyEnabled;
+                }
+                if (event.key.keysym.sym == SDLK_SPACE) {
+                    if (cpu->state == mips::CPU::State::pause)
+                        cpu->state = mips::CPU::State::run;
+                    else if (cpu->state == mips::CPU::State::run)
+                        cpu->state = mips::CPU::State::pause;
+                }
+                if (event.key.keysym.sym == SDLK_q) {
+                    bool viewFullVram = !opengl.getViewFullVram();
+                    opengl.setViewFullVram(viewFullVram);
+                    if (viewFullVram)
+                        SDL_SetWindowSize(window, 1024, 512);
+                    else
+                        SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
+                }
             }
-            if (event.key.keysym.sym == SDLK_q) {
-                bool viewFullVram = !opengl.getViewFullVram();
-                opengl.setViewFullVram(viewFullVram);
-                if (viewFullVram)
-                    SDL_SetWindowSize(window, 1024, 512);
-                else
-                    SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
+            if (event.type == SDL_DROPFILE) {
+                std::string path = event.drop.file;
+                std::string ext = getExtension(path);
+                SDL_free(event.drop.file);
+
+                if (ext == "iso" || ext == "bin") {
+                    if (fileExists(path)) {
+                        printf("Dropped .iso, loading... ");
+
+                        bool success = cpu->dma->dma3.load(path);
+                        cpu->cdrom->setShell(!success);
+
+                        if (success)
+                            printf("ok.\n");
+                        else
+                            printf("fail.\n");
+                    }
+                } else if (ext == "exe" || ext == "psexe") {
+                    printf("Dropped .exe, currently not supported.\n");
+                }
             }
+            cpu->controller->setState(getButtonState(event));
         }
-        if (event.type == SDL_DROPFILE) {
-            // TODO: SDL_free fails after few times
-            cpu->loadExeFile(event.drop.file);
-            SDL_free(event.drop.file);
-        }
-        cpu->controller->setState(getButtonState(event));
-        if (pendingEvents) continue;
 
         if (cpu->state == mips::CPU::State::run) {
             cpu->emulateFrame();

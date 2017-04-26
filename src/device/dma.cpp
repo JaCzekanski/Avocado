@@ -14,7 +14,7 @@ void DMA::step() {
     status.masterFlag = status.forceIRQ || (status.masterEnable && (enables & flags));
 
     if (!prevMasterFlag && status.masterFlag) {
-        ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::DMA);
+        ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::DMA);
     }
 }
 

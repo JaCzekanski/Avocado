@@ -12,7 +12,7 @@ void CDROM::step() {
     status.transmissionBusy = 0;
     if (!CDROM_interrupt.empty()) {
         if ((interruptEnable & 7) & (CDROM_interrupt.front() & 7)) {
-            ((mips::CPU*)_cpu)->interrupt->IRQ(interrupt::CDROM);
+            ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::CDROM);
         }
     }
 }

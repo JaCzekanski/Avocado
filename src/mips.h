@@ -11,6 +11,12 @@
 #include <unordered_map>
 #include "device/spu.h"
 
+/**
+ * Accurate load delay slots, slightly slower.
+ * Not sure, if games depends on that (assembler should nop delay slot)
+ */
+#define ENABLE_LOAD_DELAY_SLOTS
+
 namespace bios {
 struct Function;
 }
@@ -47,13 +53,14 @@ r30     fp    - frame pointer
 r31     ra    - return address
 */
 
-struct LoadDelaySlot {
-	uint32_t reg;
-	uint32_t data;
+struct LoadSlot {
+    uint32_t reg;
+    uint32_t data;
+    uint32_t prevData;
 };
 
 struct CPU {
-	static const int REGISTER_COUNT = 32;
+    static const int REGISTER_COUNT = 32;
     static const int BIOS_SIZE = 512 * 1024;
     static const int RAM_SIZE = 2 * 1024 * 1024;
     static const int SCRATCHPAD_SIZE = 1024;
@@ -98,22 +105,11 @@ struct CPU {
     Dummy *mdec = nullptr;
     Dummy *expansion2 = nullptr;
 
-	LoadDelaySlot loadDelaySlots[2];
-	
-	void moveLoadDelaySlots() {
-		if (loadDelaySlots[0].reg != 0) {
-			assert(loadDelaySlots[0].reg < REGISTER_COUNT);
-
-			reg[loadDelaySlots[0].reg] = loadDelaySlots[0].data;
-		}
-
-		loadDelaySlots[0] = loadDelaySlots[1];
-		loadDelaySlots[1].reg = 0; // cancel
-	}
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
     void checkForInterrupts();
     void handleBiosFunction();
+    void moveLoadDelaySlots();
 
    public:
     CPU();
@@ -122,14 +118,9 @@ struct CPU {
         this->gpu = gpu;
         dma->setGPU(gpu);
     }
-	
-	void loadDelaySlot(int reg, uint32_t data) {
-		assert(reg < REGISTER_COUNT);
-		//assert(reg != 0);
-		if (reg == 0) return;
-		loadDelaySlots[1].reg = reg; 
-		loadDelaySlots[1].data = data; 
-	}
+
+    LoadSlot slots[2];
+    void loadDelaySlot(int r, uint32_t data);
     uint8_t readMemory8(uint32_t address);
     uint16_t readMemory16(uint32_t address);
     uint32_t readMemory32(uint32_t address);
