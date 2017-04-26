@@ -117,6 +117,26 @@ union GP0_E1 {
     GP0_E1() : _reg(0) {}
 };
 
+// Texture Window setting
+union GP0_E2 {
+    struct {
+        uint32_t textureWindowMaskX : 5;
+        uint32_t textureWindowMaskY : 5;
+        uint32_t textureWindowOffsetX : 5;
+        uint32_t textureWindowOffsetY : 5;
+
+        uint32_t : 4;
+        uint8_t command;  // 0xe1
+    };
+    struct {
+        uint32_t _reg : 24;
+        uint32_t _command : 8;
+    };
+
+    GP0_E2() : _reg(0) {}
+};
+
+
 // Display mode
 union GP1_08 {
     enum class HorizontalResolution : uint8_t { r256 = 0, r320 = 1, r512 = 2, r640 = 3 };
@@ -194,12 +214,7 @@ class GPU {
 
    public:
     GP0_E1 gp0_e1;
-
-    // GP0(0xe2)
-    int textureWindowMaskX = 0;
-    int textureWindowMaskY = 0;
-    int textureWindowOffsetX = 0;
-    int textureWindowOffsetY = 0;
+    GP0_E2 gp0_e2;
 
     // GP0(0xe3)
     int16_t drawingAreaX1 = 0;

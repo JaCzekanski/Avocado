@@ -34,7 +34,7 @@ uint8_t CDROM::read(uint32_t address) {
         return response;
     }
     if (address == 2) {  // CD Data
-        printf("UNIMPLEMENTED CDROM READ!\n");
+        if (verbose) printf("UNIMPLEMENTED CDROM READ!\n");
         //((mips::CPU*)_cpu)->state = mips::CPU::State::pause;
         return 0;
     }

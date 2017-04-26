@@ -55,4 +55,7 @@ install_manifest.txt
 ram.bin
 spu.bin
 
+*.o
+*.elf
+
 .vs/

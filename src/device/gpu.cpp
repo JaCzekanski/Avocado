@@ -1,6 +1,7 @@
 #include "gpu.h"
 #include <cstdio>
 #include <cmath>
+#include <cassert>
 
 namespace device {
 namespace gpu {
@@ -334,10 +335,7 @@ void GPU::writeGP0(uint32_t data) {
             gp0_e1._reg = arguments[0];
         } else if (command == 0xe2) {
             // Texture window setting
-            textureWindowMaskX = arguments[0] & 0x1f;
-            textureWindowMaskY = (arguments[0] & 0x3e0) >> 5;
-            textureWindowOffsetX = (arguments[0] & 0x7c00) >> 10;
-            textureWindowOffsetY = (arguments[0] & 0xf8000) >> 15;
+            gp0_e2._reg = arguments[0];
         } else if (command == 0xe3) {
             // Drawing area top left
             drawingAreaX1 = arguments[0] & 0x3ff;
@@ -391,7 +389,7 @@ void GPU::writeGP0(uint32_t data) {
 }
 
 void GPU::writeGP1(uint32_t data) {
-    uint32_t command = data >> 24;
+    uint32_t command = (data >> 24) & 0x3f;
     uint32_t argument = data & 0xffffff;
 
     if (command == 0x00) {  // Reset GPU
@@ -406,11 +404,7 @@ void GPU::writeGP1(uint32_t data) {
 
         gp1_08._reg = 0;
         gp0_e1._reg = 0;
-
-        textureWindowMaskX = 0;
-        textureWindowMaskY = 0;
-        textureWindowOffsetX = 0;
-        textureWindowOffsetY = 0;
+        gp0_e2._reg = 0;
 
         drawingAreaX1 = 0;
         drawingAreaY1 = 0;
@@ -446,19 +440,28 @@ void GPU::writeGP1(uint32_t data) {
         textureDisableAllowed = argument & 1;
     } else if (command >= 0x10 && command <= 0x1f) {  // get GPU Info
         gpuReadMode = 2;
+        argument &= 0xf;
 
-        if (argument == 3)
+        if (argument == 2) {
+            GPUREAD = gp0_e2._reg;
+        } else if (argument == 3) {
             GPUREAD = (drawingAreaY1 << 10) | drawingAreaX1;
-        else if (argument == 4)
+        } else if (argument == 4) {
             GPUREAD = (drawingAreaY2 << 10) | drawingAreaX2;
-        else if (argument == 5)
+        } else if (argument == 5) {
             GPUREAD = (drawingOffsetY << 11) | drawingOffsetX;
-        else if (argument == 7)
+        } else if (argument == 7) {
             GPUREAD = 2;  // GPU Version
-        else
-            printf("Unimplemented GPU info request (arg: %d)!\n", argument);
-    } else
+        } else if (argument == 8) {
+            GPUREAD = 0;
+        } else {
+            // GPUREAD unchanged
+        }
+    } else {
         printf("GP1(0x%02x) args 0x%06x\n", command, argument);
+        assert(false);
+    }
+    // command 0x20 is not implemented
 }
 std::vector<Vertex>& GPU::render() { return renderList; }
 
