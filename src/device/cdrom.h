@@ -33,6 +33,13 @@ class CDROM : public Device {
             }
         }
 
+        void setShell(bool opened) {
+            shellOpen = opened;
+            if (!shellOpen) {
+                setMode(Mode::None);
+            }
+        }
+
         void toggleShell() {
             if (!shellOpen) {
                 shellOpen = true;
@@ -118,6 +125,7 @@ class CDROM : public Device {
 
     void setCPU(void *cpu) { this->_cpu = cpu; }
 
+    void setShell(bool opened) { stat.setShell(opened); }
     void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
         status.dataFifoEmpty = 1;

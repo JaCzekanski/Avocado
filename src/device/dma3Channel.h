@@ -2,8 +2,6 @@
 #include "dmaChannel.h"
 #include <src/utils/file.h>
 
-extern const char *CD_FILE;
-
 namespace device {
 namespace dma {
 namespace dmaChannel {
@@ -11,6 +9,7 @@ class DMA3Channel : public DMAChannel {
     static const int SECTOR_SIZE = 2352;
     uint32_t readDevice() override {
         uint32_t data = 0;
+        if (f == nullptr) return data;
         for (int i = 0; i < 4; i++) {
             data |= ((uint8_t)fgetc(f)) << (i * 8);
         }
@@ -20,6 +19,7 @@ class DMA3Channel : public DMAChannel {
     void writeDevice(uint32_t data) override {}
 
     void beforeRead() override {
+        if (f == nullptr) return;
         if (bytesReaded >= (!sectorSize ? 0x800 : 0x924)) {  // 0x800 instead of 0x924 helps some games, hmm ...
             bytesReaded = 0;
             sector++;
@@ -42,7 +42,7 @@ class DMA3Channel : public DMAChannel {
         printf("Sector 0x%x  ", sector);
     }
 
-    FILE *f;
+    FILE* f = nullptr;
     int sector = 0;
     bool doSeek = true;
     int bytesReaded = 0;
@@ -51,16 +51,23 @@ class DMA3Channel : public DMAChannel {
    public:
     bool sectorSize = false;
 
-    DMA3Channel(int channel) : DMAChannel(channel) {
-        f = fopen(CD_FILE, "rb");
+    DMA3Channel(int channel) : DMAChannel(channel) {}
+
+    bool load(const std::string& iso) {
+        if (f != nullptr) {
+            fclose(f);
+            f = nullptr;
+        }
+
+        f = fopen(iso.c_str(), "rb");
         if (!f) {
-            printf("cannot open .iso");
-            exit(1);
+            return false;
         }
 
         fseek(f, 0, SEEK_END);
         fileSize = ftell(f);
         rewind(f);
+        return true;
     }
 
     void seekTo(uint32_t destSector) {
