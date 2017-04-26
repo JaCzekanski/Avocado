@@ -15,104 +15,153 @@ using namespace mips;
 namespace mipsInstructions {
 PrimaryInstruction OpcodeTable[64] = {
     // R type
-    {0, special, "special"},
-    {1, branch, "branch"},
-    {2, op_j, "j"},
-    {3, op_jal, "jal"},
-    {4, op_beq, "beq"},
-    {5, op_bne, "bne"},
-    {6, op_blez, "blez"},
-    {7, op_bgtz, "bgtz"},
-
-    {8, op_addi, "addi"},
-    {9, op_addiu, "addiu"},
-    {10, op_slti, "slti"},
-    {11, op_sltiu, "sltiu"},
-    {12, op_andi, "andi"},
-    {13, op_ori, "ori"},
-    {14, op_xori, "xori"},
-    {15, op_lui, "lui"},
-
-    {16, op_cop0, "cop0"},
-    {17, notImplemented, "cop1"},
-    {18, op_cop2, "cop2"},
-    {19, notImplemented, "cop3"},
-    {20, invalid, "INVALID"},
-    {21, invalid, "INVALID"},
-    {22, invalid, "INVALID"},
-    {23, invalid, "INVALID"},
-
-    {24, invalid, "INVALID"},
-    {25, invalid, "INVALID"},
-    {26, invalid, "INVALID"},
-    {27, invalid, "INVALID"},
-    {28, invalid, "INVALID"},
-    {29, invalid, "INVALID"},
-    {30, invalid, "INVALID"},
-    {31, invalid, "INVALID"},
-
-    {32, op_lb, "lb"},
-    {33, op_lh, "lh"},
-    {34, op_lwl, "lwl"},
-    {35, op_lw, "lw"},
-    {36, op_lbu, "lbu"},
-    {37, op_lhu, "lhu"},
-    {38, op_lwr, "lwr"},
-    {39, invalid, "INVALID"},
-
-    {40, op_sb, "sb"},
-    {41, op_sh, "sh"},
-    {42, op_swl, "swl"},
-    {43, op_sw, "sw"},
-    {44, invalid, "INVALID"},
-    {45, invalid, "INVALID"},
-    {46, op_swr, "swr"},
-    {47, invalid, "INVALID"},
-
-    {48, notImplemented, "lwc0"},
-    {49, notImplemented, "lwc1"},
-    {50, dummy, "lwc2"},
-    {51, dummy, "lwc3"},
-    {52, invalid, "INVALID"},
-    {53, invalid, "INVALID"},
-    {54, invalid, "INVALID"},
-    {55, invalid, "INVALID"},
-
-    {56, notImplemented, "swc0"},
-    {57, notImplemented, "swc1"},
-    {58, dummy, "swc2"},
-    {59, notImplemented, "swc3"},
-    {60, invalid, "INVALID"},
-    {61, invalid, "INVALID"},
-    {62, invalid, "INVALID"},
-    {63, invalid, "INVALID"},
+    {0, special, "special"},       //
+    {1, branch, "branch"},         //
+    {2, op_j, "j"},                //
+    {3, op_jal, "jal"},            //
+    {4, op_beq, "beq"},            //
+    {5, op_bne, "bne"},            //
+    {6, op_blez, "blez"},          //
+    {7, op_bgtz, "bgtz"},          //
+                                   //
+    {8, op_addi, "addi"},          //
+    {9, op_addiu, "addiu"},        //
+    {10, op_slti, "slti"},         //
+    {11, op_sltiu, "sltiu"},       //
+    {12, op_andi, "andi"},         //
+    {13, op_ori, "ori"},           //
+    {14, op_xori, "xori"},         //
+    {15, op_lui, "lui"},           //
+                                   //
+    {16, op_cop0, "cop0"},         //
+    {17, notImplemented, "cop1"},  //
+    {18, op_cop2, "cop2"},         //
+    {19, notImplemented, "cop3"},  //
+    {20, invalid, "INVALID"},      //
+    {21, invalid, "INVALID"},      //
+    {22, invalid, "INVALID"},      //
+    {23, invalid, "INVALID"},      //
+                                   //
+    {24, invalid, "INVALID"},      //
+    {25, invalid, "INVALID"},      //
+    {26, invalid, "INVALID"},      //
+    {27, invalid, "INVALID"},      //
+    {28, invalid, "INVALID"},      //
+    {29, invalid, "INVALID"},      //
+    {30, invalid, "INVALID"},      //
+    {31, invalid, "INVALID"},      //
+                                   //
+    {32, op_lb, "lb"},             //
+    {33, op_lh, "lh"},             //
+    {34, op_lwl, "lwl"},           //
+    {35, op_lw, "lw"},             //
+    {36, op_lbu, "lbu"},           //
+    {37, op_lhu, "lhu"},           //
+    {38, op_lwr, "lwr"},           //
+    {39, invalid, "INVALID"},      //
+                                   //
+    {40, op_sb, "sb"},             //
+    {41, op_sh, "sh"},             //
+    {42, op_swl, "swl"},           //
+    {43, op_sw, "sw"},             //
+    {44, invalid, "INVALID"},      //
+    {45, invalid, "INVALID"},      //
+    {46, op_swr, "swr"},           //
+    {47, invalid, "INVALID"},      //
+                                   //
+    {48, notImplemented, "lwc0"},  //
+    {49, notImplemented, "lwc1"},  //
+    {50, dummy, "lwc2"},           //
+    {51, dummy, "lwc3"},           //
+    {52, invalid, "INVALID"},      //
+    {53, invalid, "INVALID"},      //
+    {54, invalid, "INVALID"},      //
+    {55, invalid, "INVALID"},      //
+                                   //
+    {56, notImplemented, "swc0"},  //
+    {57, notImplemented, "swc1"},  //
+    {58, dummy, "swc2"},           //
+    {59, notImplemented, "swc3"},  //
+    {60, invalid, "INVALID"},      //
+    {61, invalid, "INVALID"},      //
+    {62, invalid, "INVALID"},      //
+    {63, invalid, "INVALID"},      //
     //{63, breakpoint, "BREAKPOINT"}
 };
 
 PrimaryInstruction SpecialTable[64] = {
-    {0, op_sll, "sll"},       {1, invalid, "INVALID"},  {2, op_srl, "srl"},       {3, op_sra, "sra"},       {4, op_sllv, "sllv"},
-    {5, invalid, "INVALID"},  {6, op_srlv, "srlv"},     {7, op_srav, "srav"},
-
-    {8, op_jr, "jr"},         {9, op_jalr, "jalr"},     {10, invalid, "INVALID"}, {11, invalid, "INVALID"}, {12, op_syscall, "syscall"},
-    {13, op_break, "break"},  {14, invalid, "INVALID"}, {15, invalid, "INVALID"},
-
-    {16, op_mfhi, "mfhi"},    {17, op_mthi, "mthi"},    {18, op_mflo, "mflo"},    {19, op_mtlo, "mtlo"},    {20, invalid, "INVALID"},
-    {21, invalid, "INVALID"}, {22, invalid, "INVALID"}, {23, invalid, "INVALID"},
-
-    {24, op_mult, "mult"},    {25, op_multu, "multu"},  {26, op_div, "div"},      {27, op_divu, "divu"},    {28, invalid, "INVALID"},
-    {29, invalid, "INVALID"}, {30, invalid, "INVALID"}, {31, invalid, "INVALID"},
-
-    {32, op_add, "add"},      {33, op_addu, "addu"},    {34, op_sub, "sub"},      {35, op_subu, "subu"},    {36, op_and, "and"},
-    {37, op_or, "or"},        {38, op_xor, "xor"},      {39, op_nor, "nor"},
-
-    {40, invalid, "INVALID"}, {41, invalid, "INVALID"}, {42, op_slt, "slt"},      {43, op_sltu, "sltu"},    {44, invalid, "INVALID"},
-    {45, invalid, "INVALID"}, {46, invalid, "INVALID"}, {47, invalid, "INVALID"},
-
-    {48, invalid, "INVALID"}, {49, invalid, "INVALID"}, {50, invalid, "INVALID"}, {51, invalid, "INVALID"}, {52, invalid, "INVALID"},
-    {53, invalid, "INVALID"}, {54, invalid, "INVALID"}, {55, invalid, "INVALID"},
-
-    {56, invalid, "INVALID"}, {57, invalid, "INVALID"}, {58, invalid, "INVALID"}, {59, invalid, "INVALID"}, {60, invalid, "INVALID"},
-    {61, invalid, "INVALID"}, {62, invalid, "INVALID"}, {63, invalid, "INVALID"},
+    // opcodes encoded with "function" field, when opcode == 0
+    {0, op_sll, "sll"},           //
+    {1, invalid, "INVALID"},      //
+    {2, op_srl, "srl"},           //
+    {3, op_sra, "sra"},           //
+    {4, op_sllv, "sllv"},         //
+    {5, invalid, "INVALID"},      //
+    {6, op_srlv, "srlv"},         //
+    {7, op_srav, "srav"},         //
+                                  //
+    {8, op_jr, "jr"},             //
+    {9, op_jalr, "jalr"},         //
+    {10, invalid, "INVALID"},     //
+    {11, invalid, "INVALID"},     //
+    {12, op_syscall, "syscall"},  //
+    {13, op_break, "break"},      //
+    {14, invalid, "INVALID"},     //
+    {15, invalid, "INVALID"},     //
+                                  //
+    {16, op_mfhi, "mfhi"},        //
+    {17, op_mthi, "mthi"},        //
+    {18, op_mflo, "mflo"},        //
+    {19, op_mtlo, "mtlo"},        //
+    {20, invalid, "INVALID"},     //
+    {21, invalid, "INVALID"},     //
+    {22, invalid, "INVALID"},     //
+    {23, invalid, "INVALID"},     //
+                                  //
+    {24, op_mult, "mult"},        //
+    {25, op_multu, "multu"},      //
+    {26, op_div, "div"},          //
+    {27, op_divu, "divu"},        //
+    {28, invalid, "INVALID"},     //
+    {29, invalid, "INVALID"},     //
+    {30, invalid, "INVALID"},     //
+    {31, invalid, "INVALID"},     //
+                                  //
+    {32, op_add, "add"},          //
+    {33, op_addu, "addu"},        //
+    {34, op_sub, "sub"},          //
+    {35, op_subu, "subu"},        //
+    {36, op_and, "and"},          //
+    {37, op_or, "or"},            //
+    {38, op_xor, "xor"},          //
+    {39, op_nor, "nor"},          //
+                                  //
+    {40, invalid, "INVALID"},     //
+    {41, invalid, "INVALID"},     //
+    {42, op_slt, "slt"},          //
+    {43, op_sltu, "sltu"},        //
+    {44, invalid, "INVALID"},     //
+    {45, invalid, "INVALID"},     //
+    {46, invalid, "INVALID"},     //
+    {47, invalid, "INVALID"},     //
+                                  //
+    {48, invalid, "INVALID"},     //
+    {49, invalid, "INVALID"},     //
+    {50, invalid, "INVALID"},     //
+    {51, invalid, "INVALID"},     //
+    {52, invalid, "INVALID"},     //
+    {53, invalid, "INVALID"},     //
+    {54, invalid, "INVALID"},     //
+    {55, invalid, "INVALID"},     //
+                                  //
+    {56, invalid, "INVALID"},     //
+    {57, invalid, "INVALID"},     //
+    {58, invalid, "INVALID"},     //
+    {59, invalid, "INVALID"},     //
+    {60, invalid, "INVALID"},     //
+    {61, invalid, "INVALID"},     //
+    {62, invalid, "INVALID"},     //
+    {63, invalid, "INVALID"},     //
 };
 
 void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
