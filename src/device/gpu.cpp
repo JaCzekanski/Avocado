@@ -31,7 +31,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
 
         // TODO: struct
         clutX = ((t[0] & 0x003f0000) >> 16) * 16;
-        clutY = ((t[0] & 0xffc00000) >> 22);
+        clutY = ((t[0] & 0x7fc00000) >> 22);
 
         baseX = ((t[1] & 0x0f0000) >> 16) * 64;   // N * 64
         baseY = ((t[1] & 0x100000) >> 20) * 256;  // N* 256
@@ -92,12 +92,12 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
         y[i] = (int32_t)(int16_t)((arguments[ptr++] >> 16) & 0xffff);
 
-        if (!arg.gouroudShading || i == 0) c[i] = arguments[0] & 0xffffff;
+        if (!arg._brightnessCalculation && (!arg.gouroudShading || i == 0)) c[i] = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
         if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1] = arguments[ptr++];
     }
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, (arg.semiTransparency ? 0 : 1)
-                                                                   << 0);  // Semi transparency problems in SCPH-101 menu
+    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped,
+                arg.semiTransparency ? 1 : arg.isTextureMapped);  // Semi transparency problems in SCPH-101 menu
 
     cmd = Command::None;
 }
@@ -142,8 +142,8 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
     int h = arg.getSize();
 
     if (arg.size == 0) {
-        w = clamp(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff, 1024);
-        h = clamp((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16, 512);
+        w = (int32_t)(int16_t)(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
+        h = (int32_t)(int16_t)((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
     }
 
     int x = (int32_t)(int16_t)(arguments[1] & 0xffff);
@@ -165,8 +165,7 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
         _t[3] = tex(texX + w, texY + h);
 #undef tex
     }
-
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency ? 0 : 1) << 0);
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, arg.semiTransparency ? 1 : arg.isTextureMapped);
 
     cmd = Command::None;
 }
