@@ -63,6 +63,24 @@ void DMA::write(uint32_t address, uint8_t data) {
         }
     }
 
+    if (channel == 0) {
+        dma0.write(address % 0x10, data);  // MDECin
+
+        if (dma0.irqFlag) {
+            dma0.irqFlag = false;
+            if (status.enableDma0) status.flagDma0 = 1;
+        }
+        return;
+    }
+    if (channel == 1) {
+        dma1.write(address % 0x10, data);  // MDECout
+
+        if (dma1.irqFlag) {
+            dma1.irqFlag = false;
+            if (status.enableDma1) status.flagDma1 = 1;
+        }
+        return;
+    }
     if (channel == 2) {
         dma2.write(address % 0x10, data);  // GPU
 
