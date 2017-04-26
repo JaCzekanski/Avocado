@@ -13,10 +13,27 @@
 #include "device/spu.h"
 
 /**
+ * NOTE:
+ * Build flags are configured with Premake5 build system
+ */
+
+/**
+ * #define ENABLE_LOAD_DELAY_SLOTS
+ * Switch: --disable-load-delay-slots
+ * Default: true
+ *
  * Accurate load delay slots, slightly slower.
  * Not sure, if games depends on that (assembler should nop delay slot)
  */
-#define ENABLE_LOAD_DELAY_SLOTS
+
+/**
+ * #define ENABLE_BREAKPOINTS
+ * Switch: --enable-breakpoints
+ * Default: false
+ *
+ * Enables logic that is responsible for checking code breakpoints.
+ * Used in auto test build
+ */
 
 namespace bios {
 struct Function;
@@ -87,7 +104,7 @@ struct CPU {
     uint8_t scratchpad[SCRATCHPAD_SIZE];
     uint8_t expansion[EXPANSION_SIZE];
 
-	bool debugOutput = false; // Print BIOS logs
+    bool debugOutput = false;  // Print BIOS logs
    public:
     // Devices
     interrupt::Interrupt *interrupt = nullptr;

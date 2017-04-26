@@ -85,7 +85,11 @@ PrimaryInstruction OpcodeTable[64] = {
     {60, invalid, "INVALID"},      //
     {61, invalid, "INVALID"},      //
     {62, invalid, "INVALID"},      //
-    {63, op_breakpoint, "BREAKPOINT"} //
+#ifdef ENABLE_BREAKPOINTS
+    {63, op_breakpoint, "BREAKPOINT"}
+#else
+    {63, invalid, "INVALID"}
+#endif
 };
 
 PrimaryInstruction SpecialTable[64] = {
@@ -706,11 +710,11 @@ void op_cop0(CPU *cpu, Opcode i) {
             disasm("r%d, $%d", i.rt, i.rd);
 
             switch (i.rd) {
-               case 3:
+                case 3:
                     cpu->cop0.bpc = cpu->reg[i.rt];
                     break;
 
-               case 7:
+                case 7:
                     cpu->cop0.dcic = cpu->reg[i.rt];
                     break;
 
@@ -966,8 +970,7 @@ void op_swr(CPU *cpu, Opcode i) {
 // BREAKPOINT
 void op_breakpoint(CPU *cpu, Opcode i) {
     disasm("");
-//    printf("Breakpoint at 0x%08x\n", cpu->PC);
     cpu->state = CPU::State::halted;
-	cpu->PC += 4;
+    cpu->PC += 4;
 }
 };

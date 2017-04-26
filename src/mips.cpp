@@ -54,7 +54,7 @@ CPU::CPU() {
     spu = new spu::SPU();
     spu->setCPU(this);
 
-    mdec = new mdec::MDEC(); 
+    mdec = new mdec::MDEC();
     mdec->setCPU(this);
 
     expansion2 = new Dummy("Expansion2", 0x1f802000, false);
@@ -300,14 +300,13 @@ bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
 
-        if (cop0.dcic & (1<<24) && PC == cop0.bpc) {
-            cop0.dcic &= ~(1<<24); // disable breakpoint
+#ifdef ENABLE_BREAKPOINTS
+        if (cop0.dcic & (1 << 24) && PC == cop0.bpc) {
+            cop0.dcic &= ~(1 << 24);  // disable breakpoint
             state = State::pause;
             return false;
         }
-
-		moveLoadDelaySlots();
-
+#endif
         _opcode.opcode = readMemory32(PC);
 
         bool isJumpCycle = shouldJump;
@@ -352,7 +351,7 @@ void CPU::emulateFrame() {
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {
-            //printf("CPU Halted\n");
+            // printf("CPU Halted\n");
             return;
         }
 
