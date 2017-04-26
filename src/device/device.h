@@ -32,6 +32,15 @@ union Reg32 {
         if (n >= 4) return 0;
         return _byte[n];
     }
+    void setBit(int n, bool v) {
+        if (n >= 32) return;
+        _reg &= ~(1<<n);
+        _reg |= (v<<n);
+    }
+    bool getBit(int n) {
+        if (n >= 32) return 0;
+        return (_reg & (1<<n)) != 0;
+    }
 };
 
 class Device {

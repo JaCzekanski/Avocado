@@ -25,7 +25,7 @@ CPU::CPU() {
     memset(expansion, 0, EXPANSION_SIZE);
 
     for (int i = 0; i < 2; i++) {
-        slots[i] = {0};
+        slots[i].reg = 0;
     }
 
     memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
@@ -54,7 +54,9 @@ CPU::CPU() {
     spu = new spu::SPU();
     spu->setCPU(this);
 
-    mdec = new Dummy("MDEC", 0x1f801820);
+    mdec = new mdec::MDEC(); 
+    mdec->setCPU(this);
+
     expansion2 = new Dummy("Expansion2", 0x1f802000, false);
 }
 
@@ -261,7 +263,7 @@ void CPU::handleBiosFunction() {
     if (log) printFunctionInfo(maskedPC >> 4, function->first, function->second);
 }
 
-void CPU::loadDelaySlot(int r, uint32_t data) {
+void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
 #ifdef ENABLE_LOAD_DELAY_SLOTS
     assert(r < REGISTER_COUNT);
     if (r == 0) return;

@@ -8,6 +8,7 @@
 #include "device/timer.h"
 #include "device/dummy.h"
 #include "device/controller.h"
+#include "device/mdec.h"
 #include <unordered_map>
 #include "device/spu.h"
 
@@ -102,7 +103,7 @@ struct CPU {
     Dummy *memoryControl = nullptr;
     Dummy *serial = nullptr;
     gpu::GPU *gpu = nullptr;
-    Dummy *mdec = nullptr;
+    mdec::MDEC *mdec = nullptr;
     Dummy *expansion2 = nullptr;
 
     uint8_t readMemory(uint32_t address);
@@ -120,7 +121,7 @@ struct CPU {
     }
 
     LoadSlot slots[2];
-    void loadDelaySlot(int r, uint32_t data);
+    void loadDelaySlot(uint32_t r, uint32_t data);
     uint8_t readMemory8(uint32_t address);
     uint16_t readMemory16(uint32_t address);
     uint32_t readMemory32(uint32_t address);
