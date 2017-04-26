@@ -136,6 +136,23 @@ union GP0_E2 {
     GP0_E2() : _reg(0) {}
 };
 
+// Texture Window setting
+union GP0_E6 {
+    struct {
+        uint32_t setMaskWhileDrawing : 1;
+        uint32_t checkMaskBeforeDraw : 1;
+
+        uint32_t : 22;
+        uint8_t command;  // 0xe6
+    };
+    struct {
+        uint32_t _reg : 24;
+        uint32_t _command : 8;
+    };
+
+    GP0_E6() : _reg(0) {}
+};
+
 
 // Display mode
 union GP1_08 {
@@ -217,28 +234,27 @@ class GPU {
     GP0_E2 gp0_e2;
 
     // GP0(0xe3)
-    int16_t drawingAreaX1 = 0;
-    int16_t drawingAreaY1 = 0;
+    int16_t drawingAreaLeft = 0;
+    int16_t drawingAreaTop = 0;
 
     // GP0(0xe4)
-    int16_t drawingAreaX2 = 0;
-    int16_t drawingAreaY2 = 0;
+    int16_t drawingAreaRight = 0;
+    int16_t drawingAreaBottom = 0;
 
     // GP0(0xe5)
     int16_t drawingOffsetX = 0;
     int16_t drawingOffsetY = 0;
 
     // GP0(0xe6)
-    int setMaskWhileDrawing = 0;
-    int checkMaskBeforeDraw = 0;
+    GP0_E6 gp0_e6;
 
     // GP1(0x02)
-    Bit irqAcknowledge;
+    bool irqRequest;
 
     // GP1(0x03)
-    Bit displayDisable;
+    bool displayDisable;
 
-    // GP(0x04)
+    // GP1(0x04)
     int dmaDirection = 0;
 
     // GP1(0x05)
@@ -259,6 +275,7 @@ class GPU {
     bool textureDisableAllowed = false;
 
    private:
+    void reset();
     uint32_t to15bit(uint32_t color);
     uint32_t to24bit(uint16_t color);
 

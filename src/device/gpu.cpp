@@ -15,6 +15,31 @@ T clamp(T number, size_t range) {
     return number;
 }
 
+void GPU::reset() {
+    irqRequest = false;
+    displayDisable = true;
+    dmaDirection = 0;
+    displayAreaStartX = 0;
+    displayAreaStartY = 0;
+    displayRangeX1 = 0x200;
+    displayRangeX2 = 0x200 + 256 * 10;
+    displayRangeY1 = 0x10;
+    displayRangeY2 = 0x10 + 240;
+
+    gp1_08._reg = 0;
+    gp0_e1._reg = 0;
+    gp0_e2._reg = 0;
+
+    drawingAreaLeft = 0;
+    drawingAreaTop = 0;
+    drawingAreaRight = 0;
+    drawingAreaBottom = 0;
+    drawingOffsetX = 0;
+    drawingOffsetY = 0;
+
+    gp0_e6._reg = 0;
+}
+
 void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex, bool textured, int flags) {
     int baseX = 0;
     int baseY = 0;
@@ -249,16 +274,32 @@ uint32_t GPU::to24bit(uint16_t color) {
 }
 
 void GPU::step() {
-    // Calculate GPUSTAT
-    GPUSTAT = (gp0_e1._reg & 0x7FF) | (setMaskWhileDrawing << 11) | (checkMaskBeforeDraw << 12) | (1 << 13)  // always set
-              | ((uint8_t)gp1_08.reverseFlag << 14) | ((uint8_t)gp0_e1.textureDisable << 15) | ((uint8_t)gp1_08.horizontalResolution2 << 16)
-              | ((uint8_t)gp1_08.horizontalResolution1 << 17) | ((uint8_t)gp1_08.verticalResolution << 19)
-              | ((uint8_t)gp1_08.videoMode << 20) | ((uint8_t)gp1_08.colorDepth << 21) | (gp1_08.interlace << 22)
-              | ((uint8_t)displayDisable << 23) | ((uint8_t)irqAcknowledge << 24)
-              | ((dmaDirection == 0 ? 0 : (dmaDirection == 1 ? 1 : (dmaDirection == 2 ? 1 : (cmd != Command::CopyCpuToVram2)))) << 25)
-              | (1 << 26)                                             // Ready for DMA command
-              | ((cmd != Command::CopyCpuToVram2) << 27) | (1 << 28)  // Ready for receive DMA block
-              | ((dmaDirection & 3) << 29) | (odd << 31);
+    uint8_t dataRequest = 0;
+    if (dmaDirection == 0) dataRequest = 0;
+    else if (dmaDirection == 1) dataRequest = 1; // FIFO not full
+    else if (dmaDirection == 2) dataRequest = 1; // Same as bit28, ready to receive dma block
+    else if (dmaDirection == 3) dataRequest = cmd != Command::CopyCpuToVram2; // Same as bit27, ready to send VRAM to CPU 
+
+    GPUSTAT = (gp0_e1._reg & 0x7FF) 
+              | (gp0_e6.setMaskWhileDrawing << 11) 
+              | (gp0_e6.checkMaskBeforeDraw << 12) 
+              | (1 << 13)  // always set
+              | ((uint8_t)gp1_08.reverseFlag << 14) 
+              | ((uint8_t)gp0_e1.textureDisable << 15) 
+              | ((uint8_t)gp1_08.horizontalResolution2 << 16)
+              | ((uint8_t)gp1_08.horizontalResolution1 << 17) 
+              | ((uint8_t)gp1_08.verticalResolution << 19)
+              | ((uint8_t)gp1_08.videoMode << 20) 
+              | ((uint8_t)gp1_08.colorDepth << 21) 
+              | (gp1_08.interlace << 22)
+              | (displayDisable << 23) 
+              | (irqRequest << 24)
+              | (dataRequest << 25)
+              | (1 << 26)  // Ready for DMA command
+              | ((cmd != Command::CopyCpuToVram2) << 27) 
+              | (1 << 28)  // Ready for receive DMA block
+              | ((dmaDirection & 3) << 29) 
+              | (odd << 31);
 }
 
 uint32_t GPU::read(uint32_t address) {
@@ -330,7 +371,7 @@ void GPU::writeGP0(uint32_t data) {
             // Copy rectangle (VRAM -> VRAM)
             cmd = Command::CopyVramToVram;
             argumentCount = 3;
-        } else if (command == 0xE1) {
+        } else if (command == 0xe1) {
             // Draw mode setting
             gp0_e1._reg = arguments[0];
         } else if (command == 0xe2) {
@@ -338,26 +379,27 @@ void GPU::writeGP0(uint32_t data) {
             gp0_e2._reg = arguments[0];
         } else if (command == 0xe3) {
             // Drawing area top left
-            drawingAreaX1 = arguments[0] & 0x3ff;
-            drawingAreaY1 = (arguments[0] & 0xFFC00) >> 10;
+            drawingAreaLeft = arguments[0] & 0x3ff;
+            drawingAreaTop = (arguments[0] & 0xffc00) >> 10;
         } else if (command == 0xe4) {
             // Drawing area bottom right
-            drawingAreaX2 = arguments[0] & 0x3ff;
-            drawingAreaY2 = (arguments[0] & 0xFFC00) >> 10;
+            drawingAreaRight = arguments[0] & 0x3ff;
+            drawingAreaBottom = (arguments[0] & 0xffc00) >> 10;
         } else if (command == 0xe5) {
             // Drawing offset
             drawingOffsetX = ((int16_t)((arguments[0] & 0x7ff) << 5)) >> 5;
             drawingOffsetY = ((int16_t)(((arguments[0] & 0x3FF800) >> 11) << 5)) >> 5;
         } else if (command == 0xe6) {
             // Mask bit setting
-            setMaskWhileDrawing = arguments[0] & 1;
-            checkMaskBeforeDraw = (arguments[0] & 2) >> 1;
+            gp0_e6._reg = arguments[0];
+        } else if (command == 0x1f) {
+            // Interrupt request
+            irqRequest = true;
+            // TODO: IRQ
         } else
             printf("GP0(0x%02x) args 0x%06x\n", command, arguments[0]);
 
-        if (cmd == Command::None) {
-            // printf("GPU: 0x%02x\n", command);
-        }
+        // if (cmd == Command::None) printf("GPU: 0x%02x\n", command);
 
         argumentCount++;
         return;
@@ -365,7 +407,6 @@ void GPU::writeGP0(uint32_t data) {
 
     if (currentArgument < argumentCount) {
         arguments[currentArgument++] = data;
-        // TODO: test multiline rendering
         if (argumentCount == MAX_ARGS && data == 0x55555555) argumentCount = currentArgument;
         if (currentArgument != argumentCount) return;
     }
@@ -393,34 +434,11 @@ void GPU::writeGP1(uint32_t data) {
     uint32_t argument = data & 0xffffff;
 
     if (command == 0x00) {  // Reset GPU
-        irqAcknowledge = false;
-        displayDisable = true;
-        dmaDirection = 0;
-        displayAreaStartX = displayAreaStartY = 0;
-        displayRangeX1 = 0x200;
-        displayRangeX2 = 0x200 + 256 * 10;
-        displayRangeY1 = 0x10;
-        displayRangeY2 = 0x10 + 240;
-
-        gp1_08._reg = 0;
-        gp0_e1._reg = 0;
-        gp0_e2._reg = 0;
-
-        drawingAreaX1 = 0;
-        drawingAreaY1 = 0;
-
-        drawingAreaX2 = 0;
-        drawingAreaY2 = 0;
-
-        drawingOffsetX = 0;
-        drawingOffsetY = 0;
-
-        setMaskWhileDrawing = 0;
-        checkMaskBeforeDraw = 0;
+        reset();
     } else if (command == 0x01) {  // Reset command buffer
 
     } else if (command == 0x02) {  // Acknowledge IRQ1
-        irqAcknowledge = false;
+        irqRequest = false;
     } else if (command == 0x03) {  // Display Enable
         displayDisable = (Bit)(argument & 1);
     } else if (command == 0x04) {  // DMA Direction
@@ -445,9 +463,9 @@ void GPU::writeGP1(uint32_t data) {
         if (argument == 2) {
             GPUREAD = gp0_e2._reg;
         } else if (argument == 3) {
-            GPUREAD = (drawingAreaY1 << 10) | drawingAreaX1;
+            GPUREAD = (drawingAreaTop << 10) | drawingAreaLeft;
         } else if (argument == 4) {
-            GPUREAD = (drawingAreaY2 << 10) | drawingAreaX2;
+            GPUREAD = (drawingAreaBottom << 10) | drawingAreaRight;
         } else if (argument == 5) {
             GPUREAD = (drawingOffsetY << 11) | drawingOffsetX;
         } else if (argument == 7) {

@@ -147,8 +147,8 @@ void OpenGL::renderFirstStage(const std::vector<Vertex> &renderList, device::gpu
     glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
 
     glUniform2i(renderShader->getUniform("drawingOffset"), gpu->drawingOffsetX, gpu->drawingOffsetY);
-    glUniform2ui(renderShader->getUniform("drawingAreaTopLeft"), gpu->drawingAreaX1, gpu->drawingAreaY1);
-    glUniform2ui(renderShader->getUniform("drawingAreaBottomRight"), gpu->drawingAreaX2, gpu->drawingAreaY2);
+    glUniform2ui(renderShader->getUniform("drawingAreaTopLeft"), gpu->drawingAreaLeft, gpu->drawingAreaTop);
+    glUniform2ui(renderShader->getUniform("drawingAreaBottomRight"), gpu->drawingAreaRight, gpu->drawingAreaBottom);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, vramTex);
