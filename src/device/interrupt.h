@@ -52,7 +52,7 @@ class Interrupt : public Device {
     uint8_t read(uint32_t address) override;
     void write(uint32_t address, uint8_t data) override;
 
-    void IRQ(IrqNumber irq);
+    void trigger(IrqNumber irq);
     bool interruptPending();
     std::string getMask();
     std::string getStatus();

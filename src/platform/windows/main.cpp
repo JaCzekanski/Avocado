@@ -104,9 +104,9 @@ int main(int argc, char **argv) {
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->IRQ(device::interrupt::CDROM);
-                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->IRQ(device::interrupt::DMA);
-                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->IRQ(device::interrupt::SPU);
+                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);
+                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(device::interrupt::DMA);
+                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(device::interrupt::SPU);
                 if (event.key.keysym.sym == SDLK_r) {
                     cpu->dumpRam();
                     cpu->spu->dumpRam();
