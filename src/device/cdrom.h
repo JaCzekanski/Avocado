@@ -67,7 +67,7 @@ class CDROM : public Device {
         CDROM_Status() : _reg(0x18) {}
     };
 
-	bool verbose = false;
+    int verbose = 2;
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
@@ -105,6 +105,9 @@ class CDROM : public Device {
     void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {
+        if (CDROM_response.size() >= 16) {
+            return;
+        }
         CDROM_response.push_back(byte);
         status.responseFifoEmpty = 1;
     }

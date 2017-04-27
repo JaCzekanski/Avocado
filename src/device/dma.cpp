@@ -78,7 +78,6 @@ void DMA::write(uint32_t address, uint8_t data) {
         if (dma3.irqFlag) {
             dma3.irqFlag = false;
             if (status.enableDma3) status.flagDma3 = 1;
-            ((mips::CPU*)_cpu)->cdrom->ackMoreData();
         }
         return;
     }

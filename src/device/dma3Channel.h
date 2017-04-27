@@ -51,7 +51,7 @@ class DMA3Channel : public DMAChannel {
    public:
     bool sectorSize = false;
 
-    DMA3Channel(int channel) : DMAChannel(channel) {}
+    DMA3Channel(int channel) : DMAChannel(channel) { verbose = true; }
 
     bool load(const std::string& iso) {
         if (f != nullptr) {
@@ -77,6 +77,12 @@ class DMA3Channel : public DMAChannel {
     }
 
     size_t getIsoSize() const { return fileSize; }
+    void advanceSector() {
+        if (bytesReaded == 0) return;
+        sector++;
+        doSeek = true;
+        bytesReaded = 0;
+    }
 };
 }
 }

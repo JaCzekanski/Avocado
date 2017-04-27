@@ -15,10 +15,21 @@ void CDROM::step() {
             ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::CDROM);
         }
     }
+
+    if (stat.read) {
+        static int cnt = 0;
+
+        if (++cnt == 500) {
+            cnt = 0;
+            ackMoreData();
+        }
+    }
 }
 
 uint8_t CDROM::read(uint32_t address) {
     if (address == 0) {  // CD Status
+        // status.transmissionBusy = !CDROM_interrupt.empty();
+        if (verbose == 2) printf("CDROM: R STATUS: 0x%02x\n", status._reg);
         return status._reg;
     }
     if (address == 1) {  // CD Response
@@ -31,6 +42,7 @@ uint8_t CDROM::read(uint32_t address) {
                 status.responseFifoEmpty = 0;
             }
         }
+        if (verbose == 2) printf("CDROM: R RESPONSE: 0x%02x\n", response);
         return response;
     }
     if (address == 2) {  // CD Data
@@ -40,6 +52,7 @@ uint8_t CDROM::read(uint32_t address) {
     }
     if (address == 3) {                                // CD Interrupt enable / flags
         if (status.index == 0 || status.index == 2) {  // Interrupt enable
+            if (verbose == 2) printf("CDROM: R INTE: 0x%02x\n", interruptEnable);
             return interruptEnable;
         }
         if (status.index == 1 || status.index == 3) {  // Interrupt flags
@@ -47,6 +60,7 @@ uint8_t CDROM::read(uint32_t address) {
             if (!CDROM_interrupt.empty()) {
                 _status |= CDROM_interrupt.front() & 7;
             }
+            if (verbose == 2) printf("CDROM: R INTF: 0x%02x\n", _status);
             return _status;
         }
     }
@@ -89,9 +103,6 @@ void CDROM::cmdReadN() {
     stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(stat._reg);
-
-    CDROM_interrupt.push_back(1);
     writeResponse(stat._reg);
 }
 
@@ -253,14 +264,9 @@ void CDROM::cmdReadS() {
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
-
-    CDROM_interrupt.push_back(1);
-    writeResponse(stat._reg);
 }
 
 void CDROM::cmdReadTOC() {
-    stat.setMode(StatusCode::Mode::Reading);
-
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -277,21 +283,22 @@ void CDROM::cmdUnlock() {
 
 void CDROM::handleCommand(uint8_t cmd) {
     if (verbose) {
-		printf("CDROM  COMMAND: 0x%02x", cmd);
-		if (!CDROM_params.empty()) {
-			putchar('(');
-			bool first = true;
-			for (auto p : CDROM_params) {
-				if (!first) printf(", ");
-				printf("0x%02x", p);
-				first = false;
-			}
-			putchar(')');
-		}
-		printf("\n");
-	}
+        printf("CDROM  COMMAND: 0x%02x", cmd);
+        if (!CDROM_params.empty()) {
+            putchar('(');
+            bool first = true;
+            for (auto p : CDROM_params) {
+                if (!first) printf(", ");
+                printf("0x%02x", p);
+                first = false;
+            }
+            putchar(')');
+        }
+        printf("\n");
+    }
 
     CDROM_interrupt.clear();
+    CDROM_response.clear();
     if (cmd == 0x01)
         cmdGetstat();
     else if (cmd == 0x02)
@@ -358,18 +365,25 @@ void CDROM::write(uint32_t address, uint8_t data) {
         return;
     }
     if (address == 3 && status.index == 0) {  // Request register
-        if (data & 0x80) {                    // want data
-            status.dataFifoEmpty = 1;
-
-            CDROM_interrupt.push_back(1);
-            writeResponse(stat._reg);
+        static int state = 0;
+        if (data & 0x80) {  // want data
+            if (state == 1) {
+                state = 0;
+                // advance sector
+                ((mips::CPU*)_cpu)->dma->dma3.advanceSector();
+            }
         } else {  // clear data fifo
-            status.dataFifoEmpty = 0;
+            // status.dataFifoEmpty = 0;
+            if (state == 0) state = 1;
         }
+
+        // 0x00, 0x80,  get next sector?
+        if (verbose == 2) printf("CDROM: W REQDATA: 0x%02x\n", data);
         return;
     }
     if (address == 2 && status.index == 1) {  // Interrupt enable
         interruptEnable = data;
+        if (verbose == 2) printf("CDROM: W INTE: 0x%02x\n", data);
         return;
     }
     if (address == 3 && status.index == 1) {  // Interrupt flags
@@ -383,6 +397,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
         if (!CDROM_interrupt.empty()) {
             CDROM_interrupt.pop_front();
         }
+        if (verbose == 2) printf("CDROM: W INTF: 0x%02x\n", data);
         return;
     }
 

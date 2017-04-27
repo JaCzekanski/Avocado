@@ -279,6 +279,7 @@ void op_jr(CPU *cpu, Opcode i) {
 // JALR
 void op_jalr(CPU *cpu, Opcode i) {
     disasm("r%d r%d", i.rd, i.rs);
+    // cpu->loadDelaySlot(i.rd, cpu->PC + 8);
     uint32_t addr = cpu->reg[i.rs];
     if (addr & 3) {
         // TODO: not working correctly
@@ -507,6 +508,7 @@ void branch(CPU *cpu, Opcode i) {
             disasm("r%d, %d", i.rs, i.offset);
 
             cpu->reg[31] = cpu->PC + 8;
+            // cpu->loadDelaySlot(31, cpu->PC + 8);
             if ((int32_t)cpu->reg[i.rs] < 0) {
                 cpu->shouldJump = true;
                 cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
@@ -520,6 +522,7 @@ void branch(CPU *cpu, Opcode i) {
             disasm("r%d, %d", i.rs, i.offset);
 
             cpu->reg[31] = cpu->PC + 8;
+            // cpu->loadDelaySlot(31, cpu->PC + 8);
             if ((int32_t)cpu->reg[i.rs] >= 0) {
                 cpu->shouldJump = true;
                 cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
