@@ -68,7 +68,7 @@ uint8_t CPU::readMemory(uint32_t address) {
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) return ram[address & 0x1FFFFF];
-    if (address >= 0x1f000000 && address < 0x1f800000) return expansion[address - 0x1f000000];
+    if (address >= 0x1f000000 && address < 0x1f000000 + EXPANSION_SIZE) return expansion[address - 0x1f000000];
     if (address >= 0x1f800000 && address < 0x1f800400) return scratchpad[address - 0x1f800000];
     if (address >= 0x1fc00000 && address < 0x1fc80000) return bios[address - 0x1fc00000];
 

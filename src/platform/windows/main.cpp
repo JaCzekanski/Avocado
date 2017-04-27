@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <string>
+#include <algorithm>
 #include <SDL.h>
 #include "renderer/opengl/opengl.h"
 #include "utils/string.h"
@@ -145,9 +146,10 @@ int main(int argc, char **argv) {
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
                 std::string ext = getExtension(path);
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
                 SDL_free(event.drop.file);
 
-                if (ext == "iso" || ext == "bin") {
+                if (ext == "iso" || ext == "bin" || ext == "img") {
                     if (fileExists(path)) {
                         printf("Dropped .iso, loading... ");
 

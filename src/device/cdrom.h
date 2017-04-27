@@ -67,7 +67,7 @@ class CDROM : public Device {
         CDROM_Status() : _reg(0x18) {}
     };
 
-    int verbose = 2;
+    int verbose = 0;
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
@@ -102,6 +102,7 @@ class CDROM : public Device {
     void cmdReadS();
     void cmdReadTOC();
     void cmdUnlock();
+    void cmdSetSession();
     void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {

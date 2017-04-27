@@ -180,6 +180,14 @@ void CDROM::cmdSetmode() {
     writeResponse(stat._reg);
 }
 
+void CDROM::cmdSetSession() {
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+
+    CDROM_interrupt.push_back(2);
+    writeResponse(stat._reg);
+}
+
 void CDROM::cmdGetTN() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -323,6 +331,8 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdDemute();
     else if (cmd == 0x0d)
         cmdSetFilter();
+    else if (cmd == 0x12)
+        cmdSetSession();
     else if (cmd == 0x13)
         cmdGetTN();
     else if (cmd == 0x14)
