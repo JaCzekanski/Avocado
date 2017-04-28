@@ -131,6 +131,7 @@ struct CPU {
 
    public:
     CPU();
+    ~CPU();
 
     void setGPU(gpu::GPU *gpu) {
         this->gpu = gpu;

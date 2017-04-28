@@ -60,6 +60,21 @@ CPU::CPU() {
     expansion2 = new Dummy("Expansion2", 0x1f802000, false);
 }
 
+CPU::~CPU() {
+    delete memoryControl;
+    delete controller;
+    delete serial;
+    delete interrupt;
+    delete dma;
+    delete timer0;
+    delete timer1;
+    delete timer2;
+    delete cdrom;
+    delete spu;
+    delete mdec;
+    delete expansion2;
+}
+
 uint8_t CPU::readMemory(uint32_t address) {
     // if (address >= 0xfffe0130 && address < 0xfffe0134) {
     //    printf("R Unhandled memory control\n");
