@@ -9,8 +9,9 @@
 #include "device/dummy.h"
 #include "device/controller.h"
 #include "device/mdec.h"
-#include <unordered_map>
 #include "device/spu.h"
+
+#include <memory>
 
 /**
  * NOTE:
@@ -62,8 +63,8 @@ r1      at    - assembler temporary, reserved for use by assembler
 r2-r3   v0-v1 - (value) returned by subroutine
 r4-r7   a0-a3 - (arguments) first four parameters for a subroutine
 r8-r15  t0-t7 - (temporaries) subroutines may use without saving
-r24-r25 t8-t9
 r16-r23 s0-s7 - saved temporaries, must be saved
+r24-r25 t8-t9
 r26-r27 k0-k1 - Reserved for use by interrupt/trap handler
 r28     gp    - global pointer - used for accessing static/extern variables
 r29     sp    - stack pointer
@@ -78,23 +79,24 @@ struct LoadSlot {
 };
 
 struct CPU {
-    static const int REGISTER_COUNT = 32;
-    static const int BIOS_SIZE = 512 * 1024;
-    static const int RAM_SIZE = 2 * 1024 * 1024;
-    static const int SCRATCHPAD_SIZE = 1024;
-    static const int EXPANSION_SIZE = 1 * 1024 * 1024;
     enum class State {
         halted,  // Cannot be run until reset
         stop,    // after reset
         pause,   // if debugger attach
         run      // normal state
-    } state
-        = State::stop;
+    };
+
+    static const int REGISTER_COUNT = 32;
+    static const int BIOS_SIZE = 512 * 1024;
+    static const int RAM_SIZE = 2 * 1024 * 1024;
+    static const int SCRATCHPAD_SIZE = 1024;
+    static const int EXPANSION_SIZE = 1 * 1024 * 1024;
+    State state = State::stop;
 
     uint32_t PC;
     uint32_t jumpPC;
     bool shouldJump;
-    uint32_t reg[32];
+    uint32_t reg[REGISTER_COUNT];
     cop0::COP0 cop0;
     uint32_t hi, lo;
     bool exception;
@@ -107,21 +109,21 @@ struct CPU {
     bool debugOutput = false;  // Print BIOS logs
    public:
     // Devices
-    interrupt::Interrupt *interrupt = nullptr;
-    controller::Controller *controller = nullptr;
-    cdrom::CDROM *cdrom = nullptr;
-    timer::Timer *timer0 = nullptr;
-    timer::Timer *timer1 = nullptr;
-    timer::Timer *timer2 = nullptr;
-    dma::DMA *dma = nullptr;
-    spu::SPU *spu = nullptr;
+    std::unique_ptr<interrupt::Interrupt> interrupt;
+    std::unique_ptr<controller::Controller> controller;
+    std::unique_ptr<cdrom::CDROM> cdrom;
+    std::unique_ptr<dma::DMA> dma;
+    std::unique_ptr<spu::SPU> spu;
 
    private:
-    Dummy *memoryControl = nullptr;
-    Dummy *serial = nullptr;
-    gpu::GPU *gpu = nullptr;
-    mdec::MDEC *mdec = nullptr;
-    Dummy *expansion2 = nullptr;
+    std::unique_ptr<Dummy> memoryControl;
+    std::unique_ptr<Dummy> serial;
+    std::unique_ptr<gpu::GPU> gpu;
+    std::unique_ptr<timer::Timer> timer0;
+    std::unique_ptr<timer::Timer> timer1;
+    std::unique_ptr<timer::Timer> timer2;
+    std::unique_ptr<mdec::MDEC> mdec;
+    std::unique_ptr<Dummy> expansion2;
 
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
@@ -131,12 +133,6 @@ struct CPU {
 
    public:
     CPU();
-    ~CPU();
-
-    void setGPU(gpu::GPU *gpu) {
-        this->gpu = gpu;
-        dma->setGPU(gpu);
-    }
 
     LoadSlot slots[2];
     void loadDelaySlot(uint32_t r, uint32_t data);
@@ -149,6 +145,7 @@ struct CPU {
     void printFunctionInfo(int type, uint8_t number, bios::Function f);
     bool executeInstructions(int count);
     void emulateFrame();
+    gpu::GPU *getGPU() const { return gpu.get(); }
 
     // Helpers
     bool biosLog = true;

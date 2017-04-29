@@ -96,9 +96,6 @@ int main(int argc, char **argv) {
         if (!success) printf("Cannot load iso file: %s\n", iso.c_str());
     }
 
-    auto gpu = std::make_unique<device::gpu::GPU>();
-    cpu->setGPU(gpu.get());
-
     SDL_Event event;
     for (bool running = true; running;) {
         while (SDL_PollEvent(&event)) {
@@ -171,9 +168,9 @@ int main(int argc, char **argv) {
         if (cpu->state == mips::CPU::State::run) {
             cpu->emulateFrame();
 
-            opengl.render(gpu.get());
+            opengl.render(cpu->getGPU());
             std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d", cpu->interrupt->getMask().c_str(),
-                                              cpu->interrupt->getStatus().c_str(), gpu->frames);
+                                              cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames);
             SDL_SetWindowTitle(window, title.c_str());
             SDL_GL_SwapWindow(window);
         } else {

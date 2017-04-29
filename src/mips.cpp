@@ -28,51 +28,40 @@ CPU::CPU() {
         slots[i].reg = 0;
     }
 
-    memoryControl = new Dummy("MemCtrl", 0x1f801000, false);
-    controller = new controller::Controller();
+    memoryControl = std::make_unique<Dummy>("MemCtrl", 0x1f801000, false);
+    controller = std::make_unique<controller::Controller>();
     controller->setCPU(this);
-    serial = new Dummy("Serial", 0x1f801050, false);
 
-    interrupt = new interrupt::Interrupt();
+    serial = std::make_unique<Dummy>("Serial", 0x1f801050, false);
+
+    interrupt = std::make_unique<interrupt::Interrupt>();
     interrupt->setCPU(this);
 
-    dma = new dma::DMA();
-    dma->setCPU(this);
+    gpu = std::make_unique<gpu::GPU>();
 
-    timer0 = new timer::Timer(0);
+    dma = std::make_unique<dma::DMA>();
+    dma->setCPU(this);
+    dma->setGPU(gpu.get());
+
+    timer0 = std::make_unique<timer::Timer>(0);
     timer0->setCPU(this);
 
-    timer1 = new timer::Timer(1);
+    timer1 = std::make_unique<timer::Timer>(1);
     timer1->setCPU(this);
 
-    timer2 = new timer::Timer(2);
+    timer2 = std::make_unique<timer::Timer>(2);
     timer2->setCPU(this);
 
-    cdrom = new cdrom::CDROM();
+    cdrom = std::make_unique<cdrom::CDROM>();
     cdrom->setCPU(this);
 
-    spu = new spu::SPU();
+    spu = std::make_unique<spu::SPU>();
     spu->setCPU(this);
 
-    mdec = new mdec::MDEC();
+    mdec = std::make_unique<mdec::MDEC>();
     mdec->setCPU(this);
 
-    expansion2 = new Dummy("Expansion2", 0x1f802000, false);
-}
-
-CPU::~CPU() {
-    delete memoryControl;
-    delete controller;
-    delete serial;
-    delete interrupt;
-    delete dma;
-    delete timer0;
-    delete timer1;
-    delete timer2;
-    delete cdrom;
-    delete spu;
-    delete mdec;
-    delete expansion2;
+    expansion2 = std::make_unique<Dummy>("Expansion2", 0x1f802000, false);
 }
 
 uint8_t CPU::readMemory(uint32_t address) {
@@ -193,11 +182,11 @@ uint8_t CPU::readMemory8(uint32_t address) { return readMemory(address); }
 #define READ16(x, addr) (x[addr] | (x[addr + 1] << 8))
 
 uint16_t CPU::readMemory16(uint32_t address) {
-    uint32_t addr = address & 0x1FFFFFFF;
-    if (address < 0x200000 * 4) {
-        addr &= 0x1FFFFF;
+    uint32_t addr = address & 0x1FFFFFFE;
+    if (address < RAM_SIZE * 4) {
+        addr &= RAM_SIZE - 2;
         return READ16(ram, addr);
-    } else if (address >= 0x1fc00000 && address < 0x1fc80000) {
+    } else if (address >= 0x1fc00000 && address < 0x1fc00000 + EXPANSION_SIZE) {
         addr -= 0x1fc00000;
         return READ16(bios, addr);
     } else {
@@ -213,11 +202,11 @@ uint16_t CPU::readMemory16(uint32_t address) {
 #define READ32(x, addr) (x[addr] | (x[addr + 1] << 8) | (x[addr + 2] << 16) | (x[addr + 3] << 24))
 
 uint32_t CPU::readMemory32(uint32_t address) {
-    uint32_t addr = address & 0x1FFFFFFF;
-    if (addr < 0x200000 * 4) {
-        addr &= 0x1FFFFF;
+    uint32_t addr = address & 0x1FFFFFFC;
+    if (addr < RAM_SIZE * 4) {
+        addr &= RAM_SIZE - 4;
         return READ32(ram, addr);
-    } else if (addr >= 0x1fc00000 && addr < 0x1fc80000) {
+    } else if (addr >= 0x1fc00000 && addr < 0x1fc00000 + EXPANSION_SIZE) {
         addr -= 0x1fc00000;
         return READ32(bios, addr);
     } else {

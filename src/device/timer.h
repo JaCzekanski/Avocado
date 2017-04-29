@@ -86,11 +86,11 @@ union CounterMode {
 
     CounterMode() : _reg(0) {}
     void write(int n, uint8_t v) {
-        if (n > 4) return;
+        if (n >= 4) return;
         _byte[n] = v;
     }
     uint8_t read(int n) const {
-        if (n > 4) return 0;
+        if (n >= 4) return 0;
         return _byte[n];
     }
 };
