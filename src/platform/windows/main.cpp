@@ -96,6 +96,10 @@ int main(int argc, char **argv) {
         if (!success) printf("Cannot load iso file: %s\n", iso.c_str());
     }
 
+    float startTime = SDL_GetTicks() / 1000.f;
+    float fps = 0.f;
+    int deltaFrames = 0;
+
     SDL_Event event;
     for (bool running = true; running;) {
         while (SDL_PollEvent(&event)) {
@@ -167,10 +171,18 @@ int main(int argc, char **argv) {
 
         if (cpu->state == mips::CPU::State::run) {
             cpu->emulateFrame();
-
             opengl.render(cpu->getGPU());
-            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d", cpu->interrupt->getMask().c_str(),
-                                              cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames);
+
+            deltaFrames++;
+            float currentTime = SDL_GetTicks() / 1000.f;
+            if (currentTime - startTime > 0.25f) {
+                fps = (float)deltaFrames / (currentTime - startTime);
+                startTime = currentTime;
+                deltaFrames = 0;
+            }
+
+            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f", cpu->interrupt->getMask().c_str(),
+                                              cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames, fps);
             SDL_SetWindowTitle(window, title.c_str());
             SDL_GL_SwapWindow(window);
         } else {
