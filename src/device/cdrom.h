@@ -94,6 +94,7 @@ class CDROM : public Device {
     void cmdDemute();
     void cmdSetFilter();
     void cmdSetmode();
+    void cmdGetlocP();
     void cmdGetTN();
     void cmdGetTD();
     void cmdSeekL();

@@ -46,9 +46,7 @@ uint8_t CDROM::read(uint32_t address) {
         return response;
     }
     if (address == 2) {  // CD Data
-        if (verbose) printf("UNIMPLEMENTED CDROM READ!\n");
-        //((mips::CPU*)_cpu)->state = mips::CPU::State::pause;
-        return 0;
+        return ((mips::CPU*)_cpu)->dma->dma3.readByte();
     }
     if (address == 3) {                                // CD Interrupt enable / flags
         if (status.index == 0 || status.index == 2) {  // Interrupt enable
@@ -75,9 +73,9 @@ void CDROM::cmdGetstat() {
 }
 
 void CDROM::cmdSetloc() {
-    uint8_t minute = bcdToBinary(readParam());
-    uint8_t second = bcdToBinary(readParam());
-    uint8_t sector = bcdToBinary(readParam());
+    uint8_t minute = bcd::toBinary(readParam());
+    uint8_t second = bcd::toBinary(readParam());
+    uint8_t sector = bcd::toBinary(readParam());
     if (verbose) printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
 
     readSector = sector + (second * 75) + (minute * 60 * 75);
@@ -186,6 +184,22 @@ void CDROM::cmdSetSession() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+}
+void CDROM::cmdGetlocP() {
+    uint32_t tmp = readSector + 2 * 75;
+    uint32_t minute = tmp / 75 / 60;
+    uint32_t second = (tmp / 75) % 60;
+    uint32_t sector = tmp % 75;
+
+    CDROM_interrupt.push_back(3);
+    writeResponse(0x01);                // track
+    writeResponse(0x01);                // index
+    writeResponse(bcd::toBcd(minute));  // minute (track)
+    writeResponse(bcd::toBcd(second));  // second (track)
+    writeResponse(bcd::toBcd(sector));  // sector (track)
+    writeResponse(bcd::toBcd(minute));  // minute (disc)
+    writeResponse(bcd::toBcd(second));  // second (disc)
+    writeResponse(bcd::toBcd(sector));  // sector (disc)
 }
 
 void CDROM::cmdGetTN() {
@@ -331,6 +345,8 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdDemute();
     else if (cmd == 0x0d)
         cmdSetFilter();
+    else if (cmd == 0x11)
+        cmdGetlocP();
     else if (cmd == 0x12)
         cmdSetSession();
     else if (cmd == 0x13)

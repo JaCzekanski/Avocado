@@ -10,8 +10,8 @@ class DMA3Channel : public DMAChannel {
     uint32_t readDevice() override {
         uint32_t data = 0;
         if (f == nullptr) return data;
-        for (int i = 0; i < 4; i++) {
-            data |= ((uint8_t)fgetc(f)) << (i * 8);
+        for (int i = bytesReaded; i < bytesReaded + 4; i++) {
+            data |= buffer[i] << (i * 8);
         }
         bytesReaded += 4;
         return data;
@@ -21,22 +21,21 @@ class DMA3Channel : public DMAChannel {
     void beforeRead() override {
         if (f == nullptr) return;
         if (bytesReaded >= (!sectorSize ? 0x800 : 0x924)) {  // 0x800 instead of 0x924 helps some games, hmm ...
-            bytesReaded = 0;
             sector++;
             doSeek = true;
         }
 
         if (doSeek) {
-            uint32_t whichByte = sector * SECTOR_SIZE;
-            whichByte += 12;  // sync bits
-            if (!sectorSize) {
-                whichByte += 4;  // header
-                whichByte += 4;  // subheader
-                whichByte += 4;  // subheader copy
-            }
-
-            fseek(f, whichByte, SEEK_SET);
+            fseek(f, sector * SECTOR_SIZE, SEEK_SET);
+            fread(buffer, SECTOR_SIZE, 1, f);
             doSeek = false;
+
+            bytesReaded = 12;
+            if (!sectorSize) {
+                bytesReaded += 4;  // header
+                bytesReaded += 4;  // subheader
+                bytesReaded += 4;  // subheader copy
+            }
         }
 
         if (verbose) printf("Sector 0x%x  ", sector);
@@ -45,10 +44,11 @@ class DMA3Channel : public DMAChannel {
     FILE* f = nullptr;
     int sector = 0;
     bool doSeek = true;
-    int bytesReaded = 0;
     int fileSize = 0;
 
    public:
+    int bytesReaded = 0;
+    uint8_t buffer[SECTOR_SIZE];
     bool sectorSize = false;
 
     DMA3Channel(int channel) : DMAChannel(channel) { verbose = true; }
@@ -82,6 +82,11 @@ class DMA3Channel : public DMAChannel {
         sector++;
         doSeek = true;
         bytesReaded = 0;
+    }
+
+    uint8_t readByte() {
+        beforeRead();
+        return buffer[bytesReaded++];
     }
 };
 }
