@@ -114,6 +114,8 @@ void op_sh(mips::CPU *cpu, Opcode i);
 void op_swl(mips::CPU *cpu, Opcode i);
 void op_sw(mips::CPU *cpu, Opcode i);
 void op_swr(mips::CPU *cpu, Opcode i);
+void op_lwc2(mips::CPU *cpu, Opcode i);
+void op_swc2(mips::CPU *cpu, Opcode i);
 void op_breakpoint(mips::CPU *cpu, Opcode i);
 
 extern PrimaryInstruction OpcodeTable[64];

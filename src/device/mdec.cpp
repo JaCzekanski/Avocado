@@ -16,6 +16,7 @@ void MDEC::reset() {
 }
 
 uint8_t MDEC::read(uint32_t address) {
+    return 0;
     // printf("MDEC read @ 0x%02x\n", address);
     if (address < 4) {
         return data.read(address);

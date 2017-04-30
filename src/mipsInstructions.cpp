@@ -1,6 +1,7 @@
 #include "mipsInstructions.h"
 #include "mips.h"
 #include "utils/string.h"
+#include <unordered_map>
 
 static const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
                                  "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
@@ -71,8 +72,8 @@ PrimaryInstruction OpcodeTable[64] = {
                                    //
     {48, notImplemented, "lwc0"},  //
     {49, notImplemented, "lwc1"},  //
-    {50, dummy, "lwc2"},           //
-    {51, dummy, "lwc3"},           //
+    {50, op_lwc2, "lwc2"},         //
+    {51, notImplemented, "lwc3"},  //
     {52, invalid, "INVALID"},      //
     {53, invalid, "INVALID"},      //
     {54, invalid, "INVALID"},      //
@@ -80,7 +81,7 @@ PrimaryInstruction OpcodeTable[64] = {
                                    //
     {56, notImplemented, "swc0"},  //
     {57, notImplemented, "swc1"},  //
-    {58, dummy, "swc2"},           //
+    {58, op_swc2, "swc2"},         //
     {59, notImplemented, "swc3"},  //
     {60, invalid, "INVALID"},      //
     {61, invalid, "INVALID"},      //
@@ -723,8 +724,8 @@ void op_cop0(CPU *cpu, Opcode i) {
 
                 case 12:
                     if (cpu->reg[i.rt] & (1 << 17)) {
-                        printf("Panic, SwC not handled\n");
-                        cpu->state = CPU::State::halted;
+                        // printf("Panic, SwC not handled\n");
+                        // cpu->state = CPU::State::halted;
                     }
                     cpu->cop0.status._reg = cpu->reg[i.rt];
                     break;
@@ -757,8 +758,61 @@ void op_cop0(CPU *cpu, Opcode i) {
     }
 }
 
+std::unordered_map<int, int> cop2ops;
+// int cop2ops[0x30] = { 0 };
+
 // Coprocessor two
 void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
+    uint32_t op = i.opcode & 0x1ffffff;
+    uint32_t opcode = i.opcode & 0x3f;
+
+    if (opcode == 0x00) {
+        if (i.rs == 0x00) {
+            // Move data from co-processor two
+            // MFC2 rt, <nn>
+            mnemonic("MFC2");
+            disasm("r%d, $%d", i.rt, i.rd);
+            cpu->reg[i.rt] = cpu->gte.read(i.rd);
+        } else if (i.rs == 0x02) {
+            // Move control from co-processor two
+            // CFC2 rt, <nn>
+            mnemonic("MFC2");
+            disasm("r%d, $%d", i.rt, i.rd);
+            cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
+        } else if (i.rs == 0x04) {
+            // Move data to co-processor two
+            // MTC2 rt, <nn>
+            mnemonic("MTC2");
+            disasm("r%d, $%d", i.rt, i.rd);
+            cpu->gte.write(i.rd, cpu->reg[i.rt]);
+        } else if (i.rs == 0x06) {
+            // Move control to co-processor two
+            // CTC2 rt, <nn>
+            mnemonic("MTC2");
+            disasm("r%d, $%d", i.rt, i.rd);
+            cpu->gte.write(i.rd + 32, cpu->reg[i.rt]);
+        } else {
+            invalid(cpu, i);
+        }
+    } else {
+        disasm("0x%x  #opcode = 0x%x", op, opcode);
+        cop2ops[opcode]++;
+        switch (opcode) {
+            case 0x06:
+                cpu->gte.nclip();
+                return;
+            case 0x13:
+                cpu->gte.ncds();
+                return;
+            case 0x30:
+                cpu->gte.rtpt(op & (1 << 19));
+                return;
+            default:
+                // printf("Unhandled gte command 0x%x\n", opcode);
+                // cpu->state = CPU::State::halted;
+                return;
+        }
+    }
 }
 
 // Load Byte
@@ -968,6 +1022,26 @@ void op_swr(CPU *cpu, Opcode i) {
             break;
     }
     cpu->writeMemory32(addr & 0xfffffffc, result);
+}
+
+// Load to coprocessor 2
+// LWC2 ??? ???
+void op_lwc2(CPU *cpu, Opcode i) {
+    uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("%d, %hx(r%d)  #addr = 0x%08x", i.rt, i.offset, i.rs, addr);
+
+    assert(i.rt < 64);
+    cpu->gte.write(i.rt, cpu->readMemory32(addr));
+}
+
+// Store from coprocessor 2
+// SWC2 ??? ???
+void op_swc2(CPU *cpu, Opcode i) {
+    uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("%d, %hx(r%d)  #addr = 0x%08x", i.rt, i.offset, i.rs, addr);
+
+    assert(i.rt < 64);
+    cpu->writeMemory32(addr, cpu->gte.read(i.rt));
 }
 
 // BREAKPOINT

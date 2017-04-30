@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 
     printf("Using bios %s\n", bios.c_str());
     cpu->loadBios(bios);
-    // cpu->loadExpansion("expansion.rom");
+    // cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
