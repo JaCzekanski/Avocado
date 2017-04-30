@@ -764,16 +764,16 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
 // Load Byte
 // LB rt, offset(base)
 void op_lb(CPU *cpu, Opcode i) {
-    disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, 0x%hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
     cpu->loadDelaySlot(i.rt, ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24);
 }
 
 // Load Halfword
 // LH rt, offset(base)
 void op_lh(CPU *cpu, Opcode i) {
-    disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, 0x%hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
     if (addr & 1)  // non aligned address
     {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
@@ -785,9 +785,9 @@ void op_lh(CPU *cpu, Opcode i) {
 // Load Word Left
 // LWL rt, offset(base)
 void op_lwl(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
-
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, %hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
+
     uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
 
     uint32_t reg;
@@ -818,8 +818,8 @@ void op_lwl(CPU *cpu, Opcode i) {
 // Load Word
 // LW rt, offset(base)
 void op_lw(CPU *cpu, Opcode i) {
-    disasm("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, 0x%hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
     if (addr & 3)  // non aligned address
     {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
@@ -831,16 +831,16 @@ void op_lw(CPU *cpu, Opcode i) {
 // Load Byte Unsigned
 // LBU rt, offset(base)
 void op_lbu(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, %hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
     cpu->loadDelaySlot(i.rt, cpu->readMemory8(addr));
 }
 
 // Load Halfword Unsigned
 // LHU rt, offset(base)
 void op_lhu(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, %hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
     if (addr & 1)  // non aligned address
     {
         exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
@@ -852,9 +852,9 @@ void op_lhu(CPU *cpu, Opcode i) {
 // Load Word Right
 // LWR rt, offset(base)
 void op_lwr(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
-
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, %hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
+
     uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
 
     uint32_t reg;
@@ -933,8 +933,8 @@ void op_swl(CPU *cpu, Opcode i) {
 // Store Word
 // SW rt, offset(base)
 void op_sw(CPU *cpu, Opcode i) {
-    disasm("r%d, %hx(r%d)", i.rt, i.offset, i.rs);
     uint32_t addr = cpu->reg[i.rs] + i.offset;
+    disasm("r%d, %hx(r%d)  r%d = 0x%08x", i.rt, i.offset, i.rs, i.rs, addr);
     if (addr & 3)  // non aligned address
     {
         exception(cpu, cop0::CAUSE::Exception::addressErrorStore);

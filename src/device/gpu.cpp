@@ -116,7 +116,7 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     int x[4], y[4], c[4] = {0}, tex[4] = {0};
     for (int i = 0; i < arg.getVertexCount(); i++) {
         x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
-        y[i] = (int32_t)(int16_t)((arguments[ptr++] >> 16) & 0xffff);
+        y[i] = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
 
         if (!arg._brightnessCalculation && (!arg.gouroudShading || i == 0)) c[i] = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
@@ -275,31 +275,22 @@ uint32_t GPU::to24bit(uint16_t color) {
 
 void GPU::step() {
     uint8_t dataRequest = 0;
-    if (dmaDirection == 0) dataRequest = 0;
-    else if (dmaDirection == 1) dataRequest = 1; // FIFO not full
-    else if (dmaDirection == 2) dataRequest = 1; // Same as bit28, ready to receive dma block
-    else if (dmaDirection == 3) dataRequest = cmd != Command::CopyCpuToVram2; // Same as bit27, ready to send VRAM to CPU 
+    if (dmaDirection == 0)
+        dataRequest = 0;
+    else if (dmaDirection == 1)
+        dataRequest = 1;  // FIFO not full
+    else if (dmaDirection == 2)
+        dataRequest = 1;  // Same as bit28, ready to receive dma block
+    else if (dmaDirection == 3)
+        dataRequest = cmd != Command::CopyCpuToVram2;  // Same as bit27, ready to send VRAM to CPU
 
-    GPUSTAT = (gp0_e1._reg & 0x7FF) 
-              | (gp0_e6.setMaskWhileDrawing << 11) 
-              | (gp0_e6.checkMaskBeforeDraw << 12) 
-              | (1 << 13)  // always set
-              | ((uint8_t)gp1_08.reverseFlag << 14) 
-              | ((uint8_t)gp0_e1.textureDisable << 15) 
-              | ((uint8_t)gp1_08.horizontalResolution2 << 16)
-              | ((uint8_t)gp1_08.horizontalResolution1 << 17) 
-              | ((uint8_t)gp1_08.verticalResolution << 19)
-              | ((uint8_t)gp1_08.videoMode << 20) 
-              | ((uint8_t)gp1_08.colorDepth << 21) 
-              | (gp1_08.interlace << 22)
-              | (displayDisable << 23) 
-              | (irqRequest << 24)
-              | (dataRequest << 25)
-              | (1 << 26)  // Ready for DMA command
-              | ((cmd != Command::CopyCpuToVram2) << 27) 
-              | (1 << 28)  // Ready for receive DMA block
-              | ((dmaDirection & 3) << 29) 
-              | (odd << 31);
+    GPUSTAT = (gp0_e1._reg & 0x7FF) | (gp0_e6.setMaskWhileDrawing << 11) | (gp0_e6.checkMaskBeforeDraw << 12) | (1 << 13)  // always set
+              | ((uint8_t)gp1_08.reverseFlag << 14) | ((uint8_t)gp0_e1.textureDisable << 15) | ((uint8_t)gp1_08.horizontalResolution2 << 16)
+              | ((uint8_t)gp1_08.horizontalResolution1 << 17) | ((uint8_t)gp1_08.verticalResolution << 19)
+              | ((uint8_t)gp1_08.videoMode << 20) | ((uint8_t)gp1_08.colorDepth << 21) | (gp1_08.interlace << 22) | (displayDisable << 23)
+              | (irqRequest << 24) | (dataRequest << 25) | (1 << 26)  // Ready for DMA command
+              | ((cmd != Command::CopyCpuToVram2) << 27) | (1 << 28)  // Ready for receive DMA block
+              | ((dmaDirection & 3) << 29) | (odd << 31);
 }
 
 uint32_t GPU::read(uint32_t address) {
