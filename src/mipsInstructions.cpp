@@ -1,7 +1,6 @@
 #include "mipsInstructions.h"
 #include "mips.h"
 #include "utils/string.h"
-#include <unordered_map>
 
 static const char *regNames[] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
                                  "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
@@ -758,15 +757,9 @@ void op_cop0(CPU *cpu, Opcode i) {
     }
 }
 
-std::unordered_map<int, int> cop2ops;
-// int cop2ops[0x30] = { 0 };
-
 // Coprocessor two
 void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
-    uint32_t op = i.opcode & 0x1ffffff;
-    uint32_t opcode = i.opcode & 0x3f;
-
-    if (opcode == 0x00) {
+    if (i.opcode & 0x3f == 0x00) {
         if (i.rs == 0x00) {
             // Move data from co-processor two
             // MFC2 rt, <nn>
@@ -795,9 +788,10 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
             invalid(cpu, i);
         }
     } else {
-        disasm("0x%x  #opcode = 0x%x", op, opcode);
-        cop2ops[opcode]++;
-        switch (opcode) {
+        gte::Command command(i.opcode);
+        disasm("0x%x  #opcode = 0x%x", command._reg, command.cmd);
+
+        switch (command.cmd) {
             case 0x06:
                 cpu->gte.nclip();
                 return;
@@ -805,7 +799,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
                 cpu->gte.ncds();
                 return;
             case 0x30:
-                cpu->gte.rtpt(op & (1 << 19));
+                cpu->gte.rtpt(command.sf);
                 return;
             default:
                 // printf("Unhandled gte command 0x%x\n", opcode);

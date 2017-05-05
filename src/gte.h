@@ -25,6 +25,23 @@ struct Vector {
 namespace mips {
 namespace gte {
 
+union Command {
+    struct {
+        uint32_t cmd : 6;
+        uint32_t : 4;
+        uint32_t lm : 1;
+        uint32_t : 2;
+        uint32_t mvmvaTranslationVector : 2;  // 0 - tr, 1 - bk, 2 - fc, 3 - none
+        uint32_t mvmvaMultiplyVector : 2;     // 0 - v0, 1 - v1, 2 - v2, 3 - ir
+        uint32_t mvmvaMultiplyMatrix : 2;     // 0 - rotation, 1 - light, 2 - color, 3 - reserved
+        uint32_t sf : 1;
+        uint32_t : 5;
+        uint32_t : 7;  // cop2
+    };
+    uint32_t _reg;
+    Command(uint32_t v) : _reg(v) {}
+};
+
 struct GTE {
     Vector v[3];
     device::Reg32 rgbc;
@@ -33,7 +50,7 @@ struct GTE {
     Vector s[4];
     device::Reg32 rgb[3];
     uint32_t res1;  // prohibited
-    uint32_t mac[4];
+    int32_t mac[4];
     uint16_t irgb;
     uint16_t orgb;
     int32_t lzcs;
@@ -432,7 +449,7 @@ struct GTE {
         ir[3] = mac[3]
             = ((int32_t)tr.z * 0x1000 + (int32_t)rt.v31 * v[n].x + (int32_t)rt.v32 * v[n].y + (int32_t)rt.v33 * v[n].z) >> (sf * 12);
         s[3].z = mac[3] >> ((1 - sf) * 12);
-        if (s[3].z == 0) s[3].z = 1;  // lol xd
+        // if (s[3].z == 0) s[3].z = 1;  // lol xd
 
         mac[0] = (((h * 0x20000 / s[3].z) + 1) / 2) * ir[1] + of[0];
         s[2].x = mac[0] / 0x10000;

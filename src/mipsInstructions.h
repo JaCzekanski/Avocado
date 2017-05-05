@@ -39,6 +39,8 @@ union Opcode {
     uint32_t target : 26;  // JType instruction jump address
     uint16_t imm;          // IType immediate
     int16_t offset;        // IType signed immediate (relative address)
+
+    Opcode(uint32_t v) : opcode(v) {}
 };
 
 typedef void (*_Instruction)(mips::CPU *, Opcode);

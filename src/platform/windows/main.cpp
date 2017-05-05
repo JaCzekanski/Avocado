@@ -50,7 +50,7 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
 
 int main(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
-    std::string iso = "";
+    std::string iso = "data/iso/exe.bin";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");

@@ -298,8 +298,6 @@ void CPU::moveLoadDelaySlots() {
 }
 
 bool CPU::executeInstructions(int count) {
-    mipsInstructions::Opcode _opcode;
-
     checkForInterrupts();
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
@@ -311,7 +309,7 @@ bool CPU::executeInstructions(int count) {
             return false;
         }
 #endif
-        _opcode.opcode = readMemory32(PC);
+        mipsInstructions::Opcode _opcode(readMemory32(PC));
 
         bool isJumpCycle = shouldJump;
         const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
