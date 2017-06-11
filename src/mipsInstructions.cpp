@@ -759,7 +759,8 @@ void op_cop0(CPU *cpu, Opcode i) {
 
 // Coprocessor two
 void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
-    if (i.opcode & 0x3f == 0x00) {
+    gte::Command command(i.opcode);
+    if (command.cmd == 0x00) {
         if (i.rs == 0x00) {
             // Move data from co-processor two
             // MFC2 rt, <nn>
@@ -769,7 +770,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
         } else if (i.rs == 0x02) {
             // Move control from co-processor two
             // CFC2 rt, <nn>
-            mnemonic("MFC2");
+            mnemonic("CFC2");
             disasm("r%d, $%d", i.rt, i.rd);
             cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
         } else if (i.rs == 0x04) {
@@ -781,7 +782,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
         } else if (i.rs == 0x06) {
             // Move control to co-processor two
             // CTC2 rt, <nn>
-            mnemonic("MTC2");
+            mnemonic("CTC2");
             disasm("r%d, $%d", i.rt, i.rd);
             cpu->gte.write(i.rd + 32, cpu->reg[i.rt]);
         } else {
@@ -792,11 +793,20 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
         disasm("0x%x  #opcode = 0x%x", command._reg, command.cmd);
 
         switch (command.cmd) {
+            case 0x01:
+                cpu->gte.rtps(0, command.sf);
+                return;
             case 0x06:
                 cpu->gte.nclip();
                 return;
             case 0x13:
-                cpu->gte.ncds();
+                cpu->gte.ncds(command.sf);
+                return;
+            case 0x2d:
+                cpu->gte.avsz3();
+                return;
+            case 0x2e:
+                cpu->gte.avsz4();
                 return;
             case 0x30:
                 cpu->gte.rtpt(command.sf);

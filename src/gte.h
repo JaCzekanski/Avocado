@@ -3,23 +3,29 @@
 #include "device/device.h"
 
 struct Matrix {
-    int16_t v11;
-    int16_t v12;
-    int16_t v13;
+    int16_t v11 = 0;
+    int16_t v12 = 0;
+    int16_t v13 = 0;
 
-    int16_t v21;
-    int16_t v22;
-    int16_t v23;
+    int16_t v21 = 0;
+    int16_t v22 = 0;
+    int16_t v23 = 0;
 
-    int16_t v31;
-    int16_t v32;
-    int16_t v33;
+    int16_t v31 = 0;
+    int16_t v32 = 0;
+    int16_t v33 = 0;
 };
 
 struct Vector {
-    int16_t x;
-    int16_t y;
-    int16_t z;
+    int16_t x = 0;
+    int16_t y = 0;
+    int16_t z = 0;
+};
+
+struct Color {
+    int32_t r = 0;
+    int32_t g = 0;
+    int32_t b = 0;
 };
 
 namespace mips {
@@ -45,30 +51,30 @@ union Command {
 struct GTE {
     Vector v[3];
     device::Reg32 rgbc;
-    uint16_t otz;
-    int16_t ir[4];
-    Vector s[4];
+    uint16_t otz = 0;
+    int16_t ir[4] = {0};
+    Vector s[4] = {0};
     device::Reg32 rgb[3];
-    uint32_t res1;  // prohibited
-    int32_t mac[4];
-    uint16_t irgb;
-    uint16_t orgb;
-    int32_t lzcs;
-    int32_t lzcr;
+    uint32_t res1 = 0;  // prohibited
+    int32_t mac[4] = {0};
+    uint16_t irgb = 0;
+    uint16_t orgb = 0;
+    int32_t lzcs = 0;
+    int32_t lzcr = 0;
 
     Matrix rt;
     Vector tr;
     Matrix l;
-    uint32_t bk[3];
+    Color bk = {0};
     Matrix lr;
-    uint32_t fc[3];
-    uint32_t of[2];
-    uint16_t h;
-    int16_t dqa;
-    uint32_t dqb;
-    int16_t zsf3;
-    int16_t zsf4;
-    uint32_t flag;
+    Color fc = {0};
+    uint32_t of[2] = {0};
+    uint16_t h = 0;
+    int16_t dqa = 0;
+    uint32_t dqb = 0;
+    int16_t zsf3 = 0;
+    int16_t zsf4 = 0;
+    uint32_t flag = 0;
 
     uint32_t read(uint8_t n) {
         switch (n) {
@@ -149,13 +155,13 @@ struct GTE {
             case 35:
                 return (rt.v32 << 16) | rt.v31;
             case 36:
-                return rt.v33;
+                return (int32_t)rt.v33;
             case 37:
-                tr.x;
+                return tr.x;
             case 38:
-                tr.y;
+                return tr.y;
             case 39:
-                tr.z;
+                return tr.z;
 
             case 40:
                 return (l.v12 << 16) | l.v11;
@@ -166,13 +172,13 @@ struct GTE {
             case 43:
                 return (l.v32 << 16) | l.v31;
             case 44:
-                return l.v33;
+                return (int32_t)l.v33;
             case 45:
-                return bk[0];
+                return bk.r;
             case 46:
-                return bk[1];
+                return bk.g;
             case 47:
-                return bk[2];
+                return bk.b;
 
             case 48:
                 return (lr.v12 << 16) | lr.v11;
@@ -183,13 +189,13 @@ struct GTE {
             case 51:
                 return (lr.v32 << 16) | lr.v31;
             case 52:
-                return lr.v33;
+                return (int32_t)lr.v33;
             case 53:
-                return fc[0];
+                return fc.r;
             case 54:
-                return fc[1];
+                return fc.g;
             case 55:
-                return fc[2];
+                return fc.b;
 
             case 56:
                 return of[0];
@@ -200,7 +206,7 @@ struct GTE {
             case 59:
                 return dqa;
             case 60:
-                return dqa;
+                return dqb;
             case 61:
                 return zsf3;
             case 62:
@@ -370,13 +376,13 @@ struct GTE {
                 l.v33 = d;
                 break;
             case 45:
-                bk[0] = d;
+                bk.r = d;
                 break;
             case 46:
-                bk[1] = d;
+                bk.g = d;
                 break;
             case 47:
-                bk[2] = d;
+                bk.b = d;
                 break;
 
             case 48:
@@ -399,13 +405,13 @@ struct GTE {
                 lr.v33 = d;
                 break;
             case 53:
-                fc[0] = d;
+                fc.r = d;
                 break;
             case 54:
-                fc[1] = d;
+                fc.g = d;
                 break;
             case 55:
-                fc[2] = d;
+                fc.b = d;
                 break;
 
             case 56:
@@ -421,7 +427,7 @@ struct GTE {
                 dqa = d;
                 break;
             case 60:
-                dqa = d;
+                dqb = d;
                 break;
             case 61:
                 zsf3 = d;
@@ -437,33 +443,149 @@ struct GTE {
         }
     }
 
-    void nclip() { mac[0] = s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y; }
+#define A1(x) (x)
+#define A2(x) (x)
+#define A3(x) (x)
 
-    void ncds() {}
+#define Lm_B1(x) (x)
+#define Lm_B2(x) (x)
+#define Lm_B3(x) (x)
+
+#define Lm_C1(x) (x)
+#define Lm_C2(x) (x)
+#define Lm_C3(x) (x)
+
+#define Lm_D(x, sf) ((x) >> ((1 - sf) * 12))
+
+#define Lm_G1(x) (x)
+#define Lm_G2(x) (x)
+
+#define F(x) (x)
+
+#define Lm_H(x) ((x) / 0x1000)
+
+#define Lm_E(x) (x)
+
+#define TRX ((int32_t)tr.x)
+#define TRY ((int32_t)tr.y)
+#define TRZ ((int32_t)tr.z)
+
+#define R11 ((int32_t)rt.v11)
+#define R12 ((int32_t)rt.v12)
+#define R13 ((int32_t)rt.v13)
+
+#define R21 ((int32_t)rt.v21)
+#define R22 ((int32_t)rt.v22)
+#define R23 ((int32_t)rt.v23)
+
+#define R31 ((int32_t)rt.v31)
+#define R32 ((int32_t)rt.v32)
+#define R33 ((int32_t)rt.v33)
+
+    void nclip() {
+        mac[0] = F((int32_t)s[0].x * s[1].y + (int32_t)s[1].x * s[2].y + (int32_t)s[2].x * s[0].y - (int32_t)s[0].x * s[2].y
+                   - (int32_t)s[1].x * s[0].y - (int32_t)s[2].x * s[1].y);
+    }
+
+    void ncds(bool sf) {
+        // TODO
+        mac[1] = A1((uint32_t)l.v11 * v[0].x + (uint32_t)l.v12 * v[0].y + (uint32_t)l.v13 * v[0].z) >> (sf * 12);
+        mac[2] = A2((uint32_t)l.v21 * v[0].x + (uint32_t)l.v22 * v[0].y + (uint32_t)l.v23 * v[0].z) >> (sf * 12);
+        mac[3] = A3((uint32_t)l.v31 * v[0].x + (uint32_t)l.v32 * v[0].y + (uint32_t)l.v33 * v[0].z) >> (sf * 12);
+
+        ir[1] = Lm_B1(mac[1]);
+        ir[2] = Lm_B2(mac[2]);
+        ir[3] = Lm_B3(mac[3]);
+
+        mac[1] = A1((bk.r << 12) + (uint32_t)lr.v11 * ir[1] + (uint32_t)lr.v12 * ir[2] + (uint32_t)lr.v13 * ir[3]) >> (sf * 12);
+        mac[2] = A2((bk.g << 12) + (uint32_t)lr.v21 * ir[1] + (uint32_t)lr.v22 * ir[2] + (uint32_t)lr.v23 * ir[3]) >> (sf * 12);
+        mac[3] = A3((bk.b << 12) + (uint32_t)lr.v31 * ir[1] + (uint32_t)lr.v32 * ir[2] + (uint32_t)lr.v33 * ir[3]) >> (sf * 12);
+
+        ir[1] = Lm_B1(mac[1]);
+        ir[2] = Lm_B2(mac[2]);
+        ir[3] = Lm_B3(mac[3]);
+
+#define R ((uint32_t)(rgbc.read(0) << 4))
+#define G ((uint32_t)(rgbc.read(1) << 4))
+#define B ((uint32_t)(rgbc.read(2) << 4))
+#define CODE ((uint32_t)(rgbc.read(3) << 4))
+
+        mac[1] = A1(R * ir[1] + (uint32_t)ir[0] * Lm_B1((fc.r << 12) - R * ir[1])) >> (sf * 12);
+        mac[2] = A2(G * ir[2] + (uint32_t)ir[0] * Lm_B2((fc.g << 12) - G * ir[2])) >> (sf * 12);
+        mac[3] = A3(B * ir[3] + (uint32_t)ir[0] * Lm_B3((fc.b << 12) - B * ir[3])) >> (sf * 12);
+
+#undef R G B CODE
+
+        ir[1] = Lm_B1(mac[1]);
+        ir[2] = Lm_B2(mac[2]);
+        ir[3] = Lm_B3(mac[3]);
+
+        rgb[0] = rgb[1];
+        rgb[1] = rgb[2];
+
+        rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
+        rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
+        rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
+        rgb[2].write(3, CODE);                // CODE
+    }
+
+    int32_t divide(int32_t a, int32_t b) {
+        if (b == 0) {
+            // TODO Flag.Bit17 = 1
+            // TODO Flag.Bit31 = 1
+            return 0x1ffff;
+        }
+        int32_t r = Lm_E(((a * 0x20000 / b) + 1) / 2);
+        if (r > 0x1ffff) {
+            // TODO Flag.Bit17 = 1
+            // TODO Flag.Bit31 = 1
+            return 0x1ffff;
+        }
+        return r;
+    }
 
     void rtps(int n, bool sf) {
-        ir[1] = mac[1]
-            = ((int32_t)tr.x * 0x1000 + (int32_t)rt.v11 * v[n].x + (int32_t)rt.v12 * v[n].y + (int32_t)rt.v13 * v[n].z) >> (sf * 12);
-        ir[2] = mac[2]
-            = ((int32_t)tr.y * 0x1000 + (int32_t)rt.v21 * v[n].x + (int32_t)rt.v22 * v[n].y + (int32_t)rt.v23 * v[n].z) >> (sf * 12);
-        ir[3] = mac[3]
-            = ((int32_t)tr.z * 0x1000 + (int32_t)rt.v31 * v[n].x + (int32_t)rt.v32 * v[n].y + (int32_t)rt.v33 * v[n].z) >> (sf * 12);
-        s[3].z = mac[3] >> ((1 - sf) * 12);
-        // if (s[3].z == 0) s[3].z = 1;  // lol xd
+        mac[1] = A1((TRX << 12) + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z) >> (sf * 12);
+        mac[2] = A2((TRY << 12) + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z) >> (sf * 12);
+        mac[3] = A3((TRZ << 12) + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z) >> (sf * 12);
+        ir[1] = Lm_B1(mac[1]);
+        ir[2] = Lm_B2(mac[2]);
+        ir[3] = Lm_B3(mac[3]);
 
-        mac[0] = (((h * 0x20000 / s[3].z) + 1) / 2) * ir[1] + of[0];
-        s[2].x = mac[0] / 0x10000;
-        mac[0] = (((h * 0x20000 / s[3].z) + 1) / 2) * ir[2] + of[1];
-        s[2].y = mac[0] / 0x10000;
-        mac[0] = (((h * 0x20000 / s[3].z) + 1) / 2) * dqa + dqb;
-        ir[0] = mac[0] / 0x1000;
+        s[0].z = s[1].z;
+        s[1].z = s[2].z;
+        s[2].z = s[3].z;
+
+        s[3].z = Lm_D(mac[3], sf);
+
+        s[0].x = s[1].x;
+        s[0].y = s[1].y;
+        s[1].x = s[2].x;
+        s[1].y = s[2].y;
+
+        int32_t h_s3z = divide(h, s[3].z);
+
+        s[2].x = Lm_G1(F(of[0] + (int32_t)ir[1] * h_s3z) / 0x10000);
+        s[2].y = Lm_G2(F(of[1] + (int32_t)ir[2] * h_s3z) / 0x10000);
+
+        mac[0] = F(dqb + (int32_t)dqa * h_s3z);
+        ir[0] = Lm_H(mac[0]);
     }
 
     void rtpt(bool sf) {
         rtps(0, sf);
         rtps(1, sf);
         rtps(2, sf);
-        // mac 0
+    }
+
+    void avsz3() {
+        mac[0] = F((int32_t)zsf3 * ((int32_t)s[1].z + (int32_t)s[2].z + (int32_t)s[3].z));
+        otz = Lm_D(mac[0], 1);
+    }
+
+    void avsz4() {
+        mac[0] = F((int32_t)zsf4 * ((int32_t)s[0].z + (int32_t)s[1].z + (int32_t)s[2].z + (int32_t)s[3].z));
+        otz = Lm_D(mac[0], 1);
     }
 };
 };

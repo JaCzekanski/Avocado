@@ -187,8 +187,8 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 
         _t[0] = arguments[2];
         _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);
-        _t[2] = tex(texX, texY + h);
-        _t[3] = tex(texX + w, texY + h);
+        _t[2] = tex(texX, texY + h - 1);
+        _t[3] = tex(texX + w, texY + h - 1);
 #undef tex
     }
     drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, arg.semiTransparency ? 1 : arg.isTextureMapped);
