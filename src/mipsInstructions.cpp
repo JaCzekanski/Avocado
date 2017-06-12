@@ -794,13 +794,13 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
 
         switch (command.cmd) {
             case 0x01:
-                cpu->gte.rtps(0, command.sf);
+                cpu->gte.rtps(0, command.sf, command.lm);
                 return;
             case 0x06:
                 cpu->gte.nclip();
                 return;
             case 0x13:
-                cpu->gte.ncds(command.sf);
+                cpu->gte.ncds(command.sf, command.lm);
                 return;
             case 0x2d:
                 cpu->gte.avsz3();
@@ -809,7 +809,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
                 cpu->gte.avsz4();
                 return;
             case 0x30:
-                cpu->gte.rtpt(command.sf);
+                cpu->gte.rtpt(command.sf, command.lm);
                 return;
             default:
                 // printf("Unhandled gte command 0x%x\n", opcode);
