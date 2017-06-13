@@ -26,6 +26,19 @@ project "glad"
 		"externals/glad/src/*.c",
 	}
 
+project "imgui"
+	kind "StaticLib"
+	language "c++"
+	location "build/libs/imgui"
+	includedirs { 
+		"externals/imgui",
+		"externals/glad/include",
+	}
+	files { 
+		"externals/imgui/imgui.cpp",
+		"externals/imgui/imgui_draw.cpp",
+	}
+
 project "Avocado"
 	kind "ConsoleApp"
 	language "c++"
@@ -76,6 +89,7 @@ project "Avocado"
 		links { 
 			"SDL2",
 			"glad",
+			"imgui",
 			"OpenGL32"
 		}
 		defines {"_CRT_SECURE_NO_WARNINGS"}

@@ -5,6 +5,8 @@
 #include "renderer/opengl/opengl.h"
 #include "utils/string.h"
 #include "mips.h"
+#include <imgui.h>
+#include "imgui/imgui_impl_sdl_gl3.h"
 #undef main
 
 const int CPU_CLOCK = 33868500;
@@ -48,9 +50,61 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
     return buttons;
 }
 
+void renderImgui(mips::CPU *cpu) {
+    auto gte = cpu->gte;
+    ImGui::Begin("GTE");
+
+    ImGui::Columns(3, 0, false);
+    ImGui::Text("IR1:  %04hX", gte.ir[1]);
+    ImGui::NextColumn();
+    ImGui::Text("IR2:  %04hX", gte.ir[2]);
+    ImGui::NextColumn();
+    ImGui::Text("IR3:  %04hX", gte.ir[3]);
+    ImGui::NextColumn();
+
+    ImGui::Separator();
+    ImGui::Text("MAC0: %08X", gte.mac[0]);
+
+    ImGui::Separator();
+    ImGui::Text("MAC1: %08X", gte.mac[1]);
+    ImGui::NextColumn();
+    ImGui::Text("MAC2: %08X", gte.mac[2]);
+    ImGui::NextColumn();
+    ImGui::Text("MAC3: %08X", gte.mac[3]);
+    ImGui::NextColumn();
+
+    ImGui::Separator();
+    ImGui::Text("TRX:  %08X", gte.tr.x);
+    ImGui::NextColumn();
+    ImGui::Text("TRY:  %08X", gte.tr.y);
+    ImGui::NextColumn();
+    ImGui::Text("TRZ:  %08X", gte.tr.z);
+    ImGui::NextColumn();
+
+    for (int i = 0; i < 4; i++) {
+        ImGui::Separator();
+        ImGui::Text("S%dX:  %04hX", i, gte.s[i].x);
+        ImGui::NextColumn();
+        ImGui::Text("S%dY:  %04hX", i, gte.s[i].y);
+        ImGui::NextColumn();
+        ImGui::Text("S%dZ:  %04hX", i, gte.s[i].z);
+        ImGui::NextColumn();
+    }
+
+    ImGui::Separator();
+    ImGui::Text("DQA:  %04hX", gte.dqa);
+    ImGui::NextColumn();
+    ImGui::Text("DQB:  %08X", gte.dqb);
+    ImGui::NextColumn();
+
+    ImGui::End();
+
+    ImGui::Render();
+}
+
 int main(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
-    std::string iso = "data/iso/exe.bin";
+    std::string iso = "data/iso/sprite3d/spri3d.bin";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -81,6 +135,9 @@ int main(int argc, char **argv) {
         printf("Cannot setup graphics\n");
         return 1;
     }
+
+    ImGui_ImplSdlGL3_Init(window);
+
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
@@ -103,6 +160,7 @@ int main(int argc, char **argv) {
     SDL_Event event;
     for (bool running = true; running;) {
         while (SDL_PollEvent(&event)) {
+            ImGui_ImplSdlGL3_ProcessEvent(&event);
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
@@ -169,9 +227,11 @@ int main(int argc, char **argv) {
             cpu->controller->setState(getButtonState(event));
         }
 
+        ImGui_ImplSdlGL3_NewFrame(window);
         if (cpu->state == mips::CPU::State::run) {
             cpu->emulateFrame();
             opengl.render(cpu->getGPU());
+            renderImgui(cpu.get());
 
             deltaFrames++;
             float currentTime = SDL_GetTicks() / 1000.f;
@@ -189,6 +249,7 @@ int main(int argc, char **argv) {
             SDL_Delay(16);
         }
     }
+    ImGui_ImplSdlGL3_Shutdown();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();

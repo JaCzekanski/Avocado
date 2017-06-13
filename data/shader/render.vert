@@ -1,6 +1,6 @@
 #version 330 core
 
-in uvec2 position;
+in ivec2 position;
 in uvec3 color;
 in uvec2 texcoord;
 in uint bitcount;
@@ -19,7 +19,7 @@ uniform ivec2 drawingOffset;
 
 void main()
 {
-	vec2 pos = vec2((int(position.x) + drawingOffset.x) / 1024.f, (int(position.y) + drawingOffset.y) / 512.f);
+	vec2 pos = vec2((position.x + drawingOffset.x) / 1024.f, (position.y + drawingOffset.y) / 512.f);
 	fragColor = vec3(color.r / 255.f, color.g/255.f, color.b/255.f);
 	fragTexcoord = vec2(texcoord.x, texcoord.y);
 	fragBitcount = bitcount;

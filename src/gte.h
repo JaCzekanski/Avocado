@@ -83,7 +83,7 @@ struct GTE {
 
     void nclip();
     void ncds(bool sf, bool lm);
-    int32_t divide(int32_t a, int32_t b);
+    uint32_t divide(uint16_t h, uint16_t sz3);
     void rtps(int n, bool sf, bool lm);
     void rtpt(bool sf, bool lm);
     void avsz3();

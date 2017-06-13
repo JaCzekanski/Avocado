@@ -1,21 +1,23 @@
 #include "gte.h"
+#include <cmath>
+#include <cstdio>
 
 namespace mips {
 namespace gte {
 uint32_t GTE::read(uint8_t n) {
     switch (n) {
         case 0:
-            return (v[0].y << 16) | v[0].x;
+            return ((uint16_t)v[0].y << 16) | (uint16_t)v[0].x;
         case 1:
-            return v[0].z;
+            return (uint16_t)v[0].z;
         case 2:
-            return (v[1].y << 16) | v[1].x;
+            return ((uint16_t)v[1].y << 16) | (uint16_t)v[1].x;
         case 3:
-            return v[1].z;
+            return (uint16_t)v[1].z;
         case 4:
-            return (v[2].y << 16) | v[2].x;
+            return ((uint16_t)v[2].y << 16) | (uint16_t)v[2].x;
         case 5:
-            return v[2].z;
+            return (uint16_t)v[2].z;
         case 6:
             return rgbc._reg;
         case 7:
@@ -30,22 +32,22 @@ uint32_t GTE::read(uint8_t n) {
         case 11:
             return (int32_t)ir[3];
         case 12:
-            return (s[0].y << 16) | s[0].x;
+            return ((uint16_t)s[0].y << 16) | (uint16_t)s[0].x;
         case 13:
-            return (s[1].y << 16) | s[1].x;
+            return ((uint16_t)s[1].y << 16) | (uint16_t)s[1].x;
         case 14:
-            return (s[2].y << 16) | s[2].x;
+            return ((uint16_t)s[2].y << 16) | (uint16_t)s[2].x;
         case 15:
-            return (s[3].y << 16) | s[3].x;
+            return ((uint16_t)s[3].y << 16) | (uint16_t)s[3].x;
 
         case 16:
-            return s[0].z;
+            return (uint16_t)s[0].z;
         case 17:
-            return s[1].z;
+            return (uint16_t)s[1].z;
         case 18:
-            return s[2].z;
+            return (uint16_t)s[2].z;
         case 19:
-            return s[3].z;
+            return (uint16_t)s[3].z;
         case 20:
             return rgb[0]._reg;
         case 21:
@@ -73,13 +75,13 @@ uint32_t GTE::read(uint8_t n) {
             return lzcr;
 
         case 32:
-            return (rt.v12 << 16) | rt.v11;
+            return ((uint16_t)rt.v12 << 16) | (uint16_t)rt.v11;
         case 33:
-            return (rt.v21 << 16) | rt.v13;
+            return ((uint16_t)rt.v21 << 16) | (uint16_t)rt.v13;
         case 34:
-            return (rt.v23 << 16) | rt.v22;
+            return ((uint16_t)rt.v23 << 16) | (uint16_t)rt.v22;
         case 35:
-            return (rt.v32 << 16) | rt.v31;
+            return ((uint16_t)rt.v32 << 16) | (uint16_t)rt.v31;
         case 36:
             return (int32_t)rt.v33;
         case 37:
@@ -90,13 +92,13 @@ uint32_t GTE::read(uint8_t n) {
             return tr.z;
 
         case 40:
-            return (l.v12 << 16) | l.v11;
+            return ((uint16_t)l.v12 << 16) | (uint16_t)l.v11;
         case 41:
-            return (l.v21 << 16) | l.v13;
+            return ((uint16_t)l.v21 << 16) | (uint16_t)l.v13;
         case 42:
-            return (l.v23 << 16) | l.v22;
+            return ((uint16_t)l.v23 << 16) | (uint16_t)l.v22;
         case 43:
-            return (l.v32 << 16) | l.v31;
+            return ((uint16_t)l.v32 << 16) | (uint16_t)l.v31;
         case 44:
             return (int32_t)l.v33;
         case 45:
@@ -107,13 +109,13 @@ uint32_t GTE::read(uint8_t n) {
             return bk.b;
 
         case 48:
-            return (lr.v12 << 16) | lr.v11;
+            return ((uint16_t)lr.v12 << 16) | (uint16_t)lr.v11;
         case 49:
-            return (lr.v21 << 16) | lr.v13;
+            return ((uint16_t)lr.v21 << 16) | (uint16_t)lr.v13;
         case 50:
-            return (lr.v23 << 16) | lr.v22;
+            return ((uint16_t)lr.v23 << 16) | (uint16_t)lr.v22;
         case 51:
-            return (lr.v32 << 16) | lr.v31;
+            return ((uint16_t)lr.v32 << 16) | (uint16_t)lr.v31;
         case 52:
             return (int32_t)lr.v33;
         case 53:
@@ -130,13 +132,13 @@ uint32_t GTE::read(uint8_t n) {
         case 58:
             return h;
         case 59:
-            return dqa;
+            return (uint16_t)dqa;
         case 60:
             return dqb;
         case 61:
-            return zsf3;
+            return (uint16_t)zsf3;
         case 62:
-            return zsf4;
+            return (uint16_t)zsf4;
         case 63:
             return flag;
         default:
@@ -389,12 +391,12 @@ int32_t GTE::clip(int32_t value, int32_t max, int32_t min) {
 
 #define Lm_D(x, sf) ((x) >> ((1 - sf) * 12))
 
-#define Lm_G1(x) clip((x), 0x3ffffff, -0x4000000)
-#define Lm_G2(x) clip((x), 0x3ffffff, -0x4000000)
+#define Lm_G1(x) clip((x), 0x3fff, -0x400)
+#define Lm_G2(x) clip((x), 0x3fff, -0x400)
 
 #define F(x) (x)
 
-#define Lm_H(x) ((x) / 0x1000)
+#define Lm_H(x) ((x) / 0x1000)  // TODO: fix
 
 #define Lm_E(x) (x)
 
@@ -402,17 +404,17 @@ int32_t GTE::clip(int32_t value, int32_t max, int32_t min) {
 #define TRY ((int64_t)tr.y)
 #define TRZ ((int64_t)tr.z)
 
-#define R11 ((int32_t)rt.v11)
-#define R12 ((int32_t)rt.v12)
-#define R13 ((int32_t)rt.v13)
+#define R11 (rt.v11)
+#define R12 (rt.v12)
+#define R13 (rt.v13)
 
-#define R21 ((int32_t)rt.v21)
-#define R22 ((int32_t)rt.v22)
-#define R23 ((int32_t)rt.v23)
+#define R21 (rt.v21)
+#define R22 (rt.v22)
+#define R23 (rt.v23)
 
-#define R31 ((int32_t)rt.v31)
-#define R32 ((int32_t)rt.v32)
-#define R33 ((int32_t)rt.v33)
+#define R31 (rt.v31)
+#define R32 (rt.v32)
+#define R33 (rt.v33)
 
 void GTE::nclip() { mac[0] = F(s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
 
@@ -458,19 +460,55 @@ void GTE::ncds(bool sf, bool lm) {
     rgb[2].write(3, CODE);                // CODE
 }
 
-int32_t GTE::divide(int32_t a, int32_t b) {
-    if (b == 0) {
-        // TODO Flag.Bit17 = 1
-        // TODO Flag.Bit31 = 1
-        return 0x1ffff;
+int countLeadingZeroes(uint16_t n) {
+    int zeroes = 0;
+    if ((n & 0x8000) == 0) n = ~n;
+
+    while ((n & 0x8000) != 0) {
+        zeroes++;
+        n <<= 1;
     }
-    int32_t r = Lm_E(((a * 0x20000 / b) + 1) / 2);
-    if (r > 0x1ffff) {
-        // TODO Flag.Bit17 = 1
-        // TODO Flag.Bit31 = 1
-        return 0x1ffff;
-    }
-    return r;
+    return zeroes;
+}
+
+template <typename T>
+T min(T a, T b) {
+    return (a < b) ? a : b;
+}
+
+// uint8_t unr_table(int i)
+//{
+//	return min(0, (0x40000 / (i + 0x100) + 1) / 2 - 0x101);
+//}
+static uint8_t unr_table[]
+    = {0xFF, 0xFD, 0xFB, 0xF9, 0xF7, 0xF5, 0xF3, 0xF1, 0xEF, 0xEE, 0xEC, 0xEA, 0xE8, 0xE6, 0xE4, 0xE3, 0xE1, 0xDF, 0xDD, 0xDC, 0xDA, 0xD8,
+       0xD6, 0xD5, 0xD3, 0xD1, 0xD0, 0xCE, 0xCD, 0xCB, 0xC9, 0xC8, 0xC6, 0xC5, 0xC3, 0xC1, 0xC0, 0xBE, 0xBD, 0xBB, 0xBA, 0xB8, 0xB7, 0xB5,
+       0xB4, 0xB2, 0xB1, 0xB0, 0xAE, 0xAD, 0xAB, 0xAA, 0xA9, 0xA7, 0xA6, 0xA4, 0xA3, 0xA2, 0xA0, 0x9F, 0x9E, 0x9C, 0x9B, 0x9A, 0x99, 0x97,
+       0x96, 0x95, 0x94, 0x92, 0x91, 0x90, 0x8F, 0x8D, 0x8C, 0x8B, 0x8A, 0x89, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0x81, 0x7F, 0x7E, 0x7D,
+       0x7C, 0x7B, 0x7A, 0x79, 0x78, 0x77, 0x75, 0x74, 0x73, 0x72, 0x71, 0x70, 0x6F, 0x6E, 0x6D, 0x6C, 0x6B, 0x6A, 0x69, 0x68, 0x67, 0x66,
+       0x65, 0x64, 0x63, 0x62, 0x61, 0x60, 0x5F, 0x5E, 0x5D, 0x5D, 0x5C, 0x5B, 0x5A, 0x59, 0x58, 0x57, 0x56, 0x55, 0x54, 0x53, 0x53, 0x52,
+       0x51, 0x50, 0x4F, 0x4E, 0x4D, 0x4D, 0x4C, 0x4B, 0x4A, 0x49, 0x48, 0x48, 0x47, 0x46, 0x45, 0x44, 0x43, 0x43, 0x42, 0x41, 0x40, 0x3F,
+       0x3F, 0x3E, 0x3D, 0x3C, 0x3C, 0x3B, 0x3A, 0x39, 0x39, 0x38, 0x37, 0x36, 0x36, 0x35, 0x34, 0x33, 0x33, 0x32, 0x31, 0x31, 0x30, 0x2F,
+       0x2E, 0x2E, 0x2D, 0x2C, 0x2C, 0x2B, 0x2A, 0x2A, 0x29, 0x28, 0x28, 0x27, 0x26, 0x26, 0x25, 0x24, 0x24, 0x23, 0x22, 0x22, 0x21, 0x20,
+       0x20, 0x1F, 0x1E, 0x1E, 0x1D, 0x1D, 0x1C, 0x1B, 0x1B, 0x1A, 0x19, 0x19, 0x18, 0x18, 0x17, 0x16, 0x16, 0x15, 0x15, 0x14, 0x14, 0x13,
+       0x12, 0x12, 0x11, 0x11, 0x10, 0x0F, 0x0F, 0x0E, 0x0E, 0x0D, 0x0D, 0x0C, 0x0C, 0x0B, 0x0A, 0x0A, 0x09, 0x09, 0x08, 0x08, 0x07, 0x07,
+       0x06, 0x06, 0x05, 0x05, 0x04, 0x04, 0x03, 0x03, 0x02, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00};
+
+uint32_t GTE::divide(uint16_t h, uint16_t sz3) {
+    //    if (h < sz3*2)
+    //    {
+    //		uint32_t z = countLeadingZeroes(sz3);
+    //		uint32_t n = (h << z) & 0x7fff8000;
+    //		uint32_t d = (sz3 << z) & 0xffff;
+    //		uint32_t u = unr_table[(d + 0x40) >> 7] + 0x101;
+    //		d = (0x2000080 - (d * u)) >> 8;
+    //		d = (0x0000080 + (d * u)) >> 8;
+    //		return min(0x1ffffu, ((n*d) + 0x8000) >> 16);
+    //    }
+    if (sz3 == 0) return 0x1ffff;
+    int32_t n = (((int32_t)h * 0x10000 + (int32_t)sz3 / 2) / (int32_t)sz3);
+    if (n > 0x1ffff) return 0x1ffff;
+    return n;
 }
 
 void GTE::rtps(int n, bool sf, bool lm) {
@@ -494,8 +532,10 @@ void GTE::rtps(int n, bool sf, bool lm) {
 
     int32_t h_s3z = divide(h, s[3].z);
 
-    s[2].x = Lm_G1(F(of[0] + (int32_t)ir[1] * h_s3z) >> 16);
-    s[2].y = Lm_G2(F(of[1] + (int32_t)ir[2] * h_s3z) >> 16);
+    s[2].x = Lm_G1(F((int64_t)of[0] + ir[1] * h_s3z) >> 16);
+    s[2].y = Lm_G2(F((int64_t)of[1] + ir[2] * h_s3z) >> 16);
+
+    s[3] = s[2];
 
     mac[0] = F((int64_t)dqb + (int64_t)dqa * h_s3z);
     ir[0] = Lm_H(mac[0]);

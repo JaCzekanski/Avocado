@@ -45,7 +45,7 @@ void OpenGL::createRenderBuffer() {
     glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-    renderShader->getAttrib("position").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 0);
+    renderShader->getAttrib("position").pointer(2, GL_INT, sizeof(Vertex), 0);
     renderShader->getAttrib("color").pointer(3, GL_UNSIGNED_INT, sizeof(Vertex), 2 * sizeof(int));
     renderShader->getAttrib("texcoord").pointer(2, GL_UNSIGNED_INT, sizeof(Vertex), 5 * sizeof(int));
     renderShader->getAttrib("bitcount").pointer(1, GL_UNSIGNED_INT, sizeof(Vertex), 7 * sizeof(int));
