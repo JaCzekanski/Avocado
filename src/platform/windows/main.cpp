@@ -50,54 +50,139 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
     return buttons;
 }
 
-void renderImgui(mips::CPU *cpu) {
-    auto gte = cpu->gte;
-    ImGui::Begin("GTE");
+const char *mapIo(uint32_t address) {
+    address -= 0x1f801000;
 
-    ImGui::Columns(3, 0, false);
-    ImGui::Text("IR1:  %04hX", gte.ir[1]);
-    ImGui::NextColumn();
-    ImGui::Text("IR2:  %04hX", gte.ir[2]);
-    ImGui::NextColumn();
-    ImGui::Text("IR3:  %04hX", gte.ir[3]);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-    ImGui::Text("MAC0: %08X", gte.mac[0]);
-
-    ImGui::Separator();
-    ImGui::Text("MAC1: %08X", gte.mac[1]);
-    ImGui::NextColumn();
-    ImGui::Text("MAC2: %08X", gte.mac[2]);
-    ImGui::NextColumn();
-    ImGui::Text("MAC3: %08X", gte.mac[3]);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-    ImGui::Text("TRX:  %08X", gte.tr.x);
-    ImGui::NextColumn();
-    ImGui::Text("TRY:  %08X", gte.tr.y);
-    ImGui::NextColumn();
-    ImGui::Text("TRZ:  %08X", gte.tr.z);
-    ImGui::NextColumn();
-
-    for (int i = 0; i < 4; i++) {
-        ImGui::Separator();
-        ImGui::Text("S%dX:  %04hX", i, gte.s[i].x);
-        ImGui::NextColumn();
-        ImGui::Text("S%dY:  %04hX", i, gte.s[i].y);
-        ImGui::NextColumn();
-        ImGui::Text("S%dZ:  %04hX", i, gte.s[i].z);
-        ImGui::NextColumn();
+#define IO(begin, end, periph)                   \
+    if (address >= (begin) && address < (end)) { \
+        return periph;                           \
     }
 
-    ImGui::Separator();
-    ImGui::Text("DQA:  %04hX", gte.dqa);
-    ImGui::NextColumn();
-    ImGui::Text("DQB:  %08X", gte.dqb);
-    ImGui::NextColumn();
+    IO(0x00, 0x24, "memoryControl");
+    IO(0x40, 0x50, "controller");
+    IO(0x50, 0x60, "serial");
+    IO(0x60, 0x64, "memoryControl");
+    IO(0x70, 0x78, "interrupt");
+    IO(0x80, 0x100, "dma");
+    IO(0x100, 0x110, "timer0");
+    IO(0x110, 0x120, "timer1");
+    IO(0x120, 0x130, "timer2");
+    IO(0x800, 0x804, "cdrom");
+    IO(0x810, 0x818, "gpu");
+    IO(0x820, 0x828, "mdec");
+    IO(0xC00, 0x1000, "spu");
+    IO(0x1000, 0x1043, "exp2");
+    return "";
+}
 
-    ImGui::End();
+bool gteRegistersEnabled = false;
+bool ioLogEnabled = false;
+
+void renderImgui(mips::CPU *cpu) {
+    auto gte = cpu->gte;
+
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Exit")) {
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Emulation")) {
+            if (ImGui::MenuItem("Soft reset", "F2")) {
+                cpu->softReset();
+            }
+
+            const char *shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
+            if (ImGui::MenuItem(shellStatus, "F3")) {
+                cpu->cdrom->toggleShell();
+            }
+
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Debug")) {
+            ImGui::MenuItem("GTE registers", NULL, &gteRegistersEnabled);
+            ImGui::MenuItem("BIOS log", "F5", &cpu->biosLog);
+            ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
+#ifdef ENABLE_IO_LOG
+            ImGui::MenuItem("IO log", NULL, &ioLogEnabled);
+#endif
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+
+    if (gteRegistersEnabled) {
+        ImGui::Begin("GTE registers", &gteRegistersEnabled);
+
+        ImGui::Columns(3, 0, false);
+        ImGui::Text("IR1:  %04hX", gte.ir[1]);
+        ImGui::NextColumn();
+        ImGui::Text("IR2:  %04hX", gte.ir[2]);
+        ImGui::NextColumn();
+        ImGui::Text("IR3:  %04hX", gte.ir[3]);
+        ImGui::NextColumn();
+
+        ImGui::Separator();
+        ImGui::Text("MAC0: %08X", gte.mac[0]);
+
+        ImGui::Separator();
+        ImGui::Text("MAC1: %08X", gte.mac[1]);
+        ImGui::NextColumn();
+        ImGui::Text("MAC2: %08X", gte.mac[2]);
+        ImGui::NextColumn();
+        ImGui::Text("MAC3: %08X", gte.mac[3]);
+        ImGui::NextColumn();
+
+        ImGui::Separator();
+        ImGui::Text("TRX:  %08X", gte.tr.x);
+        ImGui::NextColumn();
+        ImGui::Text("TRY:  %08X", gte.tr.y);
+        ImGui::NextColumn();
+        ImGui::Text("TRZ:  %08X", gte.tr.z);
+        ImGui::NextColumn();
+
+        for (int i = 0; i < 4; i++) {
+            ImGui::Separator();
+            ImGui::Text("S%dX:  %04hX", i, gte.s[i].x);
+            ImGui::NextColumn();
+            ImGui::Text("S%dY:  %04hX", i, gte.s[i].y);
+            ImGui::NextColumn();
+            ImGui::Text("S%dZ:  %04hX", i, gte.s[i].z);
+            ImGui::NextColumn();
+        }
+
+        ImGui::Separator();
+        ImGui::Text("DQA:  %04hX", gte.dqa);
+        ImGui::NextColumn();
+        ImGui::Text("DQB:  %08X", gte.dqb);
+        ImGui::NextColumn();
+
+        ImGui::End();
+    }
+
+#ifdef ENABLE_IO_LOG
+    if (ioLogEnabled) {
+        ImGui::Begin("IO Log", &ioLogEnabled);
+
+        ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+        ImGuiListClipper clipper(cpu->ioLogList.size());
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                auto ioEntry = cpu->ioLogList[i];
+                ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s", ioEntry.mode == mips::CPU::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W', ioEntry.size,
+                            ioEntry.addr, ioEntry.size / 4, ioEntry.data,
+                            // padding
+                            8 - ioEntry.size / 4, "", mapIo(ioEntry.addr));
+            }
+        }
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
+
+        ImGui::End();
+    }
+#endif
 
     ImGui::Render();
 }
@@ -171,10 +256,7 @@ int main(int argc, char **argv) {
                     cpu->spu->dumpRam();
                 }
                 if (event.key.keysym.sym == SDLK_F2) {
-                    printf("Soft reset\n");
-                    cpu->PC = 0xBFC00000;
-                    cpu->shouldJump = false;
-                    cpu->state = mips::CPU::State::run;
+                    cpu->softReset();
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
                     printf("Shell toggle\n");
@@ -246,6 +328,8 @@ int main(int argc, char **argv) {
             SDL_SetWindowTitle(window, title.c_str());
             SDL_GL_SwapWindow(window);
         } else {
+            renderImgui(cpu.get());
+            SDL_GL_SwapWindow(window);
             SDL_Delay(16);
         }
     }

@@ -44,10 +44,18 @@ uint8_t Controller::read(uint32_t address) {
         return value;
     }
     if (address == 4) {
-        // ((!fifo.empty()) << 1) |
-        return (1 << 0) | ((rand() & 1) << 1) | (0 << 2) | (ack << 7);
+        uint8_t data = (ack << 7) |         // /ACK Input Level 0 - High, 1 - Low
+                                            // 6, 5, 4 - 0
+                       (0 << 3) |           // Parity error
+                       (0 << 2) |           // TX Ready Flag 2
+                       (rand() & 1 << 1) |  // RX FIFO Not Empty
+                       (1 << 0);            // TX Ready Flag 1
+        // ack = 0;
+        return data;
     }
-    if (address == 5) return 0;
+    if (address == 5) {
+        return (irq << 1);
+    }
     if (address >= 8 && address < 10) return mode._byte[address - 8];
     if (address >= 10 && address < 12) return control._byte[address - 10];
     if (address >= 14 && address < 16) return baud._byte[address - 14];

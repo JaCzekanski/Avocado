@@ -13,6 +13,7 @@
 #include "device/spu.h"
 
 #include <memory>
+#include <vector>
 
 /**
  * NOTE:
@@ -35,6 +36,14 @@
  *
  * Enables logic that is responsible for checking code breakpoints.
  * Used in auto test build
+ */
+
+/**
+ * #define ENABLE_IO_LOG
+ * Switch --enable-io-log
+ * Default: false
+ *
+ * Enables IO access buffer log
  */
 
 namespace bios {
@@ -148,6 +157,7 @@ struct CPU {
     bool executeInstructions(int count);
     void emulateFrame();
     gpu::GPU *getGPU() const { return gpu.get(); }
+    void softReset();
 
     // Helpers
     bool biosLog = true;
@@ -159,5 +169,14 @@ struct CPU {
     bool loadExpansion(std::string name);
     bool loadExeFile(std::string exePath);
     void dumpRam();
+#ifdef ENABLE_IO_LOG
+    struct IO_LOG_ENTRY {
+        enum class MODE { READ, WRITE } mode;
+        uint32_t size;
+        uint32_t addr;
+        uint32_t data;
+    };
+    std::vector<IO_LOG_ENTRY> ioLogList;
+#endif
 };
 };

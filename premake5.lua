@@ -15,6 +15,13 @@ newoption {
 filter "options:enable-breakpoints"
 	defines "ENABLE_BREAKPOINTS"
 
+newoption {
+	trigger = "enable-io-log",
+	description = "Enable IO access log",
+}
+filter "options:enable-io-log"
+	defines "ENABLE_IO_LOG"
+
 project "glad"
 	kind "StaticLib"
 	language "c"

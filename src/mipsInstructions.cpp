@@ -812,7 +812,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
                 cpu->gte.rtpt(command.sf, command.lm);
                 return;
             default:
-                // printf("Unhandled gte command 0x%x\n", opcode);
+                printf("Unhandled gte command 0x%x\n", command.cmd);
                 // cpu->state = CPU::State::halted;
                 return;
         }

@@ -177,7 +177,24 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     // printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
 }
 
-uint8_t CPU::readMemory8(uint32_t address) { return readMemory(address); }
+#ifdef ENABLE_IO_LOG
+#define LOG_IO(mode, size, addr, data)                             \
+    do {                                                           \
+        if ((addr) >= 0x1f801000 && (addr) <= 0x1f803000) {        \
+            ioLogList.push_back({(mode), (size), (addr), (data)}); \
+        }                                                          \
+    } while (0)
+#else
+#define LOG_IO(mode, size, addr, data) \
+    do {                               \
+    } while (0)
+#endif
+
+uint8_t CPU::readMemory8(uint32_t address) {
+    uint8_t data = readMemory(address);
+    LOG_IO(IO_LOG_ENTRY::MODE::READ, 8, address, data);
+    return data;
+}
 
 #define READ16(x, addr) (x[addr] | (x[addr + 1] << 8))
 
@@ -193,6 +210,7 @@ uint16_t CPU::readMemory16(uint32_t address) {
         uint16_t data = 0;
         data |= readMemory(address + 0);
         data |= readMemory(address + 1) << 8;
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, 16, address, data);
         return data;
     }
 }
@@ -215,20 +233,26 @@ uint32_t CPU::readMemory32(uint32_t address) {
         data |= readMemory(address + 1) << 8;
         data |= readMemory(address + 2) << 16;
         data |= readMemory(address + 3) << 24;
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, 32, address, data);
         return data;
     }
 }
 
 #undef READ32
 
-void CPU::writeMemory8(uint32_t address, uint8_t data) { writeMemory(address, data); }
+void CPU::writeMemory8(uint32_t address, uint8_t data) {
+    LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 8, address, data);
+    writeMemory(address, data);
+}
 
 void CPU::writeMemory16(uint32_t address, uint16_t data) {
+    LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 16, address, data);
     writeMemory(address + 0, data & 0xff);
     writeMemory(address + 1, data >> 8);
 }
 
 void CPU::writeMemory32(uint32_t address, uint32_t data) {
+    LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 32, address, data);
     writeMemory(address + 0, data);
     writeMemory(address + 1, data >> 8);
     writeMemory(address + 2, data >> 16);
@@ -350,6 +374,9 @@ void CPU::checkForInterrupts() {
 }
 
 void CPU::emulateFrame() {
+#ifdef ENABLE_IO_LOG
+    ioLogList.clear();
+#endif
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {
@@ -369,6 +396,13 @@ void CPU::emulateFrame() {
             return;  // frame emulated
         }
     }
+}
+
+void CPU::softReset() {
+    printf("Soft reset\n");
+    PC = 0xBFC00000;
+    shouldJump = false;
+    state = mips::CPU::State::run;
 }
 
 bool CPU::loadExeFile(std::string exePath) {

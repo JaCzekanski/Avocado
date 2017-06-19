@@ -40,6 +40,8 @@ class CDROM : public Device {
             }
         }
 
+        bool getShell() const { return shellOpen; }
+
         void toggleShell() {
             if (!shellOpen) {
                 shellOpen = true;
@@ -133,6 +135,7 @@ class CDROM : public Device {
     void setCPU(void *cpu) { this->_cpu = cpu; }
 
     void setShell(bool opened) { stat.setShell(opened); }
+    bool getShell() const { return stat.getShell(); }
     void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
         status.dataFifoEmpty = 1;
