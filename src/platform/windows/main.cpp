@@ -136,9 +136,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    ImGui_ImplSdlGL3_Init(window);
-
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+
+    ImGui_ImplSdlGL3_Init(window);
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
@@ -160,7 +160,6 @@ int main(int argc, char **argv) {
     SDL_Event event;
     for (bool running = true; running;) {
         while (SDL_PollEvent(&event)) {
-            ImGui_ImplSdlGL3_ProcessEvent(&event);
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
@@ -225,6 +224,7 @@ int main(int argc, char **argv) {
                 }
             }
             cpu->controller->setState(getButtonState(event));
+            ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
         ImGui_ImplSdlGL3_NewFrame(window);
