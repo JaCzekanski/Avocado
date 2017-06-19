@@ -362,6 +362,7 @@ void CPU::emulateFrame() {
         timer0->step(systemCycles);
         timer1->step(systemCycles);
         timer2->step(systemCycles);
+        controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {
             interrupt->trigger(interrupt::VBLANK);

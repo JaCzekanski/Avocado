@@ -39,6 +39,9 @@ class Controller : public Device {
     Reg16 mode;
     Reg16 control;
     Reg16 baud;
+    bool selected = false;
+    bool ack = false;
+    bool irq = false;
 
     void handleByte(uint8_t byte);
     std::deque<uint8_t> fifo;
