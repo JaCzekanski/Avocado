@@ -65,10 +65,10 @@ CPU::CPU() {
 }
 
 uint8_t CPU::readMemory(uint32_t address) {
-    // if (address >= 0xfffe0130 && address < 0xfffe0134) {
-    //    printf("R Unhandled memory control\n");
-    //    return 0;
-    //}
+    if (address >= 0xfffe0130 && address < 0xfffe0134) {
+        printf("R Unhandled memory control\n");
+        return 0;
+    }
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) return ram[address & 0x1FFFFF];
@@ -123,10 +123,10 @@ uint8_t CPU::readMemory(uint32_t address) {
 
 void CPU::writeMemory(uint32_t address, uint8_t data) {
     // Cache control
-    // if (address >= 0xfffe0130 && address < 0xfffe0134) {
-    //    printf("W Unhandled memory control\n");
-    //    return;
-    //}
+    if (address >= 0xfffe0130 && address < 0xfffe0134) {
+        printf("W Unhandled memory control\n");
+        return;
+    }
     address &= 0x1FFFFFFF;
 
     if (address < 0x200000 * 4) {
