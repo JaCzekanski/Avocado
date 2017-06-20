@@ -799,8 +799,18 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
             case 0x06:
                 cpu->gte.nclip();
                 return;
+            case 0x0c:
+                cpu->gte.op(command.sf, command.lm);
+                return;
+            case 0x12:
+                cpu->gte.mvmva(command.sf, command.lm, command.mvmvaMultiplyMatrix, command.mvmvaMultiplyVector,
+                               command.mvmvaTranslationVector);
+                return;
             case 0x13:
                 cpu->gte.ncds(command.sf, command.lm);
+                return;
+            case 0x28:
+                cpu->gte.sqr(command.sf, command.lm);
                 return;
             case 0x2d:
                 cpu->gte.avsz3();
@@ -810,6 +820,9 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
                 return;
             case 0x30:
                 cpu->gte.rtpt(command.sf, command.lm);
+                return;
+            case 0x3d:
+                cpu->gte.gpf(command.sf, command.lm);
                 return;
             default:
                 printf("Unhandled gte command 0x%x\n", command.cmd);

@@ -1,6 +1,7 @@
 #include "gte.h"
 #include <cmath>
 #include <cstdio>
+#include <cassert>
 
 namespace mips {
 namespace gte {
@@ -555,6 +556,100 @@ void GTE::avsz3() {
 void GTE::avsz4() {
     mac[0] = F((int32_t)zsf4 * ((int32_t)s[0].z + (int32_t)s[1].z + (int32_t)s[2].z + (int32_t)s[3].z));
     otz = Lm_D(mac[0], 1);
+}
+
+void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
+    Matrix Mx;
+    if (mx == 0)
+        Mx = rt;
+    else if (mx == 1)
+        Mx = l;
+    else if (mx == 2)
+        Mx = lr;
+    else
+        printf("Invalid mvmva parameter: mx\n");
+
+    Vector<int16_t> V;
+    if (vx == 0)
+        V = v[0];
+    else if (vx == 1)
+        V = v[1];
+    else if (vx == 2)
+        V = v[2];
+    else {
+        V.x = ir[1];
+        V.y = ir[2];
+        V.z = ir[3];
+    }
+
+    Vector<int32_t> Tx;
+    if (tx == 0)
+        Tx = tr;
+    else if (tx == 1)
+        Tx = bk;
+    else if (tx == 2)
+        Tx = fc;
+    else
+        Tx.x = Tx.y = Tx.z = 0;
+
+    if (tx == 2) {
+        mac[1] = A1(Mx.v12 * V.y + Mx.v13 * V.z, sf);
+        mac[2] = A2(Mx.v22 * V.y + Mx.v23 * V.z, sf);
+        mac[3] = A3(Mx.v32 * V.y + Mx.v33 * V.z, sf);
+        //		Lm_B1(A1((Tx.x << 12) + Mx.v11 * V.x), 0);
+        //		Lm_B2(A1((Tx.y << 12) + Mx.v21 * V.x), 0);
+        //		Lm_B3(A1((Tx.z << 12) + Mx.v31 * V.x), 0);
+    } else {
+        mac[1] = A1((Tx.x << 12) + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, sf);
+        mac[2] = A2((Tx.y << 12) + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, sf);
+        mac[3] = A3((Tx.z << 12) + Mx.v31 * V.x + Mx.v32 * V.y + Mx.v33 * V.z, sf);
+    }
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+}
+
+void GTE::gpf(bool sf, bool lm) {
+    mac[1] = A1(ir[0] * ir[1], sf);
+    mac[2] = A2(ir[0] * ir[2], sf);
+    mac[3] = A3(ir[0] * ir[3], sf);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    rgb[0] = rgb[1];
+    rgb[1] = rgb[2];
+
+    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
+    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
+    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
+    rgb[2].write(3, CODE);                // CODE
+}
+
+void GTE::sqr(bool sf, bool lm) {
+    mac[1] = A1(ir[1] * ir[1], sf);
+    mac[2] = A2(ir[2] * ir[2], sf);
+    mac[3] = A3(ir[3] * ir[3], sf);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+}
+
+void GTE::op(bool sf, bool lm) {
+    int32_t d1 = R11 * R12;
+    int32_t d2 = R22 * R23;
+    int32_t d3 = R33;
+
+    mac[1] = A1(d2 * ir[3] - d3 * ir[2], sf);
+    mac[2] = A2(d3 * ir[1] - d1 * ir[3], sf);
+    mac[3] = A3(d1 * ir[2] - d2 * ir[1], sf);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
 }
 }
 }

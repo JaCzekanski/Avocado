@@ -18,9 +18,15 @@ struct Matrix {
 
 template <typename T>
 struct Vector {
-    T x = 0;
-    T y = 0;
-    T z = 0;
+    union {
+        T x, r;
+    };
+    union {
+        T y, g;
+    };
+    union {
+        T z, b;
+    };
 };
 
 struct Color {
@@ -54,7 +60,7 @@ struct GTE {
     device::Reg32 rgbc;
     uint16_t otz = 0;
     int16_t ir[4] = {0};
-    Vector<int16_t> s[4] = {0};
+    Vector<int16_t> s[4];
     device::Reg32 rgb[3];
     uint32_t res1 = 0;  // prohibited
     int32_t mac[4] = {0};
@@ -66,9 +72,9 @@ struct GTE {
     Matrix rt;
     Vector<int32_t> tr;
     Matrix l;
-    Color bk = {0};
+    Vector<int32_t> bk;
     Matrix lr;
-    Color fc = {0};
+    Vector<int32_t> fc;
     int32_t of[2] = {0};
     uint16_t h = 0;
     int16_t dqa = 0;
@@ -88,6 +94,10 @@ struct GTE {
     void rtpt(bool sf, bool lm);
     void avsz3();
     void avsz4();
+    void mvmva(bool sf, bool lm, int mx, int vx, int tx);
+    void gpf(bool sf, bool lm);
+    void sqr(bool sf, bool lm);
+    void op(bool sf, bool lm);
 };
 };
 };
