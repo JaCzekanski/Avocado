@@ -377,6 +377,7 @@ void CPU::emulateFrame() {
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();
 #endif
+    gte.log.clear();
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {

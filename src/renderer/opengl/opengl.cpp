@@ -206,6 +206,9 @@ void OpenGL::render(device::gpu::GPU *gpu) {
     glViewport(0, 0, 1024, 512);
     renderFirstStage(renderList, gpu);
 
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     glViewport(0, 0, screenWidth, screenHeight);
     renderSecondStage();
 

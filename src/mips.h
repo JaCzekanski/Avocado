@@ -117,7 +117,7 @@ struct CPU {
     uint8_t scratchpad[SCRATCHPAD_SIZE];
     uint8_t expansion[EXPANSION_SIZE];
 
-    bool debugOutput = false;  // Print BIOS logs
+    bool debugOutput = true;  // Print BIOS logs
    public:
     // Devices
     std::unique_ptr<interrupt::Interrupt> interrupt;
@@ -160,7 +160,7 @@ struct CPU {
     void softReset();
 
     // Helpers
-    bool biosLog = true;
+    bool biosLog = false;
     bool printStackTrace = false;
     bool disassemblyEnabled = false;
     char *_mnemonic = (char *)"";

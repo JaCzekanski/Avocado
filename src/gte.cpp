@@ -370,6 +370,7 @@ void GTE::write(uint8_t n, uint32_t d) {
         default:
             return;
     }
+    log.push_back({GTE_ENTRY::MODE::write, n, d});
 }
 
 int32_t GTE::clip(int32_t value, int32_t max, int32_t min) {
@@ -495,7 +496,7 @@ static uint8_t unr_table[]
        0x12, 0x12, 0x11, 0x11, 0x10, 0x0F, 0x0F, 0x0E, 0x0E, 0x0D, 0x0D, 0x0C, 0x0C, 0x0B, 0x0A, 0x0A, 0x09, 0x09, 0x08, 0x08, 0x07, 0x07,
        0x06, 0x06, 0x05, 0x05, 0x04, 0x04, 0x03, 0x03, 0x02, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00};
 
-uint32_t GTE::divide(uint16_t h, uint16_t sz3) {
+int32_t GTE::divide(uint16_t h, uint16_t sz3) {
     //    if (h < sz3*2)
     //    {
     //		uint32_t z = countLeadingZeroes(sz3);
@@ -535,8 +536,6 @@ void GTE::rtps(int n, bool sf, bool lm) {
 
     s[2].x = Lm_G1(F((int64_t)of[0] + ir[1] * h_s3z) >> 16);
     s[2].y = Lm_G2(F((int64_t)of[1] + ir[2] * h_s3z) >> 16);
-
-    s[3] = s[2];
 
     mac[0] = F((int64_t)dqb + (int64_t)dqa * h_s3z);
     ir[0] = Lm_H(mac[0]);

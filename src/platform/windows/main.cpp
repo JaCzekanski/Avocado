@@ -77,6 +77,7 @@ const char *mapIo(uint32_t address) {
 
 bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
+bool gteLogEnabled = false;
 
 void renderImgui(mips::CPU *cpu) {
     auto gte = cpu->gte;
@@ -106,6 +107,7 @@ void renderImgui(mips::CPU *cpu) {
 #ifdef ENABLE_IO_LOG
             ImGui::MenuItem("IO log", NULL, &ioLogEnabled);
 #endif
+            ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -184,12 +186,36 @@ void renderImgui(mips::CPU *cpu) {
     }
 #endif
 
+    if (gteLogEnabled) {
+        ImGui::Begin("GTE Log", &gteLogEnabled);
+
+        ImGui::BeginChild("GTE Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+        ImGuiListClipper clipper(cpu->gte.log.size());
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                auto ioEntry = cpu->gte.log[i];
+                if (ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::func) {
+                    ImGui::Text("%c 0x%02x", 'F', ioEntry.n);
+                } else {
+                    ImGui::Text("%c 0x%02x: 0x%08x", ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n,
+                                ioEntry.data);
+                }
+            }
+        }
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
+
+        ImGui::End();
+    }
+
     ImGui::Render();
 }
 
 int main(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
-    std::string iso = "data/iso/sprite3d/spri3d.bin";
+    std::string iso = "data/iso/exe.bin";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -229,7 +255,7 @@ int main(int argc, char **argv) {
 
     printf("Using bios %s\n", bios.c_str());
     cpu->loadBios(bios);
-    // cpu->loadExpansion("data/bios/expansion.rom");
+    cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
@@ -244,7 +270,14 @@ int main(int argc, char **argv) {
 
     SDL_Event event;
     for (bool running = true; running;) {
-        while (SDL_PollEvent(&event)) {
+        bool newEvent = false;
+        if (cpu->state != mips::CPU::State::run) {
+            SDL_WaitEvent(&event);
+            newEvent = true;
+        }
+
+        while (newEvent || SDL_PollEvent(&event)) {
+            newEvent = false;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
@@ -309,29 +342,25 @@ int main(int argc, char **argv) {
             ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
-        ImGui_ImplSdlGL3_NewFrame(window);
         if (cpu->state == mips::CPU::State::run) {
             cpu->emulateFrame();
-            opengl.render(cpu->getGPU());
-            renderImgui(cpu.get());
-
-            deltaFrames++;
-            float currentTime = SDL_GetTicks() / 1000.f;
-            if (currentTime - startTime > 0.25f) {
-                fps = (float)deltaFrames / (currentTime - startTime);
-                startTime = currentTime;
-                deltaFrames = 0;
-            }
-
-            std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f", cpu->interrupt->getMask().c_str(),
-                                              cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames, fps);
-            SDL_SetWindowTitle(window, title.c_str());
-            SDL_GL_SwapWindow(window);
-        } else {
-            renderImgui(cpu.get());
-            SDL_GL_SwapWindow(window);
-            SDL_Delay(16);
         }
+        ImGui_ImplSdlGL3_NewFrame(window);
+        opengl.render(cpu->getGPU());
+        renderImgui(cpu.get());
+
+        deltaFrames++;
+        float currentTime = SDL_GetTicks() / 1000.f;
+        if (currentTime - startTime > 0.25f) {
+            fps = (float)deltaFrames / (currentTime - startTime);
+            startTime = currentTime;
+            deltaFrames = 0;
+        }
+
+        std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f", cpu->interrupt->getMask().c_str(),
+                                          cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames, fps);
+        SDL_SetWindowTitle(window, title.c_str());
+        SDL_GL_SwapWindow(window);
     }
     ImGui_ImplSdlGL3_Shutdown();
     SDL_GL_DeleteContext(glContext);

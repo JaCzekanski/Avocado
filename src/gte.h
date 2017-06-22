@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "device/device.h"
+#include <vector>
 
 struct Matrix {
     int16_t v11 = 0;
@@ -89,7 +90,7 @@ struct GTE {
 
     void nclip();
     void ncds(bool sf, bool lm);
-    uint32_t divide(uint16_t h, uint16_t sz3);
+    int32_t divide(uint16_t h, uint16_t sz3);
     void rtps(int n, bool sf, bool lm);
     void rtpt(bool sf, bool lm);
     void avsz3();
@@ -98,6 +99,14 @@ struct GTE {
     void gpf(bool sf, bool lm);
     void sqr(bool sf, bool lm);
     void op(bool sf, bool lm);
+
+    struct GTE_ENTRY {
+        enum class MODE { read, write, func } mode;
+        uint32_t n;
+        uint32_t data;
+    };
+
+    std::vector<GTE_ENTRY> log;
 };
 };
 };
