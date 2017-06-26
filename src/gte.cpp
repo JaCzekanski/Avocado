@@ -69,7 +69,10 @@ uint32_t GTE::read(uint8_t n) {
         case 28:
             return irgb;
         case 29:
-            return orgb;
+            irgb = ((ir[1]) / 0x80) & 0x1f;
+            irgb |= (((ir[2]) / 0x80) & 0x1f) << 5;
+            irgb |= (((ir[3]) / 0x80) & 0x1f) << 10;
+            return irgb;
         case 30:
             return lzcs;
         case 31:
@@ -174,7 +177,6 @@ void GTE::write(uint8_t n, uint32_t d) {
             rgbc._reg = d;
             break;
         case 7:
-            otz = d;
             break;
 
         case 8:
@@ -245,15 +247,17 @@ void GTE::write(uint8_t n, uint32_t d) {
             break;
         case 28:
             irgb = d;
+            ir[1] = (d & 0x1f) * 0x80;
+            ir[2] = ((d >> 5) & 0x1f) * 0x80;
+            ir[3] = ((d >> 10) & 0x1f) * 0x80;
             break;
         case 29:
-            orgb = d;
             break;
         case 30:
             lzcs = d;
+            lzcr = countLeadingZeroes(lzcs);
             break;
         case 31:
-            lzcr = d;
             break;
 
         case 32:
@@ -373,32 +377,58 @@ void GTE::write(uint8_t n, uint32_t d) {
     log.push_back({GTE_ENTRY::MODE::write, n, d});
 }
 
-int32_t GTE::clip(int32_t value, int32_t max, int32_t min) {
-    if (value > max) return max;
-    if (value < min) return min;
+int32_t GTE::clip(int32_t value, int32_t max, int32_t min, uint32_t flags) {
+    if (value > max) {
+        flag |= flags;
+        return max;
+    }
+    if (value < min) {
+        flag |= flags;
+        return min;
+    }
     return value;
 }
 
-#define A1(x, sf) ((x) >> (sf * 12))
-#define A2(x, sf) ((x) >> (sf * 12))
-#define A3(x, sf) ((x) >> (sf * 12))
+void GTE::check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags) {
+    if (value > 0x7FFFFFFFFFF) flag |= overflowBits;
+    if (value < -0x80000000000) flag |= underflowFlags;
+}
 
-#define Lm_B1(x, lm) clip((x), 0x7fff, !(lm) ? -0x8000 : 0)
-#define Lm_B2(x, lm) clip((x), 0x7fff, !(lm) ? -0x8000 : 0)
-#define Lm_B3(x, lm) clip((x), 0x7fff, !(lm) ? -0x8000 : 0)
+int32_t GTE::A1(int64_t value, bool sf) {
+    check43bitsOverflow(value, 1 << 31 | 1 << 30, 1 << 31 | 1 << 27);
+    return value >> (sf * 12);
+}
+
+int32_t GTE::A2(int64_t value, bool sf) {
+    check43bitsOverflow(value, 1 << 31 | 1 << 29, 1 << 31 | 1 << 26);
+    return value >> (sf * 12);
+}
+
+int32_t GTE::A3(int64_t value, bool sf) {
+    check43bitsOverflow(value, 1 << 31 | 1 << 28, 1 << 31 | 1 << 25);
+    return value >> (sf * 12);
+}
+
+#define Lm_B1(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 31 | 1 << 24)
+#define Lm_B2(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 31 | 1 << 23)
+#define Lm_B3(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 22)
 
 #define Lm_C1(x) (x)
 #define Lm_C2(x) (x)
 #define Lm_C3(x) (x)
 
-#define Lm_D(x, sf) ((x) >> ((1 - sf) * 12))
+#define Lm_D(x, sf) clip((x) >> ((1 - sf) * 12), 0xffff, 0x0000, 1 << 31 | 1 << 18)
 
-#define Lm_G1(x) clip((x), 0x3fff, -0x400)
-#define Lm_G2(x) clip((x), 0x3fff, -0x400)
+#define Lm_G1(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 14)
+#define Lm_G2(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 13)
 
-#define F(x) (x)
+int64_t GTE::F(int64_t value) {
+    if (value > 0x7fffffff) flag |= 1 << 31 | 1 << 16;
+    if (value < -0x80000000) flag |= 1 << 31 | 1 << 15;
+    return value;
+}
 
-#define Lm_H(x) ((x) / 0x1000)  // TODO: fix
+#define Lm_H(x) clip((x) / 0x1000, 0x1000, 0x0000, 1 << 12)  // todo: fix?
 
 #define Lm_E(x) (x)
 
@@ -418,7 +448,10 @@ int32_t GTE::clip(int32_t value, int32_t max, int32_t min) {
 #define R32 (rt.v32)
 #define R33 (rt.v33)
 
-void GTE::nclip() { mac[0] = F(s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
+void GTE::nclip() {
+    mac[0] = F((int64_t)s[0].x * s[1].y + (int64_t)s[1].x * s[2].y + (int64_t)s[2].x * s[0].y - (int64_t)s[0].x * s[2].y
+               - (int64_t)s[1].x * s[0].y - (int64_t)s[2].x * s[1].y);
+}
 
 void GTE::ncds(bool sf, bool lm) {
     // TODO
@@ -462,11 +495,11 @@ void GTE::ncds(bool sf, bool lm) {
     rgb[2].write(3, CODE);                // CODE
 }
 
-int countLeadingZeroes(uint16_t n) {
+int GTE::countLeadingZeroes(uint16_t n) {
     int zeroes = 0;
-    if ((n & 0x8000) == 0) n = ~n;
+    if ((n & 0x80000000) == 0) n = ~n;
 
-    while ((n & 0x8000) != 0) {
+    while ((n & 0x80000000) != 0) {
         zeroes++;
         n <<= 1;
     }
@@ -507,16 +540,22 @@ int32_t GTE::divide(uint16_t h, uint16_t sz3) {
     //		d = (0x0000080 + (d * u)) >> 8;
     //		return min(0x1ffffu, ((n*d) + 0x8000) >> 16);
     //    }
-    if (sz3 == 0) return 0x1ffff;
-    int32_t n = (((int32_t)h * 0x10000 + (int32_t)sz3 / 2) / (int32_t)sz3);
-    if (n > 0x1ffff) return 0x1ffff;
+    if (sz3 == 0) {
+        flag |= (1 << 31) | (1 << 17);
+        return 0x1ffff;
+    }
+    int32_t n = (((int64_t)h * 0x10000 + (int64_t)sz3 / 2) / (int64_t)sz3);
+    if (n > 0x1ffff) {
+        flag |= (1 << 31) | (1 << 17);
+        return 0x1ffff;
+    }
     return n;
 }
 
 void GTE::rtps(int n, bool sf, bool lm) {
-    mac[1] = A1((TRX << 12) + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z, sf);
-    mac[2] = A2((TRY << 12) + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z, sf);
-    mac[3] = A3((TRZ << 12) + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z, sf);
+    mac[1] = A1((int64_t)((TRX << 12) + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z), sf);
+    mac[2] = A2((int64_t)((TRY << 12) + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z), sf);
+    mac[3] = A3((int64_t)((TRZ << 12) + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z), sf);
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
@@ -534,8 +573,8 @@ void GTE::rtps(int n, bool sf, bool lm) {
 
     int32_t h_s3z = divide(h, s[3].z);
 
-    s[2].x = Lm_G1(F((int64_t)of[0] + ir[1] * h_s3z) >> 16);
-    s[2].y = Lm_G2(F((int64_t)of[1] + ir[2] * h_s3z) >> 16);
+    s[2].x = Lm_G1(F((int64_t)of[0] + (int64_t)ir[1] * h_s3z) >> 16);
+    s[2].y = Lm_G2(F((int64_t)of[1] + (int64_t)ir[2] * h_s3z) >> 16);
 
     mac[0] = F((int64_t)dqb + (int64_t)dqa * h_s3z);
     ir[0] = Lm_H(mac[0]);

@@ -78,6 +78,7 @@ const char *mapIo(uint32_t address) {
 bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
 bool gteLogEnabled = false;
+bool singleFrame = false;
 
 void renderImgui(mips::CPU *cpu) {
     auto gte = cpu->gte;
@@ -96,6 +97,11 @@ void renderImgui(mips::CPU *cpu) {
             const char *shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
             if (ImGui::MenuItem(shellStatus, "F3")) {
                 cpu->cdrom->toggleShell();
+            }
+
+            if (ImGui::MenuItem("Single frame", "F7")) {
+                singleFrame = true;
+                cpu->state = mips::CPU::State::run;
             }
 
             ImGui::EndMenu();
@@ -199,7 +205,7 @@ void renderImgui(mips::CPU *cpu) {
                 if (ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::func) {
                     ImGui::Text("%c 0x%02x", 'F', ioEntry.n);
                 } else {
-                    ImGui::Text("%c 0x%02x: 0x%08x", ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n,
+                    ImGui::Text("%c %2d: 0x%08x", ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n,
                                 ioEntry.data);
                 }
             }
@@ -301,6 +307,10 @@ int main(int argc, char **argv) {
                 if (event.key.keysym.sym == SDLK_F6) {
                     cpu->disassemblyEnabled = !cpu->disassemblyEnabled;
                 }
+                if (event.key.keysym.sym == SDLK_F7) {
+                    singleFrame = true;
+                    cpu->state = mips::CPU::State::run;
+                }
                 if (event.key.keysym.sym == SDLK_SPACE) {
                     if (cpu->state == mips::CPU::State::pause)
                         cpu->state = mips::CPU::State::run;
@@ -344,6 +354,10 @@ int main(int argc, char **argv) {
 
         if (cpu->state == mips::CPU::State::run) {
             cpu->emulateFrame();
+            if (singleFrame) {
+                singleFrame = false;
+                cpu->state = mips::CPU::State::pause;
+            }
         }
         ImGui_ImplSdlGL3_NewFrame(window);
         opengl.render(cpu->getGPU());

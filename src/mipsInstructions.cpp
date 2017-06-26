@@ -795,6 +795,7 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
         disasm("0x%x  #opcode = 0x%x", command._reg, command.cmd);
         cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::func, command.cmd});
 
+        cpu->gte.flag = 0;
         switch (command.cmd) {
             case 0x01:
                 cpu->gte.rtps(0, command.sf, command.lm);

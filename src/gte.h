@@ -66,7 +66,6 @@ struct GTE {
     uint32_t res1 = 0;  // prohibited
     int32_t mac[4] = {0};
     uint16_t irgb = 0;
-    uint16_t orgb = 0;
     int32_t lzcs = 0;
     int32_t lzcr = 0;
 
@@ -86,7 +85,6 @@ struct GTE {
 
     uint32_t read(uint8_t n);
     void write(uint8_t n, uint32_t d);
-    int32_t clip(int32_t value, int32_t min, int32_t max);
 
     void nclip();
     void ncds(bool sf, bool lm);
@@ -107,6 +105,15 @@ struct GTE {
     };
 
     std::vector<GTE_ENTRY> log;
+
+   private:
+    int countLeadingZeroes(uint16_t n);
+    int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
+    void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
+    int32_t A1(int64_t value, bool sf);
+    int32_t A2(int64_t value, bool sf);
+    int32_t A3(int64_t value, bool sf);
+    int64_t F(int64_t value);
 };
 };
 };
