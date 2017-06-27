@@ -7,18 +7,19 @@ namespace mips {
 namespace gte {
 uint32_t GTE::read(uint8_t n) {
     switch (n) {
+        // Data
         case 0:
-            return ((uint16_t)v[0].y << 16) | (uint16_t)v[0].x;
+            return (v[0].y << 16) | v[0].x;
         case 1:
-            return (uint16_t)v[0].z;
+            return (int32_t)v[0].z;
         case 2:
-            return ((uint16_t)v[1].y << 16) | (uint16_t)v[1].x;
+            return (v[1].y << 16) | v[1].x;
         case 3:
-            return (uint16_t)v[1].z;
+            return (int32_t)v[1].z;
         case 4:
-            return ((uint16_t)v[2].y << 16) | (uint16_t)v[2].x;
+            return (v[2].y << 16) | v[2].x;
         case 5:
-            return (uint16_t)v[2].z;
+            return (int32_t)v[2].z;
         case 6:
             return rgbc._reg;
         case 7:
@@ -67,17 +68,17 @@ uint32_t GTE::read(uint8_t n) {
         case 27:
             return mac[3];
         case 28:
-            return irgb;
         case 29:
-            irgb = ((ir[1]) / 0x80) & 0x1f;
-            irgb |= (((ir[2]) / 0x80) & 0x1f) << 5;
-            irgb |= (((ir[3]) / 0x80) & 0x1f) << 10;
+            irgb = clip(ir[1] / 0x80, 0x1f, 0x00);
+            irgb |= clip(ir[2] / 0x80, 0x1f, 0x00) << 5;
+            irgb |= clip(ir[3] / 0x80, 0x1f, 0x00) << 10;
             return irgb;
         case 30:
             return lzcs;
         case 31:
             return lzcr;
 
+        // Control
         case 32:
             return ((uint16_t)rt.v12 << 16) | (uint16_t)rt.v11;
         case 33:
@@ -136,7 +137,7 @@ uint32_t GTE::read(uint8_t n) {
         case 58:
             return h;
         case 59:
-            return (uint16_t)dqa;
+            return (int32_t)dqa;
         case 60:
             return dqb;
         case 61:
@@ -390,8 +391,8 @@ int32_t GTE::clip(int32_t value, int32_t max, int32_t min, uint32_t flags) {
 }
 
 void GTE::check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags) {
-    if (value > 0x7FFFFFFFFFF) flag |= overflowBits;
-    if (value < -0x80000000000) flag |= underflowFlags;
+    if (value > 0x7FFFFFFFFFFLL) flag |= overflowBits;
+    if (value < -0x80000000000LL) flag |= underflowFlags;
 }
 
 int32_t GTE::A1(int64_t value, bool sf) {
@@ -423,12 +424,12 @@ int32_t GTE::A3(int64_t value, bool sf) {
 #define Lm_G2(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 13)
 
 int32_t GTE::F(int64_t value) {
-    if (value > 0x7fffffff) flag |= 1 << 31 | 1 << 16;
-    if (value < -0x80000000) flag |= 1 << 31 | 1 << 15;
+    if (value > 0x7fffffffLL) flag |= 1 << 31 | 1 << 16;
+    if (value < -0x80000000LL) flag |= 1 << 31 | 1 << 15;
     return value;
 }
 
-#define Lm_H(x) clip((x) / 0x1000, 0x1000, 0x0000, 1 << 12)  // todo: fix?
+#define Lm_H(x) clip((x), 0x1000, 0x0000, 1 << 12)  // todo: fix?
 
 #define Lm_E(x) (x)
 
@@ -495,7 +496,7 @@ void GTE::ncds(bool sf, bool lm) {
     rgb[2].write(3, CODE);                // CODE
 }
 
-int GTE::countLeadingZeroes(uint16_t n) {
+int GTE::countLeadingZeroes(uint32_t n) {
     int zeroes = 0;
     if ((n & 0x80000000) == 0) n = ~n;
 
@@ -566,15 +567,17 @@ void GTE::rtps(int n, bool sf, bool lm) {
 
     s[3].z = Lm_D(mac[3], sf);
 
+    int32_t h_s3z = divide(h, s[3].z);
+
+    s[3].x = Lm_G1(F((int64_t)of[0] + (int64_t)ir[1] * h_s3z) >> 16);
+    s[3].y = Lm_G2(F((int64_t)of[1] + (int64_t)ir[2] * h_s3z) >> 16);
+
     s[0].x = s[1].x;
     s[0].y = s[1].y;
     s[1].x = s[2].x;
     s[1].y = s[2].y;
-
-    int32_t h_s3z = divide(h, s[3].z);
-
-    s[2].x = Lm_G1(F((int64_t)of[0] + (int64_t)ir[1] * h_s3z) >> 16);
-    s[2].y = Lm_G2(F((int64_t)of[1] + (int64_t)ir[2] * h_s3z) >> 16);
+    s[2].x = s[3].x;
+    s[2].y = s[3].y;
 
     mac[0] = F((int64_t)dqb + (int64_t)dqa * h_s3z);
     ir[0] = Lm_H(mac[0]);

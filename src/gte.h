@@ -107,7 +107,7 @@ struct GTE {
     std::vector<GTE_ENTRY> log;
 
    private:
-    int countLeadingZeroes(uint16_t n);
+    int countLeadingZeroes(uint32_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
     void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
     int32_t A1(int64_t value, bool sf);

@@ -223,12 +223,12 @@ void CDROM::cmdGetTD() {
         x /= 2352;
         int minute = x / 60 / 75;
         int second = ((x % (60 * 75)) / 75) + 2;
-        printf("GetTD: minute: %d, second: %d\n", minute, second);
+        printf("GetTD(0): minute: %d, second: %d\n", minute, second);
 
         writeResponse(((minute / 10) << 4) | (minute % 10));
         writeResponse(((second / 10) << 4) | (second % 10));
-    }
-    if (index == 1) {
+    } else {
+        printf("GetTD(%d) request unimplemented\n", index);
         writeResponse(0x00);
         writeResponse(0x02);
     }
