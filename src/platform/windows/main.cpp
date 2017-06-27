@@ -149,8 +149,9 @@ void renderImgui(mips::CPU *cpu) {
         ImGui::Text("TRZ:  %08X", gte.tr.z);
         ImGui::NextColumn();
 
+        ImGui::Separator();
+
         for (int i = 0; i < 4; i++) {
-            ImGui::Separator();
             ImGui::Text("S%dX:  %04hX", i, gte.s[i].x);
             ImGui::NextColumn();
             ImGui::Text("S%dY:  %04hX", i, gte.s[i].y);
@@ -158,6 +159,46 @@ void renderImgui(mips::CPU *cpu) {
             ImGui::Text("S%dZ:  %04hX", i, gte.s[i].z);
             ImGui::NextColumn();
         }
+
+        ImGui::Columns(3, 0, false);
+        ImGui::Separator();
+
+        ImGui::Text("RT11:  %04hX", gte.rt.v11);
+        ImGui::NextColumn();
+        ImGui::Text("RT12:  %04hX", gte.rt.v12);
+        ImGui::NextColumn();
+        ImGui::Text("RT13:  %04hX", gte.rt.v13);
+        ImGui::NextColumn();
+
+        ImGui::Text("RT21:  %04hX", gte.rt.v21);
+        ImGui::NextColumn();
+        ImGui::Text("RT22:  %04hX", gte.rt.v22);
+        ImGui::NextColumn();
+        ImGui::Text("RT23:  %04hX", gte.rt.v23);
+        ImGui::NextColumn();
+
+        ImGui::Text("RT31:  %04hX", gte.rt.v31);
+        ImGui::NextColumn();
+        ImGui::Text("RT32:  %04hX", gte.rt.v32);
+        ImGui::NextColumn();
+        ImGui::Text("RT33:  %04hX", gte.rt.v33);
+        ImGui::NextColumn();
+
+        ImGui::Separator();
+        ImGui::Text("VX0:  %04hX", gte.v[0].x);
+        ImGui::NextColumn();
+        ImGui::Text("VY0:  %04hX", gte.v[0].y);
+        ImGui::NextColumn();
+        ImGui::Text("VZ0:  %04hX", gte.v[0].z);
+        ImGui::NextColumn();
+
+        ImGui::Separator();
+        ImGui::Text("OFX:  %08X", gte.of[0]);
+        ImGui::NextColumn();
+        ImGui::Text("OFY:  %08X", gte.of[1]);
+        ImGui::NextColumn();
+        ImGui::Text("H:   %04hX", gte.h);
+        ImGui::NextColumn();
 
         ImGui::Separator();
         ImGui::Text("DQA:  %04hX", gte.dqa);
@@ -261,7 +302,7 @@ int main(int argc, char **argv) {
 
     printf("Using bios %s\n", bios.c_str());
     cpu->loadBios(bios);
-    cpu->loadExpansion("data/bios/expansion.rom");
+    // cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
