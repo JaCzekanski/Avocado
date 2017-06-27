@@ -113,7 +113,7 @@ struct GTE {
     int32_t A1(int64_t value, bool sf);
     int32_t A2(int64_t value, bool sf);
     int32_t A3(int64_t value, bool sf);
-    int64_t F(int64_t value);
+    int32_t F(int64_t value);
 };
 };
 };

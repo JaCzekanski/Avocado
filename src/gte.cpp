@@ -422,7 +422,7 @@ int32_t GTE::A3(int64_t value, bool sf) {
 #define Lm_G1(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 14)
 #define Lm_G2(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 13)
 
-int64_t GTE::F(int64_t value) {
+int32_t GTE::F(int64_t value) {
     if (value > 0x7fffffff) flag |= 1 << 31 | 1 << 16;
     if (value < -0x80000000) flag |= 1 << 31 | 1 << 15;
     return value;
@@ -587,12 +587,12 @@ void GTE::rtpt(bool sf, bool lm) {
 }
 
 void GTE::avsz3() {
-    mac[0] = F((int32_t)zsf3 * ((int32_t)s[1].z + (int32_t)s[2].z + (int32_t)s[3].z));
+    mac[0] = F((int64_t)zsf3 * ((int64_t)s[1].z + (int64_t)s[2].z + (int64_t)s[3].z));
     otz = Lm_D(mac[0], 1);
 }
 
 void GTE::avsz4() {
-    mac[0] = F((int32_t)zsf4 * ((int32_t)s[0].z + (int32_t)s[1].z + (int32_t)s[2].z + (int32_t)s[3].z));
+    mac[0] = F((int64_t)zsf4 * ((int64_t)s[0].z + (int64_t)s[1].z + (int64_t)s[2].z + (int64_t)s[3].z));
     otz = Lm_D(mac[0], 1);
 }
 
