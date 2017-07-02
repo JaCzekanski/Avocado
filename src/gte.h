@@ -110,9 +110,9 @@ struct GTE {
     int countLeadingZeroes(uint32_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
     void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
-    int32_t A1(int64_t value, bool sf);
-    int32_t A2(int64_t value, bool sf);
-    int32_t A3(int64_t value, bool sf);
+    int32_t A1(int64_t value, bool sf = 0);
+    int32_t A2(int64_t value, bool sf = 0);
+    int32_t A3(int64_t value, bool sf = 0);
     int32_t F(int64_t value);
 };
 };
