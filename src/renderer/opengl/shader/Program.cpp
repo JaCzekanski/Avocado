@@ -12,8 +12,10 @@ void Program::destroy() {
 }
 
 bool Program::load() {
-    if (!fileExists(name + ".frag")) return false;
-    if (!fileExists(name + ".vert")) return false;
+    if (!fileExists(name + ".frag") || !fileExists(name + ".vert")) {
+        error = std::string("File doesn't exists.");
+        return false;
+    }
 
     std::vector<Shader> newShaders;
 

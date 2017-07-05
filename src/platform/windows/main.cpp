@@ -78,7 +78,9 @@ const char *mapIo(uint32_t address) {
 bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
 bool gteLogEnabled = false;
+bool showVRAM = false;
 bool singleFrame = false;
+bool running = true;
 
 void renderImgui(mips::CPU *cpu) {
     auto gte = cpu->gte;
@@ -86,6 +88,7 @@ void renderImgui(mips::CPU *cpu) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit")) {
+                running = false;
             }
             ImGui::EndMenu();
         }
@@ -114,6 +117,8 @@ void renderImgui(mips::CPU *cpu) {
             ImGui::MenuItem("IO log", NULL, &ioLogEnabled);
 #endif
             ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
+            if (ImGui::MenuItem("Show VRAM", NULL, &showVRAM)) {
+            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -260,9 +265,9 @@ void renderImgui(mips::CPU *cpu) {
     ImGui::Render();
 }
 
-int main(int argc, char **argv) {
+int start(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
-    std::string iso = "data/iso/exe.bin";
+    std::string iso = "data/iso/marilyn.bin";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -300,8 +305,9 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
-    printf("Using bios %s\n", bios.c_str());
-    cpu->loadBios(bios);
+    if (cpu->loadBios(bios)) {
+        printf("Using bios %s\n", bios.c_str());
+    }
     // cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
@@ -316,7 +322,7 @@ int main(int argc, char **argv) {
     int deltaFrames = 0;
 
     SDL_Event event;
-    for (bool running = true; running;) {
+    while (running) {
         bool newEvent = false;
         if (cpu->state != mips::CPU::State::run) {
             SDL_WaitEvent(&event);
@@ -359,12 +365,7 @@ int main(int argc, char **argv) {
                         cpu->state = mips::CPU::State::pause;
                 }
                 if (event.key.keysym.sym == SDLK_q) {
-                    bool viewFullVram = !opengl.getViewFullVram();
-                    opengl.setViewFullVram(viewFullVram);
-                    if (viewFullVram)
-                        SDL_SetWindowSize(window, 1024, 512);
-                    else
-                        SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
+                    showVRAM = !showVRAM;
                 }
             }
             if (event.type == SDL_DROPFILE) {
@@ -391,6 +392,14 @@ int main(int argc, char **argv) {
             }
             cpu->controller->setState(getButtonState(event));
             ImGui_ImplSdlGL3_ProcessEvent(&event);
+        }
+
+        if (showVRAM != opengl.getViewFullVram()) {
+            if (showVRAM)
+                SDL_SetWindowSize(window, 1024, 512);
+            else
+                SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
+            opengl.setViewFullVram(showVRAM);
         }
 
         if (cpu->state == mips::CPU::State::run) {
@@ -422,4 +431,13 @@ int main(int argc, char **argv) {
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
+}
+
+int main(int argc, char **argv) {
+    int retval = start(argc, argv);
+    if (retval != 0) {
+        printf("\nPress enter to close");
+        getchar();
+    }
+    return retval;
 }

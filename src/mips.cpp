@@ -124,7 +124,7 @@ uint8_t CPU::readMemory(uint32_t address) {
 void CPU::writeMemory(uint32_t address, uint8_t data) {
     // Cache control
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        printf("W Unhandled memory control\n");
+        //        printf("W Unhandled memory control\n");
         return;
     }
     address &= 0x1FFFFFFF;
@@ -439,7 +439,7 @@ bool CPU::loadBios(std::string name) {
     std::string path = "data/bios/";
     auto _bios = getFileContents(path + name);
     if (_bios.empty()) {
-        printf("Cannot open BIOS");
+        printf("Cannot open BIOS %s", name.c_str());
         return false;
     }
     assert(_bios.size() == 512 * 1024);
