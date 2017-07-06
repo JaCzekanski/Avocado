@@ -767,14 +767,14 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
             mnemonic("MFC2");
             disasm("r%d, $%d", i.rt, i.rd);
             cpu->reg[i.rt] = cpu->gte.read(i.rd);
-            cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, i.rd, cpu->reg[i.rt]});
+            cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rd, cpu->reg[i.rt]});
         } else if (i.rs == 0x02) {
             // Move control from co-processor two
             // CFC2 rt, <nn>
             mnemonic("CFC2");
             disasm("r%d, $%d", i.rt, i.rd);
             cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
-            cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, i.rd + 32, cpu->reg[i.rt]});
+            cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)(i.rd + 32), cpu->reg[i.rt]});
         } else if (i.rs == 0x04) {
             // Move data to co-processor two
             // MTC2 rt, <nn>
@@ -1052,7 +1052,9 @@ void op_lwc2(CPU *cpu, Opcode i) {
     disasm("%d, %hx(r%d)  #addr = 0x%08x", i.rt, i.offset, i.rs, addr);
 
     assert(i.rt < 64);
-    cpu->gte.write(i.rt, cpu->readMemory32(addr));
+    auto data = cpu->readMemory32(addr);
+    cpu->gte.write(i.rt, data);
+    cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::write, (uint32_t)i.rt, data});
 }
 
 // Store from coprocessor 2
@@ -1064,7 +1066,7 @@ void op_swc2(CPU *cpu, Opcode i) {
     assert(i.rt < 64);
     auto gteRead = cpu->gte.read(i.rt);
     cpu->writeMemory32(addr, gteRead);
-    cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, i.rt, gteRead});
+    cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rt, gteRead});
 }
 
 // BREAKPOINT

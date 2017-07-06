@@ -597,7 +597,7 @@ void GTE::avsz4() {
 }
 
 void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
-    Matrix Mx = {0};
+    Matrix Mx;
     if (mx == 0)
         Mx = rt;
     else if (mx == 1)
