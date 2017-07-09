@@ -106,6 +106,7 @@ class CDROM : public Device {
     void cmdReadTOC();
     void cmdUnlock();
     void cmdSetSession();
+    void cmdSeekP();
     void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {

@@ -185,6 +185,19 @@ void CDROM::cmdSetSession() {
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 }
+
+void CDROM::cmdSeekP() {
+    CDROM_interrupt.push_back(3);
+    writeResponse(stat._reg);
+
+    stat.setMode(StatusCode::Mode::Seeking);
+
+    CDROM_interrupt.push_back(2);
+    writeResponse(stat._reg);
+
+    stat.setMode(StatusCode::Mode::None);
+}
+
 void CDROM::cmdGetlocP() {
     uint32_t tmp = readSector + 2 * 75;
     uint32_t minute = tmp / 75 / 60;
@@ -355,6 +368,8 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdGetTD();
     else if (cmd == 0x15)
         cmdSeekL();
+    else if (cmd == 0x16)
+        cmdSeekP();
     else if (cmd == 0x0a)
         cmdInit();
     else if (cmd == 0x19)
