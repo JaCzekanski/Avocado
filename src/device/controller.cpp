@@ -4,53 +4,88 @@
 
 namespace device {
 namespace controller {
+uint8_t DigitalController::handle(uint8_t byte) {
+    switch (state) {
+        case 0:
+            if (byte == 0x01) {
+                state++;
+                return 0xff;
+            }
+            return 0xff;
+
+        case 1:
+            if (byte == 0x42) {
+                state++;
+                return 0x41;
+            }
+            state = 0;
+            return 0xff;
+
+        case 2:
+            state++;
+            return 0x5a;
+
+        case 3:
+            state++;
+            return ~_byte[0];
+
+        case 4:
+            state = 0;
+            return ~_byte[1];
+
+        default:
+            state = 0;
+            return 0xff;
+    }
+}
+
+bool DigitalController::getAck() { return state != 0; }
+
 void Controller::handleByte(uint8_t byte) {
-    // Handle only controller 1
-    if (control._reg & (1 << 13)) return;
+    rxPending = true;
 
-    if (byte == 0x01 && !selected) {
-        fifo.push_back(0xff);
-        selected = true;
-        ack = true;
-        irq = true;
-    } else if (byte == 0x42 && selected) {
-        fifo.push_back(0x41);
-        fifo.push_back(0x5a);
-        fifo.push_back(~state._byte[0]);
-        fifo.push_back(~state._byte[1]);
-
-        // printf("JOYPAD --> 0x%04x\n", state._reg);
-        selected = false;
-        ack = true;
-        irq = true;
+    if ((control._reg & (1 << 13)) == 0) {
+        // Port 1
+        rxData = state.handle(byte);
+        ack = state.getAck();
+        if (state.getAck()) {
+            irqTimer = 3;
+        }
+    } else {
+        // Port 2
+        //		rxData = state.handle(byte);
+        //		ack = state.getAck();
+        //		if (state.getAck()) {
+        //			irqTimer = 3;
+        //		}
     }
 }
 
 Controller::Controller() {}
 
 void Controller::step() {
+    if (irqTimer > 0) {
+        if (--irqTimer == 0) {
+            irq = true;
+        }
+    }
     if (irq) {
         ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::CONTROLLER);
-    } else {
-        if (ack) irq = true;
     }
 }
 
 uint8_t Controller::read(uint32_t address) {
-    if (address == 0 && !fifo.empty()) {  // RX
-
-        uint8_t value = fifo.front();
-        fifo.pop_front();
-        return value;
+    if (address == 0) {  // RX
+        return getData();
     }
     if (address == 4) {
-        uint8_t data = (ack << 7) |         // /ACK Input Level 0 - High, 1 - Low
-                                            // 6, 5, 4 - 0
-                       (0 << 3) |           // Parity error
-                       (0 << 2) |           // TX Ready Flag 2
-                       (rand() & 1 << 1) |  // RX FIFO Not Empty
-                       (1 << 0);            // TX Ready Flag 1
-        // ack = 0;
+        uint8_t data = (ack << 7) |        // /ACK Input Level 0 - High, 1 - Low
+                                           // 6, 5, 4 - 0
+                       (0 << 3) |          // Parity error
+                       (0 << 2) |          // TX Ready Flag 2
+                       (rxPending << 1) |  // RX FIFO Not Empty
+                       (1 << 0);           // TX Ready Flag 1
+        ack = 0;
         return data;
     }
     if (address == 5) {
@@ -63,25 +98,19 @@ uint8_t Controller::read(uint32_t address) {
 }
 
 void Controller::write(uint32_t address, uint8_t data) {
-    if (address == 0)
+    if (address == 0) {
         handleByte(data);
-    else if (address >= 8 && address < 10)
+    } else if (address >= 8 && address < 10) {
         mode._byte[address - 8] = data;
-    else if (address >= 10 && address < 12) {
+    } else if (address >= 10 && address < 12) {
         control._byte[address - 10] = data;  // mask bits 4 & 6
 
-        if (address == 10) {
-            if (data & 0x10) {
-                irq = false;
-            }
+        if (address == 10 && (data & 0x10)) {
+            irq = false;
         }
-        if (control._reg == 0) {
-            selected = false;
-            ack = false;
-            fifo.clear();
-        }
-    } else if (address >= 14 && address < 16)
+    } else if (address >= 14 && address < 16) {
         baud._byte[address - 14] = data;
+    }
 }
 }
 }
