@@ -88,6 +88,10 @@ struct GTE {
 
     void nclip();
     void ncds(bool sf, bool lm);
+    void nccs(bool sf, bool lm);
+    void dcpt(bool sf, bool lm);
+    void dcps(bool sf, bool lm);
+    void dcpl(bool sf, bool lm);
     int32_t divide(uint16_t h, uint16_t sz3);
     void rtps(int n, bool sf, bool lm);
     void rtpt(bool sf, bool lm);
@@ -95,6 +99,7 @@ struct GTE {
     void avsz4();
     void mvmva(bool sf, bool lm, int mx, int vx, int tx);
     void gpf(bool sf, bool lm);
+    void gpl(bool sf, bool lm);
     void sqr(bool sf, bool lm);
     void op(bool sf, bool lm);
 
@@ -113,7 +118,9 @@ struct GTE {
     int32_t A1(int64_t value, bool sf = 0);
     int32_t A2(int64_t value, bool sf = 0);
     int32_t A3(int64_t value, bool sf = 0);
+    int32_t Lm_B3_sf(int64_t x, bool sf, bool lm);
     int32_t F(int64_t value);
+    int32_t Lm_H(int64_t x, bool sf);
 };
 };
 };

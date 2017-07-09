@@ -38,9 +38,8 @@ uint32_t GTE::read(uint8_t n) {
         case 13:
             return ((uint16_t)s[1].y << 16) | (uint16_t)s[1].x;
         case 14:
-            return ((uint16_t)s[2].y << 16) | (uint16_t)s[2].x;
         case 15:
-            return ((uint16_t)s[3].y << 16) | (uint16_t)s[3].x;
+            return ((uint16_t)s[2].y << 16) | (uint16_t)s[2].x;
 
         case 16:
             return (uint16_t)s[0].z;
@@ -205,8 +204,14 @@ void GTE::write(uint8_t n, uint32_t d) {
             s[2].x = d;
             break;
         case 15:
-            s[3].y = d >> 16;
-            s[3].x = d;
+            s[0].x = s[1].x;
+            s[0].y = s[1].y;
+
+            s[1].x = s[2].x;
+            s[1].y = s[2].y;
+
+            s[2].x = d >> 16;
+            s[2].y = d;
             break;
 
         case 16:
@@ -414,6 +419,11 @@ int32_t GTE::A3(int64_t value, bool sf) {
 #define Lm_B2(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 31 | 1 << 23)
 #define Lm_B3(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 22)
 
+int32_t GTE::Lm_B3_sf(int64_t x, bool sf, bool lm) {
+    Lm_B3(x >> 12, false);
+    return clip(x >> (sf * 12), 0x7fff, lm ? 0 : -0x8000);
+}
+
 #define Lm_C1(x) (x)
 #define Lm_C2(x) (x)
 #define Lm_C3(x) (x)
@@ -429,7 +439,7 @@ int32_t GTE::F(int64_t value) {
     return value;
 }
 
-#define Lm_H(x) clip((x), 0x1000, 0x0000, 1 << 12)  // todo: fix?
+#define Lm_H(x) clip((x) >> 12, 0x1000, 0x0000, 1 << 12)
 
 #define Lm_E(x) (x)
 
@@ -448,6 +458,11 @@ int32_t GTE::F(int64_t value) {
 #define R31 (rt.v31)
 #define R32 (rt.v32)
 #define R33 (rt.v33)
+
+#define R (rgbc.read(0) << 4)
+#define G (rgbc.read(1) << 4)
+#define B (rgbc.read(2) << 4)
+#define CODE (rgbc.read(3) << 4)
 
 void GTE::nclip() { mac[0] = F(s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
 
@@ -469,16 +484,86 @@ void GTE::ncds(bool sf, bool lm) {
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-#define R (rgbc.read(0) << 4)
-#define G (rgbc.read(1) << 4)
-#define B (rgbc.read(2) << 4)
-#define CODE (rgbc.read(3) << 4)
-
     mac[1] = A1(R * ir[1] + ir[0] * Lm_B1(A1((fc.r << 12) - R * ir[1]), 0));
     mac[2] = A2(G * ir[2] + ir[0] * Lm_B2(A2((fc.g << 12) - G * ir[2]), 0));
     mac[3] = A3(B * ir[3] + ir[0] * Lm_B3(A3((fc.b << 12) - B * ir[3]), 0));
 
-#undef R G B CODE
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    rgb[0] = rgb[1];
+    rgb[1] = rgb[2];
+
+    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
+    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
+    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
+    rgb[2].write(3, CODE);                // CODE
+}
+
+void GTE::nccs(bool sf, bool lm) {
+    // TODO
+    mac[1] = A1(l.v11 * v[0].x + l.v12 * v[0].y + l.v13 * v[0].z);
+    mac[2] = A2(l.v21 * v[0].x + l.v22 * v[0].y + l.v23 * v[0].z);
+    mac[3] = A3(l.v31 * v[0].x + l.v32 * v[0].y + l.v33 * v[0].z);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    mac[1] = A1((bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3], sf);
+    mac[2] = A2((bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3], sf);
+    mac[3] = A3((bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3], sf);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    mac[1] = A1(R * ir[1]);
+    mac[2] = A2(G * ir[2]);
+    mac[3] = A3(B * ir[3]);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    rgb[0] = rgb[1];
+    rgb[1] = rgb[2];
+
+    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
+    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
+    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
+    rgb[2].write(3, CODE);                // CODE
+}
+
+void GTE::dcpt(bool sf, bool lm) {
+    dcps(sf, lm);
+    dcps(sf, lm);
+    dcps(sf, lm);
+}
+
+void GTE::dcps(bool sf, bool lm) {
+    mac[1] = A1((R << 12) + ir[0] * Lm_B1(A1((fc.r << 12) - (R << 12)), 0));
+    mac[2] = A2((G << 12) + ir[0] * Lm_B2(A2((fc.g << 12) - (G << 12)), 0));
+    mac[3] = A3((B << 12) + ir[0] * Lm_B3(A3((fc.b << 12) - (B << 12)), 0));
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    rgb[0] = rgb[1];
+    rgb[1] = rgb[2];
+
+    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
+    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
+    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
+    rgb[2].write(3, CODE);                // CODE
+}
+
+void GTE::dcpl(bool sf, bool lm) {
+    mac[1] = A1(R * ir[1] + ir[0] * Lm_B1(A1((fc.r << 12) - R * ir[1]), 0));
+    mac[2] = A2(G * ir[2] + ir[0] * Lm_B2(A2((fc.g << 12) - G * ir[2]), 0));
+    mac[3] = A3(B * ir[3] + ir[0] * Lm_B3(A3((fc.b << 12) - B * ir[3]), 0));
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
@@ -553,31 +638,30 @@ int32_t GTE::divide(uint16_t h, uint16_t sz3) {
 void GTE::rtps(int n, bool sf, bool lm) {
     mac[1] = A1((TRX << 12) + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z, sf);
     mac[2] = A2((TRY << 12) + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z, sf);
-    mac[3] = A3((TRZ << 12) + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z, sf);
+    int64_t mac3 = (TRZ << 12) + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z;
+    mac[3] = A3(mac3, sf);
+
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3(mac[3], lm);
+    ir[3] = Lm_B3_sf(mac3, sf, lm);
 
     s[0].z = s[1].z;
     s[1].z = s[2].z;
     s[2].z = s[3].z;
-
-    s[3].z = Lm_D(mac[3], sf);
+    s[3].z = Lm_D(mac3, 1);
 
     int32_t h_s3z = divide(h, s[3].z);
-
-    s[3].x = Lm_G1(F(of[0] + ir[1] * h_s3z) >> 16);
-    s[3].y = Lm_G2(F(of[1] + ir[2] * h_s3z) >> 16);
 
     s[0].x = s[1].x;
     s[0].y = s[1].y;
     s[1].x = s[2].x;
     s[1].y = s[2].y;
-    s[2].x = s[3].x;
-    s[2].y = s[3].y;
+    s[2].x = Lm_G1(F(of[0] + ir[1] * h_s3z) >> 16);
+    s[2].y = Lm_G2(F(of[1] + ir[2] * h_s3z) >> 16);
 
-    mac[0] = F(dqb + dqa * h_s3z);
-    ir[0] = Lm_H(mac[0]);
+    int64_t mac0 = (int64_t)dqb + (int64_t)dqa * (int64_t)h_s3z;
+    mac[0] = F(mac0);
+    ir[0] = Lm_H(mac0);
 }
 
 void GTE::rtpt(bool sf, bool lm) {
@@ -634,9 +718,9 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
         mac[1] = A1(Mx.v12 * V.y + Mx.v13 * V.z, sf);
         mac[2] = A2(Mx.v22 * V.y + Mx.v23 * V.z, sf);
         mac[3] = A3(Mx.v32 * V.y + Mx.v33 * V.z, sf);
-        //		Lm_B1(A1((Tx.x << 12) + Mx.v11 * V.x), 0);
-        //		Lm_B2(A1((Tx.y << 12) + Mx.v21 * V.x), 0);
-        //		Lm_B3(A1((Tx.z << 12) + Mx.v31 * V.x), 0);
+        Lm_B1(A1((Tx.x << 12) + Mx.v11 * V.x), 0);
+        Lm_B2(A1((Tx.y << 12) + Mx.v21 * V.x), 0);
+        Lm_B3(A1((Tx.z << 12) + Mx.v31 * V.x), 0);
     } else {
         mac[1] = A1((Tx.x << 12) + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, sf);
         mac[2] = A2((Tx.y << 12) + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, sf);
@@ -652,6 +736,24 @@ void GTE::gpf(bool sf, bool lm) {
     mac[1] = A1(ir[0] * ir[1], sf);
     mac[2] = A2(ir[0] * ir[2], sf);
     mac[3] = A3(ir[0] * ir[3], sf);
+
+    ir[1] = Lm_B1(mac[1], lm);
+    ir[2] = Lm_B2(mac[2], lm);
+    ir[3] = Lm_B3(mac[3], lm);
+
+    rgb[0] = rgb[1];
+    rgb[1] = rgb[2];
+
+    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
+    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
+    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
+    rgb[2].write(3, CODE);                // CODE
+}
+
+void GTE::gpl(bool sf, bool lm) {
+    mac[1] = A1(mac[1] + ir[0] * ir[1], sf);
+    mac[2] = A2(mac[2] + ir[0] * ir[2], sf);
+    mac[3] = A3(mac[3] + ir[0] * ir[3], sf);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
