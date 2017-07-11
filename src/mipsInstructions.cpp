@@ -849,6 +849,9 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
             case 0x3e:
                 cpu->gte.gpl(command.sf, command.lm);
                 return;
+            case 0x3f:
+                cpu->gte.ncct(command.sf, command.lm);
+                return;
             default:
                 printf("Unhandled gte command 0x%x\n", command.cmd);
                 // cpu->state = CPU::State::halted;

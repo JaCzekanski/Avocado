@@ -81,6 +81,7 @@ bool gteLogEnabled = false;
 bool showVRAM = false;
 bool singleFrame = false;
 bool running = true;
+bool skipRender = false;
 
 void renderImgui(mips::CPU *cpu) {
     auto gte = cpu->gte;
@@ -308,7 +309,7 @@ int start(int argc, char **argv) {
     if (cpu->loadBios(bios)) {
         printf("Using bios %s\n", bios.c_str());
     }
-    // cpu->loadExpansion("data/bios/expansion.rom");
+    //     cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
@@ -337,6 +338,7 @@ int start(int argc, char **argv) {
                 if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);
                 if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(device::interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(device::interrupt::SPU);
+                if (event.key.keysym.sym == SDLK_TAB) skipRender = !skipRender;
                 if (event.key.keysym.sym == SDLK_r) {
                     cpu->dumpRam();
                     cpu->spu->dumpRam();
@@ -410,7 +412,10 @@ int start(int argc, char **argv) {
             }
         }
         ImGui_ImplSdlGL3_NewFrame(window);
-        opengl.render(cpu->getGPU());
+        if (!skipRender)
+            opengl.render(cpu->getGPU());
+        else
+            cpu->getGPU()->render().clear();
         renderImgui(cpu.get());
 
         deltaFrames++;

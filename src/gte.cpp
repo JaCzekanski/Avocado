@@ -501,11 +501,11 @@ void GTE::ncds(bool sf, bool lm) {
     rgb[2].write(3, CODE);                // CODE
 }
 
-void GTE::nccs(bool sf, bool lm) {
+void GTE::nccs(bool sf, bool lm, int n) {
     // TODO
-    mac[1] = A1(l.v11 * v[0].x + l.v12 * v[0].y + l.v13 * v[0].z);
-    mac[2] = A2(l.v21 * v[0].x + l.v22 * v[0].y + l.v23 * v[0].z);
-    mac[3] = A3(l.v31 * v[0].x + l.v32 * v[0].y + l.v33 * v[0].z);
+    mac[1] = A1(l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z);
+    mac[2] = A2(l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z);
+    mac[3] = A3(l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
@@ -534,6 +534,12 @@ void GTE::nccs(bool sf, bool lm) {
     rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
     rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
     rgb[2].write(3, CODE);                // CODE
+}
+
+void GTE::ncct(bool sf, bool lm) {
+    nccs(sf, lm, 0);
+    nccs(sf, lm, 1);
+    nccs(sf, lm, 2);
 }
 
 void GTE::dcpt(bool sf, bool lm) {
@@ -636,32 +642,30 @@ int32_t GTE::divide(uint16_t h, uint16_t sz3) {
 }
 
 void GTE::rtps(int n, bool sf, bool lm) {
-    mac[1] = A1((TRX << 12) + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z, sf);
-    mac[2] = A2((TRY << 12) + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z, sf);
-    int64_t mac3 = (TRZ << 12) + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z;
-    mac[3] = A3(mac3, sf);
+    mac[1] = A1(((R11 * v[n].x + R12 * v[n].y + R13 * v[n].z) >> 12) + TRX, 0);
+    mac[2] = A2(((R21 * v[n].x + R22 * v[n].y + R23 * v[n].z) >> 12) + TRY, 0);
+    mac[3] = A3(((R31 * v[n].x + R32 * v[n].y + R33 * v[n].z) >> 12) + TRZ, 0);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3_sf(mac3, sf, lm);
+    ir[3] = Lm_B3(mac[3], lm);
 
     s[0].z = s[1].z;
     s[1].z = s[2].z;
     s[2].z = s[3].z;
-    s[3].z = Lm_D(mac3, 1);
+    s[3].z = Lm_D(mac[3], 1);
 
-    int32_t h_s3z = divide(h, s[3].z);
+    int64_t h_s3z = divide(h, s[3].z);
 
     s[0].x = s[1].x;
     s[0].y = s[1].y;
     s[1].x = s[2].x;
     s[1].y = s[2].y;
-    s[2].x = Lm_G1(F(of[0] + ir[1] * h_s3z) >> 16);
-    s[2].y = Lm_G2(F(of[1] + ir[2] * h_s3z) >> 16);
+    s[2].x = Lm_G1(F((int64_t)of[0] + ir[1] * h_s3z) >> 16);
+    s[2].y = Lm_G2(F((int64_t)of[1] + ir[2] * h_s3z) >> 16);
 
-    int64_t mac0 = (int64_t)dqb + (int64_t)dqa * (int64_t)h_s3z;
-    mac[0] = F(mac0);
-    ir[0] = Lm_H(mac0);
+    mac[0] = F(dqb + dqa * h_s3z);
+    ir[0] = Lm_H(mac[0]);
 }
 
 void GTE::rtpt(bool sf, bool lm) {
@@ -671,13 +675,13 @@ void GTE::rtpt(bool sf, bool lm) {
 }
 
 void GTE::avsz3() {
-    mac[0] = F(zsf3 * (s[1].z + s[2].z + s[3].z));
-    otz = Lm_D(mac[0], 1);
+    mac[0] = F(zsf3 * s[1].z + zsf3 * s[2].z + zsf3 * s[3].z);
+    otz = Lm_D(mac[0], 0);
 }
 
 void GTE::avsz4() {
-    mac[0] = F(zsf4 * (s[0].z + s[1].z + s[2].z + s[3].z));
-    otz = Lm_D(mac[0], 1);
+    mac[0] = F(zsf4 * s[0].z + zsf4 * s[1].z + zsf4 * s[2].z + zsf4 * s[3].z);
+    otz = Lm_D(mac[0], 0);
 }
 
 void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
@@ -692,13 +696,13 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
         printf("Invalid mvmva parameter: mx\n");
 
     Vector<int16_t> V;
-    if (vx == 0)
+    if (vx == 0) {
         V = v[0];
-    else if (vx == 1)
+    } else if (vx == 1) {
         V = v[1];
-    else if (vx == 2)
+    } else if (vx == 2) {
         V = v[2];
-    else {
+    } else {
         V.x = ir[1];
         V.y = ir[2];
         V.z = ir[3];

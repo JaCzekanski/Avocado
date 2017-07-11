@@ -6,6 +6,9 @@ namespace device {
 namespace controller {
 
 class DigitalController {
+    int state = 0;
+
+   public:
     union {
         struct {
             Bit select : 1;
@@ -30,9 +33,6 @@ class DigitalController {
         uint8_t _byte[2];
     };
 
-    int state = 0;
-
-   public:
     uint8_t handle(uint8_t byte);
     bool getAck();
     DigitalController() : _reg(0) {}
