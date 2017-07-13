@@ -78,6 +78,7 @@ const char *mapIo(uint32_t address) {
 bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
 bool gteLogEnabled = false;
+bool gpuLogEnabled = false;
 bool showVRAM = false;
 bool singleFrame = false;
 bool running = true;
@@ -118,6 +119,7 @@ void renderImgui(mips::CPU *cpu) {
             ImGui::MenuItem("IO log", NULL, &ioLogEnabled);
 #endif
             ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
+            ImGui::MenuItem("GPU log", NULL, &gpuLogEnabled);
             if (ImGui::MenuItem("Show VRAM", NULL, &showVRAM)) {
             }
             ImGui::EndMenu();
@@ -254,6 +256,40 @@ void renderImgui(mips::CPU *cpu) {
                 } else {
                     ImGui::Text("%c %2d: 0x%08x", ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n,
                                 ioEntry.data);
+                }
+            }
+        }
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
+
+        ImGui::End();
+    }
+
+    if (gpuLogEnabled) {
+        ImGui::Begin("GPU Log", &gpuLogEnabled);
+
+        ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+        static int nodeClicked = -1;
+        ImGuiListClipper clipper(cpu->getGPU()->gpuLogList.size());
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                auto entry = cpu->getGPU()->gpuLogList[i];
+
+                bool nodeOpen
+                    = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
+
+                if (ImGui::IsItemHovered()) {
+                    printf("Render to cmd %d\n", i);
+                }
+
+                if (nodeOpen) {
+                    // Render arguments
+                    for (auto arg : entry.args) {
+                        ImGui::Text("- 0x%08x", arg);
+                    }
+                    ImGui::TreePop();
                 }
             }
         }

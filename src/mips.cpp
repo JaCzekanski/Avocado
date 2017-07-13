@@ -378,6 +378,7 @@ void CPU::emulateFrame() {
     ioLogList.clear();
 #endif
     gte.log.clear();
+    gpu->gpuLogList.clear();
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {

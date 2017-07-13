@@ -6,6 +6,8 @@ namespace device {
 namespace gpu {
 const int MAX_ARGS = 32;
 
+const char* CommandStr[];
+
 union PolygonArgs {
     struct {
         uint8_t _brightnessCalculation : 1;
@@ -152,7 +154,6 @@ union GP0_E6 {
 
     GP0_E6() : _reg(0) {}
 };
-
 
 // Display mode
 union GP1_08 {
@@ -305,6 +306,14 @@ class GPU {
     bool emulateGpuCycles(int cycles);
 
     uint16_t VRAM[512][1024];
+
+    struct GPU_LOG_ENTRY {
+        Command cmd;
+        uint8_t command;
+        std::vector<uint32_t> args;
+    };
+
+    std::vector<GPU_LOG_ENTRY> gpuLogList;
 };
 }
 }

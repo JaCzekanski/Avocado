@@ -401,7 +401,17 @@ void GPU::writeGP0(uint32_t data) {
         if (argumentCount == MAX_ARGS && data == 0x55555555) argumentCount = currentArgument;
         if (currentArgument != argumentCount) return;
     }
-    // if (cmd != Command::CopyCpuToVram2)printf("%s(0x%x)\n", CommandStr[(int)cmd], command);
+
+    if (cmd != Command::CopyCpuToVram2) {
+        GPU_LOG_ENTRY entry;
+        entry.cmd = cmd;
+        entry.command = command;
+        entry.args = std::vector<uint32_t>(arguments, arguments + argumentCount);
+        gpuLogList.push_back(entry);
+    }
+
+    // printf("%s(0x%x)\n", CommandStr[(int)cmd], command);
+
     if (cmd == Command::FillRectangle)
         cmdFillRectangle(command, arguments);
     else if (cmd == Command::Polygon)
