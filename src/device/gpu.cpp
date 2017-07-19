@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cassert>
 
+#define VRAM ((uint16_t(*)[vramWidth])(&vram[0]))
+
 namespace device {
 namespace gpu {
 
@@ -156,6 +158,7 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
         int c[4] = {sc, sc, ec, ec};
 
         // TODO: Switch to proprer line rendering
+        // TODO:           ^^^^^^^ fix typo
 
         drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency ? 0 : 1) << 0);
     }
@@ -402,7 +405,7 @@ void GPU::writeGP0(uint32_t data) {
         if (currentArgument != argumentCount) return;
     }
 
-    if (cmd != Command::CopyCpuToVram2) {
+    if (gpuLogEnabled && cmd != Command::CopyCpuToVram2) {
         GPU_LOG_ENTRY entry;
         entry.cmd = cmd;
         entry.command = command;

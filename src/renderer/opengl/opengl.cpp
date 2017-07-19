@@ -189,11 +189,11 @@ void OpenGL::render(device::gpu::GPU *gpu) {
 
     // Update VRAM texture
     glBindTexture(GL_TEXTURE_2D, vramTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
 
     // Update Render texture
     glBindTexture(GL_TEXTURE_2D, renderTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
 
     auto &renderList = gpu->render();
 
@@ -214,7 +214,7 @@ void OpenGL::render(device::gpu::GPU *gpu) {
 
     // Read back rendered texture to VRAM
     glBindTexture(GL_TEXTURE_2D, renderTex);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->VRAM);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
 
     renderList.clear();
 }

@@ -84,6 +84,25 @@ bool singleFrame = false;
 bool running = true;
 bool skipRender = false;
 
+void replayCommands(mips::gpu::GPU *gpu, int to) {
+    auto commands = gpu->gpuLogList;
+    gpu->vram = gpu->prevVram;
+
+    gpu->gpuLogEnabled = false;
+    for (int i = 0; i <= to; i++) {
+        auto cmd = commands.at(i);
+
+        if (cmd.args.size() == 0) printf("Panic! no args");
+        int mask = cmd.command << 24;
+
+        for (auto arg : cmd.args) {
+            gpu->write(0, mask | arg);
+            mask = 0;
+        }
+    }
+    gpu->gpuLogEnabled = true;
+}
+
 void renderImgui(mips::CPU *cpu) {
     auto gte = cpu->gte;
 
@@ -268,35 +287,40 @@ void renderImgui(mips::CPU *cpu) {
     if (gpuLogEnabled) {
         ImGui::Begin("GPU Log", &gpuLogEnabled);
 
-        ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-        static int nodeClicked = -1;
-        ImGuiListClipper clipper(cpu->getGPU()->gpuLogList.size());
-        while (clipper.Step()) {
-            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                auto entry = cpu->getGPU()->gpuLogList[i];
+        int renderTo = -1;
+        //        ImGuiListClipper clipper(cpu->getGPU()->gpuLogList.size());
+        //        while (clipper.Step()) {
+        //            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+        for (int i = 0; i < cpu->getGPU()->gpuLogList.size(); i++) {
+            auto entry = cpu->getGPU()->gpuLogList[i];
 
-                bool nodeOpen
-                    = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
+            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
 
-                if (ImGui::IsItemHovered()) {
-                    printf("Render to cmd %d\n", i);
+            if (ImGui::IsItemHovered()) {
+                printf("Render to cmd %d\n", i);
+                renderTo = i;
+            }
+
+            if (nodeOpen) {
+                // Render arguments
+                for (auto arg : entry.args) {
+                    ImGui::Text("- 0x%08x", arg);
                 }
-
-                if (nodeOpen) {
-                    // Render arguments
-                    for (auto arg : entry.args) {
-                        ImGui::Text("- 0x%08x", arg);
-                    }
-                    ImGui::TreePop();
-                }
+                ImGui::TreePop();
             }
         }
+        //        }
         ImGui::PopStyleVar();
         ImGui::EndChild();
 
         ImGui::End();
+
+        if (renderTo >= 0) {
+            replayCommands(cpu->getGPU(), renderTo);
+        }
     }
 
     ImGui::Render();

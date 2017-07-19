@@ -379,6 +379,9 @@ void CPU::emulateFrame() {
 #endif
     gte.log.clear();
     gpu->gpuLogList.clear();
+
+    gpu->prevVram = gpu->vram;
+
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {

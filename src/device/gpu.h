@@ -214,6 +214,10 @@ class GPU {
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
     */
+    static const int vramWidth = 1024;
+    static const int vramHeight = 512;
+    int resolutionMultiplier = 1;
+
     int startX = 0;
     int startY = 0;
     int endX = 0;
@@ -297,6 +301,11 @@ class GPU {
    public:
     bool odd = false;
     int frames = 0;
+
+    GPU() {
+        vram.resize(vramWidth * vramHeight * resolutionMultiplier);
+        prevVram.resize(vramWidth * vramHeight * resolutionMultiplier);
+    }
     void step();
     uint32_t read(uint32_t address);
     void write(uint32_t address, uint32_t data);
@@ -305,13 +314,16 @@ class GPU {
 
     bool emulateGpuCycles(int cycles);
 
-    uint16_t VRAM[512][1024];
+    std::vector<uint16_t> vram;
+    std::vector<uint16_t> prevVram;
 
     struct GPU_LOG_ENTRY {
         Command cmd;
         uint8_t command;
         std::vector<uint32_t> args;
     };
+
+    bool gpuLogEnabled = true;
 
     std::vector<GPU_LOG_ENTRY> gpuLogList;
 };
