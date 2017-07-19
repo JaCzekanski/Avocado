@@ -37,29 +37,37 @@ void Timer::step(int cycles) {
         }
     }
 
-    if (current._reg == target._reg) {
+    if (current._reg >= target._reg) {
+        if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) {
+            current._reg = 0;
+        }
         if (mode.irqWhenTarget) {
             mode.interruptRequest = false;
             static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
         }
-        if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) current._reg = 0;
         mode.reachedTarget = true;
-    } else if (current._reg == 0xffff) {
+    }
+
+    if (current._reg >= 0xffff) {
+        if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) {
+            current._reg = 0;
+        }
         if (mode.irqWhenFFFF) {
             mode.interruptRequest = false;
             static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
         }
-        if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) current._reg = 0;
         mode.reachedFFFF = true;
     }
 }
 uint8_t Timer::read(uint32_t address) {
-    if (address < 4) {
+    if (address < 2) {
         return current.read(address);
     } else if (address >= 4 && address < 8) {
         uint8_t v = mode.read(address - 4);
-        mode.reachedFFFF = false;
-        mode.reachedTarget = false;
+        if (address == 7) {
+            mode.reachedFFFF = false;
+            mode.reachedTarget = false;
+        }
         return v;
     } else if (address >= 8 && address < 12) {
         return target.read(address - 8);
@@ -67,7 +75,7 @@ uint8_t Timer::read(uint32_t address) {
     return 0;
 }
 void Timer::write(uint32_t address, uint8_t data) {
-    if (address < 4) {
+    if (address < 2) {
         current.write(address, data);
     } else if (address >= 4 && address < 8) {
         current._reg = 0;

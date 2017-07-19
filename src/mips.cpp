@@ -381,7 +381,8 @@ void CPU::emulateFrame() {
     gpu->gpuLogList.clear();
 
     gpu->prevVram = gpu->vram;
-
+    interrupt->trigger(device::interrupt::TIMER1);
+    interrupt->trigger(device::interrupt::TIMER2);
     int systemCycles = 300;
     for (;;) {
         if (!executeInstructions(systemCycles / 3)) {

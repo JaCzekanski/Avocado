@@ -83,6 +83,7 @@ bool showVRAM = false;
 bool singleFrame = false;
 bool running = true;
 bool skipRender = false;
+bool showIo = false;
 
 void replayCommands(mips::gpu::GPU *gpu, int to) {
     auto commands = gpu->gpuLogList;
@@ -101,6 +102,13 @@ void replayCommands(mips::gpu::GPU *gpu, int to) {
         }
     }
     gpu->gpuLogEnabled = true;
+}
+
+void dumpRegister(const char *name, uint32_t *reg) {
+    ImGui::BulletText(name);
+    ImGui::NextColumn();
+    ImGui::InputInt("", (int *)reg, 1, 100, ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::NextColumn();
 }
 
 void renderImgui(mips::CPU *cpu) {
@@ -139,6 +147,7 @@ void renderImgui(mips::CPU *cpu) {
 #endif
             ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
             ImGui::MenuItem("GPU log", NULL, &gpuLogEnabled);
+            ImGui::MenuItem("Show IO", NULL, &showIo);
             if (ImGui::MenuItem("Show VRAM", NULL, &showVRAM)) {
             }
             ImGui::EndMenu();
@@ -323,6 +332,36 @@ void renderImgui(mips::CPU *cpu) {
         }
     }
 
+    if (showIo) {
+        ImGui::Begin("IO", &showIo);
+
+        ImGui::Columns(1, 0, false);
+        ImGui::Text("Timer 0");
+
+        ImGui::Columns(2, 0, false);
+        dumpRegister("current", (uint32_t *)&cpu->timer0->current);
+        dumpRegister("target", (uint32_t *)&cpu->timer0->target);
+        dumpRegister("mode", (uint32_t *)&cpu->timer0->mode);
+
+        ImGui::Columns(1, 0, false);
+        ImGui::Text("Timer 1");
+
+        ImGui::Columns(2, 0, false);
+        dumpRegister("current", (uint32_t *)&cpu->timer1->current);
+        dumpRegister("target", (uint32_t *)&cpu->timer1->target);
+        dumpRegister("mode", (uint32_t *)&cpu->timer1->mode);
+
+        ImGui::Columns(1, 0, false);
+        ImGui::Text("Timer 2");
+
+        ImGui::Columns(2, 0, false);
+        dumpRegister("current", (uint32_t *)&cpu->timer2->current);
+        dumpRegister("target", (uint32_t *)&cpu->timer2->target);
+        dumpRegister("mode", (uint32_t *)&cpu->timer2->mode);
+
+        ImGui::End();
+    }
+
     ImGui::Render();
 }
 
@@ -369,7 +408,7 @@ int start(int argc, char **argv) {
     if (cpu->loadBios(bios)) {
         printf("Using bios %s\n", bios.c_str());
     }
-    //     cpu->loadExpansion("data/bios/expansion.rom");
+    cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
@@ -395,6 +434,7 @@ int start(int argc, char **argv) {
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
+                if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(device::interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);
                 if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(device::interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(device::interrupt::SPU);

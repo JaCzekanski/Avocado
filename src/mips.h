@@ -126,7 +126,6 @@ struct CPU {
     std::unique_ptr<dma::DMA> dma;
     std::unique_ptr<spu::SPU> spu;
 
-   private:
     std::unique_ptr<Dummy> memoryControl;
     std::unique_ptr<Dummy> serial;
     std::unique_ptr<gpu::GPU> gpu;

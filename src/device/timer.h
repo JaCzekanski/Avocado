@@ -61,8 +61,8 @@ union CounterMode {
         } synchronizationMode;
 
         ResetToZero resetToZero : 1;
-        Bit irqWhenTarget : 1;
-        Bit irqWhenFFFF : 1;
+        uint32_t irqWhenTarget : 1;
+        uint32_t irqWhenFFFF : 1;
         IrqRepeatMode irqRepeatMode : 1;
         IrqPulseMode irqPulseMode : 1;
 
@@ -99,10 +99,13 @@ class Timer : public Device {
     const int baseAddress = 0x1f801100;
 
     int which = 0;
-    Reg16 current;
+
+   public:
+    Reg32 current;
     CounterMode mode;
     Reg16 target;
 
+   private:
     int cnt = 0;
 
     void *_cpu = nullptr;
