@@ -9,8 +9,7 @@ void Timer::step(int cycles) {
     cnt += cycles;
 
     if (which == 0) {
-        if (mode.clockSource.clockSource0 == CounterMode::ClockSource0::dotClock
-            || mode.clockSource.clockSource0 == CounterMode::ClockSource0::dotClock_) {
+        if (mode.clockSource0 == CounterMode::ClockSource0::dotClock) {
             current._reg += cnt;
             cnt = 0;
         } else {  // System Clock
@@ -18,8 +17,7 @@ void Timer::step(int cycles) {
             cnt %= 3;
         }
     } else if (which == 1) {
-        if (mode.clockSource.clockSource1 == CounterMode::ClockSource1::hblank
-            || mode.clockSource.clockSource1 == CounterMode::ClockSource1::hblank_) {
+        if (mode.clockSource1 == CounterMode::ClockSource1::hblank) {
             current._reg += cnt / 3413;
             cnt %= 3413;
         } else {  // System Clock
@@ -27,8 +25,7 @@ void Timer::step(int cycles) {
             cnt %= 3;
         }
     } else if (which == 2) {
-        if (mode.clockSource.clockSource2 == CounterMode::ClockSource2::systemClock_8
-            || mode.clockSource.clockSource2 == CounterMode::ClockSource2::systemClock_8_) {
+        if (mode.clockSource2 == CounterMode::ClockSource2::systemClock_8) {
             current._reg += cnt / (8 * 3);
             cnt %= 8 * 3;
         } else {  // System Clock

@@ -139,17 +139,17 @@ void renderImgui(mips::CPU *cpu) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Debug")) {
+            ImGui::MenuItem("IO", NULL, &showIo);
             ImGui::MenuItem("GTE registers", NULL, &gteRegistersEnabled);
             ImGui::MenuItem("BIOS log", "F5", &cpu->biosLog);
-            ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
 #ifdef ENABLE_IO_LOG
             ImGui::MenuItem("IO log", NULL, &ioLogEnabled);
 #endif
             ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
             ImGui::MenuItem("GPU log", NULL, &gpuLogEnabled);
-            ImGui::MenuItem("Show IO", NULL, &showIo);
             if (ImGui::MenuItem("Show VRAM", NULL, &showVRAM)) {
             }
+            ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -408,7 +408,7 @@ int start(int argc, char **argv) {
     if (cpu->loadBios(bios)) {
         printf("Using bios %s\n", bios.c_str());
     }
-    cpu->loadExpansion("data/bios/expansion.rom");
+    //    cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {

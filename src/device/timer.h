@@ -33,24 +33,9 @@ union CounterMode {
         shortPulse = 0,  // Short Bit10 = 0 pulse
         toggle = 1       // Toggle Bit10 on/off
     };
-    enum class ClockSource0 : uint32_t {
-        systemClock = 0,
-        systemClock_ = 2,
-        dotClock = 1,
-        dotClock_ = 3,
-    };
-    enum class ClockSource1 : uint32_t {
-        systemClock = 0,
-        systemClock_ = 2,
-        hblank = 1,
-        hblank_ = 3,
-    };
-    enum class ClockSource2 : uint32_t {
-        systemClock = 0,
-        systemClock_ = 1,
-        systemClock_8 = 2,
-        systemClock_8_ = 3,
-    };
+    enum class ClockSource0 : uint32_t { systemClock = 0, dotClock = 1 };
+    enum class ClockSource1 : uint32_t { systemClock = 0, hblank = 1 };
+    enum class ClockSource2 : uint32_t { systemClock = 0, systemClock_8 = 1 };
 
     struct {
         SynchronizationEnable synchronizationEnable : 1;
@@ -68,10 +53,10 @@ union CounterMode {
 
         // For all timer different clock sources are available
         union {
-            ClockSource0 clockSource0 : 2;
-            ClockSource1 clockSource1 : 2;
-            ClockSource2 clockSource2 : 2;
-        } clockSource;
+            ClockSource0 clockSource0 : 1;
+            ClockSource1 clockSource1 : 1;
+        };
+        ClockSource2 clockSource2 : 1;
 
         Bit interruptRequest : 1;  // R
         Bit reachedTarget : 1;     // R
