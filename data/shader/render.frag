@@ -108,5 +108,12 @@ void main()
 
 	if (((fragFlags & 1u) == 1u) && internalToPsxColor(color) == 0x0000u) discard;
 
+	// Brightness calculation
+	// if ((fragFlags & 2u) == 2u) {
+		if (fragColor.r != 0x80u) color.r = mix(color.r, fragColor.r, 0.5);
+		if (fragColor.g != 0x80u) color.g = mix(color.g, fragColor.g, 0.5);
+		if (fragColor.b != 0x80u) color.b = mix(color.b, fragColor.b, 0.5);
+	// }
+
 	outColor = color;
 }

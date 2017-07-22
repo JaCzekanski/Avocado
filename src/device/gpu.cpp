@@ -125,7 +125,8 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1] = arguments[ptr++];
     }
     drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped,
-                arg.semiTransparency ? 1 : arg.isTextureMapped);  // Semi transparency problems in SCPH-101 menu
+                (arg.semiTransparency ? 1 : arg.isTextureMapped) |  // Semi transparency problems in SCPH-101 menu
+                    (arg._brightnessCalculation ? 2 : 0));
 
     cmd = Command::None;
 }
@@ -194,7 +195,8 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
         _t[3] = tex(texX + w, texY + h - 1);
 #undef tex
     }
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, arg.semiTransparency ? 1 : arg.isTextureMapped);
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped,
+                (arg.semiTransparency ? 1 : arg.isTextureMapped) | (arg._brightnessCalculation ? 2 : 0));
 
     cmd = Command::None;
 }
