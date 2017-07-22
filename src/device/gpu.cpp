@@ -250,6 +250,12 @@ void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
     int width = (arguments[3] & 0xffff) - 1;
     int height = ((arguments[3] & 0xffff0000) >> 16) - 1;
 
+    if (width > 1024 || height > 512) {
+        printf("cpuVramToVram: Suspicious width: 0x%x or height: 0x%x", width, height);
+        cmd = Command::None;
+        return;
+    }
+
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // TODO: boundary check!
