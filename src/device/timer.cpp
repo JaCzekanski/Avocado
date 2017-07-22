@@ -35,25 +35,28 @@ void Timer::step(int cycles) {
     }
 
     if (current._reg >= target._reg) {
-        if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) {
-            current._reg = 0;
-        }
-        if (mode.irqWhenTarget) {
-            mode.interruptRequest = false;
-            static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
-        }
         mode.reachedTarget = true;
+        if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) current._reg = 0;
     }
 
     if (current._reg >= 0xffff) {
-        if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) {
-            current._reg = 0;
-        }
-        if (mode.irqWhenFFFF) {
-            mode.interruptRequest = false;
-            static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
-        }
         mode.reachedFFFF = true;
+        if (mode.resetToZero == CounterMode::ResetToZero::whenFFFF) current._reg = 0;
+    }
+
+    if (mode.irqWhenTarget || mode.irqWhenFFFF) {
+        if (mode.irqRepeatMode == CounterMode::IrqRepeatMode::repeatedly
+            || (mode.irqRepeatMode == CounterMode::IrqRepeatMode::oneShot && !irqOccured)) {
+            if (mode.irqPulseMode == CounterMode::IrqPulseMode::toggle)
+                mode.interruptRequest = !mode.interruptRequest;
+            else
+                mode.interruptRequest = false;
+        }
+    }
+
+    if (mode.interruptRequest == false && !irqOccured) {
+        static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
+        irqOccured = true;
     }
 }
 uint8_t Timer::read(uint32_t address) {
@@ -76,6 +79,7 @@ void Timer::write(uint32_t address, uint8_t data) {
         current.write(address, data);
     } else if (address >= 4 && address < 8) {
         current._reg = 0;
+        irqOccured = false;
         mode.write(address - 4, data);  // BIOS uses 0x0148 for TIMER1
     } else if (address >= 8 && address < 12) {
         target.write(address - 8, data);

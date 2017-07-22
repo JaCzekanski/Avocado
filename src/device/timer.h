@@ -92,6 +92,7 @@ class Timer : public Device {
 
    private:
     int cnt = 0;
+    bool irqOccured = false;
 
     void *_cpu = nullptr;
 
