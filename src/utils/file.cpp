@@ -90,3 +90,14 @@ std::string getFileContentsAsString(std::string name) {
     fclose(f);
     return contents;
 }
+
+size_t getFileSize(std::string name) {
+    FILE *f = fopen(name.c_str(), "rb");
+    if (!f) return 0;
+
+    fseek(f, 0, SEEK_END);
+    int size = ftell(f);
+    fclose(f);
+
+    return size;
+}

@@ -1,6 +1,7 @@
 #pragma once
 #include "device.h"
 #include <deque>
+#include "utils/cue/Cue.h"
 
 namespace device {
 namespace cdrom {
@@ -84,6 +85,8 @@ class CDROM : public Device {
 
     StatusCode stat;
 
+    utils::Cue cue;
+
     void cmdGetstat();
     void cmdSetloc();
     void cmdPlay();
@@ -144,6 +147,8 @@ class CDROM : public Device {
         CDROM_interrupt.push_back(1);
         writeResponse(stat._reg);
     }
+
+    void setCue(std::unique_ptr<utils::Cue> &cue) { this->cue = *cue; }
 };
 }
 }

@@ -91,6 +91,7 @@ void CDROM::cmdPlay() {
     // Play NOT IMPLEMENTED
     // int track = readParam();
     // param or setloc used
+    printf("CDROM: PLAY\n");
     stat.setMode(StatusCode::Mode::Playing);
 
     CDROM_interrupt.push_back(3);
@@ -115,6 +116,7 @@ void CDROM::cmdMotorOn() {
 }
 
 void CDROM::cmdStop() {
+    printf("CDROM: STOP\n");
     stat.setMode(StatusCode::Mode::None);
     stat.motor = 0;
 
@@ -126,6 +128,7 @@ void CDROM::cmdStop() {
 }
 
 void CDROM::cmdPause() {
+    printf("CDROM: PAUSE\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -187,6 +190,7 @@ void CDROM::cmdSetSession() {
 }
 
 void CDROM::cmdSeekP() {
+    printf("CDROM: SEEKP\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -219,31 +223,30 @@ void CDROM::cmdGetTN() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
     writeResponse(0x01);
-    writeResponse(0x01);
+    writeResponse(cue.getTrackCount());
 }
 
 void CDROM::cmdGetTD() {
-    int index = readParam();
+    int track = readParam();
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
-    if (index == 0)  // end of last track
+    if (track == 0)  // end of last track
     {
-        // get size (25B3 AF20)
-        // divide by 2352 (4 1A86)
-        // x / 60 / 75 - minute
-        // (x % (60 * 75) / 75) + 2 - second
-        int x = ((mips::CPU*)_cpu)->dma->dma3.getIsoSize();
-        x /= 2352;
-        int minute = x / 60 / 75;
-        int second = ((x % (60 * 75)) / 75) + 2;
-        printf("GetTD(0): minute: %d, second: %d\n", minute, second);
+        auto diskSize = cue.getDiskSize();
+        printf("GetTD(0): minute: %d, second: %d\n", diskSize.mm, diskSize.ss);
 
-        writeResponse(((minute / 10) << 4) | (minute % 10));
-        writeResponse(((second / 10) << 4) | (second % 10));
-    } else {
-        printf("GetTD(%d) request unimplemented\n", index);
-        writeResponse(0x00);
-        writeResponse(0x02);
+        writeResponse(bcd::toBcd(diskSize.mm));
+        writeResponse(bcd::toBcd(diskSize.ss));
+    } else {  // Start of n track
+        if (track > cue.getTrackCount()) {
+            // Error
+            return;
+        }
+
+        auto start = cue.tracks.at(track - 1).start;
+        printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
+        writeResponse(bcd::toBcd(start.mm));
+        writeResponse(bcd::toBcd(start.ss));
     }
 }
 

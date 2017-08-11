@@ -7,6 +7,8 @@
 #include "mips.h"
 #include <imgui.h>
 #include "imgui/imgui_impl_sdl_gl3.h"
+#include "utils/cue/Cue.h"
+
 #undef main
 
 const int CPU_CLOCK = 33868500;
@@ -367,7 +369,7 @@ void renderImgui(mips::CPU *cpu) {
 
 int start(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
-    std::string iso = "data/iso/marilyn.bin";
+    std::string iso = "D:/Games/!PSX/Doom/Doom (Track 1).bin";
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -410,10 +412,16 @@ int start(int argc, char **argv) {
     }
     //    cpu->loadExpansion("data/bios/expansion.rom");
 
+    utils::CueParser parser;
+    //        auto cue = parser.parse("D:/Games/!PSX/Tekken (USA)/Tekken (USA).cue");
+    auto cue = parser.parse("D:/Games/!PSX/Doom/Doom.cue");
+    //    auto cue = parser.parse("D:/Games/!PSX/Vib_Ribbon_6/vib_ribbon_PAL_PSX.cue");
+
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
         bool success = cpu->dma->dma3.load(iso);
         cpu->cdrom->setShell(!success);
+        cpu->cdrom->setCue(cue);
         if (!success) printf("Cannot load iso file: %s\n", iso.c_str());
     }
 
