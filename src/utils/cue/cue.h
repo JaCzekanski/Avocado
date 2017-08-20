@@ -88,7 +88,7 @@ class CueParser {
         if (matches.size() != 2) return false;
 
         lastFile = cuePath + "/" + matches[1].str();
-        if (!fileExists(lastFile)) throw new std::exception(string_format("File %s does not exist", lastFile.c_str()).c_str());
+        if (!fileExists(lastFile)) throw std::runtime_error(string_format("File %s does not exist", lastFile.c_str()).c_str());
         return true;
     }
 
@@ -154,7 +154,7 @@ class CueParser {
         // - If filename is the same - prev.end = next.start
         // - If filenames are different - prev.end = prev.size / SECTOR_SIZE
 
-        for (int i = 0; i < cue.tracks.size(); i++) {
+        for (size_t i = 0; i < cue.tracks.size(); i++) {
             Track& prev = cue.tracks.at(i);
 
             if (i == cue.tracks.size() - 1) {
@@ -176,7 +176,7 @@ class CueParser {
         if (s == "MODE2/2352") return TrackType::DATA;
         if (s == "AUDIO") return TrackType::AUDIO;
 
-        throw new std::exception(string_format("Unsupported track type %s", s).c_str());
+        throw std::runtime_error(string_format("Unsupported track type %s", s).c_str());
     }
 
    public:

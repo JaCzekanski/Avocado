@@ -412,16 +412,10 @@ int start(int argc, char **argv) {
     }
     //    cpu->loadExpansion("data/bios/expansion.rom");
 
-    utils::CueParser parser;
-    //        auto cue = parser.parse("D:/Games/!PSX/Tekken (USA)/Tekken (USA).cue");
-    auto cue = parser.parse("D:/Games/!PSX/Doom/Doom.cue");
-    //    auto cue = parser.parse("D:/Games/!PSX/Vib_Ribbon_6/vib_ribbon_PAL_PSX.cue");
-
     cpu->cdrom->setShell(true);  // open shell
     if (fileExists(iso)) {
         bool success = cpu->dma->dma3.load(iso);
         cpu->cdrom->setShell(!success);
-        cpu->cdrom->setCue(cue);
         if (!success) printf("Cannot load iso file: %s\n", iso.c_str());
     }
 
@@ -498,6 +492,18 @@ int start(int argc, char **argv) {
                     }
                 } else if (ext == "exe" || ext == "psexe") {
                     printf("Dropped .exe, currently not supported.\n");
+                } else if (ext == "cue") {
+                    try {
+                        utils::CueParser parser;
+                        auto cue = parser.parse(path.c_str());
+                        cpu->cdrom->setCue(cue);
+                        bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
+                        cpu->cdrom->setShell(!success);
+
+                        printf("File %s loaded\n", path.c_str());
+                    } catch (std::exception &e) {
+                        printf("Error parsing cue: %s\n", e.what());
+                    }
                 }
             }
             cpu->controller->setState(getButtonState(event));

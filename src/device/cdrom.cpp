@@ -89,9 +89,20 @@ void CDROM::cmdSetloc() {
 
 void CDROM::cmdPlay() {
     // Play NOT IMPLEMENTED
-    // int track = readParam();
-    // param or setloc used
-    printf("CDROM: PLAY\n");
+    utils::Position pos;
+    if (!CDROM_params.empty()) {
+        int track = readParam();  // param or setloc used
+        if (track >= cue.getTrackCount()) {
+            printf("CDROM: Invalid PLAY track parameter (%d)\n", track);
+            return;
+        }
+        pos = cue.tracks[track].start;
+        printf("CDROM: PLAY (track: %d)\n", track);
+    } else {
+        pos = utils::Position::fromLba(readSector + 150);
+    }
+
+    printf("CDROM: PLAY (pos: %s)\n", pos.toString().c_str());
     stat.setMode(StatusCode::Mode::Playing);
 
     CDROM_interrupt.push_back(3);
