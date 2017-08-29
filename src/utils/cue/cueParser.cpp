@@ -11,7 +11,7 @@ bool CueParser::parseFile(std::string& line) {
     if (matches.size() != 2) return false;
 
     lastFile = cuePath + "/" + matches[1].str();
-    if (!fileExists(lastFile)) throw std::runtime_error(string_format("File %s does not exist", lastFile.c_str()).c_str());
+    if (!fileExists(lastFile)) throw std::runtime_error(string_format("File %s does not exist", lastFile.c_str()));
     return true;
 }
 
@@ -99,7 +99,7 @@ TrackType CueParser::matchTrackType(const std::string& s) const {
     if (s == "MODE2/2352") return TrackType::DATA;
     if (s == "AUDIO") return TrackType::AUDIO;
 
-    throw std::runtime_error(string_format("Unsupported track type %s", s).c_str());
+    throw std::runtime_error(string_format("Unsupported track type %s", s.c_str()));
 }
 
 std::unique_ptr<Cue> CueParser::parse(const char* path) {
