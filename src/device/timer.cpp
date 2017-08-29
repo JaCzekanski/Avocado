@@ -1,6 +1,6 @@
 #include "timer.h"
 #include <cstdio>
-#include "../mips.h"
+#include "mips.h"
 
 namespace device {
 namespace timer {

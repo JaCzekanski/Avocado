@@ -1,8 +1,8 @@
 #pragma once
-#include <externals/glad/include/glad/glad.h>
+#include <glad/glad.h>
 #include "shader/Program.h"
 #include <memory>
-#include "../../device/gpu.h"
+#include "device/gpu.h"
 
 class OpenGL {
    public:

@@ -1,5 +1,5 @@
 #include "dmaChannel.h"
-#include "../mips.h"
+#include "mips.h"
 #include <cstdio>
 
 namespace device {

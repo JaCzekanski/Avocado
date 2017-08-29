@@ -1,6 +1,6 @@
 #pragma once
 #include "device.h"
-#include "../utils/cue/cue.h"
+#include "utils/cue/cue.h"
 #include <deque>
 #include <memory>
 

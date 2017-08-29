@@ -1,8 +1,8 @@
 #include "cdrom.h"
-#include "../mips.h"
+#include "mips.h"
 #include <cstdio>
 #include <cassert>
-#include "../utils/bcd.h"
+#include "utils/bcd.h"
 
 namespace device {
 namespace cdrom {

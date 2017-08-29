@@ -1,7 +1,7 @@
 #include "cueParser.h"
 #include <sstream>
-#include "../file.h"
-#include "../string.h"
+#include "utils/file.h"
+#include "utils/string.h"
 
 namespace utils {
 

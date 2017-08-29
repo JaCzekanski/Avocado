@@ -6,7 +6,7 @@ namespace device {
 namespace gpu {
 const int MAX_ARGS = 32;
 
-const char* CommandStr[];
+extern const char* CommandStr[];
 
 union PolygonArgs {
     struct {

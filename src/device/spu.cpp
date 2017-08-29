@@ -1,5 +1,5 @@
 #include "spu.h"
-#include "../mips.h"
+#include "mips.h"
 #include <cassert>
 #include <cstring>
 
@@ -190,7 +190,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         SPUSTAT.write(address - 0x1f801dae, data);
         return;
     }
-   // printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+    // printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
 void SPU::dumpRam() {

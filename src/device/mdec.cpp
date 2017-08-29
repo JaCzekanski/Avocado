@@ -1,5 +1,5 @@
 #include "mdec.h"
-#include "../mips.h"
+#include "mips.h"
 #include <cassert>
 #include <cstring>
 

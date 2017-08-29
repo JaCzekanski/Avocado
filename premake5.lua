@@ -55,7 +55,6 @@ project "Avocado"
 	flags { "C++14" }
 
 	includedirs { 
-		".", 
 		"src", 
 		"externals/imgui",
 		"externals/SDL2/include",
