@@ -1,7 +1,8 @@
 #pragma once
 #include "device.h"
+#include "../utils/cue/cue.h"
 #include <deque>
-#include "../utils/cue/Cue.h"
+#include <memory>
 
 namespace device {
 namespace cdrom {

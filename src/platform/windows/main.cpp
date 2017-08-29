@@ -5,10 +5,9 @@
 #include "renderer/opengl/opengl.h"
 #include "utils/string.h"
 #include "mips.h"
-#include <imgui.h>
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "utils/cue/Cue.h"
 #include "gui.h"
+#include "utils/cue/cueParser.h"
 
 #undef main
 
