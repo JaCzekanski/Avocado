@@ -53,6 +53,41 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
 }
 
 bool running = true;
+
+void loadFile(std::unique_ptr<mips::CPU> &cpu, std::string path) {
+    std::string ext = getExtension(path);
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+    if (ext == "iso" || ext == "bin" || ext == "img") {
+        if (fileExists(path)) {
+            printf("Dropped .iso, loading... ");
+
+            bool success = cpu->dma->dma3.load(path);
+            cpu->cdrom->setShell(!success);
+
+            if (success) {
+                printf("ok.\n");
+            } else {
+                printf("fail.\n");
+            }
+        }
+    } else if (ext == "exe" || ext == "psexe") {
+        printf("Dropped .exe, currently not supported.\n");
+    } else if (ext == "cue") {
+        try {
+            utils::CueParser parser;
+            auto cue = parser.parse(path.c_str());
+            cpu->cdrom->setCue(cue);
+            bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
+            cpu->cdrom->setShell(!success);
+
+            printf("File %s loaded\n", path.c_str());
+        } catch (std::exception &e) {
+            printf("Error parsing cue: %s\n", e.what());
+        }
+    }
+}
+
 int start(int argc, char **argv) {
     std::string bios = "SCPH1001.bin";
     std::string iso = "D:/Games/!PSX/Doom/Doom (Track 1).bin";
@@ -96,14 +131,10 @@ int start(int argc, char **argv) {
     if (cpu->loadBios(bios)) {
         printf("Using bios %s\n", bios.c_str());
     }
-    //        cpu->loadExpansion("data/bios/expansion.rom");
+    //    cpu->loadExpansion("data/bios/expansion.rom");
 
     cpu->cdrom->setShell(true);  // open shell
-    if (fileExists(iso)) {
-        bool success = cpu->dma->dma3.load(iso);
-        cpu->cdrom->setShell(!success);
-        if (!success) printf("Cannot load iso file: %s\n", iso.c_str());
-    }
+    loadFile(cpu, iso);
 
     float startTime = SDL_GetTicks() / 1000.f;
     float fps = 0.f;
@@ -160,37 +191,8 @@ int start(int argc, char **argv) {
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
-                std::string ext = getExtension(path);
-                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
                 SDL_free(event.drop.file);
-
-                if (ext == "iso" || ext == "bin" || ext == "img") {
-                    if (fileExists(path)) {
-                        printf("Dropped .iso, loading... ");
-
-                        bool success = cpu->dma->dma3.load(path);
-                        cpu->cdrom->setShell(!success);
-
-                        if (success)
-                            printf("ok.\n");
-                        else
-                            printf("fail.\n");
-                    }
-                } else if (ext == "exe" || ext == "psexe") {
-                    printf("Dropped .exe, currently not supported.\n");
-                } else if (ext == "cue") {
-                    try {
-                        utils::CueParser parser;
-                        auto cue = parser.parse(path.c_str());
-                        cpu->cdrom->setCue(cue);
-                        bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
-                        cpu->cdrom->setShell(!success);
-
-                        printf("File %s loaded\n", path.c_str());
-                    } catch (std::exception &e) {
-                        printf("Error parsing cue: %s\n", e.what());
-                    }
-                }
+                loadFile(cpu, path);
             }
             cpu->controller->setState(getButtonState(event));
             ImGui_ImplSdlGL3_ProcessEvent(&event);
