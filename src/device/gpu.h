@@ -24,7 +24,7 @@ union PolygonArgs {
     int getArgumentCount() const {
         int size = isQuad ? 4 : 3;
         if (isTextureMapped) size *= 2;
-        if (gouroudShading) size = size * 2 - 1;
+        if (gouroudShading) size += (isQuad ? 4 : 3) - 1;
 
         return size;
     }

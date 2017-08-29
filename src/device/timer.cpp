@@ -36,7 +36,7 @@ void Timer::step(int cycles) {
 
     if (current._reg >= target._reg) {
         mode.reachedTarget = true;
-        if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) current._reg = 0;
+        if (mode.resetToZero == CounterMode::ResetToZero::whenTarget && target._reg != 0) current._reg = 0;  // TODO: HAX?
     }
 
     if (current._reg >= 0xffff) {
