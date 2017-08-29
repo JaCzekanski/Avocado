@@ -68,6 +68,7 @@ project "Avocado"
 	}
 
 	removefiles {
+		"src/imgui/**.*",
 		"src/renderer/**.*",
 		"src/platform/**.*"
 	}
@@ -87,10 +88,9 @@ project "Avocado"
 			"externals/SDL2/lib/x86"
 		}
 		files { 
-			"src/renderer/opengl/**.cpp",
-			"src/renderer/opengl/**.h",
-			"src/platform/windows/**.cpp",
-			"src/platform/windows/**.h"
+			"src/imgui/**.*",
+			"src/renderer/opengl/**.*",
+			"src/platform/windows/**.*"
 		}
 		links { 
 			"SDL2",
