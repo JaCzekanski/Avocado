@@ -2,12 +2,15 @@
 #include <string>
 #include <algorithm>
 #include <SDL.h>
+#include <json.hpp>
 #include "renderer/opengl/opengl.h"
 #include "utils/string.h"
 #include "mips.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "gui.h"
 #include "utils/cue/cueParser.h"
+#include "utils/file.h"
+#include "platform/windows/config.h"
 
 #undef main
 
@@ -89,8 +92,7 @@ void loadFile(std::unique_ptr<mips::CPU> &cpu, std::string path) {
 }
 
 int start(int argc, char **argv) {
-    std::string bios = "SCPH1001.bin";
-    std::string iso = "D:/Games/!PSX/Doom/Doom (Track 1).bin";
+    loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Cannot init SDL\n");
@@ -123,18 +125,27 @@ int start(int argc, char **argv) {
     }
 
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-
     ImGui_ImplSdlGL3_Init(window);
 
     std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
 
-    if (cpu->loadBios(bios)) {
+    std::string bios = config["bios"];
+    if (!bios.empty() && cpu->loadBios(bios)) {
         printf("Using bios %s\n", bios.c_str());
     }
-    //    cpu->loadExpansion("data/bios/expansion.rom");
 
-    cpu->cdrom->setShell(true);  // open shell
-    loadFile(cpu, iso);
+    std::string extension = config["extension"];
+    if (!extension.empty() && cpu->loadExpansion(extension)) {
+        printf("Using extension %s\n", extension.c_str());
+    }
+
+    std::string iso = config["iso"];
+    if (!iso.empty()) {
+        loadFile(cpu, iso);
+        printf("Using iso %s\n", iso.c_str());
+    }
+
+    if (!config["initialized"]) cpu->state = mips::CPU::State::stop;
 
     float startTime = SDL_GetTicks() / 1000.f;
     float fps = 0.f;
@@ -233,6 +244,7 @@ int start(int argc, char **argv) {
         SDL_SetWindowTitle(window, title.c_str());
         SDL_GL_SwapWindow(window);
     }
+    saveConfigFile(CONFIG_NAME);
     ImGui_ImplSdlGL3_Shutdown();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

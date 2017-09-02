@@ -438,11 +438,10 @@ bool CPU::loadExeFile(std::string exePath) {
     return true;
 }
 
-bool CPU::loadBios(std::string name) {
-    std::string path = "data/bios/";
-    auto _bios = getFileContents(path + name);
+bool CPU::loadBios(std::string path) {
+    auto _bios = getFileContents(path);
     if (_bios.empty()) {
-        printf("Cannot open BIOS %s", name.c_str());
+        printf("Cannot open BIOS %s", path.c_str());
         return false;
     }
     assert(_bios.size() == 512 * 1024);

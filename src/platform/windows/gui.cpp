@@ -1,8 +1,12 @@
 #include "gui.h"
 #include <imgui.h>
 #include <cstdint>
+#include <filesystem>
 #include "utils/string.h"
 #include "gte.h"
+#include "platform/windows/config.h"
+
+using namespace std::experimental::filesystem::v1;
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -38,6 +42,8 @@ bool singleFrame = false;
 bool skipRender = false;
 bool showIo = false;
 bool exitProgram = false;
+
+bool showBiosWindow = false;
 
 void replayCommands(mips::gpu::GPU *gpu, int to) {
     auto commands = gpu->gpuLogList;
@@ -302,6 +308,48 @@ void ioLogWindow(mips::CPU *cpu) {
 #endif
 }
 
+void biosSelectionWindow() {
+    static bool biosesFound = false;
+    static std::vector<std::string> bioses;
+    static int currentBiosIndex = 0;
+
+    if (!biosesFound) {
+        bioses.clear();
+        auto dir = directory_iterator("data/bios");
+        for (auto &e : dir) {
+            if (!is_regular_file(e)) continue;
+
+            auto path = e.path().string();
+            auto ext = getExtension(path);
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+            if (ext == "bin" || ext == "rom") {
+                bioses.push_back(path);
+            }
+        }
+        biosesFound = true;
+    }
+
+    ImGui::Begin("BIOS");
+
+    ImGui::ListBox("BIOS", &currentBiosIndex, [](void *data, int idx, const char **out_text) {
+        const std::vector<std::string> *v = (std::vector<std::string> *)data;
+        *out_text = v->at(idx).c_str();
+        return true;
+    }, (void *)&bioses, (int)bioses.size());
+
+    if (ImGui::Button("Select") && currentBiosIndex < bioses.size()) {
+        config["bios"] = bioses[currentBiosIndex];
+        config["initialized"] = true;
+
+        biosesFound = false;
+        showBiosWindow = false;
+        // Send event?
+    }
+
+    ImGui::End();
+}
+
 void renderImgui(mips::CPU *cpu) {
     auto gte = cpu->gte;
 
@@ -343,6 +391,10 @@ void renderImgui(mips::CPU *cpu) {
             ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Options")) {
+            if (ImGui::MenuItem("BIOS", NULL)) showBiosWindow = true;
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
     }
 
@@ -351,6 +403,21 @@ void renderImgui(mips::CPU *cpu) {
     gteLogWindow(cpu);
     gpuLogWindow(cpu);
     ioWindow(cpu);
+
+    if (showBiosWindow) biosSelectionWindow();
+
+    if (!config["initialized"]) {
+        ImGui::Begin("Avocado");
+        ImGui::Text("Avocado needs to be set up before running.");
+        ImGui::Text("You need one of BIOS files placed in data/bios directory.");
+
+        if (ImGui::Button("Select BIOS file")) {
+            showBiosWindow = true;
+            config["initialized"] = true;
+        }
+
+        ImGui::End();
+    }
 
     ImGui::Render();
 }

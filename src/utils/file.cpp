@@ -48,8 +48,8 @@ bool fileExists(std::string name) {
     return exists;
 }
 
-std::vector<unsigned char> getFileContents(std::string name) {
-    std::vector<unsigned char> contents;
+std::vector<uint8_t> getFileContents(std::string name) {
+    std::vector<uint8_t> contents;
 
     FILE *f = fopen(name.c_str(), "rb");
     if (!f) return contents;
@@ -66,6 +66,15 @@ std::vector<unsigned char> getFileContents(std::string name) {
 }
 
 void putFileContents(std::string name, std::vector<unsigned char> &contents) {
+    FILE *f = fopen(name.c_str(), "wb");
+    if (!f) return;
+
+    fwrite(&contents[0], 1, contents.size(), f);
+
+    fclose(f);
+}
+
+void putFileContents(std::string name, std::string contents) {
     FILE *f = fopen(name.c_str(), "wb");
     if (!f) return;
 

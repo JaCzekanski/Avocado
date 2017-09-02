@@ -1,5 +1,5 @@
-workspace "Avocado"
-	configurations { "Debug", "Release" }
+workspace "Avocado"    
+	configurations { "Debug", "Release", "FastDebug" }
 
 newoption {
 	trigger = "disable-load-delay-slots",
@@ -59,7 +59,8 @@ project "Avocado"
 		"externals/imgui",
 		"externals/SDL2/include",
 		"externals/glad/include",
-		"externals/glm"
+		"externals/glm",
+		"externals/json/src"
 	}
 
 	files { 
@@ -80,7 +81,12 @@ project "Avocado"
 	filter "configurations:Release"
 		defines { "NDEBUG" }
 		optimize "Full"
-		
+
+	filter "configurations:FastDebug"
+        defines { "DEBUG" }
+        symbols "On"
+        optimize "Speed"
+			
 	configuration { "windows" }
 		defines { "WIN32" }
 		libdirs { os.findlib("SDL2") }

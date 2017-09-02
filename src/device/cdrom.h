@@ -53,7 +53,7 @@ class CDROM : public Device {
             }
         }
 
-        StatusCode() : _reg(0) {}
+        StatusCode() : _reg(0) { shellOpen = true; }
     };
 
     union CDROM_Status {
