@@ -313,7 +313,7 @@ void ioLogWindow(mips::CPU *cpu) {
 void biosSelectionWindow() {
     static bool biosesFound = false;
     static std::vector<std::string> bioses;
-    static int currentBiosIndex = 0;
+    static int selectedBios = 0;
 
     if (!biosesFound) {
         bioses.clear();
@@ -330,6 +330,14 @@ void biosSelectionWindow() {
             }
         }
         biosesFound = true;
+
+        int i = 0;
+        for (auto it = bioses.begin(); it != bioses.end(); ++it, ++i) {
+            if (*it == config["bios"]) {
+                selectedBios = i;
+                break;
+            }
+        }
     }
 
     ImGui::Begin("BIOS", &showBiosWindow);
@@ -340,14 +348,14 @@ void biosSelectionWindow() {
             ".bin and .rom extensions are recognised.");
     } else {
         ImGui::PushItemWidth(-1);
-        ImGui::ListBox("", &currentBiosIndex, [](void *data, int idx, const char **out_text) {
+        ImGui::ListBox("", &selectedBios, [](void *data, int idx, const char **out_text) {
             const std::vector<std::string> *v = (std::vector<std::string> *)data;
             *out_text = v->at(idx).c_str();
             return true;
         }, (void *)&bioses, (int)bioses.size());
 
-        if (ImGui::Button("Select") && currentBiosIndex < bioses.size()) {
-            config["bios"] = bioses[currentBiosIndex];
+        if (ImGui::Button("Select") && selectedBios < bioses.size()) {
+            config["bios"] = bioses[selectedBios];
             config["initialized"] = true;
 
             biosesFound = false;
