@@ -91,6 +91,28 @@ void loadFile(std::unique_ptr<mips::CPU> &cpu, std::string path) {
     }
 }
 
+std::unique_ptr<mips::CPU> cpu;
+
+void hardReset() {
+    cpu = std::make_unique<mips::CPU>();
+
+    std::string bios = config["bios"];
+    if (!bios.empty() && cpu->loadBios(bios)) {
+        printf("Using bios %s\n", bios.c_str());
+    }
+
+    std::string extension = config["extension"];
+    if (!extension.empty() && cpu->loadExpansion(extension)) {
+        printf("Using extension %s\n", extension.c_str());
+    }
+
+    std::string iso = config["iso"];
+    if (!iso.empty()) {
+        loadFile(cpu, iso);
+        printf("Using iso %s\n", iso.c_str());
+    }
+}
+
 int start(int argc, char **argv) {
     loadConfigFile(CONFIG_NAME);
 
@@ -124,27 +146,12 @@ int start(int argc, char **argv) {
         return 1;
     }
 
+    hardReset();
+
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     ImGui_ImplSdlGL3_Init(window);
 
-    std::unique_ptr<mips::CPU> cpu = std::make_unique<mips::CPU>();
-
-    std::string bios = config["bios"];
-    if (!bios.empty() && cpu->loadBios(bios)) {
-        printf("Using bios %s\n", bios.c_str());
-    }
-
-    std::string extension = config["extension"];
-    if (!extension.empty() && cpu->loadExpansion(extension)) {
-        printf("Using extension %s\n", extension.c_str());
-    }
-
-    std::string iso = config["iso"];
-    if (!iso.empty()) {
-        loadFile(cpu, iso);
-        printf("Using iso %s\n", iso.c_str());
-    }
-
+    vramTextureId = opengl.getVramTextureId();
     if (!config["initialized"]) cpu->state = mips::CPU::State::stop;
 
     float startTime = SDL_GetTicks() / 1000.f;
@@ -215,6 +222,11 @@ int start(int argc, char **argv) {
             else
                 SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
             opengl.setViewFullVram(showVRAM);
+        }
+
+        if (doHardReset) {
+            doHardReset = false;
+            hardReset();
         }
 
         if (cpu->state == mips::CPU::State::run) {

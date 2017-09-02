@@ -32,7 +32,7 @@ const char *mapIo(uint32_t address) {
     IO(0x1000, 0x1043, "exp2");
     return "";
 }
-
+int vramTextureId = 0;
 bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
 bool gteLogEnabled = false;
@@ -42,7 +42,9 @@ bool singleFrame = false;
 bool skipRender = false;
 bool showIo = false;
 bool exitProgram = false;
+bool doHardReset = false;
 
+bool showVramWindow = false;
 bool showBiosWindow = false;
 
 void replayCommands(mips::gpu::GPU *gpu, int to) {
@@ -330,23 +332,38 @@ void biosSelectionWindow() {
         biosesFound = true;
     }
 
-    ImGui::Begin("BIOS");
+    ImGui::Begin("BIOS", &showBiosWindow);
+    if (bioses.empty()) {
+        ImGui::Text(
+            "BIOS directory is empty.\n"
+            "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
+            ".bin and .rom extensions are recognised.");
+    } else {
+        ImGui::PushItemWidth(-1);
+        ImGui::ListBox("", &currentBiosIndex, [](void *data, int idx, const char **out_text) {
+            const std::vector<std::string> *v = (std::vector<std::string> *)data;
+            *out_text = v->at(idx).c_str();
+            return true;
+        }, (void *)&bioses, (int)bioses.size());
 
-    ImGui::ListBox("BIOS", &currentBiosIndex, [](void *data, int idx, const char **out_text) {
-        const std::vector<std::string> *v = (std::vector<std::string> *)data;
-        *out_text = v->at(idx).c_str();
-        return true;
-    }, (void *)&bioses, (int)bioses.size());
+        if (ImGui::Button("Select") && currentBiosIndex < bioses.size()) {
+            config["bios"] = bioses[currentBiosIndex];
+            config["initialized"] = true;
 
-    if (ImGui::Button("Select") && currentBiosIndex < bioses.size()) {
-        config["bios"] = bioses[currentBiosIndex];
-        config["initialized"] = true;
-
-        biosesFound = false;
-        showBiosWindow = false;
-        // Send event?
+            biosesFound = false;
+            //        showBiosWindow = false;
+            doHardReset = true;
+        }
+        ImGui::PopItemWidth();
     }
+    ImGui::End();
+}
 
+void vramWindow() {
+    auto defaultSize = ImVec2(1024, 512);
+    ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
+    ImGui::Image(ImTextureID(vramTextureId), ImGui::GetWindowSize());
+    if (ImGui::Button("Reset size")) ImGui::SetWindowSize(defaultSize);
     ImGui::End();
 }
 
@@ -361,9 +378,8 @@ void renderImgui(mips::CPU *cpu) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Emulation")) {
-            if (ImGui::MenuItem("Soft reset", "F2")) {
-                cpu->softReset();
-            }
+            if (ImGui::MenuItem("Soft reset", "F2")) cpu->softReset();
+            if (ImGui::MenuItem("Hard reset")) doHardReset = true;
 
             const char *shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
             if (ImGui::MenuItem(shellStatus, "F3")) {
@@ -386,8 +402,7 @@ void renderImgui(mips::CPU *cpu) {
 #endif
             ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
             ImGui::MenuItem("GPU log", NULL, &gpuLogEnabled);
-            if (ImGui::MenuItem("Show VRAM", NULL, &showVRAM)) {
-            }
+            ImGui::MenuItem("VRAM window", NULL, &showVramWindow);
             ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
             ImGui::EndMenu();
         }
@@ -405,6 +420,7 @@ void renderImgui(mips::CPU *cpu) {
     ioWindow(cpu);
 
     if (showBiosWindow) biosSelectionWindow();
+    if (showVramWindow) vramWindow();
 
     if (!config["initialized"]) {
         ImGui::Begin("Avocado");

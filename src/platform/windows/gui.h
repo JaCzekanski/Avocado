@@ -2,6 +2,7 @@
 #include "mips.h"
 
 void renderImgui(mips::CPU *cpu);
+extern int vramTextureId;
 extern bool gteRegistersEnabled;
 extern bool ioLogEnabled;
 extern bool gteLogEnabled;
@@ -11,3 +12,4 @@ extern bool singleFrame;
 extern bool skipRender;
 extern bool showIo;
 extern bool exitProgram;
+extern bool doHardReset;
