@@ -33,6 +33,29 @@ class DigitalController {
         uint8_t _byte[2];
     };
 
+    void setByName(std::string &name, bool value) {
+#define BUTTON(x)     \
+    if (name == #x) { \
+        x = value;    \
+        return;       \
+    }
+        BUTTON(select)
+        BUTTON(start)
+        BUTTON(up)
+        BUTTON(right)
+        BUTTON(down)
+        BUTTON(left)
+        BUTTON(l2)
+        BUTTON(r2)
+        BUTTON(l1)
+        BUTTON(r1)
+        BUTTON(triangle)
+        BUTTON(circle)
+        BUTTON(cross)
+        BUTTON(square)
+#undef BUTTON
+    }
+
     uint8_t handle(uint8_t byte);
     bool getAck();
     DigitalController() : _reg(0) {}

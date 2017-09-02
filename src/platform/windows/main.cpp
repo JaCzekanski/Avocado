@@ -19,37 +19,12 @@ const int GPU_CLOCK_NTSC = 53690000;
 
 device::controller::DigitalController &getButtonState(SDL_Event &event) {
     static device::controller::DigitalController buttons;
-    if (event.type == SDL_KEYDOWN) {
-        if (event.key.keysym.sym == SDLK_UP) buttons.up = true;
-        if (event.key.keysym.sym == SDLK_DOWN) buttons.down = true;
-        if (event.key.keysym.sym == SDLK_LEFT) buttons.left = true;
-        if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = true;
-        if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = true;
-        if (event.key.keysym.sym == SDLK_KP_8) buttons.triangle = true;
-        if (event.key.keysym.sym == SDLK_KP_4) buttons.square = true;
-        if (event.key.keysym.sym == SDLK_KP_6) buttons.circle = true;
-        if (event.key.keysym.sym == SDLK_KP_3) buttons.start = true;
-        if (event.key.keysym.sym == SDLK_KP_1) buttons.select = true;
-        if (event.key.keysym.sym == SDLK_KP_7) buttons.l1 = true;
-        if (event.key.keysym.sym == SDLK_KP_DIVIDE) buttons.l2 = true;
-        if (event.key.keysym.sym == SDLK_KP_9) buttons.r1 = true;
-        if (event.key.keysym.sym == SDLK_KP_MULTIPLY) buttons.r2 = true;
-    }
-    if (event.type == SDL_KEYUP) {
-        if (event.key.keysym.sym == SDLK_UP) buttons.up = false;
-        if (event.key.keysym.sym == SDLK_DOWN) buttons.down = false;
-        if (event.key.keysym.sym == SDLK_LEFT) buttons.left = false;
-        if (event.key.keysym.sym == SDLK_RIGHT) buttons.right = false;
-        if (event.key.keysym.sym == SDLK_KP_2) buttons.cross = false;
-        if (event.key.keysym.sym == SDLK_KP_8) buttons.triangle = false;
-        if (event.key.keysym.sym == SDLK_KP_4) buttons.square = false;
-        if (event.key.keysym.sym == SDLK_KP_6) buttons.circle = false;
-        if (event.key.keysym.sym == SDLK_KP_3) buttons.start = false;
-        if (event.key.keysym.sym == SDLK_KP_1) buttons.select = false;
-        if (event.key.keysym.sym == SDLK_KP_7) buttons.l1 = false;
-        if (event.key.keysym.sym == SDLK_KP_DIVIDE) buttons.l2 = false;
-        if (event.key.keysym.sym == SDLK_KP_9) buttons.r1 = false;
-        if (event.key.keysym.sym == SDLK_KP_MULTIPLY) buttons.r2 = false;
+    for (auto it = config["controller"].begin(); it != config["controller"].end(); ++it) {
+        auto button = it.key();
+        auto keyName = it.value().get<std::string>();
+        auto keyCode = SDL_GetKeyFromName(keyName.c_str());
+
+        if (event.key.keysym.sym == keyCode) buttons.setByName(button, event.type == SDL_KEYDOWN);
     }
 
     return buttons;
@@ -170,6 +145,11 @@ int start(int argc, char **argv) {
             newEvent = false;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                if (waitingForKeyPress) {
+                    waitingForKeyPress = false;
+                    if (event.key.keysym.sym != SDLK_ESCAPE) lastPressedKey = event.key.keysym.sym;
+                    continue;
+                }
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(device::interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);

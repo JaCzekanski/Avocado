@@ -8,7 +8,23 @@ nlohmann::json config = {
 	{"initialized", false}, 
 	{"bios", ""}, 
 	{"extension", ""}, 
-	{"iso", ""}
+	{"iso", ""},
+	{"controller", {
+		{"up",      "Up"},
+		{"right",   "Right"},
+		{"down",    "Down"},
+		{"left",    "Left"},
+		{"triangle","Keypad 8"},
+		{"circle",  "Keypad 6"},
+		{"cross",   "Keypad 2"},
+		{"square",  "Keypad 4"},
+		{"l1",      "Keypad 7"},
+		{"r1",      "Keypad 9"},
+		{"l2",      "Keypad /"},
+		{"r2",      "Keypad *"},
+		{"select",  "Right Shift"},
+		{"start",   "Return"},
+	}}
 };
 // clang-format on
 

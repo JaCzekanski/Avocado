@@ -1,5 +1,6 @@
 #pragma once
 #include "mips.h"
+#include <SDL.h>
 
 void renderImgui(mips::CPU *cpu);
 extern int vramTextureId;
@@ -13,3 +14,5 @@ extern bool skipRender;
 extern bool showIo;
 extern bool exitProgram;
 extern bool doHardReset;
+extern bool waitingForKeyPress;
+extern SDL_Keycode lastPressedKey;

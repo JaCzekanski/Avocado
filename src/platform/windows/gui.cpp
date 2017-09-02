@@ -43,9 +43,13 @@ bool skipRender = false;
 bool showIo = false;
 bool exitProgram = false;
 bool doHardReset = false;
+bool waitingForKeyPress = false;
+SDL_Keycode lastPressedKey = 0;
 
+bool notInitializedWindowShown = false;
 bool showVramWindow = false;
 bool showBiosWindow = false;
+bool showControllerSetupWindow = false;
 
 void replayCommands(mips::gpu::GPU *gpu, int to) {
     auto commands = gpu->gpuLogList;
@@ -340,30 +344,83 @@ void biosSelectionWindow() {
         }
     }
 
-    ImGui::Begin("BIOS", &showBiosWindow);
+    ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
     if (bioses.empty()) {
         ImGui::Text(
             "BIOS directory is empty.\n"
             "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
             ".bin and .rom extensions are recognised.");
     } else {
-        ImGui::PushItemWidth(-1);
+        ImGui::PushItemWidth(300.f);
         ImGui::ListBox("", &selectedBios, [](void *data, int idx, const char **out_text) {
             const std::vector<std::string> *v = (std::vector<std::string> *)data;
             *out_text = v->at(idx).c_str();
             return true;
         }, (void *)&bioses, (int)bioses.size());
+        ImGui::PopItemWidth();
 
-        if (ImGui::Button("Select") && selectedBios < bioses.size()) {
+        if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < bioses.size()) {
             config["bios"] = bioses[selectedBios];
             config["initialized"] = true;
 
             biosesFound = false;
-            //        showBiosWindow = false;
+            showBiosWindow = false;
             doHardReset = true;
         }
-        ImGui::PopItemWidth();
     }
+    ImGui::End();
+}
+
+void button(std::string button) {
+    static std::string currentButton = "";
+
+    if (button == currentButton && lastPressedKey != 0) {
+        config["controller"][button] = SDL_GetKeyName(lastPressedKey);
+        lastPressedKey = 0;
+    }
+
+    std::string key = config["controller"][button];
+
+    ImGui::Text(button.c_str());
+    ImGui::NextColumn();
+    if (ImGui::Button(key.c_str(), ImVec2(100.f, 0.f))) {
+        currentButton = button;
+        waitingForKeyPress = true;
+        ImGui::OpenPopup("Waiting for key...");
+    }
+    ImGui::NextColumn();
+}
+
+void controllerSetupWindow() {
+    ImGui::Begin("Controller", &showControllerSetupWindow, ImGuiWindowFlags_AlwaysAutoResize);
+
+    if (ImGui::BeginPopupModal("Waiting for key...", &waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Press any key (ESC to cancel).");
+        ImGui::EndPopup();
+    }
+
+    ImGui::Text("Controller 1 key mapping");
+
+    ImGui::Columns(2, 0, false);
+    button("up");
+    button("down");
+    button("left");
+    button("right");
+
+    button("triangle");
+    button("cross");
+    button("square");
+    button("circle");
+
+    button("l1");
+    button("r1");
+    button("l2");
+    button("r2");
+
+    button("select");
+    button("start");
+
+    ImGui::Columns(1);
     ImGui::End();
 }
 
@@ -380,9 +437,7 @@ void renderImgui(mips::CPU *cpu) {
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Exit")) {
-                exitProgram = false;
-            }
+            if (ImGui::MenuItem("Exit")) exitProgram = true;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Emulation")) {
@@ -416,6 +471,7 @@ void renderImgui(mips::CPU *cpu) {
         }
         if (ImGui::BeginMenu("Options")) {
             if (ImGui::MenuItem("BIOS", NULL)) showBiosWindow = true;
+            if (ImGui::MenuItem("Controller", NULL)) showControllerSetupWindow = true;
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -429,18 +485,23 @@ void renderImgui(mips::CPU *cpu) {
 
     if (showBiosWindow) biosSelectionWindow();
     if (showVramWindow) vramWindow();
+    if (showControllerSetupWindow) controllerSetupWindow();
 
-    if (!config["initialized"]) {
-        ImGui::Begin("Avocado");
+    if (!config["initialized"] && !notInitializedWindowShown) {
+        notInitializedWindowShown = true;
+        ImGui::OpenPopup("Avocado");
+    }
+
+    if (ImGui::BeginPopupModal("Avocado", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Avocado needs to be set up before running.");
         ImGui::Text("You need one of BIOS files placed in data/bios directory.");
 
         if (ImGui::Button("Select BIOS file")) {
             showBiosWindow = true;
-            config["initialized"] = true;
+            ImGui::CloseCurrentPopup();
         }
 
-        ImGui::End();
+        ImGui::EndPopup();
     }
 
     ImGui::Render();
