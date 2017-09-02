@@ -1,12 +1,9 @@
 #include "gui.h"
 #include <imgui.h>
-#include <cstdint>
-#include <filesystem>
 #include "utils/string.h"
 #include "gte.h"
-#include "platform/windows/config.h"
 
-using namespace std::experimental::filesystem::v1;
+extern bool showVramWindow;
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -32,24 +29,6 @@ const char *mapIo(uint32_t address) {
     IO(0x1000, 0x1043, "exp2");
     return "";
 }
-int vramTextureId = 0;
-bool gteRegistersEnabled = false;
-bool ioLogEnabled = false;
-bool gteLogEnabled = false;
-bool gpuLogEnabled = false;
-bool showVRAM = false;
-bool singleFrame = false;
-bool skipRender = false;
-bool showIo = false;
-bool exitProgram = false;
-bool doHardReset = false;
-bool waitingForKeyPress = false;
-SDL_Keycode lastPressedKey = 0;
-
-bool notInitializedWindowShown = false;
-bool showVramWindow = false;
-bool showBiosWindow = false;
-bool showControllerSetupWindow = false;
 
 void replayCommands(mips::gpu::GPU *gpu, int to) {
     auto commands = gpu->gpuLogList;
@@ -314,195 +293,10 @@ void ioLogWindow(mips::CPU *cpu) {
 #endif
 }
 
-void biosSelectionWindow() {
-    static bool biosesFound = false;
-    static std::vector<std::string> bioses;
-    static int selectedBios = 0;
-
-    if (!biosesFound) {
-        bioses.clear();
-        auto dir = directory_iterator("data/bios");
-        for (auto &e : dir) {
-            if (!is_regular_file(e)) continue;
-
-            auto path = e.path().string();
-            auto ext = getExtension(path);
-            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-            if (ext == "bin" || ext == "rom") {
-                bioses.push_back(path);
-            }
-        }
-        biosesFound = true;
-
-        int i = 0;
-        for (auto it = bioses.begin(); it != bioses.end(); ++it, ++i) {
-            if (*it == config["bios"]) {
-                selectedBios = i;
-                break;
-            }
-        }
-    }
-
-    ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
-    if (bioses.empty()) {
-        ImGui::Text(
-            "BIOS directory is empty.\n"
-            "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
-            ".bin and .rom extensions are recognised.");
-    } else {
-        ImGui::PushItemWidth(300.f);
-        ImGui::ListBox("", &selectedBios, [](void *data, int idx, const char **out_text) {
-            const std::vector<std::string> *v = (std::vector<std::string> *)data;
-            *out_text = v->at(idx).c_str();
-            return true;
-        }, (void *)&bioses, (int)bioses.size());
-        ImGui::PopItemWidth();
-
-        if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < bioses.size()) {
-            config["bios"] = bioses[selectedBios];
-            config["initialized"] = true;
-
-            biosesFound = false;
-            showBiosWindow = false;
-            doHardReset = true;
-        }
-    }
-    ImGui::End();
-}
-
-void button(std::string button) {
-    static std::string currentButton = "";
-
-    if (button == currentButton && lastPressedKey != 0) {
-        config["controller"][button] = SDL_GetKeyName(lastPressedKey);
-        lastPressedKey = 0;
-    }
-
-    std::string key = config["controller"][button];
-
-    ImGui::Text(button.c_str());
-    ImGui::NextColumn();
-    if (ImGui::Button(key.c_str(), ImVec2(100.f, 0.f))) {
-        currentButton = button;
-        waitingForKeyPress = true;
-        ImGui::OpenPopup("Waiting for key...");
-    }
-    ImGui::NextColumn();
-}
-
-void controllerSetupWindow() {
-    ImGui::Begin("Controller", &showControllerSetupWindow, ImGuiWindowFlags_AlwaysAutoResize);
-
-    if (ImGui::BeginPopupModal("Waiting for key...", &waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Press any key (ESC to cancel).");
-        ImGui::EndPopup();
-    }
-
-    ImGui::Text("Controller 1 key mapping");
-
-    ImGui::Columns(2, 0, false);
-    button("up");
-    button("down");
-    button("left");
-    button("right");
-
-    button("triangle");
-    button("cross");
-    button("square");
-    button("circle");
-
-    button("l1");
-    button("r1");
-    button("l2");
-    button("r2");
-
-    button("select");
-    button("start");
-
-    ImGui::Columns(1);
-    ImGui::End();
-}
-
 void vramWindow() {
     auto defaultSize = ImVec2(1024, 512);
     ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
     ImGui::Image(ImTextureID(vramTextureId), ImGui::GetWindowSize());
     if (ImGui::Button("Reset size")) ImGui::SetWindowSize(defaultSize);
     ImGui::End();
-}
-
-void renderImgui(mips::CPU *cpu) {
-    auto gte = cpu->gte;
-
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Exit")) exitProgram = true;
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Emulation")) {
-            if (ImGui::MenuItem("Soft reset", "F2")) cpu->softReset();
-            if (ImGui::MenuItem("Hard reset")) doHardReset = true;
-
-            const char *shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
-            if (ImGui::MenuItem(shellStatus, "F3")) {
-                cpu->cdrom->toggleShell();
-            }
-
-            if (ImGui::MenuItem("Single frame", "F7")) {
-                singleFrame = true;
-                cpu->state = mips::CPU::State::run;
-            }
-
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Debug")) {
-            ImGui::MenuItem("IO", NULL, &showIo);
-            ImGui::MenuItem("GTE registers", NULL, &gteRegistersEnabled);
-            ImGui::MenuItem("BIOS log", "F5", &cpu->biosLog);
-#ifdef ENABLE_IO_LOG
-            ImGui::MenuItem("IO log", NULL, &ioLogEnabled);
-#endif
-            ImGui::MenuItem("GTE log", NULL, &gteLogEnabled);
-            ImGui::MenuItem("GPU log", NULL, &gpuLogEnabled);
-            ImGui::MenuItem("VRAM window", NULL, &showVramWindow);
-            ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Options")) {
-            if (ImGui::MenuItem("BIOS", NULL)) showBiosWindow = true;
-            if (ImGui::MenuItem("Controller", NULL)) showControllerSetupWindow = true;
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
-    }
-
-    gteRegistersWindow(gte);
-    ioLogWindow(cpu);
-    gteLogWindow(cpu);
-    gpuLogWindow(cpu);
-    ioWindow(cpu);
-
-    if (showBiosWindow) biosSelectionWindow();
-    if (showVramWindow) vramWindow();
-    if (showControllerSetupWindow) controllerSetupWindow();
-
-    if (!config["initialized"] && !notInitializedWindowShown) {
-        notInitializedWindowShown = true;
-        ImGui::OpenPopup("Avocado");
-    }
-
-    if (ImGui::BeginPopupModal("Avocado", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Avocado needs to be set up before running.");
-        ImGui::Text("You need one of BIOS files placed in data/bios directory.");
-
-        if (ImGui::Button("Select BIOS file")) {
-            showBiosWindow = true;
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
-    }
-
-    ImGui::Render();
 }

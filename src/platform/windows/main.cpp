@@ -7,7 +7,7 @@
 #include "utils/string.h"
 #include "mips.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "gui.h"
+#include "platform/windows/gui/gui.h"
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "platform/windows/config.h"
