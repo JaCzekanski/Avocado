@@ -337,15 +337,10 @@ bool CPU::executeInstructions(int count) {
 
         bool isJumpCycle = shouldJump;
         const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
-        _mnemonic = (char *)op.mnemnic;
 
         op.instruction(this, _opcode);
 
         moveLoadDelaySlots();
-
-        if (disassemblyEnabled) {
-            printf("   0x%08x  %08x:    %s %s\n", PC, _opcode.opcode, _mnemonic, _disasm.c_str());
-        }
 
         if (exception) {
             exception = false;

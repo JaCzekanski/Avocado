@@ -4,6 +4,8 @@
 
 namespace debugger {
 
+bool mapRegisterNames = true;
+
 // clang-format off
 const char *regNames[] = { 
 	"zero", 
@@ -21,20 +23,28 @@ const char *regNames[] = {
 };
 // clang-format on
 
+std::string reg(int n) {
+    if (mapRegisterNames)
+        return regNames[n];
+    else
+        return string_format("r%d", n);
+}
+
 std::string mapSpecialInstruction(mipsInstructions::Opcode &i);
 
 std::string decodeInstruction(mipsInstructions::Opcode &i) {
     std::string disasm;
 
-#define LOADTYPE string_format("r%d, 0x%hx(r%d)", i.rt, i.offset, i.rs);
-#define ITYPE string_format("r%d, r%d, 0x%hx", i.rt, i.rs, i.offset)
+#define R(x) reg(x).c_str()
+#define LOADTYPE string_format("%s, 0x%hx(%s)", R(i.rt), i.offset, R(i.rs));
+#define ITYPE string_format("%s, %s, 0x%hx", R(i.rt), R(i.rs), i.offset)
 #define JTYPE string_format("0x%x", i.target * 4)
 #define O(n, mnemonic, d)                          \
     case n:                                        \
         disasm = std::string(mnemonic) + "  " + d; \
         break
 
-#define BRANCH_TYPE string_format("r%d, %d", i.rs, i.offset)
+#define BRANCH_TYPE string_format("%s, %d", R(i.rs), i.offset)
 
     switch (i.op) {
         case 0:
@@ -100,8 +110,8 @@ std::string decodeInstruction(mipsInstructions::Opcode &i) {
 }
 
 std::string mapSpecialInstruction(mipsInstructions::Opcode &i) {
-#define SHIFT_TYPE string_format("r%d, r%d, %d", i.rd, i.rt, i.sh)
-#define ATYPE string_format("r%d, r%d, %d", i.rd, i.rs, i.rt)
+#define SHIFT_TYPE string_format("%s, %s, %d", R(i.rd), R(i.rt), i.sh)
+#define ATYPE string_format("%s, %s, %s", R(i.rd), R(i.rs), R(i.rt))
 
     std::string disasm;
     switch (i.fun) {
@@ -119,20 +129,20 @@ std::string mapSpecialInstruction(mipsInstructions::Opcode &i) {
             O(6, "srlv", SHIFT_TYPE);
             O(7, "srav", SHIFT_TYPE);
 
-            O(8, "jr", string_format("r%d", i.rs));
-            O(9, "jalr", string_format("r%d r%d", i.rd, i.rs));
+            O(8, "jr", string_format("%s", R(i.rs)));
+            O(9, "jalr", string_format("%s %s", R(i.rd), R(i.rs)));
             O(12, "syscall", "");
             O(13, "break", "");
 
-            O(16, "mfhi", string_format("r%d", i.rd));
-            O(17, "mthi", string_format("r%d", i.rs));
-            O(18, "mflo", string_format("r%d", i.rd));
-            O(19, "mtlo", string_format("r%d", i.rs));
+            O(16, "mfhi", string_format("%s", R(i.rd)));
+            O(17, "mthi", string_format("%s", R(i.rs)));
+            O(18, "mflo", string_format("%s", R(i.rd)));
+            O(19, "mtlo", string_format("%s", R(i.rs)));
 
-            O(24, "mult", string_format("r%d, r%d", i.rs, i.rt));
-            O(25, "multu", string_format("r%d, r%d", i.rs, i.rt));
-            O(26, "div", string_format("r%d, r%d", i.rs, i.rt));
-            O(27, "divu", string_format("r%d, r%d", i.rs, i.rt));
+            O(24, "mult", string_format("%s, %s", R(i.rs), R(i.rt)));
+            O(25, "multu", string_format("%s, %s", R(i.rs), R(i.rt)));
+            O(26, "div", string_format("%s, %s", R(i.rs), R(i.rt)));
+            O(27, "divu", string_format("%s, %s", R(i.rs), R(i.rt)));
 
             O(32, "add", ATYPE);
             O(33, "addu", ATYPE);

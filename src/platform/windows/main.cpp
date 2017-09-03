@@ -175,9 +175,6 @@ int start(int argc, char **argv) {
                 if (event.key.keysym.sym == SDLK_F5) {
                     cpu->biosLog = !cpu->biosLog;
                 }
-                if (event.key.keysym.sym == SDLK_F6) {
-                    cpu->disassemblyEnabled = !cpu->disassemblyEnabled;
-                }
                 if (event.key.keysym.sym == SDLK_F7) {
                     singleFrame = true;
                     cpu->state = mips::CPU::State::run;

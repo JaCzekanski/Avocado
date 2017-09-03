@@ -68,7 +68,7 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
             ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
             ImGui::MenuItem("VRAM window", nullptr, &showVramWindow);
-            ImGui::MenuItem("Disassembly (slow)", "F6", &cpu->disassemblyEnabled);
+            ImGui::MenuItem("Disassembly", "F6");
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
