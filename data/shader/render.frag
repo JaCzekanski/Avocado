@@ -52,7 +52,7 @@ vec4 readClut(vec2 coord, uvec2 clut)
 }
 vec4 clut4bit(vec2 coord, uvec2 clut)
 {
-	int texX = int(coord.x / 4.0)&0xff;
+	int texX = int(coord.x / 4.0) & 0xff;
 	int texY = int(coord.y) & 0xff;
 
 	texX += int(fragTexpage.x);
@@ -61,7 +61,7 @@ vec4 clut4bit(vec2 coord, uvec2 clut)
 	vec4 firstStage = vramRead(texX, texY);
 	uint index = internalToPsxColor(firstStage);
 
-	uint part = uint(mod(coord.x, 4.0));
+	uint part = uint(coord.x) & 3u;
 	uint which = index >> (part * 4u);
 	which = which & 15u;
 
@@ -79,9 +79,9 @@ vec4 clut8bit(vec2 coord, uvec2 clut)
 	vec4 firstStage = vramRead(texX, texY);
 	uint index = internalToPsxColor(firstStage);
 
-	uint part = uint(mod(coord.x, 2.0));
+	uint part = uint(coord.x) & 1u;
 	uint which = index >> (part * 8u);
-	which = which & 0xffU;
+	which = which & 0xffu;
 
 	return vramRead( int(clut.x + which), int(clut.y));
 }
@@ -106,14 +106,16 @@ void main()
 	else if (fragBitcount == 16U) color = read16bit(fragTexcoord);
 	else color = vec4(fragColor, 0.0);
 
-	if (((fragFlags & 1u) == 1u) && internalToPsxColor(color) == 0x0000u) discard;
+	// Transparency
+	if (((fragFlags & 1u) == 1u || fragBitcount > 0u) && internalToPsxColor(color) == 0x0000u) discard;
 
-	// Brightness calculation
-	// if ((fragFlags & 2u) == 2u) {
-		if (fragColor.r != 0x80u) color.r = mix(color.r, fragColor.r, 0.5);
-		if (fragColor.g != 0x80u) color.g = mix(color.g, fragColor.g, 0.5);
-		if (fragColor.b != 0x80u) color.b = mix(color.b, fragColor.b, 0.5);
-	// }
+	// If textured and if not raw texture, add brightness
+	if (fragBitcount > 0u && (fragFlags & 2u) != 2u) {
+		color.r += (fragColor.r - 0.5f) * 0.5f;
+		color.g += (fragColor.g - 0.5f) * 0.5f;
+		color.b += (fragColor.b - 0.5f) * 0.5f;
+	}
+
 
 	outColor = color;
 }

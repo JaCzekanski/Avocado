@@ -86,6 +86,7 @@ project "Avocado"
         defines { "DEBUG" }
         symbols "On"
         optimize "Speed"
+        editandcontinue "On"
 			
 	configuration { "windows" }
 		defines { "WIN32" }

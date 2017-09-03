@@ -10,7 +10,7 @@ extern const char* CommandStr[];
 
 union PolygonArgs {
     struct {
-        uint8_t _brightnessCalculation : 1;
+        uint8_t isRawTexture : 1;
         uint8_t semiTransparency : 1;
         uint8_t isTextureMapped : 1;
         uint8_t isQuad : 1;
@@ -50,7 +50,7 @@ union LineArgs {
 
 union RectangleArgs {
     struct {
-        uint8_t _brightnessCalculation : 1;  // aka color blending
+        uint8_t isRawTexture : 1;
         uint8_t semiTransparency : 1;
         uint8_t isTextureMapped : 1;
         uint8_t size : 2;

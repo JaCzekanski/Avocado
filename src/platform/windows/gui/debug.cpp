@@ -207,7 +207,7 @@ void gpuLogWindow(mips::CPU *cpu) {
     ImGuiListClipper clipper(cpu->getGPU()->gpuLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-            auto entry = cpu->getGPU()->gpuLogList[i];
+            auto &entry = cpu->getGPU()->gpuLogList[i];
 
             bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
 
@@ -218,7 +218,7 @@ void gpuLogWindow(mips::CPU *cpu) {
 
             if (nodeOpen) {
                 // Render arguments
-                for (auto arg : entry.args) {
+                for (auto &arg : entry.args) {
                     ImGui::Text("- 0x%08x", arg);
                 }
                 ImGui::TreePop();

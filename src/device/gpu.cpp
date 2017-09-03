@@ -82,9 +82,9 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
-            uint8_t r = c[i] & 0xff;
-            uint8_t g = (c[i] >> 8) & 0xff;
-            uint8_t b = (c[i] >> 16) & 0xff;
+            int r = c[i] & 0xff;
+            int g = (c[i] >> 8) & 0xff;
+            int b = (c[i] >> 16) & 0xff;
             renderList.push_back({{x[i], y[i]}, {r, g, b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags});
         }
     }
@@ -120,13 +120,11 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
         y[i] = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
 
-        if (!arg._brightnessCalculation && (!arg.gouroudShading || i == 0)) c[i] = arguments[0] & 0xffffff;
+        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i] = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
         if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1] = arguments[ptr++];
     }
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped,
-                (arg.semiTransparency ? 1 : arg.isTextureMapped) |  // Semi transparency problems in SCPH-101 menu
-                    (arg._brightnessCalculation ? 2 : 0));
+    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, (arg.semiTransparency << 0) | (arg.isRawTexture << 1));
 
     cmd = Command::None;
 }
@@ -161,7 +159,7 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
         // TODO: Switch to proprer line rendering
         // TODO:           ^^^^^^^ fix typo
 
-        drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency ? 0 : 1) << 0);
+        drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency << 0));
     }
 
     cmd = Command::None;
@@ -189,14 +187,13 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
         int texX = arguments[2] & 0xff;
         int texY = (arguments[2] & 0xff00) >> 8;
 
-        _t[0] = arguments[2];
-        _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);
-        _t[2] = tex(texX, texY + h - 1);
-        _t[3] = tex(texX + w, texY + h - 1);
+        _t[0] = arguments[2];                               // Texcoord 1 + Palette
+        _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);  // Texcoord2 + texpage
+        _t[2] = tex(texX, texY + h - 1);                    // Texcoord3
+        _t[3] = tex(texX + w, texY + h - 1);                // Texcoord4
 #undef tex
     }
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped,
-                (arg.semiTransparency ? 1 : arg.isTextureMapped) | (arg._brightnessCalculation ? 2 : 0));
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency << 0) | (arg.isRawTexture << 1));
 
     cmd = Command::None;
 }
