@@ -19,15 +19,61 @@ const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
 device::controller::DigitalController &getButtonState(SDL_Event &event) {
+    static SDL_GameController *controller = nullptr;
     static device::controller::DigitalController buttons;
-    for (auto it = config["controller"].begin(); it != config["controller"].end(); ++it) {
-        auto button = it.key();
-        auto keyName = it.value().get<std::string>();
-        auto keyCode = SDL_GetKeyFromName(keyName.c_str());
+    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+        for (auto it = config["controller"].begin(); it != config["controller"].end(); ++it) {
+            auto button = it.key();
+            auto keyName = it.value().get<std::string>();
+            auto keyCode = SDL_GetKeyFromName(keyName.c_str());
 
-        if (event.key.keysym.sym == keyCode) buttons.setByName(button, event.type == SDL_KEYDOWN);
+            if (event.key.keysym.sym == keyCode) buttons.setByName(button, event.type == SDL_KEYDOWN);
+        }
+    }
+    if (event.type == SDL_CONTROLLERDEVICEADDED) {
+        controller = SDL_GameControllerOpen(event.cdevice.which);
+        printf("Controller %s connected\n", SDL_GameControllerName(controller));
+    }
+    if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
+        printf("Controller %s disconnected\n", SDL_GameControllerName(controller));
+        SDL_GameControllerClose(controller);
+        controller = nullptr;
     }
 
+    if (event.type == SDL_CONTROLLERAXISMOTION) {
+        const int deadzone = 2048;
+        switch (event.caxis.axis) {
+            case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+                buttons.l2 = event.caxis.value > deadzone;
+                break;
+
+            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                buttons.r2 = event.caxis.value > deadzone;
+                break;
+        }
+    }
+
+    if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP) {
+#define B(a, b)                                             \
+    case a:                                                 \
+        buttons.##b = (event.cbutton.state == SDL_PRESSED); \
+        break;
+        switch (event.cbutton.button) {
+            B(SDL_CONTROLLER_BUTTON_DPAD_UP, up);
+            B(SDL_CONTROLLER_BUTTON_DPAD_RIGHT, right);
+            B(SDL_CONTROLLER_BUTTON_DPAD_DOWN, down);
+            B(SDL_CONTROLLER_BUTTON_DPAD_LEFT, left);
+            B(SDL_CONTROLLER_BUTTON_A, cross);
+            B(SDL_CONTROLLER_BUTTON_B, circle);
+            B(SDL_CONTROLLER_BUTTON_X, square);
+            B(SDL_CONTROLLER_BUTTON_Y, triangle);
+            B(SDL_CONTROLLER_BUTTON_BACK, select);
+            B(SDL_CONTROLLER_BUTTON_START, start);
+            B(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, l1);
+            B(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, r1);
+#undef B
+        }
+    }
     return buttons;
 }
 
@@ -92,7 +138,7 @@ void hardReset() {
 int start(int argc, char **argv) {
     loadConfigFile(CONFIG_NAME);
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) != 0) {
         printf("Cannot init SDL\n");
         return 1;
     }
@@ -125,6 +171,8 @@ int start(int argc, char **argv) {
     hardReset();
 
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+    SDL_GameControllerEventState(SDL_ENABLE);
+
     ImGui_ImplSdlGL3_Init(window);
 
     vramTextureId = opengl.getVramTextureId();
