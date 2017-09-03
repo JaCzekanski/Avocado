@@ -111,9 +111,9 @@ void main()
 
 	// If textured and if not raw texture, add brightness
 	if (fragBitcount > 0u && (fragFlags & 2u) != 2u) {
-		color.r += (fragColor.r - 0.5f) * 0.5f;
-		color.g += (fragColor.g - 0.5f) * 0.5f;
-		color.b += (fragColor.b - 0.5f) * 0.5f;
+		if (fragColor.r != 0) color.r = clamp(color.r + (fragColor.r - 0.5f) * 0.5f, 0.0, 1.0);
+		if (fragColor.g != 0) color.g = clamp(color.g + (fragColor.g - 0.5f) * 0.5f, 0.0, 1.0);
+		if (fragColor.b != 0) color.b = clamp(color.b + (fragColor.b - 0.5f) * 0.5f, 0.0, 1.0);
 	}
 
 
