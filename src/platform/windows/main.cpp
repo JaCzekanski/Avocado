@@ -11,6 +11,7 @@
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "platform/windows/config.h"
+#include "debugger/debugger.h"
 
 #undef main
 
@@ -154,6 +155,10 @@ int start(int argc, char **argv) {
                 if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(device::interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);
                 if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(device::interrupt::DMA);
+                if (event.key.keysym.sym == SDLK_BACKQUOTE) {
+                    for (int i = 0; i < 24; i++)
+                        printf("%s\n", debugger::decodeInstruction(mipsInstructions::Opcode(cpu->readMemory32(cpu->PC + i * 4))).c_str());
+                }
                 if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(device::interrupt::SPU);
                 if (event.key.keysym.sym == SDLK_TAB) skipRender = !skipRender;
                 if (event.key.keysym.sym == SDLK_r) {
