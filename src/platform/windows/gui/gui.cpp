@@ -6,6 +6,8 @@
 
 using namespace std::experimental::filesystem::v1;
 
+void openFileWindow();
+
 void gteRegistersWindow(mips::gte::GTE gte);
 void ioLogWindow(mips::CPU* cpu);
 void gteLogWindow(mips::CPU* cpu);
@@ -41,7 +43,7 @@ void renderImgui(mips::CPU* cpu) {
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Exit")) exitProgram = true;
+            if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Emulation")) {
@@ -63,14 +65,14 @@ void renderImgui(mips::CPU* cpu) {
         if (ImGui::BeginMenu("Debug")) {
             ImGui::MenuItem("IO", nullptr, &showIo);
             ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
-            ImGui::MenuItem("BIOS log", "F5", &cpu->biosLog);
+            ImGui::MenuItem("BIOS log", nullptr, &cpu->biosLog);
 #ifdef ENABLE_IO_LOG
             ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
 #endif
             ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
             ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
             ImGui::MenuItem("VRAM window", nullptr, &showVramWindow);
-            ImGui::MenuItem("Disassembly", "F6", &showDisassemblyWindow);
+            ImGui::MenuItem("Disassembly", nullptr, &showDisassemblyWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -81,6 +83,9 @@ void renderImgui(mips::CPU* cpu) {
         ImGui::EndMainMenuBar();
     }
 
+    // File
+
+    // Debug
     gteRegistersWindow(gte);
     ioLogWindow(cpu);
     gteLogWindow(cpu);
@@ -89,10 +94,11 @@ void renderImgui(mips::CPU* cpu) {
     if (showVramWindow) vramWindow();
     if (showDisassemblyWindow) disassemblyWindow(cpu);
 
+    // Options
     if (showBiosWindow) biosSelectionWindow();
     if (showControllerSetupWindow) controllerSetupWindow();
 
-    if (!config["initialized"] && !notInitializedWindowShown) {
+    if (!isEmulatorConfigured() && !notInitializedWindowShown) {
         notInitializedWindowShown = true;
         ImGui::OpenPopup("Avocado");
     }

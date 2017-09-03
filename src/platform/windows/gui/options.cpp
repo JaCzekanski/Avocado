@@ -55,7 +55,6 @@ void biosSelectionWindow() {
 
         if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < bioses.size()) {
             config["bios"] = bioses[selectedBios];
-            config["initialized"] = true;
 
             biosesFound = false;
             showBiosWindow = false;
@@ -115,5 +114,10 @@ void controllerSetupWindow() {
     button("start");
 
     ImGui::Columns(1);
+
+    if (ImGui::Button("Default")) {
+        config["controller"] = defaultConfig["controller"];
+    }
+
     ImGui::End();
 }

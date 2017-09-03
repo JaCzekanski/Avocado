@@ -4,8 +4,7 @@
 const char* CONFIG_NAME = "config.json";
 
 // clang-format off
-nlohmann::json config = {
-	{"initialized", false}, 
+const nlohmann::json defaultConfig = {
 	{"bios", ""}, 
 	{"extension", ""}, 
 	{"iso", ""},
@@ -27,6 +26,8 @@ nlohmann::json config = {
 	}}
 };
 // clang-format on
+
+nlohmann::json config = defaultConfig;
 
 void saveConfigFile(const char* configName) { putFileContents(configName, config.dump(4)); }
 
@@ -58,3 +59,5 @@ void loadConfigFile(const char* configName) {
 
     config = newconfig;
 }
+
+bool isEmulatorConfigured() { return !config["bios"].get<std::string>().empty(); }
