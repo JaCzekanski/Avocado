@@ -11,8 +11,9 @@ void ioLogWindow(mips::CPU* cpu);
 void gteLogWindow(mips::CPU* cpu);
 void gpuLogWindow(mips::CPU* cpu);
 void ioWindow(mips::CPU* cpu);
-void biosSelectionWindow();
 void vramWindow();
+void disassemblyWindow(mips::CPU* cpu);
+void biosSelectionWindow();
 void controllerSetupWindow();
 
 int vramTextureId = 0;
@@ -33,6 +34,7 @@ bool notInitializedWindowShown = false;
 bool showVramWindow = false;
 bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
+bool showDisassemblyWindow = false;
 
 void renderImgui(mips::CPU* cpu) {
     auto gte = cpu->gte;
@@ -68,7 +70,7 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
             ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
             ImGui::MenuItem("VRAM window", nullptr, &showVramWindow);
-            ImGui::MenuItem("Disassembly", "F6");
+            ImGui::MenuItem("Disassembly", "F6", &showDisassemblyWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -84,9 +86,10 @@ void renderImgui(mips::CPU* cpu) {
     gteLogWindow(cpu);
     gpuLogWindow(cpu);
     ioWindow(cpu);
+    if (showVramWindow) vramWindow();
+    if (showDisassemblyWindow) disassemblyWindow(cpu);
 
     if (showBiosWindow) biosSelectionWindow();
-    if (showVramWindow) vramWindow();
     if (showControllerSetupWindow) controllerSetupWindow();
 
     if (!config["initialized"] && !notInitializedWindowShown) {

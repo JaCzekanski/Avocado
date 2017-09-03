@@ -233,8 +233,9 @@ int start(int argc, char **argv) {
             deltaFrames = 0;
         }
 
-        std::string title = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f", cpu->interrupt->getMask().c_str(),
-                                          cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames, fps);
+        std::string title
+            = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f, ms: %0.2f", cpu->interrupt->getMask().c_str(),
+                            cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames, fps, (1.f / fps) * 1000.f);
         SDL_SetWindowTitle(window, title.c_str());
         SDL_GL_SwapWindow(window);
     }

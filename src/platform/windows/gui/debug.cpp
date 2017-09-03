@@ -2,8 +2,10 @@
 #include <imgui.h>
 #include "utils/string.h"
 #include "gte.h"
+#include "debugger/debugger.h"
 
 extern bool showVramWindow;
+extern bool showDisassemblyWindow;
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -298,5 +300,19 @@ void vramWindow() {
     ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
     ImGui::Image(ImTextureID(vramTextureId), ImGui::GetWindowSize());
     if (ImGui::Button("Reset size")) ImGui::SetWindowSize(defaultSize);
+    ImGui::End();
+}
+
+void disassemblyWindow(mips::CPU *cpu) {
+    ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(300.f, 400.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+    for (int i = 0; i < 24; i++) {
+        uint32_t address = cpu->PC + i * 4;
+        mipsInstructions::Opcode opcode(cpu->readMemory32(address));
+        auto disasm = debugger::decodeInstruction(opcode);
+
+        ImGui::Text("0x%08x: %s", address, disasm.c_str());
+    }
+    ImGui::PopStyleVar();
     ImGui::End();
 }
