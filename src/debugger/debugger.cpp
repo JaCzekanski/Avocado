@@ -30,25 +30,26 @@ std::string reg(int n) {
         return string_format("r%d", n);
 }
 
-std::string mapSpecialInstruction(mipsInstructions::Opcode &i);
+Instruction mapSpecialInstruction(mipsInstructions::Opcode &i);
 
-std::string decodeInstruction(mipsInstructions::Opcode &i) {
-    std::string disasm;
+Instruction decodeInstruction(mipsInstructions::Opcode &i) {
+    Instruction ins;
 
 #define R(x) reg(x).c_str()
 #define LOADTYPE string_format("%s, 0x%hx(%s)", R(i.rt), i.offset, R(i.rs));
 #define ITYPE string_format("%s, %s, 0x%hx", R(i.rt), R(i.rs), i.offset)
 #define JTYPE string_format("0x%x", i.target * 4)
-#define O(n, mnemonic, d)                          \
-    case n:                                        \
-        disasm = std::string(mnemonic) + "  " + d; \
+#define O(n, m, d)                     \
+    case n:                            \
+        ins.mnemonic = std::string(m); \
+        ins.parameters = d;            \
         break
 
 #define BRANCH_TYPE string_format("%s, %d", R(i.rs), i.offset)
 
     switch (i.op) {
         case 0:
-            disasm = mapSpecialInstruction(i);
+            ins = mapSpecialInstruction(i);
             break;
 
         case 1:
@@ -59,7 +60,7 @@ std::string decodeInstruction(mipsInstructions::Opcode &i) {
                 O(17, "bgezal", BRANCH_TYPE);
 
                 default:
-                    disasm = string_format("0x%08x", i.opcode);
+                    ins.mnemonic = string_format("0x%08x", i.opcode);
                     break;
             }
             break;
@@ -103,28 +104,29 @@ std::string decodeInstruction(mipsInstructions::Opcode &i) {
             O(58, "swc2", "");
 
         default:
-            disasm = string_format("0x%08x", i.opcode);
+            ins.mnemonic = string_format("0x%08x", i.opcode);
             break;
     }
-    return disasm;
+    return ins;
 }
 
-std::string mapSpecialInstruction(mipsInstructions::Opcode &i) {
+Instruction mapSpecialInstruction(mipsInstructions::Opcode &i) {
+    Instruction ins;
 #define SHIFT_TYPE string_format("%s, %s, %d", R(i.rd), R(i.rt), i.sh)
 #define ATYPE string_format("%s, %s, %s", R(i.rd), R(i.rs), R(i.rt))
 
-    std::string disasm;
     switch (i.fun) {
         case 0:
-            if (i.rt == 0 && i.rd == 0 && i.sh == 0)
-                disasm = "nop";
-            else
-                disasm = std::string("sll") + "  " + SHIFT_TYPE;
+            if (i.rt == 0 && i.rd == 0 && i.sh == 0) {
+                ins.mnemonic = "nop";
+            } else {
+                ins.mnemonic = "sll";
+                ins.parameters = SHIFT_TYPE;
+            }
             break;
 
             O(2, "srl", SHIFT_TYPE);
             O(3, "sra", SHIFT_TYPE);
-
             O(4, "sllv", SHIFT_TYPE);
             O(6, "srlv", SHIFT_TYPE);
             O(7, "srav", SHIFT_TYPE);
@@ -152,14 +154,13 @@ std::string mapSpecialInstruction(mipsInstructions::Opcode &i) {
             O(37, "or", ATYPE);
             O(38, "xor", ATYPE);
             O(39, "nor", ATYPE);
-
             O(42, "slt", ATYPE);
             O(43, "sltu", ATYPE);
 
         default:
-            disasm = string_format("SPECIAL 0x%02x", i.fun);
+            ins.mnemonic = string_format("SPECIAL 0x%02x", i.fun);
             break;
     }
-    return disasm;
+    return ins;
 }
 };

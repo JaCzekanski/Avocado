@@ -368,6 +368,23 @@ void CPU::checkForInterrupts() {
     }
 }
 
+void CPU::singleStep() {
+    state = State::run;
+    executeInstructions(1);
+    state = State::pause;
+
+    dma->step();
+    cdrom->step();
+    timer0->step(3);
+    timer1->step(3);
+    timer2->step(3);
+    controller->step();
+
+    if (gpu->emulateGpuCycles(3)) {
+        interrupt->trigger(interrupt::VBLANK);
+    }
+}
+
 void CPU::emulateFrame() {
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();

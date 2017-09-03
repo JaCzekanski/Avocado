@@ -220,6 +220,9 @@ int start(int argc, char **argv) {
                     singleFrame = true;
                     cpu->state = mips::CPU::State::run;
                 }
+                if (event.key.keysym.sym == SDLK_F8) {
+                    cpu->singleStep();
+                }
                 if (event.key.keysym.sym == SDLK_SPACE) {
                     if (cpu->state == mips::CPU::State::pause)
                         cpu->state = mips::CPU::State::run;

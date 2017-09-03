@@ -2,6 +2,11 @@
 #include "mipsInstructions.h"
 
 namespace debugger {
+struct Instruction {
+    std::string mnemonic;
+    std::string parameters;
+};
 extern bool mapRegisterNames;
-std::string decodeInstruction(mipsInstructions::Opcode &i);
+std::string reg(int n);
+Instruction decodeInstruction(mipsInstructions::Opcode &i);
 };

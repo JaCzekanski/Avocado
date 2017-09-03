@@ -138,6 +138,7 @@ struct CPU {
     uint8_t readMemory(uint32_t address);
     void writeMemory(uint32_t address, uint8_t data);
     void checkForInterrupts();
+    void singleStep();
     void handleBiosFunction();
     void moveLoadDelaySlots();
 

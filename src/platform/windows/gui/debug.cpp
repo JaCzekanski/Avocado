@@ -304,15 +304,54 @@ void vramWindow() {
 }
 
 void disassemblyWindow(mips::CPU *cpu) {
-    ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(300.f, 400.f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    for (int i = 0; i < 24; i++) {
-        uint32_t address = cpu->PC + i * 4;
+    ImGui::Begin("Disassembly", &showDisassemblyWindow);
+
+    if (ImGui::Button(cpu->state == mips::CPU::State::run ? "Pause" : "Run")) {
+        if (cpu->state == mips::CPU::State::run)
+            cpu->state = mips::CPU::State::pause;
+        else
+            cpu->state = mips::CPU::State::run;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Step")) {
+        cpu->singleStep();
+    }
+
+    ImGui::Separator();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 0));
+    for (int i = 0; i < 35; i++) {
+        if (i == 32)
+            ImGui::Text("PC: 0x%08x", cpu->PC);
+        else if (i == 33)
+            ImGui::Text("hi: 0x%08x", cpu->hi);
+        else if (i == 34)
+            ImGui::Text("lo: 0x%08x", cpu->lo);
+        else
+            ImGui::Text("%s: 0x%08x", debugger::reg(i).c_str(), cpu->reg[i]);
+
+        if ((i + 1) % 4 != 0) ImGui::SameLine();
+    }
+
+    ImGui::NewLine();
+
+    ImGui::BeginChild("Disassembly", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    for (int i = -15; i < 15; i++) {
+        uint32_t address = (cpu->PC + i * 4) & 0xFFFFFFFC;
         mipsInstructions::Opcode opcode(cpu->readMemory32(address));
         auto disasm = debugger::decodeInstruction(opcode);
 
-        ImGui::Text("0x%08x: %s", address, disasm.c_str());
+        if (i == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
+        ImGui::Selectable(string_format("0x%08x: %s %*s %s", address, disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "",
+                                        disasm.parameters.c_str())
+                              .c_str());
+        if (i == 0) ImGui::PopStyleColor();
     }
+    ImGui::EndChild();
+
     ImGui::PopStyleVar();
+
+    ImGui::Checkbox("Map register names", &debugger::mapRegisterNames);
+
     ImGui::End();
 }
