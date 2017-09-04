@@ -65,7 +65,7 @@ void gteRegistersWindow(mips::gte::GTE gte) {
     }
     ImGui::Begin("GTE registers", &gteRegistersEnabled);
 
-    ImGui::Columns(3, 0, false);
+    ImGui::Columns(3, nullptr, false);
     ImGui::Text("IR1:  %04hX", gte.ir[1]);
     ImGui::NextColumn();
     ImGui::Text("IR2:  %04hX", gte.ir[2]);
@@ -103,7 +103,7 @@ void gteRegistersWindow(mips::gte::GTE gte) {
         ImGui::NextColumn();
     }
 
-    ImGui::Columns(3, 0, false);
+    ImGui::Columns(3, nullptr, false);
     ImGui::Separator();
 
     ImGui::Text("RT11:  %04hX", gte.rt.v11);
@@ -242,26 +242,26 @@ void ioWindow(mips::CPU *cpu) {
     }
     ImGui::Begin("IO", &showIo);
 
-    ImGui::Columns(1, 0, false);
+    ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 0");
 
-    ImGui::Columns(2, 0, false);
+    ImGui::Columns(2, nullptr, false);
     dumpRegister("current", (uint32_t *)&cpu->timer0->current);
     dumpRegister("target", (uint32_t *)&cpu->timer0->target);
     dumpRegister("mode", (uint32_t *)&cpu->timer0->mode);
 
-    ImGui::Columns(1, 0, false);
+    ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 1");
 
-    ImGui::Columns(2, 0, false);
+    ImGui::Columns(2, nullptr, false);
     dumpRegister("current", (uint32_t *)&cpu->timer1->current);
     dumpRegister("target", (uint32_t *)&cpu->timer1->target);
     dumpRegister("mode", (uint32_t *)&cpu->timer1->mode);
 
-    ImGui::Columns(1, 0, false);
+    ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 2");
 
-    ImGui::Columns(2, 0, false);
+    ImGui::Columns(2, nullptr, false);
     dumpRegister("current", (uint32_t *)&cpu->timer2->current);
     dumpRegister("target", (uint32_t *)&cpu->timer2->target);
     dumpRegister("mode", (uint32_t *)&cpu->timer2->mode);
@@ -348,7 +348,7 @@ void disassemblyWindow(mips::CPU *cpu) {
     if (!lockAddress) startAddress = cpu->PC;
     for (int i = -15; i < 15; i++) {
         uint32_t address = (startAddress + i * 4) & 0xFFFFFFFC;
-        mipsInstructions::Opcode opcode(cpu->readMemory32(address));
+        mips::Opcode opcode(cpu->readMemory32(address));
         auto disasm = debugger::decodeInstruction(opcode);
 
         if (i == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));

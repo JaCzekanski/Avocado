@@ -171,7 +171,6 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         IO(0xC00, 0x1000, spu);
         IO(0x1000, 0x1043, expansion2);
         printf("W Unhandled IO at 0x%08x: 0x%02x\n", address, data);
-        return;
     }
 #undef IO
     // printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
@@ -203,16 +202,16 @@ uint16_t CPU::readMemory16(uint32_t address) {
     if (address < RAM_SIZE * 4) {
         addr &= RAM_SIZE - 2;
         return READ16(ram, addr);
-    } else if (address >= 0x1fc00000 && address < 0x1fc00000 + EXPANSION_SIZE) {
+    }
+    if (address >= 0x1fc00000 && address < 0x1fc00000 + EXPANSION_SIZE) {
         addr -= 0x1fc00000;
         return READ16(bios, addr);
-    } else {
-        uint16_t data = 0;
-        data |= readMemory(address + 0);
-        data |= readMemory(address + 1) << 8;
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, 16, address, data);
-        return data;
     }
+    uint16_t data = 0;
+    data |= readMemory(address + 0);
+    data |= readMemory(address + 1) << 8;
+    LOG_IO(IO_LOG_ENTRY::MODE::READ, 16, address, data);
+    return data;
 }
 
 #undef READ16
@@ -224,18 +223,18 @@ uint32_t CPU::readMemory32(uint32_t address) {
     if (addr < RAM_SIZE * 4) {
         addr &= RAM_SIZE - 4;
         return READ32(ram, addr);
-    } else if (addr >= 0x1fc00000 && addr < 0x1fc00000 + EXPANSION_SIZE) {
+    }
+    if (addr >= 0x1fc00000 && addr < 0x1fc00000 + EXPANSION_SIZE) {
         addr -= 0x1fc00000;
         return READ32(bios, addr);
-    } else {
-        uint32_t data = 0;
-        data |= readMemory(address + 0);
-        data |= readMemory(address + 1) << 8;
-        data |= readMemory(address + 2) << 16;
-        data |= readMemory(address + 3) << 24;
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, 32, address, data);
-        return data;
     }
+    uint32_t data = 0;
+    data |= readMemory(address + 0);
+    data |= readMemory(address + 1) << 8;
+    data |= readMemory(address + 2) << 16;
+    data |= readMemory(address + 3) << 24;
+    LOG_IO(IO_LOG_ENTRY::MODE::READ, 32, address, data);
+    return data;
 }
 
 #undef READ32
@@ -333,10 +332,10 @@ bool CPU::executeInstructions(int count) {
             return false;
         }
 #endif
-        mipsInstructions::Opcode _opcode(readMemory32(PC));
+        Opcode _opcode(readMemory32(PC));
 
         bool isJumpCycle = shouldJump;
-        const auto &op = mipsInstructions::OpcodeTable[_opcode.op];
+        const auto& op = mipsInstructions::OpcodeTable[_opcode.op];
 
         op.instruction(this, _opcode);
 
@@ -418,7 +417,7 @@ void CPU::softReset() {
     printf("Soft reset\n");
     PC = 0xBFC00000;
     shouldJump = false;
-    state = mips::CPU::State::run;
+    state = State::run;
 }
 
 bool CPU::loadExeFile(std::string exePath) {
@@ -457,8 +456,8 @@ bool CPU::loadBios(std::string path) {
         return false;
     }
     assert(_bios.size() == 512 * 1024);
-    std::copy(_bios.begin(), _bios.end(), bios);
-    state = mips::CPU::State::run;
+    copy(_bios.begin(), _bios.end(), bios);
+    state = State::run;
     return true;
 }
 
@@ -468,7 +467,7 @@ bool CPU::loadExpansion(std::string path) {
         return false;
     }
     assert(_exp.size() < EXPANSION_SIZE);
-    std::copy(_exp.begin(), _exp.end(), expansion);
+    copy(_exp.begin(), _exp.end(), expansion);
     return true;
 }
 

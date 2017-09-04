@@ -52,6 +52,7 @@ struct Function;
 
 namespace mips {
 using namespace device;
+
 /*
 Based on http://problemkaputt.de/psx-spx.htm
 0x00000000 - 0x20000000 is cache enabled
@@ -156,7 +157,7 @@ struct CPU {
     void printFunctionInfo(int type, uint8_t number, bios::Function f);
     bool executeInstructions(int count);
     void emulateFrame();
-    gpu::GPU *getGPU() const { return gpu.get(); }
+    gpu::GPU* getGPU() const { return gpu.get(); }
     void softReset();
 
     // Helpers
@@ -169,10 +170,12 @@ struct CPU {
 #ifdef ENABLE_IO_LOG
     struct IO_LOG_ENTRY {
         enum class MODE { READ, WRITE } mode;
+
         uint32_t size;
         uint32_t addr;
         uint32_t data;
     };
+
     std::vector<IO_LOG_ENTRY> ioLogList;
 #endif
 };

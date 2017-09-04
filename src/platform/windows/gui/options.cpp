@@ -16,12 +16,12 @@ void biosSelectionWindow() {
     if (!biosesFound) {
         bioses.clear();
         auto dir = directory_iterator("data/bios");
-        for (auto &e : dir) {
+        for (auto& e : dir) {
             if (!is_regular_file(e)) continue;
 
             auto path = e.path().string();
             auto ext = getExtension(path);
-            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
             if (ext == "bin" || ext == "rom") {
                 bioses.push_back(path);
@@ -46,11 +46,11 @@ void biosSelectionWindow() {
             ".bin and .rom extensions are recognised.");
     } else {
         ImGui::PushItemWidth(300.f);
-        ImGui::ListBox("", &selectedBios, [](void *data, int idx, const char **out_text) {
-            const std::vector<std::string> *v = (std::vector<std::string> *)data;
+        ImGui::ListBox("", &selectedBios, [](void* data, int idx, const char** out_text) {
+            const std::vector<std::string>* v = (std::vector<std::string>*)data;
             *out_text = v->at(idx).c_str();
             return true;
-        }, (void *)&bioses, (int)bioses.size());
+        }, (void*)&bioses, (int)bioses.size());
         ImGui::PopItemWidth();
 
         if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < bioses.size()) {

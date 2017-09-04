@@ -1,5 +1,4 @@
 #include "timer.h"
-#include <cstdio>
 #include "mips.h"
 
 namespace device {
@@ -62,14 +61,16 @@ void Timer::step(int cycles) {
 uint8_t Timer::read(uint32_t address) {
     if (address < 2) {
         return current.read(address);
-    } else if (address >= 4 && address < 8) {
+    }
+    if (address >= 4 && address < 8) {
         uint8_t v = mode.read(address - 4);
         if (address == 7) {
             mode.reachedFFFF = false;
             mode.reachedTarget = false;
         }
         return v;
-    } else if (address >= 8 && address < 12) {
+    }
+    if (address >= 8 && address < 12) {
         return target.read(address - 8);
     }
     return 0;

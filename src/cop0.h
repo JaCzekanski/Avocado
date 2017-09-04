@@ -31,6 +31,7 @@ union CAUSE {
         uint32_t : 1;
         Bit isInDelaySlot : 1;
     };
+
     uint32_t _reg;
 
     CAUSE() : _reg(0) {}
@@ -39,6 +40,7 @@ union CAUSE {
 // cop0r12 System status, rw
 union STATUS {
     enum class Mode : uint32_t { kernel = 0, user = 1 };
+
     enum class BootExceptionVectors { ram = 0, rom = 1 };
 
     struct {
@@ -71,6 +73,7 @@ union STATUS {
         Bit cop2Enable : 1;
         Bit cop3Enable : 1;
     };
+
     uint32_t _reg;
 
     STATUS() : _reg(0) {}

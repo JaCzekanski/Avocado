@@ -1,7 +1,6 @@
 #include "mdec.h"
 #include "mips.h"
 #include <cassert>
-#include <cstring>
 
 namespace device {
 namespace mdec {
@@ -41,7 +40,7 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
                 paramCount = 64;
             else
                 paramCount = 128;
-            status.setBit(29, 1);
+            status.setBit(29, true);
             break;
     }
 }

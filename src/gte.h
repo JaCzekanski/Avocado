@@ -22,9 +22,11 @@ struct Vector {
     union {
         T x, r;
     };
+
     union {
         T y, g;
     };
+
     union {
         T z, b;
     };
@@ -38,7 +40,6 @@ struct Color {
 
 namespace mips {
 namespace gte {
-
 union Command {
     struct {
         uint32_t cmd : 6;
@@ -52,7 +53,9 @@ union Command {
         uint32_t : 5;
         uint32_t : 7;  // cop2
     };
+
     uint32_t _reg;
+
     Command(uint32_t v) : _reg(v) {}
 };
 
@@ -108,6 +111,7 @@ struct GTE {
 
     struct GTE_ENTRY {
         enum class MODE { read, write, func } mode;
+
         uint32_t n;
         uint32_t data;
     };
@@ -118,9 +122,9 @@ struct GTE {
     int countLeadingZeroes(uint32_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
     void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
-    int32_t A1(int64_t value, bool sf = 0);
-    int32_t A2(int64_t value, bool sf = 0);
-    int32_t A3(int64_t value, bool sf = 0);
+    int32_t A1(int64_t value, bool sf = false);
+    int32_t A2(int64_t value, bool sf = false);
+    int32_t A3(int64_t value, bool sf = false);
     int32_t Lm_B3_sf(int64_t x, bool sf, bool lm);
     int32_t F(int64_t value);
     int32_t Lm_H(int64_t x, bool sf);

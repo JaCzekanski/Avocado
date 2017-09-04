@@ -138,7 +138,7 @@ bool OpenGL::setup() {
     return true;
 }
 
-void OpenGL::renderFirstStage(const std::vector<Vertex> &renderList, device::gpu::GPU *gpu) {
+void OpenGL::renderFirstStage(const std::vector<Vertex> &renderList, GPU *gpu) {
     // First stage - render calls to VRAM
     if (renderList.empty()) {
         return;
@@ -169,11 +169,11 @@ void OpenGL::renderSecondStage() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void OpenGL::render(device::gpu::GPU *gpu) {
+void OpenGL::render(GPU *gpu) {
     // Update screen position
 
-    int screenWidth = OpenGL::resWidth;
-    int screenHeight = OpenGL::resHeight;
+    int screenWidth = resWidth;
+    int screenHeight = resHeight;
 
     std::vector<BlitStruct> bb;
     if (viewFullVram) {

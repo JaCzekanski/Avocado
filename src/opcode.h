@@ -34,6 +34,7 @@ union Opcode {
         uint32_t rs : 5;
         uint32_t op : 6;
     };
+
     uint32_t opcode;       // Whole 32bit opcode
     uint32_t target : 26;  // JType instruction jump address
     uint16_t imm;          // IType immediate

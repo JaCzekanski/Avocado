@@ -11,15 +11,14 @@
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "platform/windows/config.h"
-#include "debugger/debugger.h"
 
 #undef main
 
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
-device::controller::DigitalController &getButtonState(SDL_Event &event) {
-    static SDL_GameController *controller = nullptr;
+device::controller::DigitalController& getButtonState(SDL_Event& event) {
+    static SDL_GameController* controller = nullptr;
     static device::controller::DigitalController buttons;
     if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
         for (auto it = config["controller"].begin(); it != config["controller"].end(); ++it) {
@@ -79,9 +78,9 @@ device::controller::DigitalController &getButtonState(SDL_Event &event) {
 
 bool running = true;
 
-void loadFile(std::unique_ptr<mips::CPU> &cpu, std::string path) {
+void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
     std::string ext = getExtension(path);
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
     if (ext == "iso" || ext == "bin" || ext == "img") {
         if (fileExists(path)) {
@@ -107,7 +106,7 @@ void loadFile(std::unique_ptr<mips::CPU> &cpu, std::string path) {
             cpu->cdrom->setShell(!success);
 
             printf("File %s loaded\n", path.c_str());
-        } catch (std::exception &e) {
+        } catch (std::exception& e) {
             printf("Error parsing cue: %s\n", e.what());
         }
     }
@@ -135,7 +134,7 @@ void hardReset() {
     }
 }
 
-int start(int argc, char **argv) {
+int start(int argc, char** argv) {
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) != 0) {
@@ -143,7 +142,7 @@ int start(int argc, char **argv) {
         return 1;
     }
 
-    SDL_Window *window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
+    SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (window == nullptr) {
         printf("Cannot create window (%s)\n", SDL_GetError());
@@ -291,7 +290,7 @@ int start(int argc, char **argv) {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     int retval = start(argc, argv);
     if (retval != 0) {
         printf("\nPress enter to close");

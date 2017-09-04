@@ -1,6 +1,5 @@
 #include "gpu.h"
 #include <cstdio>
-#include <cmath>
 #include <cassert>
 
 #define VRAM ((uint16_t(*)[vramWidth])(&vram[0]))

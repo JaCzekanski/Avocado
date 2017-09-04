@@ -107,7 +107,7 @@ uint8_t Controller::read(uint32_t address) {
                        (0 << 2) |          // TX Ready Flag 2
                        (rxPending << 1) |  // RX FIFO Not Empty
                        (1 << 0);           // TX Ready Flag 1
-        ack = 0;
+        ack = false;
         return data;
     }
     if (address == 5) {

@@ -1,6 +1,5 @@
 #include "Shader.h"
 #include "utils/file.h"
-#include <sstream>
 #include <vector>
 
 Shader::Shader(std::string name, ShaderType shaderType) {
@@ -24,7 +23,7 @@ bool Shader::compile() {
     auto data = getFileContents(name);
     data.push_back(0);
 
-    GLchar const* lines[] = {(const GLchar*)&data[0], NULL};
+    GLchar const* lines[] = {(const GLchar*)&data[0], nullptr};
 
     if (type == ShaderType::Vertex)
         shaderId = glCreateShader(GL_VERTEX_SHADER);
@@ -39,7 +38,7 @@ bool Shader::compile() {
         return false;
     }
 
-    glShaderSource(shaderId, 1, lines, NULL);
+    glShaderSource(shaderId, 1, lines, nullptr);
     glCompileShader(shaderId);
 
     GLint status;
@@ -47,7 +46,7 @@ bool Shader::compile() {
     if (!status) {
         std::string buffer;
         buffer.resize(1024);
-        glGetShaderInfoLog(shaderId, 1024, NULL, &buffer[0]);
+        glGetShaderInfoLog(shaderId, 1024, nullptr, &buffer[0]);
         error += buffer;
         return false;
     }

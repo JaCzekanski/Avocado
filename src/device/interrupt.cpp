@@ -1,6 +1,5 @@
 #include "interrupt.h"
 #include "mips.h"
-#include <cstdio>
 
 namespace device {
 namespace interrupt {

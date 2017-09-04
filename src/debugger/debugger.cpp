@@ -3,36 +3,33 @@
 #include "utils/string.h"
 
 namespace debugger {
-
 bool mapRegisterNames = true;
 
 // clang-format off
-const char *regNames[] = { 
-	"zero", 
-	"at", 
-	"v0", "v1", 
-	"a0", "a1", "a2", "a3", 
-	"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
-	"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", 
-	"t8", "t9", 
-	"k0", "k1", 
-	"gp", 
-	"sp", 
-	"fp", 
-	"ra" 
-};
+	const char* regNames[] = {
+		"zero",
+		"at",
+		"v0", "v1",
+		"a0", "a1", "a2", "a3",
+		"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+		"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+		"t8", "t9",
+		"k0", "k1",
+		"gp",
+		"sp",
+		"fp",
+		"ra"
+	};
 // clang-format on
 
 std::string reg(int n) {
-    if (mapRegisterNames)
-        return regNames[n];
-    else
-        return string_format("r%d", n);
+    if (mapRegisterNames) return regNames[n];
+    return string_format("r%d", n);
 }
 
-Instruction mapSpecialInstruction(mipsInstructions::Opcode &i);
+Instruction mapSpecialInstruction(mips::Opcode& i);
 
-Instruction decodeInstruction(mipsInstructions::Opcode &i) {
+Instruction decodeInstruction(mips::Opcode& i) {
     Instruction ins;
 
 #define R(x) reg(x).c_str()
@@ -110,7 +107,7 @@ Instruction decodeInstruction(mipsInstructions::Opcode &i) {
     return ins;
 }
 
-Instruction mapSpecialInstruction(mipsInstructions::Opcode &i) {
+Instruction mapSpecialInstruction(mips::Opcode& i) {
     Instruction ins;
 #define SHIFT_TYPE string_format("%s, %s, %d", R(i.rd), R(i.rt), i.sh)
 #define ATYPE string_format("%s, %s, %s", R(i.rd), R(i.rs), R(i.rt))

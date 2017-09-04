@@ -25,7 +25,7 @@ bool Program::load() {
     GLuint id = link(newShaders);
     if (id == 0) return false;
 
-    shaders = std::move(newShaders);
+    shaders = move(newShaders);
     programId = id;
     initialized = true;
     return true;
@@ -51,7 +51,7 @@ GLuint Program::link(std::vector<Shader> &shaders) {
     if (status == false) {
         std::string buffer;
         buffer.resize(1024);
-        glGetProgramInfoLog(id, 1024, NULL, &buffer[0]);
+        glGetProgramInfoLog(id, 1024, nullptr, &buffer[0]);
         error = "Linking error: " + buffer;
 
         glDeleteProgram(id);

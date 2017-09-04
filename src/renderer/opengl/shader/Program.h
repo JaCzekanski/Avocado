@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include <vector>
 #include "Shader.h"
 #include "Attribute.h"

@@ -106,10 +106,10 @@ class Timer : public Device {
 
    public:
     Timer(int which);
-    void step() { step(1); }
+    void step() override { step(1); }
     void step(int cycles);
-    uint8_t read(uint32_t address);
-    void write(uint32_t address, uint8_t data);
+    uint8_t read(uint32_t address) override;
+    void write(uint32_t address, uint8_t data) override;
     void setCPU(void *cpu) { this->_cpu = cpu; }
 };
 }

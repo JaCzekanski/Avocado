@@ -3,7 +3,7 @@
 std::string getPath(std::string name) {
     int begin = 0, end = name.length() - 1;
 
-    std::size_t slash = name.find_last_of("/\\");
+    size_t slash = name.find_last_of("/\\");
     if (slash != std::string::npos) end = slash + 1;
 
     return name.substr(begin, end - begin);
@@ -12,7 +12,7 @@ std::string getPath(std::string name) {
 std::string getFilenameExt(std::string name) {
     int begin = 0, end = name.length() - 1;
 
-    std::size_t slash = name.find_last_of("/\\");
+    size_t slash = name.find_last_of("/\\");
     if (slash != std::string::npos) begin = slash + 1;
 
     return name.substr(begin, end);
@@ -21,21 +21,19 @@ std::string getFilenameExt(std::string name) {
 std::string getFilename(std::string name) {
     int begin = 0, end = name.length() - 1;
 
-    std::size_t slash = name.find_last_of("/\\");
+    size_t slash = name.find_last_of("/\\");
     if (slash != std::string::npos) begin = slash + 1;
 
-    std::size_t dot = name.find_last_of('.');
+    size_t dot = name.find_last_of('.');
     if (dot != std::string::npos) end = dot;
 
     return name.substr(begin, end - begin);
 }
 
 std::string getExtension(std::string name) {
-    std::size_t found = name.find_last_of('.');
-    if (found == std::string::npos)
-        return "";
-    else
-        return name.substr(found + 1);
+    size_t found = name.find_last_of('.');
+    if (found == std::string::npos) return "";
+    return name.substr(found + 1);
 }
 
 bool fileExists(std::string name) {

@@ -48,7 +48,8 @@ void DMA::write(uint32_t address, uint8_t data) {
         if (address >= 0xF0 && address < 0xf4) {
             control._byte[address - 0xf0] = data;
             return;
-        } else if (address >= 0xF4 && address < 0xf8) {
+        }
+        if (address >= 0xF4 && address < 0xf8) {
             if (address == 0xf7) {
                 // Clear flags (by writing 1 to bit) which sets it to 0
                 // do not touch master flag
@@ -57,10 +58,9 @@ void DMA::write(uint32_t address, uint8_t data) {
             }
             status._byte[address - 0xf4] = data;
             return;
-        } else {
-            printf("W Unimplemented DMA address 0x%08x\n", address);
-            return;
         }
+        printf("W Unimplemented DMA address 0x%08x\n", address);
+        return;
     }
 
     if (channel == 0) {
@@ -124,7 +124,6 @@ void DMA::write(uint32_t address, uint8_t data) {
             dma6.irqFlag = false;
             if (status.enableDma6) status.flagDma6 = 1;
         }
-        return;
     }
 }
 }

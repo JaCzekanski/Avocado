@@ -19,7 +19,7 @@ uint8_t DMAChannel::read(uint32_t address) {
 }
 
 void DMAChannel::write(uint32_t address, uint8_t data) {
-    mips::CPU *cpu = (mips::CPU *)_cpu;
+    mips::CPU* cpu = (mips::CPU*)_cpu;
 
     if (address < 0x4)
         baseAddress._byte[address] = data;
@@ -57,7 +57,6 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
             }
             control.enabled = CHCR::Enabled::stop;
-
         } else if (control.syncMode == CHCR::SyncMode::syncBlockToDmaRequests) {
             uint32_t addr = baseAddress.address;
             int blockCount = count.syncMode1.blockCount;
@@ -88,7 +87,6 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                     }
                 }
             }
-
         } else if (control.syncMode == CHCR::SyncMode::linkedListMode) {
             //           printf("DMA%d linked list\n", channel);
             int addr = baseAddress.address;

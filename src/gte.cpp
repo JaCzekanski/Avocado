@@ -1,7 +1,5 @@
 #include "gte.h"
-#include <cmath>
 #include <cstdio>
-#include <cassert>
 
 namespace mips {
 namespace gte {

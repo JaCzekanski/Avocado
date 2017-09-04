@@ -10,7 +10,7 @@ std::string string_format(const std::string fmt_str, ...) {
     std::string str;
     std::unique_ptr<char[]> formatted;
     va_list ap;
-    while (1) {
+    while (true) {
         formatted.reset(new char[n]); /* Wrap the plain char array into the unique_ptr */
         strcpy(&formatted[0], fmt_str.c_str());
         va_start(ap, fmt_str);

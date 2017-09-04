@@ -10,6 +10,7 @@ struct Function {
     std::function<bool(mips::CPU& cpu)> callback;
 
     Function(const char* name, int argc) : name(name), argc(argc), callback(nullptr) {}
+
     Function(const char* name, int argc, std::function<bool(mips::CPU& cpu)> callback) : name(name), argc(argc), callback(callback) {}
 };
 

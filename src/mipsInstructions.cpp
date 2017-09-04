@@ -161,7 +161,7 @@ PrimaryInstruction SpecialTable[64] = {
 };
 // clang-format on
 
-void exception(mips::CPU *cpu, cop0::CAUSE::Exception cause) {
+void exception(CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
     if (cpu->shouldJump) {
@@ -741,8 +741,6 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
                 return;
             default:
                 printf("Unhandled gte command 0x%x\n", command.cmd);
-                // cpu->state = CPU::State::halted;
-                return;
         }
     }
 }

@@ -7,6 +7,7 @@ namespace dma {
 namespace dmaChannel {
 class DMA3Channel : public DMAChannel {
     static const int SECTOR_SIZE = 2352;
+
     uint32_t readDevice() override {
         uint32_t data = 0;
         if (f == nullptr) return data;
@@ -16,6 +17,7 @@ class DMA3Channel : public DMAChannel {
         bytesReaded += 4;
         return data;
     }
+
     void writeDevice(uint32_t data) override {}
 
     void beforeRead() override {
@@ -77,6 +79,7 @@ class DMA3Channel : public DMAChannel {
     }
 
     size_t getIsoSize() const { return fileSize; }
+
     void advanceSector() {
         if (bytesReaded == 0) return;
         sector++;
