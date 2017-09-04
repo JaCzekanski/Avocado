@@ -93,6 +93,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             //           printf("DMA%d linked list\n", channel);
             int addr = baseAddress.address;
 
+            int breaker = 0;
             for (;;) {
                 uint32_t blockInfo = cpu->readMemory32(addr);
                 int commandCount = blockInfo >> 24;
@@ -103,6 +104,11 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
                 addr = blockInfo & 0xffffff;
                 if (addr == 0xffffff || addr == 0) break;
+
+                if (++breaker > 0x1000) {
+                    printf("GPU DMA transfer too long, breaking.\n");
+                    break;
+                }
             }
         }
 

@@ -70,7 +70,18 @@ union RectangleArgs {
     }
 };
 
-enum class Command : int { None, FillRectangle, Polygon, Line, Rectangle, CopyCpuToVram1, CopyCpuToVram2, CopyVramToCpu, CopyVramToVram };
+enum class Command : int {
+    None,
+    FillRectangle,
+    Polygon,
+    Line,
+    Rectangle,
+    CopyCpuToVram1,
+    CopyCpuToVram2,
+    CopyVramToCpu,
+    CopyVramToVram,
+    Extra
+};
 
 struct Vertex {
     int position[2];
@@ -318,8 +329,8 @@ class GPU {
     std::vector<uint16_t> prevVram;
 
     struct GPU_LOG_ENTRY {
-        Command cmd;
         uint8_t command;
+        Command cmd;
         std::vector<uint32_t> args;
     };
 

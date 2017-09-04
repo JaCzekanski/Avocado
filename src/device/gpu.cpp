@@ -8,8 +8,8 @@
 namespace device {
 namespace gpu {
 
-const char* CommandStr[]
-    = {"None", "FillRectangle", "Polygon", "Line", "Rectangle", "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram"};
+const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
+                            "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
 
 template <typename T>
 T clamp(T number, size_t range) {
@@ -408,6 +408,14 @@ void GPU::writeGP0(uint32_t data) {
             printf("GP0(0x%02x) args 0x%06x\n", command, arguments[0]);
         }
 
+        if (cmd == Command::None) {
+            GPU_LOG_ENTRY entry;
+            entry.cmd = Command::Extra;
+            entry.command = command;
+            entry.args = std::vector<uint32_t>();
+            entry.args.push_back(arguments[0]);
+            gpuLogList.push_back(entry);
+        }
         // if (cmd == Command::None) printf("GPU: 0x%02x\n", command);
 
         argumentCount++;

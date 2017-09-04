@@ -779,9 +779,9 @@ void GTE::gpf(bool sf, bool lm) {
 }
 
 void GTE::gpl(bool sf, bool lm) {
-    mac[1] = A1(mac[1] + ir[0] * ir[1], sf);
-    mac[2] = A2(mac[2] + ir[0] * ir[2], sf);
-    mac[3] = A3(mac[3] + ir[0] * ir[3], sf);
+    mac[1] = A1(ir[0] * ir[1] + A1(mac[1] << (sf * 12)), sf);
+    mac[2] = A2(ir[0] * ir[2] + A2(mac[2] << (sf * 12)), sf);
+    mac[3] = A3(ir[0] * ir[3] + A3(mac[3] << (sf * 12)), sf);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
