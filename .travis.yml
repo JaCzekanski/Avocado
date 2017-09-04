@@ -1,4 +1,5 @@
 sudo: false
+dist: trusty
 language: generic
 
 cache: ccache
@@ -6,14 +7,60 @@ cache: ccache
 matrix:
   include:
     - os: linux
-      env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
+      env: COMPILER_NAME=clang CXX=clang++-3.6 CC=clang-3.6
       addons:
         apt:
           packages:
-            - clang-3.9
+            - clang-3.6
+            - libc++-dev
+            - libc++abi-dev
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.9
+            - llvm-toolchain-precise-3.6
+    - os: linux
+      env: COMPILER_NAME=clang CXX=clang++-3.7 CC=clang-3.7
+      addons:
+        apt:
+          packages:
+            - clang-3.7
+            - libc++-dev
+            - libc++abi-dev
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+    # - os: linux
+    #   env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - clang-3.8
+    #         - libc++-dev
+    #         - libc++abi-dev
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #         - llvm-toolchain-precise-3.8
+    # - os: linux
+    #   env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - clang-3.9
+    #         - libc++-dev
+    #         - libc++abi-dev
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #         - llvm-toolchain-trusty-3.9
+    # - os: linux
+    #   env: COMPILER_NAME=clang CXX=clang++-4.0 CC=clang-4.0
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - clang-4.0
+    #         - libc++-dev
+    #         - libc++abi-dev
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #         - llvm-toolchain-trusty-4.0
     - os: linux
       env: COMPILER_NAME=gcc CXX=g++-6 CC=gcc-6
       addons:
