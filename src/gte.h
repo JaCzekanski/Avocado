@@ -87,12 +87,14 @@ struct GTE {
     void write(uint8_t n, uint32_t d);
 
     void nclip();
-    void ncds(bool sf, bool lm);
+    void ncds(bool sf, bool lm, int n = 0);
     void nccs(bool sf, bool lm, int n = 0);
+    void ncdt(bool sf, bool lm);
     void ncct(bool sf, bool lm);
     void dcpt(bool sf, bool lm);
     void dcps(bool sf, bool lm);
     void dcpl(bool sf, bool lm);
+    void intpl(bool sf, bool lm);
     int32_t divide(uint16_t h, uint16_t sz3);
     void rtps(int n, bool sf, bool lm);
     void rtpt(bool sf, bool lm);

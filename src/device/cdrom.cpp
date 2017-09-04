@@ -80,7 +80,11 @@ void CDROM::cmdSetloc() {
 
     readSector = sector + (second * 75) + (minute * 60 * 75);
     readSector -= 2 * 75;
-    assert(readSector >= 0);
+
+    if (readSector < 0) {
+        printf("cmdSetloc < 0!\n");
+        readSector = 0;
+    }
     ((mips::CPU*)_cpu)->dma->dma3.seekTo(readSector);
 
     CDROM_interrupt.push_back(3);

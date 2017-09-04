@@ -199,6 +199,9 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 }
 
 void GPU::cmdCpuToVram1(const uint8_t command, uint32_t arguments[]) {
+    if ((arguments[0] & 0x00ffffff) != 0) {
+        printf("cmdCpuToVram1: Suspicious arg0: 0x%x\n", arguments[0]);
+    }
     startX = currX = arguments[1] & 0xffff;
     startY = currY = (arguments[1] & 0xffff0000) >> 16;
 
@@ -230,6 +233,9 @@ void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
 }
 
 void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
+    if ((arguments[0] & 0x00ffffff) != 0) {
+        printf("cmdVramToCpu: Suspicious arg0: 0x%x\n", arguments[0]);
+    }
     gpuReadMode = 1;
     startX = currX = arguments[1] & 0xffff;
     startY = currY = (arguments[1] & 0xffff0000) >> 16;
@@ -240,17 +246,20 @@ void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
 }
 
 void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
+    if ((arguments[0] & 0x00ffffff) != 0) {
+        printf("cpuVramToVram: Suspicious arg0: 0x%x\n", arguments[0]);
+    }
     int srcX = arguments[1] & 0xffff;
     int srcY = (arguments[1] & 0xffff0000) >> 16;
 
     int dstX = arguments[2] & 0xffff;
     int dstY = (arguments[2] & 0xffff0000) >> 16;
 
-    int width = (arguments[3] & 0xffff) - 1;
-    int height = ((arguments[3] & 0xffff0000) >> 16) - 1;
+    int width = (arguments[3] & 0xffff);
+    int height = ((arguments[3] & 0xffff0000) >> 16);
 
     if (width > 1024 || height > 512) {
-        printf("cpuVramToVram: Suspicious width: 0x%x or height: 0x%x", width, height);
+        printf("cpuVramToVram: Suspicious width: 0x%x or height: 0x%x\n", width, height);
         cmd = Command::None;
         return;
     }
@@ -395,8 +404,9 @@ void GPU::writeGP0(uint32_t data) {
             // Interrupt request
             irqRequest = true;
             // TODO: IRQ
-        } else
+        } else {
             printf("GP0(0x%02x) args 0x%06x\n", command, arguments[0]);
+        }
 
         // if (cmd == Command::None) printf("GPU: 0x%02x\n", command);
 

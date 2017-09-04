@@ -690,12 +690,20 @@ void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
                 cpu->gte.dcps(command.sf, command.lm);
                 return;
 
+            case 0x11:
+                cpu->gte.intpl(command.sf, command.lm);
+                return;
+
             case 0x12:
                 cpu->gte.mvmva(command.sf, command.lm, command.mvmvaMultiplyMatrix, command.mvmvaMultiplyVector,
                                command.mvmvaTranslationVector);
                 return;
             case 0x13:
                 cpu->gte.ncds(command.sf, command.lm);
+                return;
+
+            case 0x16:
+                cpu->gte.ncdt(command.sf, command.lm);
                 return;
 
             case 0x1b:
