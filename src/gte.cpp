@@ -462,7 +462,7 @@ int32_t GTE::F(int64_t value) {
 #define R (rgbc.read(0) << 4)
 #define G (rgbc.read(1) << 4)
 #define B (rgbc.read(2) << 4)
-#define CODE (rgbc.read(3) << 4)
+#define CODE (rgbc.read(3))
 
 void GTE::nclip() { mac[0] = F(s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
 
