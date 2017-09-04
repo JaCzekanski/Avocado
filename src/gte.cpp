@@ -210,8 +210,8 @@ void GTE::write(uint8_t n, uint32_t d) {
             s[1].x = s[2].x;
             s[1].y = s[2].y;
 
-            s[2].x = d >> 16;
-            s[2].y = d;
+            s[2].y = d >> 16;
+            s[2].x = d;
             break;
 
         case 16:
