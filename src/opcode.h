@@ -1,6 +1,5 @@
 #pragma once
-#include <stdint.h>
-#include "mips.h"
+#include <cstdint>
 
 namespace mips {
 union Opcode {

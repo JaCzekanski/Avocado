@@ -1,6 +1,6 @@
 #pragma once
-#include "dmaChannel.h"
 #include "utils/file.h"
+#include "dmaChannel.h"
 
 namespace device {
 namespace dma {

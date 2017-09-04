@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include "cop0.h"
 #include "gte.h"
 #include "device/gpu.h"

@@ -1,7 +1,7 @@
 #pragma once
-#include <stdint.h>
-#include "device/device.h"
+#include <cstdint>
 #include <vector>
+#include "device/device.h"
 
 struct Matrix {
     int16_t v11 = 0;

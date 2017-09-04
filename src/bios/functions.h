@@ -1,7 +1,5 @@
 #pragma once
-#include <stdint.h>
-#include "cop0.h"
-#include <vector>
+#include <cstdint>
 #include <unordered_map>
 #include <functional>
 
@@ -23,7 +21,7 @@ inline bool dbgOutputChar(mips::CPU& cpu) {
 }
 
 inline bool dbgOutputString(mips::CPU& cpu) {
-	if (!cpu.debugOutput) return false;
+    if (!cpu.debugOutput) return false;
     for (int i = 0; i < 80; i++) {
         char c = cpu.readMemory8(cpu.reg[4] + i);
         if (c == 0) {
