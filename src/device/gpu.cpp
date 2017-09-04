@@ -67,7 +67,7 @@ void GPU::drawPolygon(int x[4], int y[4], int c[4], int t[4], bool isFourVertex,
         int depth = (t[1] & 0x1800000) >> 23;
         if (depth == 0) bitcount = 4;
         if (depth == 1) bitcount = 8;
-        if (depth == 2) bitcount = 16;
+        if (depth == 2 || depth == 3) bitcount = 16;
     }
 
 #define texX(x) ((!textured) ? 0 : ((x)&0xff))

@@ -15,6 +15,7 @@ void gpuLogWindow(mips::CPU* cpu);
 void ioWindow(mips::CPU* cpu);
 void vramWindow();
 void disassemblyWindow(mips::CPU* cpu);
+void ramWindow(mips::CPU* cpu);
 void biosSelectionWindow();
 void controllerSetupWindow();
 
@@ -37,6 +38,7 @@ bool showVramWindow = false;
 bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
 bool showDisassemblyWindow = false;
+bool showRamWindow = false;
 
 void renderImgui(mips::CPU* cpu) {
     auto gte = cpu->gte;
@@ -63,16 +65,20 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Debug")) {
-            ImGui::MenuItem("IO", nullptr, &showIo);
-            ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
             ImGui::MenuItem("BIOS log", nullptr, &cpu->biosLog);
 #ifdef ENABLE_IO_LOG
             ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
 #endif
             ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
             ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
-            ImGui::MenuItem("VRAM window", nullptr, &showVramWindow);
-            ImGui::MenuItem("Disassembly", nullptr, &showDisassemblyWindow);
+
+            ImGui::Separator();
+
+            ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
+            ImGui::MenuItem("IO", nullptr, &showIo);
+            ImGui::MenuItem("Memory", nullptr, &showRamWindow);
+            ImGui::MenuItem("Video memory", nullptr, &showVramWindow);
+            ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -93,6 +99,7 @@ void renderImgui(mips::CPU* cpu) {
     ioWindow(cpu);
     if (showVramWindow) vramWindow();
     if (showDisassemblyWindow) disassemblyWindow(cpu);
+    if (showRamWindow) ramWindow(cpu);
 
     // Options
     if (showBiosWindow) biosSelectionWindow();

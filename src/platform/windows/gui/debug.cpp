@@ -1,5 +1,6 @@
 #include "gui.h"
 #include <imgui.h>
+#include "imgui/imgui_memory_editor.h"
 #include "utils/string.h"
 #include "gte.h"
 #include "debugger/debugger.h"
@@ -296,14 +297,18 @@ void ioLogWindow(mips::CPU *cpu) {
 }
 
 void vramWindow() {
-    auto defaultSize = ImVec2(1024, 512);
+    auto defaultSize = ImVec2(1024, 512 + 32);
     ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
-    ImGui::Image(ImTextureID(vramTextureId), ImGui::GetWindowSize());
-    if (ImGui::Button("Reset size")) ImGui::SetWindowSize(defaultSize);
+    auto currentSize = ImGui::GetWindowSize();
+    currentSize.y -= 32;
+    ImGui::Image(ImTextureID(vramTextureId), currentSize);
     ImGui::End();
 }
 
 void disassemblyWindow(mips::CPU *cpu) {
+    static uint32_t startAddress = 0;
+    static bool lockAddress = false;
+
     ImGui::Begin("Disassembly", &showDisassemblyWindow);
 
     if (ImGui::Button(cpu->state == mips::CPU::State::run ? "Pause" : "Run")) {
@@ -316,42 +321,70 @@ void disassemblyWindow(mips::CPU *cpu) {
     if (ImGui::Button("Step")) {
         cpu->singleStep();
     }
+    ImGui::SameLine();
+    ImGui::Checkbox("Map register names", &debugger::mapRegisterNames);
 
     ImGui::Separator();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 0));
-    for (int i = 0; i < 35; i++) {
-        if (i == 32)
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
+    ImGui::Columns(4);
+    for (int i = 0; i < 34; i++) {
+        if (i == 0)
             ImGui::Text("PC: 0x%08x", cpu->PC);
-        else if (i == 33)
+        else if (i == 32)
             ImGui::Text("hi: 0x%08x", cpu->hi);
-        else if (i == 34)
+        else if (i == 33)
             ImGui::Text("lo: 0x%08x", cpu->lo);
         else
             ImGui::Text("%s: 0x%08x", debugger::reg(i).c_str(), cpu->reg[i]);
 
-        if ((i + 1) % 4 != 0) ImGui::SameLine();
+        ImGui::NextColumn();
     }
+    ImGui::Columns(1);
 
     ImGui::NewLine();
 
     ImGui::BeginChild("Disassembly", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    if (!lockAddress) startAddress = cpu->PC;
     for (int i = -15; i < 15; i++) {
-        uint32_t address = (cpu->PC + i * 4) & 0xFFFFFFFC;
+        uint32_t address = (startAddress + i * 4) & 0xFFFFFFFC;
         mipsInstructions::Opcode opcode(cpu->readMemory32(address));
         auto disasm = debugger::decodeInstruction(opcode);
 
         if (i == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
+
         ImGui::Selectable(string_format("0x%08x: %s %*s %s", address, disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "",
                                         disasm.parameters.c_str())
                               .c_str());
+
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%02x %02x %02x %02x", opcode.opcode & 0xff, (opcode.opcode >> 8) & 0xff, (opcode.opcode >> 16) & 0xff,
+                              (opcode.opcode >> 24) & 0xff);
+        }
+
         if (i == 0) ImGui::PopStyleColor();
     }
     ImGui::EndChild();
 
     ImGui::PopStyleVar();
 
-    ImGui::Checkbox("Map register names", &debugger::mapRegisterNames);
+    ImGui::Text("Go to address ");
+    ImGui::SameLine();
+
+    ImGui::PushItemWidth(80.f);
+    char addressInput[10];
+    if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (sscanf(addressInput, "%x", &startAddress) == 1)
+            lockAddress = true;
+        else if (strlen(addressInput) == 0)
+            lockAddress = false;
+    }
+    ImGui::PopItemWidth();
 
     ImGui::End();
+}
+
+void ramWindow(mips::CPU *cpu) {
+    static MemoryEditor editor;
+    editor.DrawWindow("Ram", cpu->ram, mips::CPU::RAM_SIZE);
 }
