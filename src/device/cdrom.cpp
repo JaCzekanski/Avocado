@@ -213,6 +213,24 @@ void CDROM::cmdSeekP() {
     stat.setMode(StatusCode::Mode::None);
 }
 
+void CDROM::cmdGetlocL() {
+    // TODO: Invalid implementation, but allows GTA2 to run
+    uint32_t tmp = readSector + 2 * 75;
+    uint32_t minute = tmp / 75 / 60;
+    uint32_t second = (tmp / 75) % 60;
+    uint32_t sector = tmp % 75;
+
+    CDROM_interrupt.push_back(3);
+    writeResponse(bcd::toBcd(minute));  // minute (track)
+    writeResponse(bcd::toBcd(second));  // second (track)
+    writeResponse(bcd::toBcd(sector));  // sector (track)
+    writeResponse(bcd::toBcd(minute));  // mode
+    writeResponse(bcd::toBcd(0x00));    // file
+    writeResponse(bcd::toBcd(0x00));    // channel
+    writeResponse(bcd::toBcd(0x08));    // sm
+    writeResponse(bcd::toBcd(0x00));    // ci
+}
+
 void CDROM::cmdGetlocP() {
     uint32_t tmp = readSector + 2 * 75;
     uint32_t minute = tmp / 75 / 60;
@@ -372,6 +390,8 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdDemute();
     else if (cmd == 0x0d)
         cmdSetFilter();
+    else if (cmd == 0x10)
+        cmdGetlocL();
     else if (cmd == 0x11)
         cmdGetlocP();
     else if (cmd == 0x12)

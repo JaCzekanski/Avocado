@@ -100,6 +100,7 @@ class CDROM : public Device {
     void cmdDemute();
     void cmdSetFilter();
     void cmdSetmode();
+    void cmdGetlocL();
     void cmdGetlocP();
     void cmdGetTN();
     void cmdGetTD();
