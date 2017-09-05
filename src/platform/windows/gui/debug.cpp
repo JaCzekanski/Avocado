@@ -34,6 +34,7 @@ const char *mapIo(uint32_t address) {
 }
 
 void replayCommands(mips::gpu::GPU *gpu, int to) {
+    using namespace device::gpu;
     auto commands = gpu->gpuLogList;
     gpu->vram = gpu->prevVram;
 
@@ -42,11 +43,17 @@ void replayCommands(mips::gpu::GPU *gpu, int to) {
         auto cmd = commands.at(i);
 
         if (cmd.args.size() == 0) printf("Panic! no args");
-        int mask = cmd.command << 24;
 
-        for (auto arg : cmd.args) {
-            gpu->write(0, mask | arg);
-            mask = 0;
+        for (int j = 0; j < cmd.args.size(); j++) {
+            uint32_t arg = cmd.args[j];
+
+            if (j == 0) arg |= cmd.command << 24;
+
+            if (j == 0 && i == to && (cmd.cmd == Command::Polygon || cmd.cmd == Command::Rectangle || cmd.cmd == Command::Line)) {
+                arg = (cmd.command << 24) | 0x00ff00;
+            }
+
+            gpu->write(0, arg);
         }
     }
     gpu->gpuLogEnabled = true;
@@ -213,7 +220,6 @@ void gpuLogWindow(mips::CPU *cpu) {
             bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
 
             if (ImGui::IsItemHovered()) {
-                printf("Render to cmd %d\n", i);
                 renderTo = i;
             }
 
@@ -231,7 +237,7 @@ void gpuLogWindow(mips::CPU *cpu) {
 
     ImGui::End();
 
-    if (renderTo >= 0) {
+    if (cpu->state != mips::CPU::State::run && renderTo >= 0) {
         replayCommands(cpu->getGPU(), renderTo);
     }
 }
