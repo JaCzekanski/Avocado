@@ -6,7 +6,6 @@
 
 namespace utils {
 class CueParser {
-    const int SECTOR_SIZE = 2352;
     const std::regex regexFile = std::regex("FILE \"([^\"]+)\" BINARY");
     const std::regex regexTrack = std::regex("TRACK (\\d+) (.*)");
     const std::regex regexIndex = std::regex("INDEX (\\d+) (\\d+):(\\d+):(\\d+)");
@@ -24,7 +23,7 @@ class CueParser {
     bool parsePregap(std::string& line);
     void addTrackToCue();
     void fixTracksLength();
-    TrackType matchTrackType(const std::string& s) const;
+    Track::Type matchTrackType(const std::string& s) const;
 
    public:
     std::unique_ptr<Cue> parse(const char* path);

@@ -1,7 +1,9 @@
 #pragma once
 #include "position.h"
 #include "track.h"
+#include "utils/file.h"
 #include <vector>
+#include <memory>
 
 namespace utils {
 struct Cue {
@@ -14,5 +16,7 @@ struct Cue {
 
     void seekTo();
     // read method
+
+    static std::unique_ptr<Cue> fromBin(const char* file);
 };
 }

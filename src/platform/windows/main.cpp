@@ -82,33 +82,29 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
-    if (ext == "iso" || ext == "bin" || ext == "img") {
-        if (fileExists(path)) {
-            printf("Dropped .iso, loading... ");
+    if (ext == "exe" || ext == "psexe") {
+        printf("Loading .exe is currently not supported.\n");
+        return;
+    }
 
-            bool success = cpu->dma->dma3.load(path);
-            cpu->cdrom->setShell(!success);
+    std::unique_ptr<utils::Cue> cue = nullptr;
 
-            if (success) {
-                printf("ok.\n");
-            } else {
-                printf("fail.\n");
-            }
-        }
-    } else if (ext == "exe" || ext == "psexe") {
-        printf("Dropped .exe, currently not supported.\n");
-    } else if (ext == "cue") {
+    if (ext == "cue") {
         try {
             utils::CueParser parser;
-            auto cue = parser.parse(path.c_str());
-            cpu->cdrom->setCue(cue);
-            bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
-            cpu->cdrom->setShell(!success);
-
-            printf("File %s loaded\n", path.c_str());
+            cue = parser.parse(path.c_str());
         } catch (std::exception& e) {
             printf("Error parsing cue: %s\n", e.what());
         }
+    } else if (ext == "iso" || ext == "bin" || ext == "img") {
+        cue = utils::Cue::fromBin(path.c_str());
+    }
+
+    if (cue != nullptr) {
+        cpu->cdrom->setCue(cue);
+        bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
+        cpu->cdrom->setShell(!success);
+        printf("File %s loaded\n", getFilenameExt(path).c_str());
     }
 }
 

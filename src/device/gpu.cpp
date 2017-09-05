@@ -407,7 +407,7 @@ void GPU::writeGP0(uint32_t data) {
             printf("GP0(0x%02x) args 0x%06x\n", command, arguments[0]);
         }
 
-        if (cmd == Command::None) {
+        if (gpuLogEnabled && cmd == Command::None) {
             GPU_LOG_ENTRY entry;
             entry.cmd = Command::Extra;
             entry.command = command;

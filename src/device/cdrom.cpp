@@ -143,7 +143,6 @@ void CDROM::cmdStop() {
 }
 
 void CDROM::cmdPause() {
-    printf("CDROM: PAUSE\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 

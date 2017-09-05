@@ -2,12 +2,13 @@
 #include "position.h"
 
 namespace utils {
-enum class TrackType { DATA, AUDIO };
-
 struct Track {
+    static const int SECTOR_SIZE = 2352;
+    enum class Type { DATA, AUDIO };
+
     std::string filename;
     int number = 0;
-    TrackType type;
+    Type type;
 
     // Pregap is not included
     // Pause is included in image

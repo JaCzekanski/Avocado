@@ -81,7 +81,7 @@ void CueParser::fixTracksLength() {
         Track& prev = cue.tracks.at(i);
 
         if (i == cue.tracks.size() - 1) {
-            prev.end = Position::fromLba(prev.size / SECTOR_SIZE);
+            prev.end = Position::fromLba(prev.size / Track::SECTOR_SIZE);
             return;
         }
 
@@ -90,14 +90,14 @@ void CueParser::fixTracksLength() {
         if (prev.filename == next.filename) {
             prev.end = next.start - next.pause;
         } else {
-            prev.end = Position::fromLba(prev.size / SECTOR_SIZE);
+            prev.end = Position::fromLba(prev.size / Track::SECTOR_SIZE);
         }
     }
 }
 
-TrackType CueParser::matchTrackType(const std::string& s) const {
-    if (s == "MODE2/2352") return TrackType::DATA;
-    if (s == "AUDIO") return TrackType::AUDIO;
+Track::Type CueParser::matchTrackType(const std::string& s) const {
+    if (s == "MODE2/2352") return Track::Type::DATA;
+    if (s == "AUDIO") return Track::Type::AUDIO;
 
     throw std::runtime_error(string_format("Unsupported track type %s", s.c_str()));
 }

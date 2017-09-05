@@ -74,10 +74,10 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
             } else if (control.transferDirection == CHCR::TransferDirection::fromMainRam)  // VRAM WRITE
             {
-                if (channel == 3) {
+                if (channel == 3 && verbose) {
                     printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
                 }
-                if (channel == 4) {
+                if (channel == 4 && verbose) {
                     printf("DMA%d CPU -> SPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
                 }
 
