@@ -499,26 +499,25 @@ void GTE::ncds(bool sf, bool lm, int n) {
 }
 
 void GTE::nccs(bool sf, bool lm, int n) {
-    // TODO
-    mac[1] = A1(l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z);
-    mac[2] = A2(l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z);
-    mac[3] = A3(l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z);
+    mac[1] = A1(l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, sf);
+    mac[2] = A2(l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, sf);
+    mac[3] = A3(l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, sf);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    mac[1] = A1((bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3], sf);
-    mac[2] = A2((bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3], sf);
-    mac[3] = A3((bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3], sf);
+    mac[1] = A1((bk.r * 0x1000) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3], sf);
+    mac[2] = A2((bk.g * 0x1000) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3], sf);
+    mac[3] = A3((bk.b * 0x1000) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3], sf);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    mac[1] = A1(R * ir[1]);
-    mac[2] = A2(G * ir[2]);
-    mac[3] = A3(B * ir[3]);
+    mac[1] = A1(R * ir[1], sf);
+    mac[2] = A2(G * ir[2], sf);
+    mac[3] = A3(B * ir[3], sf);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
