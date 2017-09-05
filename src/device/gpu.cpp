@@ -1,6 +1,7 @@
 #include "gpu.h"
 #include <cstdio>
 #include <cassert>
+#include <algorithm>
 
 #define VRAM ((uint16_t(*)[vramWidth])(&vram[0]))
 
@@ -128,6 +129,46 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
+template <typename T>
+T clamp(T v, T min, T max) {
+    return std::min(std::max(v, min), max);
+}
+
+void GPU::drawLine(int x0, int y0, int x1, int y1, int c0, int c1) {
+    x0 += drawingOffsetX;
+    y0 += drawingOffsetY;
+    x1 += drawingOffsetX;
+    y1 += drawingOffsetY;
+    bool steep = false;
+    if (std::abs(x0 - x1) < std::abs(y0 - y1)) {
+        std::swap(x0, y0);
+        std::swap(x1, y1);
+        steep = true;
+    }
+    if (x0 > x1) {
+        std::swap(x0, x1);
+        std::swap(y0, y1);
+    }
+
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    int derror2 = std::abs(dy) * 2;
+    int error2 = 0;
+    int y = y0;
+    for (int x = x0; x <= x1; x++) {
+        if (steep) {
+            VRAM[clamp(x, 0, 511)][clamp(y, 0, 1023)] = to15bit(c0);
+        } else {
+            VRAM[clamp(y, 0, 511)][clamp(x, 0, 1023)] = to15bit(c0);
+        }
+        error2 += derror2;
+        if (error2 > dx) {
+            y += (y1 > y0 ? 1 : -1);
+            error2 -= dx * 2;
+        }
+    }
+}
+
 void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
     int ptr = 1;
     int sx = 0, sy = 0, sc = 0;
@@ -158,7 +199,12 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
         // TODO: Switch to proprer line rendering
         // TODO:           ^^^^^^^ fix typo
 
-        drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency << 0));
+        //        drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency << 0));
+
+        // No transparency support
+        // No Gouroud Shading
+
+        drawLine(sx, sy, ex, ey, sc, ec);
     }
 
     cmd = Command::None;

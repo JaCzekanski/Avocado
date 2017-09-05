@@ -297,6 +297,7 @@ class GPU {
 
     void cmdFillRectangle(const uint8_t command, uint32_t arguments[]);
     void cmdPolygon(const PolygonArgs arg, uint32_t arguments[]);
+    void drawLine(int x1, int y1, int x2, int y2, int c1, int c2);
     void cmdLine(const LineArgs arg, uint32_t arguments[]);
     void cmdRectangle(const RectangleArgs command, uint32_t arguments[]);
     void cmdCpuToVram1(const uint8_t command, uint32_t arguments[]);
