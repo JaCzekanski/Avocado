@@ -1,4 +1,4 @@
-#version 330 core
+#version 150
 
 in vec3 fragColor;
 in vec2 fragTexcoord;

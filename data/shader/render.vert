@@ -1,4 +1,4 @@
-#version 330 core
+#version 150
 
 in ivec2 position;
 in uvec3 color;
