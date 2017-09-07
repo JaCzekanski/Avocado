@@ -2,8 +2,6 @@ sudo: false
 dist: trusty
 language: generic
 
-cache: ccache
-
 matrix:
   include:
     - os: linux
@@ -61,6 +59,17 @@ matrix:
     #       sources:
     #         - ubuntu-toolchain-r-test
     #         - llvm-toolchain-trusty-4.0
+    # - os: linux
+    #   env: COMPILER_NAME=clang CXX=clang++-5.0 CC=clang-5.0
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - clang-5.0
+    #         - libc++-dev
+    #         - libc++abi-dev
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #         - llvm-toolchain-trusty-5.0
     - os: linux
       env: COMPILER_NAME=gcc CXX=g++-6 CC=gcc-6
       addons:

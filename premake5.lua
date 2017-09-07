@@ -90,8 +90,11 @@ project "Avocado"
 
 	filter "action:vs*"
 		defines "_CRT_SECURE_NO_WARNINGS"
+		libdirs {
+			os.findlib("SDL2")
+		}
 		libdirs { 
-			os.findlib("SDL2"),
+			"externals/SDL2/lib/x86"
 		}
 
 	filter "action:gmake"

@@ -1,3 +1,5 @@
+version: '{branch}-{build}'
+
 os:
   - Visual Studio 2017
 
@@ -14,24 +16,41 @@ before_build:
   - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-windows.zip' 'premake.zip'
   - 7z x premake.zip
 
-
   # SDL
   - cd externals
   - rmdir /Q /S SDL2
   - ps: Start-FileDownload 'https://www.libsdl.org/release/SDL2-devel-2.0.5-VC.zip' 'SDL.zip'
   - 7z x SDL.zip 
-  - ren SDL2-2.0.4 SDL2
+  - ren SDL2-2.0.5 SDL2
   - cd ..
   
   # generate solution
   - premake5.exe %TOOLSET%
 
 configuration:
-#  - Debug
   - Release
 
 build:
   project: Avocado.sln
+
+after_build:
+  - mkdir artifact
+
+  # copy Avocado.exe, SDL2.dll and data directory
+  - ps: Copy-Item build\${env:CONFIGURATION}\Avocado.exe artifact\Avocado.exe
+  - ps: Copy-Item externals\SDL2\lib\x86\SDL2.dll artifact\SDL2.dll
+  - ps: Copy-Item data artifact\ -recurse
+
+  # remove .gitignore and asm directory
+  - ps: Get-ChildItem -Path artifact\data -Include *.gitignore -Recurse | foreach { $_.Delete()}
+  - ps: Remove-Item artifact\data\asm\ -recurse
+
+  # make zip archive
+  - 7z a avocado.zip %APPVEYOR_BUILD_FOLDER%\artifact\.
+
+artifacts:
+  - path: avocado.zip
+    name: Avocado
 
 notifications:
   - provider: Slack
