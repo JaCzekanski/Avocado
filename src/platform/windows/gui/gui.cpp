@@ -1,10 +1,7 @@
 #include "gui.h"
 #include <imgui.h>
-#include <filesystem>
 #include "gte.h"
 #include "platform/windows/config.h"
-
-using namespace std::experimental::filesystem::v1;
 
 void openFileWindow();
 

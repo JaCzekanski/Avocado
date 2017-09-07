@@ -1,9 +1,11 @@
 #include "gui.h"
 #include <imgui.h>
-#include <filesystem>
 #include "platform/windows/config.h"
 
+#ifndef __APPLE__
+#include <filesystem>
 using namespace std::experimental::filesystem::v1;
+#endif
 
 extern bool showBiosWindow;
 extern bool showControllerSetupWindow;
@@ -13,6 +15,7 @@ void biosSelectionWindow() {
     static std::vector<std::string> bioses;
     static int selectedBios = 0;
 
+#ifndef __APPLE__
     if (!biosesFound) {
         bioses.clear();
         auto dir = directory_iterator("data/bios");
@@ -37,13 +40,19 @@ void biosSelectionWindow() {
             }
         }
     }
+#endif
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
     if (bioses.empty()) {
+#ifndef __APPLE__
         ImGui::Text(
             "BIOS directory is empty.\n"
             "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
             ".bin and .rom extensions are recognised.");
+#else
+	ImGui::Text("No filesystem support on macOS, sorry :(\n"
+		"edit bios in config.json after closing this program");
+#endif
     } else {
         ImGui::PushItemWidth(300.f);
         ImGui::ListBox("", &selectedBios, [](void* data, int idx, const char** out_text) {
