@@ -4,10 +4,19 @@
 #include "utils/string.h"
 #include "gte.h"
 #include "debugger/debugger.h"
+#include <vector>
 
 extern bool showVramWindow;
 extern bool showDisassemblyWindow;
 extern bool showBreakpointsWindow;
+extern bool showWatchWindow;
+
+struct Watch {
+    uint32_t address;
+    int size; // 1, 2, 4
+    std::string name;
+};
+std::vector<Watch> watches;
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -45,7 +54,7 @@ void replayCommands(mips::gpu::GPU *gpu, int to) {
 
         if (cmd.args.size() == 0) printf("Panic! no args");
 
-        for (int j = 0; j < cmd.args.size(); j++) {
+        for (size_t j = 0; j < cmd.args.size(); j++) {
             uint32_t arg = cmd.args[j];
 
             if (j == 0) arg |= cmd.command << 24;
@@ -71,7 +80,7 @@ void gteRegistersWindow(mips::gte::GTE gte) {
     if (!gteRegistersEnabled) {
         return;
     }
-    ImGui::Begin("GTE registers", &gteRegistersEnabled);
+    ImGui::Begin("GTE registers", &gteRegistersEnabled, ImVec2(400,400));
 
     ImGui::Columns(3, nullptr, false);
     ImGui::Text("IR1:  %04hX", gte.ir[1]);
@@ -167,12 +176,12 @@ void gteLogWindow(mips::CPU *cpu) {
     static char filterBuffer[16];
     static bool searchActive = false;
     bool filterActive = strlen(filterBuffer) > 0;
-    ImGui::Begin("GTE Log", &gteLogEnabled);
+    ImGui::Begin("GTE Log", &gteLogEnabled, ImVec2(300,400));
 
     ImGui::BeginChild("GTE Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-    for (int i = 0; i < cpu->gte.log.size(); i++) {
+    for (size_t i = 0; i < cpu->gte.log.size(); i++) {
         auto ioEntry = cpu->gte.log[i];
         std::string t;
         if (ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::func) {
@@ -207,7 +216,7 @@ void gpuLogWindow(mips::CPU *cpu) {
     if (!gpuLogEnabled) {
         return;
     }
-    ImGui::Begin("GPU Log", &gpuLogEnabled);
+    ImGui::Begin("GPU Log", &gpuLogEnabled, ImVec2(300,400));
 
     ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -247,7 +256,7 @@ void ioWindow(mips::CPU *cpu) {
     if (!showIo) {
         return;
     }
-    ImGui::Begin("IO", &showIo);
+    ImGui::Begin("IO", &showIo, ImVec2(300,200));
 
     ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 0");
@@ -281,7 +290,7 @@ void ioLogWindow(mips::CPU *cpu) {
     if (!ioLogEnabled) {
         return;
     }
-    ImGui::Begin("IO Log", &ioLogEnabled);
+    ImGui::Begin("IO Log", &ioLogEnabled, ImVec2(200,400));
 
     ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -321,7 +330,7 @@ void disassemblyWindow(mips::CPU *cpu) {
     static uint32_t startAddress = 0;
     static bool lockAddress = false;
 
-    ImGui::Begin("Disassembly", &showDisassemblyWindow);
+    ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(400,500));
 
     if (ImGui::Button(cpu->state == mips::CPU::State::run ? "Pause" : "Run")) {
         if (cpu->state == mips::CPU::State::run)
@@ -404,7 +413,7 @@ void disassemblyWindow(mips::CPU *cpu) {
 }
 
 void breakpointsWindow(mips::CPU* cpu) {
-    ImGui::Begin("Breakpoints", &showBreakpointsWindow);
+    ImGui::Begin("Breakpoints", &showBreakpointsWindow, ImVec2(300,200));
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
@@ -418,6 +427,41 @@ void breakpointsWindow(mips::CPU* cpu) {
         if (ImGui::Selectable(string_format("0x%08x: %s (hit count: %d)", bp.first, formatOpcode(opcode).c_str(), bp.second.hitCount).c_str())) {
             bp.second.enabled = !bp.second.enabled;
         }
+
+        ImGui::PopStyleColor();
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::End();
+}
+
+void watchWindow(mips::CPU* cpu) {
+    static bool init = false;
+    if (!init) {
+        init = true;
+        watches.push_back({0x1F801070, 2, "ISTAT"});
+        watches.push_back({0x1F801074, 2, "IMASK"});
+        for (int i = 0; i<3; i++) {
+            watches.push_back({0x1f801100 + i*0x10, 2, string_format("Timer %d value", i)});
+            watches.push_back({0x1f801104 + i*0x10, 2, string_format("Timer %d mode", i)});
+            watches.push_back({0x1f801108 + i*0x10, 2, string_format("Timer %d target", i)});
+        }
+    }
+    ImGui::Begin("Watch", &showWatchWindow, ImVec2(300,200));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
+    ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    for (auto &watch : watches) {
+        uint32_t value = 0;
+        if (watch.size == 1) value = cpu->readMemory8(watch.address);
+        else if (watch.size == 2) value = cpu->readMemory16(watch.address);
+        else if (watch.size == 4) value = cpu->readMemory32(watch.address);
+        else continue;
+
+        ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        
+        ImGui::Selectable(string_format("0x%08x: 0x%0*x    %s", watch.address, watch.size*2, value, watch.name.c_str()).c_str());
 
         ImGui::PopStyleColor();
     }

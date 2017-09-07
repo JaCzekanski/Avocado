@@ -16,6 +16,7 @@ void ioWindow(mips::CPU* cpu);
 void vramWindow();
 void disassemblyWindow(mips::CPU* cpu);
 void breakpointsWindow(mips::CPU* cpu);
+void watchWindow(mips::CPU* cpu);
 void ramWindow(mips::CPU* cpu);
 void biosSelectionWindow();
 void controllerSetupWindow();
@@ -40,6 +41,7 @@ bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
 bool showDisassemblyWindow = false;
 bool showBreakpointsWindow = false;
+bool showWatchWindow = false;
 bool showRamWindow = false;
 
 void renderImgui(mips::CPU* cpu) {
@@ -82,6 +84,7 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::MenuItem("Video memory", nullptr, &showVramWindow);
             ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
             ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
+            ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -104,6 +107,7 @@ void renderImgui(mips::CPU* cpu) {
     if (showVramWindow) vramWindow();
     if (showDisassemblyWindow) disassemblyWindow(cpu);
     if (showBreakpointsWindow) breakpointsWindow(cpu);
+    if (showWatchWindow) watchWindow(cpu);
 
     // Options
     if (showBiosWindow) biosSelectionWindow();
