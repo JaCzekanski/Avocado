@@ -57,8 +57,8 @@ project "Avocado"
 	includedirs { 
 		"src", 
 		"externals/imgui",
-		"externals/SDL2/include",
 		"externals/glad/include",
+--		"externals/SDL2/include",
 		"externals/glm",
 		"externals/json/src"
 	}
@@ -87,13 +87,23 @@ project "Avocado"
         symbols "On"
         optimize "Speed"
         editandcontinue "On"
-			
-	configuration { "windows" }
-		defines { "WIN32" }
-		libdirs { os.findlib("SDL2") }
+
+	filter "action:vs*"
+		defines "_CRT_SECURE_NO_WARNINGS"
 		libdirs { 
-			"externals/SDL2/lib/x86"
+			os.findlib("SDL2"),
 		}
+
+	filter "action:gmake"
+		buildoptions { 
+			"-Wall",
+			"-Wextra",
+			"-Wno-unused-parameter",
+			"-Wno-macro-redefined",
+		}
+			
+	filter "system:windows" 
+		defines "WIN32" 
 		files { 
 			"src/imgui/**.*",
 			"src/renderer/opengl/**.*",
@@ -105,16 +115,18 @@ project "Avocado"
 			"imgui",
 			"OpenGL32"
 		}
+
+	filter {"action:gmake", "system:windows"}
 		defines {"_CRT_SECURE_NO_WARNINGS"}
-
-
-	configuration { "linux", "gmake" }
+		libdirs { 
+			"C:/sdk/SDL2-2.0.5/lib/x86"
+		}
+		includedirs {
+			"C:/sdk/SDL2-2.0.5/include"
+		}
+		
+	filter "system:linux" 
 		files { 
 			"src/platform/headless/**.cpp",
 			"src/platform/headless/**.h"
-		}
-		buildoptions { 
-			"-Wall",
-			"-Wextra",
-			"-Wno-unused-parameter",
 		}
