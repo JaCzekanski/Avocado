@@ -58,7 +58,7 @@ project "Avocado"
 		"src", 
 		"externals/imgui",
 		"externals/glad/include",
---		"externals/SDL2/include",
+		"externals/SDL2/include",
 		"externals/glm",
 		"externals/json/src"
 	}
