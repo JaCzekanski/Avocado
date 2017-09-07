@@ -16,7 +16,10 @@ struct Watch {
     int size; // 1, 2, 4
     std::string name;
 };
-std::vector<Watch> watches;
+std::vector<Watch> watches = {
+    {0x1F801070, 2, "ISTAT"},
+    {0x1F801074, 2, "IMASK"}
+};
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -439,19 +442,16 @@ void breakpointsWindow(mips::CPU* cpu) {
     ImGui::EndChild();
     ImGui::PopStyleVar();
 
-    bool showBreakpointAddPopup = false;
+    bool showPopup = false;
     if (ImGui::BeginPopupContextItem("breakpoint_menu")) {
         auto breakpointExist = cpu->breakpoints.find(selectedBreakpoint) != cpu->breakpoints.end();
 
         if (breakpointExist && ImGui::Selectable("Remove")) cpu->breakpoints.erase(selectedBreakpoint);
-        if (ImGui::Selectable("Add")) showBreakpointAddPopup = true;
+        if (ImGui::Selectable("Add")) showPopup = true;
 
         ImGui::EndPopup();
     }
-    if (showBreakpointAddPopup) {
-        ImGui::OpenPopup("Add breakpoint");
-        showBreakpointAddPopup = false;
-    }
+    if (showPopup) ImGui::OpenPopup("Add breakpoint");
         
     if (ImGui::BeginPopupModal("Add breakpoint", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         char addressInput[10];
@@ -460,11 +460,9 @@ void breakpointsWindow(mips::CPU* cpu) {
         ImGui::SameLine();
         
         ImGui::PushItemWidth(80);
-        if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
-            if (sscanf(addressInput, "%x", &address) == 1) {
-                cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
-                ImGui::CloseCurrentPopup();
-            }
+        if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue) && sscanf(addressInput, "%x", &address) == 1) {
+            cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+            ImGui::CloseCurrentPopup();
         }
         ImGui::PopItemWidth();
         
@@ -472,34 +470,21 @@ void breakpointsWindow(mips::CPU* cpu) {
         if (ImGui::Button("Close")) {
             ImGui::CloseCurrentPopup();
         }
-
         ImGui::Text("(press Enter to add)"); 
-
         ImGui::EndPopup();
     }
 
-
-    ImGui::Text("Use right mouse button to add or remove breakpoint");
-
+    ImGui::Text("Use right mouse button to show menu");
     ImGui::End();
 }
 
 void watchWindow(mips::CPU* cpu) {
-    static bool init = false;
-    if (!init) {
-        init = true;
-        watches.push_back({0x1F801070, 2, "ISTAT"});
-        watches.push_back({0x1F801074, 2, "IMASK"});
-        for (int i = 0; i<3; i++) {
-            watches.push_back({0x1f801100 + i*0x10, 2, string_format("Timer %d value", i)});
-            watches.push_back({0x1f801104 + i*0x10, 2, string_format("Timer %d mode", i)});
-            watches.push_back({0x1f801108 + i*0x10, 2, string_format("Timer %d target", i)});
-        }
-    }
+    static int selectedWatch = -1;
     ImGui::Begin("Watch", &showWatchWindow, ImVec2(300,200));
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    int i = 0;
     for (auto &watch : watches) {
         uint32_t value = 0;
         if (watch.size == 1) value = cpu->readMemory8(watch.address);
@@ -513,9 +498,75 @@ void watchWindow(mips::CPU* cpu) {
         ImGui::Selectable(string_format("0x%08x: 0x%0*x    %s", watch.address, watch.size*2, value, watch.name.c_str()).c_str());
 
         ImGui::PopStyleColor();
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGui::GetIO().MouseClicked[1])) {
+            ImGui::OpenPopup("watch_menu");
+            selectedWatch = i;
+        }
+        i++;
     }
     ImGui::EndChild();
     ImGui::PopStyleVar();
+
+    bool showPopup = false;
+    if (ImGui::BeginPopupContextItem("watch_menu")) {
+        if (selectedWatch != -1 && ImGui::Selectable("Remove")) {
+            watches.erase(watches.begin() + selectedWatch);
+            selectedWatch = -1;
+        }
+        if (ImGui::Selectable("Add")) showPopup = true;
+
+        ImGui::EndPopup();
+    }
+    if (showPopup) ImGui::OpenPopup("Add watch");
+        
+    if (ImGui::BeginPopupModal("Add watch", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        static const char *sizeLabels[] = {
+            "1 byte (8 bits)",
+            "2 bytes (16 bits)",
+            "4 bytes (32 bits)"
+        };
+        static int selectedSize = 0;
+        static char name[64];
+        static char addressInput[10];
+        uint32_t address;
+
+        ImGui::Text("Size: ");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(160);
+        ImGui::Combo("", &selectedSize, sizeLabels, 3);
+        ImGui::PopItemWidth();
+
+
+        ImGui::Text("Address: "); 
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+        ImGui::InputText("##address", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal);
+        ImGui::PopItemWidth();
+
+        ImGui::Text("Name: "); 
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+        ImGui::InputText("##name", name, 64);
+        ImGui::PopItemWidth();
+        
+        if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
+        ImGui::SameLine();
+        if (ImGui::Button("Add")) {
+            if (sscanf(addressInput, "%x", &address) == 1) {
+                int size = 1;
+                if (selectedSize == 0) size = 1;
+                else if (selectedSize == 1) size = 2;
+                else if (selectedSize == 2) size = 4;
+
+                watches.push_back({address, size, name});
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    ImGui::Text("Use right mouse button to show menu");
     ImGui::End();
 }
 
