@@ -8,15 +8,11 @@
 using namespace device::gpu;
 
 bool OpenGL::init() {
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_GL_SetSwapInterval(0);
-
-    if (!loadExtensions()) {
-        printf("Cannot initialize glad\n");
-        return false;
-    }
     return true;
 }
 
@@ -128,6 +124,10 @@ void OpenGL::createRenderTexture() {
 }
 
 bool OpenGL::setup() {
+    if (!loadExtensions()) {
+        printf("Cannot initialize glad\n");
+        return false;
+    }
     if (!loadShaders()) return false;
 
     createRenderBuffer();

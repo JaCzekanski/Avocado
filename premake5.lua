@@ -133,3 +133,19 @@ project "Avocado"
 			"src/platform/headless/**.cpp",
 			"src/platform/headless/**.h"
 		}
+
+	filter "system:macosx"
+		files { 
+			"src/imgui/**.*",
+			"src/renderer/opengl/**.*",
+			"src/platform/windows/**.*"
+		}
+		links { 
+			"SDL2",
+			"glad",
+			"imgui",
+		}
+		libdirs {
+			os.findlib("SDL2")
+		}
+	

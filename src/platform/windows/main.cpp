@@ -138,6 +138,12 @@ int start(int argc, char** argv) {
         return 1;
     }
 
+    OpenGL opengl;
+    if (!opengl.init()) {
+        printf("Cannot initialize OpenGL\n");
+        return 1;
+    }
+
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (window == nullptr) {
@@ -147,14 +153,7 @@ int start(int argc, char** argv) {
 
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (glContext == nullptr) {
-        printf("Cannot initialize opengl\n");
-        return 1;
-    }
-
-    OpenGL opengl;
-
-    if (!opengl.init()) {
-        printf("Cannot initialize OpenGL\n");
+        printf("Cannot create OpenGL context\n");
         return 1;
     }
 
