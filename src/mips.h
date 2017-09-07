@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 /**
  * NOTE:
@@ -178,5 +179,12 @@ struct CPU {
 
     std::vector<IO_LOG_ENTRY> ioLogList;
 #endif
+
+    struct Breakpoint {
+        bool enabled = true;
+        int hitCount = 0;
+        bool hit = false;
+    };
+    std::unordered_map<uint32_t, Breakpoint> breakpoints;
 };
 };

@@ -7,6 +7,7 @@
 
 extern bool showVramWindow;
 extern bool showDisassemblyWindow;
+extern bool showBreakpointsWindow;
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -60,7 +61,7 @@ void replayCommands(mips::gpu::GPU *gpu, int to) {
 }
 
 void dumpRegister(const char *name, uint32_t *reg) {
-    ImGui::BulletText(name);
+    ImGui::BulletText("%s", name);
     ImGui::NextColumn();
     ImGui::InputInt("", (int *)reg, 1, 100, ImGuiInputTextFlags_CharsHexadecimal);
     ImGui::NextColumn();
@@ -183,12 +184,12 @@ void gteLogWindow(mips::CPU *cpu) {
         if (filterActive && t.find(filterBuffer) != std::string::npos)  // if found
         {
             // if search enabled - continue
-            ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), t.c_str());
+            ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", t.c_str());
             continue;
         }
         if (searchActive) continue;
 
-        ImGui::Text(t.c_str());
+        ImGui::Text("%s", t.c_str());
     }
     ImGui::PopStyleVar();
     ImGui::EndChild();
@@ -311,6 +312,11 @@ void vramWindow() {
     ImGui::End();
 }
 
+std::string formatOpcode(mips::Opcode &opcode) {
+    auto disasm = debugger::decodeInstruction(opcode);
+    return string_format("%s %*s %s", disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "",disasm.parameters.c_str());
+}
+
 void disassemblyWindow(mips::CPU *cpu) {
     static uint32_t startAddress = 0;
     static bool lockAddress = false;
@@ -355,20 +361,27 @@ void disassemblyWindow(mips::CPU *cpu) {
     for (int i = -15; i < 15; i++) {
         uint32_t address = (startAddress + i * 4) & 0xFFFFFFFC;
         mips::Opcode opcode(cpu->readMemory32(address));
-        auto disasm = debugger::decodeInstruction(opcode);
 
-        if (i == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
+        ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
+        if (i == 0) color = ImVec4(1.f, 1.f, 0.f, 1.f);
+        else if (cpu->breakpoints.find(address) != cpu->breakpoints.end()) color = ImVec4(1.f, 0.f, 0.f, 1.f);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
 
-        ImGui::Selectable(string_format("0x%08x: %s %*s %s", address, disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "",
-                                        disasm.parameters.c_str())
-                              .c_str());
+        if (ImGui::Selectable(string_format("0x%08x: %s", address, formatOpcode(opcode).c_str()).c_str())) {
+            auto bp = cpu->breakpoints.find(address);
+            if (bp == cpu->breakpoints.end()) {
+                cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+            } else {
+                cpu->breakpoints.erase(bp);
+            }
+        }
 
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("%02x %02x %02x %02x", opcode.opcode & 0xff, (opcode.opcode >> 8) & 0xff, (opcode.opcode >> 16) & 0xff,
                               (opcode.opcode >> 24) & 0xff);
         }
 
-        if (i == 0) ImGui::PopStyleColor();
+        ImGui::PopStyleColor();
     }
     ImGui::EndChild();
 
@@ -387,6 +400,29 @@ void disassemblyWindow(mips::CPU *cpu) {
     }
     ImGui::PopItemWidth();
 
+    ImGui::End();
+}
+
+void breakpointsWindow(mips::CPU* cpu) {
+    ImGui::Begin("Breakpoints", &showBreakpointsWindow);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
+    ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    for (auto &bp : cpu->breakpoints) {
+        mips::Opcode opcode(cpu->readMemory32(bp.first));
+
+        ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
+        if (!bp.second.enabled) color = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+        
+        if (ImGui::Selectable(string_format("0x%08x: %s (hit count: %d)", bp.first, formatOpcode(opcode).c_str(), bp.second.hitCount).c_str())) {
+            bp.second.enabled = !bp.second.enabled;
+        }
+
+        ImGui::PopStyleColor();
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
     ImGui::End();
 }
 

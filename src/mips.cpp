@@ -332,6 +332,20 @@ bool CPU::executeInstructions(int count) {
             return false;
         }
 #endif
+        if (!breakpoints.empty()) {
+            auto bp = breakpoints.find(PC);
+            if (bp != breakpoints.end() && bp->second.enabled) {
+                if (!bp->second.hit) {
+                    bp->second.hitCount++;
+                    bp->second.hit = true;
+                    state = State::pause;
+                
+                    return false;
+                }
+                bp->second.hit = false; 
+            }
+        }
+
         Opcode _opcode(readMemory32(PC));
 
         bool isJumpCycle = shouldJump;
