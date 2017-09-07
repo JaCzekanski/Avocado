@@ -413,6 +413,7 @@ void disassemblyWindow(mips::CPU *cpu) {
 }
 
 void breakpointsWindow(mips::CPU* cpu) {
+    static uint32_t selectedBreakpoint = 0;
     ImGui::Begin("Breakpoints", &showBreakpointsWindow, ImVec2(300,200));
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
@@ -428,10 +429,58 @@ void breakpointsWindow(mips::CPU* cpu) {
             bp.second.enabled = !bp.second.enabled;
         }
 
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGui::GetIO().MouseClicked[1])) {
+            ImGui::OpenPopup("breakpoint_menu");
+            selectedBreakpoint = bp.first;
+        }
+
         ImGui::PopStyleColor();
     }
     ImGui::EndChild();
     ImGui::PopStyleVar();
+
+    bool showBreakpointAddPopup = false;
+    if (ImGui::BeginPopupContextItem("breakpoint_menu")) {
+        auto breakpointExist = cpu->breakpoints.find(selectedBreakpoint) != cpu->breakpoints.end();
+
+        if (breakpointExist && ImGui::Selectable("Remove")) cpu->breakpoints.erase(selectedBreakpoint);
+        if (ImGui::Selectable("Add")) showBreakpointAddPopup = true;
+
+        ImGui::EndPopup();
+    }
+    if (showBreakpointAddPopup) {
+        ImGui::OpenPopup("Add breakpoint");
+        showBreakpointAddPopup = false;
+    }
+        
+    if (ImGui::BeginPopupModal("Add breakpoint", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        char addressInput[10];
+        uint32_t address;
+        ImGui::Text("Address: "); 
+        ImGui::SameLine();
+        
+        ImGui::PushItemWidth(80);
+        if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if (sscanf(addressInput, "%x", &address) == 1) {
+                cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::PopItemWidth();
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Close")) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::Text("(press Enter to add)"); 
+
+        ImGui::EndPopup();
+    }
+
+
+    ImGui::Text("Use right mouse button to add or remove breakpoint");
+
     ImGui::End();
 }
 
