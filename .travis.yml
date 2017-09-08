@@ -84,14 +84,14 @@ install:
 
   # Linux build does not support window and rendering for now
   # Build SDL2 from externals
-#  - mkdir buildsdl
-#  - export PREFIX=$PWD/buildsdl
-#  - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-#  - export PATH=$PATH:$PWD/buildsdl/bin
-#  - cd externals/SDL2
-#  - ./configure --prefix=$PREFIX
-#  - make -j3
-#  - make install
+  - mkdir -p build/externals/SDL2
+  - export PREFIX=$PWD/build/externals/SDL2
+  - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+  - export PATH=$PATH:$PWD/build/externals/SDL2/bin
+  - cd externals/SDL2
+  - ./configure --prefix=$PREFIX
+  - make -j3
+  - make install
 
   - cd $BASE
   - export PREMAKE_VERSION=5.0.0-alpha11

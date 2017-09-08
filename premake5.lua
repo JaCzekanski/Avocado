@@ -128,11 +128,26 @@ project "Avocado"
 			"C:/sdk/SDL2-2.0.5/include"
 		}
 		
-	filter "system:linux" 
+	filter {"system:linux", "options:headless"}
 		files { 
 			"src/platform/headless/**.cpp",
 			"src/platform/headless/**.h"
 		}
+
+-- TODO: Make headless and normal configurations
+	filter {"system:linux", "not options:headless"}
+		files { 
+			"src/imgui/**.*",
+			"src/renderer/opengl/**.*",
+			"src/platform/windows/**.*"
+		}
+		links { 
+			"glad",
+			"imgui",
+		}
+		buildoptions {"`sdl2-config --cflags`"}
+		linkoptions {"`sdl2-config --libs`"}
+		
 
 	filter "system:macosx"
 		files { 
@@ -141,11 +156,9 @@ project "Avocado"
 			"src/platform/windows/**.*"
 		}
 		links { 
-			"SDL2",
 			"glad",
 			"imgui",
 		}
-		libdirs {
-			os.findlib("SDL2")
-		}
+		buildoptions {"`sdl2-config --cflags`"}
+		linkoptions {"`sdl2-config --libs`"}
 	
