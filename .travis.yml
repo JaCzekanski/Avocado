@@ -112,6 +112,21 @@ script:
   - make config=release -j3
 
 
+before_deploy:
+  - mkdir artifact
+
+  # copy avocado binary and data directory
+  - cp build\release\Avocado artifact\avocado
+  - cp -r data artifact/
+
+  # remove .gitignore and asm directory
+  - find artifact/ -name ".gitignore" -type f -delete
+  - rm -rf artifact\data\asm\
+
+  # make tar.gz archive
+  - tar -zcvf avocado.tar.gz artifact/
+
+
 notifications:
   email: false
   slack:
