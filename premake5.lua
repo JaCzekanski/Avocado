@@ -46,10 +46,10 @@ project "imgui"
 		"externals/imgui/imgui_draw.cpp",
 	}
 
-project "Avocado"
+project "avocado"
 	kind "ConsoleApp"
 	language "c++"
-	location "build/libs/Avocado"
+	location "build/libs/avocado"
 	targetdir "build/%{cfg.buildcfg}"
 	debugdir "."
 	flags { "C++14" }

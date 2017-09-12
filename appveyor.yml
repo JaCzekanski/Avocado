@@ -31,13 +31,13 @@ configuration:
   - Release
 
 build:
-  project: Avocado.sln
+  project: avocado.sln
 
 after_build:
   - mkdir artifact
 
-  # copy Avocado.exe, SDL2.dll and data directory
-  - ps: Copy-Item build\${env:CONFIGURATION}\Avocado.exe artifact\Avocado.exe
+  # copy avocado.exe, SDL2.dll and data directory
+  - ps: Copy-Item build\${env:CONFIGURATION}\avocado.exe artifact\avocado.exe
   - ps: Copy-Item externals\SDL2\lib\x86\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
 
@@ -50,7 +50,7 @@ after_build:
 
 artifacts:
   - path: avocado.zip
-    name: Avocado
+    name: avocado
 
 notifications:
   - provider: Slack

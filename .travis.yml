@@ -116,7 +116,7 @@ before_deploy:
   - mkdir artifact
 
   # copy avocado binary and data directory
-  - cp build\release\Avocado artifact\avocado
+  - cp build\release\avocado artifact\avocado
   - cp -r data artifact/
 
   # remove .gitignore and asm directory
