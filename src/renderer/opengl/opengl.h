@@ -9,6 +9,9 @@ class OpenGL {
     static const int resWidth = 640;
     static const int resHeight = 480;
 
+    int width = resWidth;
+    int height = resHeight;
+
     bool init();
     bool setup();
     void render(device::gpu::GPU* gpu);

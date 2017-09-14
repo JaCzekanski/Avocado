@@ -53,8 +53,8 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
     }
 
     if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP) {
-#define B(a, b)                                             \
-    case a:                                                 \
+#define B(a, b)                                   \
+    case a:                                       \
         b = (event.cbutton.state == SDL_PRESSED); \
         break;
         switch (event.cbutton.button) {
@@ -231,6 +231,10 @@ int start(int argc, char** argv) {
                 std::string path = event.drop.file;
                 SDL_free(event.drop.file);
                 loadFile(cpu, path);
+            }
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                opengl.width = event.window.data1;
+                opengl.height = event.window.data2;
             }
             cpu->controller->setState(getButtonState(event));
             ImGui_ImplSdlGL3_ProcessEvent(&event);

@@ -111,8 +111,8 @@ void OpenGL::createRenderTexture() {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -172,8 +172,8 @@ void OpenGL::renderSecondStage() {
 void OpenGL::render(GPU *gpu) {
     // Update screen position
 
-    int screenWidth = resWidth;
-    int screenHeight = resHeight;
+    int screenWidth = width;
+    int screenHeight = height;
 
     std::vector<BlitStruct> bb;
     if (viewFullVram) {
