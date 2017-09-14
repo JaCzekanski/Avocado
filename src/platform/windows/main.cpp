@@ -40,14 +40,24 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
     }
 
     if (event.type == SDL_CONTROLLERAXISMOTION) {
-        const int deadzone = 2048;
+        const int deadzone = 8 * 1024;
         switch (event.caxis.axis) {
+            case SDL_CONTROLLER_AXIS_LEFTY:
+                buttons.up = event.caxis.value < -deadzone;
+                buttons.down = event.caxis.value > deadzone;
+                break;
+
+            case SDL_CONTROLLER_AXIS_LEFTX:
+                buttons.left = event.caxis.value < -deadzone;
+                buttons.right = event.caxis.value > deadzone;
+                break;
+
             case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-                buttons.l2 = event.caxis.value > deadzone;
+                buttons.l2 = event.caxis.value > 2048;
                 break;
 
             case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-                buttons.r2 = event.caxis.value > deadzone;
+                buttons.r2 = event.caxis.value > 2048;
                 break;
         }
     }
