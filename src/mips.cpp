@@ -339,10 +339,10 @@ bool CPU::executeInstructions(int count) {
                     bp->second.hitCount++;
                     bp->second.hit = true;
                     state = State::pause;
-                
+
                     return false;
                 }
-                bp->second.hit = false; 
+                bp->second.hit = false;
             }
         }
 
@@ -418,6 +418,9 @@ void CPU::emulateFrame() {
         timer0->step(systemCycles);
         timer1->step(systemCycles);
         timer2->step(systemCycles);
+
+        static int wtf = 0;
+        if (++wtf % 200 == 0) interrupt->trigger(device::interrupt::TIMER2);
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {
