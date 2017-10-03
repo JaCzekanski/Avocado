@@ -262,7 +262,7 @@ void gpuLogWindow(mips::CPU *cpu) {
 
             for (int i = 0; i < gpuLog.size(); i++) {
                 auto e = gpuLog[i];
-                j.push_back({{"command", e.command}, {"cmd", device::gpu::CommandStr[(int)e.cmd]}, {"args", e.args}});
+                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", device::gpu::CommandStr[(int)e.cmd]}, {"args", e.args}});
             }
 
             putFileContents(string_format("%s.json", filename), j.dump(2));
