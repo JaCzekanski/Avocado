@@ -5,6 +5,7 @@
 #include "gte.h"
 #include "debugger/debugger.h"
 #include <vector>
+#include <json.hpp>
 
 extern bool showVramWindow;
 extern bool showDisassemblyWindow;
@@ -13,13 +14,10 @@ extern bool showWatchWindow;
 
 struct Watch {
     uint32_t address;
-    int size; // 1, 2, 4
+    int size;  // 1, 2, 4
     std::string name;
 };
-std::vector<Watch> watches = {
-    {0x1F801070, 2, "ISTAT"},
-    {0x1F801074, 2, "IMASK"}
-};
+std::vector<Watch> watches = {{0x1F801070, 2, "ISTAT"}, {0x1F801074, 2, "IMASK"}};
 
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
@@ -83,7 +81,7 @@ void gteRegistersWindow(mips::gte::GTE gte) {
     if (!gteRegistersEnabled) {
         return;
     }
-    ImGui::Begin("GTE registers", &gteRegistersEnabled, ImVec2(400,400));
+    ImGui::Begin("GTE registers", &gteRegistersEnabled, ImVec2(400, 400));
 
     ImGui::Columns(3, nullptr, false);
     ImGui::Text("IR1:  %04hX", gte.ir[1]);
@@ -179,7 +177,7 @@ void gteLogWindow(mips::CPU *cpu) {
     static char filterBuffer[16];
     static bool searchActive = false;
     bool filterActive = strlen(filterBuffer) > 0;
-    ImGui::Begin("GTE Log", &gteLogEnabled, ImVec2(300,400));
+    ImGui::Begin("GTE Log", &gteLogEnabled, ImVec2(300, 400));
 
     ImGui::BeginChild("GTE Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -219,7 +217,7 @@ void gpuLogWindow(mips::CPU *cpu) {
     if (!gpuLogEnabled) {
         return;
     }
-    ImGui::Begin("GPU Log", &gpuLogEnabled, ImVec2(300,400));
+    ImGui::Begin("GPU Log", &gpuLogEnabled, ImVec2(300, 400));
 
     ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -248,6 +246,39 @@ void gpuLogWindow(mips::CPU *cpu) {
     ImGui::PopStyleVar();
     ImGui::EndChild();
 
+    if (ImGui::Button("Dump")) {
+        ImGui::OpenPopup("Save dump dialog");
+    }
+
+    if (ImGui::BeginPopupModal("Save dump dialog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        char filename[32];
+        ImGui::Text("File: ");
+        ImGui::SameLine();
+
+        ImGui::PushItemWidth(140);
+        if (ImGui::InputText("", filename, 31, ImGuiInputTextFlags_EnterReturnsTrue)) {
+            auto gpuLog = cpu->getGPU()->gpuLogList;
+            nlohmann::json j;
+
+            for (int i = 0; i < gpuLog.size(); i++) {
+                auto e = gpuLog[i];
+                j.push_back({{"command", e.command}, {"cmd", device::gpu::CommandStr[(int)e.cmd]}, {"args", e.args}});
+            }
+
+            putFileContents(string_format("%s.json", filename), j.dump(2));
+
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine();
+        if (ImGui::Button("Close")) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::Text("(press Enter to add)");
+        ImGui::EndPopup();
+    }
+
     ImGui::End();
 
     if (cpu->state != mips::CPU::State::run && renderTo >= 0) {
@@ -259,7 +290,7 @@ void ioWindow(mips::CPU *cpu) {
     if (!showIo) {
         return;
     }
-    ImGui::Begin("IO", &showIo, ImVec2(300,200));
+    ImGui::Begin("IO", &showIo, ImVec2(300, 200));
 
     ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 0");
@@ -293,7 +324,7 @@ void ioLogWindow(mips::CPU *cpu) {
     if (!ioLogEnabled) {
         return;
     }
-    ImGui::Begin("IO Log", &ioLogEnabled, ImVec2(200,400));
+    ImGui::Begin("IO Log", &ioLogEnabled, ImVec2(200, 400));
 
     ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -326,14 +357,14 @@ void vramWindow() {
 
 std::string formatOpcode(mips::Opcode &opcode) {
     auto disasm = debugger::decodeInstruction(opcode);
-    return string_format("%s %*s %s", disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "",disasm.parameters.c_str());
+    return string_format("%s %*s %s", disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "", disasm.parameters.c_str());
 }
 
 void disassemblyWindow(mips::CPU *cpu) {
     static uint32_t startAddress = 0;
     static bool lockAddress = false;
 
-    ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(400,500));
+    ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(400, 500));
 
     if (ImGui::Button(cpu->state == mips::CPU::State::run ? "Pause" : "Run")) {
         if (cpu->state == mips::CPU::State::run)
@@ -375,8 +406,10 @@ void disassemblyWindow(mips::CPU *cpu) {
         mips::Opcode opcode(cpu->readMemory32(address));
 
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
-        if (i == 0) color = ImVec4(1.f, 1.f, 0.f, 1.f);
-        else if (cpu->breakpoints.find(address) != cpu->breakpoints.end()) color = ImVec4(1.f, 0.f, 0.f, 1.f);
+        if (i == 0)
+            color = ImVec4(1.f, 1.f, 0.f, 1.f);
+        else if (cpu->breakpoints.find(address) != cpu->breakpoints.end())
+            color = ImVec4(1.f, 0.f, 0.f, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
 
         if (ImGui::Selectable(string_format("0x%08x: %s", address, formatOpcode(opcode).c_str()).c_str())) {
@@ -415,9 +448,9 @@ void disassemblyWindow(mips::CPU *cpu) {
     ImGui::End();
 }
 
-void breakpointsWindow(mips::CPU* cpu) {
+void breakpointsWindow(mips::CPU *cpu) {
     static uint32_t selectedBreakpoint = 0;
-    ImGui::Begin("Breakpoints", &showBreakpointsWindow, ImVec2(300,200));
+    ImGui::Begin("Breakpoints", &showBreakpointsWindow, ImVec2(300, 200));
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
@@ -427,8 +460,9 @@ void breakpointsWindow(mips::CPU* cpu) {
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
         if (!bp.second.enabled) color = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
-        
-        if (ImGui::Selectable(string_format("0x%08x: %s (hit count: %d)", bp.first, formatOpcode(opcode).c_str(), bp.second.hitCount).c_str())) {
+
+        if (ImGui::Selectable(
+                string_format("0x%08x: %s (hit count: %d)", bp.first, formatOpcode(opcode).c_str(), bp.second.hitCount).c_str())) {
             bp.second.enabled = !bp.second.enabled;
         }
 
@@ -452,25 +486,26 @@ void breakpointsWindow(mips::CPU* cpu) {
         ImGui::EndPopup();
     }
     if (showPopup) ImGui::OpenPopup("Add breakpoint");
-        
+
     if (ImGui::BeginPopupModal("Add breakpoint", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         char addressInput[10];
         uint32_t address;
-        ImGui::Text("Address: "); 
+        ImGui::Text("Address: ");
         ImGui::SameLine();
-        
+
         ImGui::PushItemWidth(80);
-        if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue) && sscanf(addressInput, "%x", &address) == 1) {
+        if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)
+            && sscanf(addressInput, "%x", &address) == 1) {
             cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
             ImGui::CloseCurrentPopup();
         }
         ImGui::PopItemWidth();
-        
+
         ImGui::SameLine();
         if (ImGui::Button("Close")) {
             ImGui::CloseCurrentPopup();
         }
-        ImGui::Text("(press Enter to add)"); 
+        ImGui::Text("(press Enter to add)");
         ImGui::EndPopup();
     }
 
@@ -478,24 +513,28 @@ void breakpointsWindow(mips::CPU* cpu) {
     ImGui::End();
 }
 
-void watchWindow(mips::CPU* cpu) {
+void watchWindow(mips::CPU *cpu) {
     static int selectedWatch = -1;
-    ImGui::Begin("Watch", &showWatchWindow, ImVec2(300,200));
+    ImGui::Begin("Watch", &showWatchWindow, ImVec2(300, 200));
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
     int i = 0;
     for (auto &watch : watches) {
         uint32_t value = 0;
-        if (watch.size == 1) value = cpu->readMemory8(watch.address);
-        else if (watch.size == 2) value = cpu->readMemory16(watch.address);
-        else if (watch.size == 4) value = cpu->readMemory32(watch.address);
-        else continue;
+        if (watch.size == 1)
+            value = cpu->readMemory8(watch.address);
+        else if (watch.size == 2)
+            value = cpu->readMemory16(watch.address);
+        else if (watch.size == 4)
+            value = cpu->readMemory32(watch.address);
+        else
+            continue;
 
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
-        
-        ImGui::Selectable(string_format("0x%08x: 0x%0*x    %s", watch.address, watch.size*2, value, watch.name.c_str()).c_str());
+
+        ImGui::Selectable(string_format("0x%08x: 0x%0*x    %s", watch.address, watch.size * 2, value, watch.name.c_str()).c_str());
 
         ImGui::PopStyleColor();
 
@@ -519,13 +558,9 @@ void watchWindow(mips::CPU* cpu) {
         ImGui::EndPopup();
     }
     if (showPopup) ImGui::OpenPopup("Add watch");
-        
+
     if (ImGui::BeginPopupModal("Add watch", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        static const char *sizeLabels[] = {
-            "1 byte (8 bits)",
-            "2 bytes (16 bits)",
-            "4 bytes (32 bits)"
-        };
+        static const char *sizeLabels[] = {"1 byte (8 bits)", "2 bytes (16 bits)", "4 bytes (32 bits)"};
         static int selectedSize = 0;
         static char name[64];
         static char addressInput[10];
@@ -537,27 +572,29 @@ void watchWindow(mips::CPU* cpu) {
         ImGui::Combo("", &selectedSize, sizeLabels, 3);
         ImGui::PopItemWidth();
 
-
-        ImGui::Text("Address: "); 
+        ImGui::Text("Address: ");
         ImGui::SameLine();
         ImGui::PushItemWidth(-1);
         ImGui::InputText("##address", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal);
         ImGui::PopItemWidth();
 
-        ImGui::Text("Name: "); 
+        ImGui::Text("Name: ");
         ImGui::SameLine();
         ImGui::PushItemWidth(-1);
         ImGui::InputText("##name", name, 64);
         ImGui::PopItemWidth();
-        
+
         if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
         ImGui::SameLine();
         if (ImGui::Button("Add")) {
             if (sscanf(addressInput, "%x", &address) == 1) {
                 int size = 1;
-                if (selectedSize == 0) size = 1;
-                else if (selectedSize == 1) size = 2;
-                else if (selectedSize == 2) size = 4;
+                if (selectedSize == 0)
+                    size = 1;
+                else if (selectedSize == 1)
+                    size = 2;
+                else if (selectedSize == 2)
+                    size = 4;
 
                 watches.push_back({address, size, name});
                 ImGui::CloseCurrentPopup();
