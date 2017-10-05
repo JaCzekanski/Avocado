@@ -257,7 +257,8 @@ void gpuLogWindow(mips::CPU *cpu) {
 
         ImGui::PushItemWidth(140);
         if (ImGui::InputText("", filename, 31, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            auto gpuLog = cpu->getGPU()->gpuLogList;
+            auto gpu = cpu->getGPU();
+            auto gpuLog = gpu->gpuLogList;
             nlohmann::json j;
 
             for (int i = 0; i < gpuLog.size(); i++) {
@@ -266,6 +267,11 @@ void gpuLogWindow(mips::CPU *cpu) {
             }
 
             putFileContents(string_format("%s.json", filename), j.dump(2));
+
+            // Binary vram dump
+            std::vector<uint8_t> vram;
+            vram.assign(gpu->vram.data(), gpu->vram.data() + (device::gpu::GPU::vramWidth * device::gpu::GPU::vramHeight));
+            putFileContents(string_format("%s.bin", filename), vram);
 
             ImGui::CloseCurrentPopup();
         }

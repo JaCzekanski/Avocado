@@ -225,8 +225,11 @@ class GPU {
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
     */
+   public:
     static const int vramWidth = 1024;
     static const int vramHeight = 512;
+
+   public:
     int resolutionMultiplier = 1;
 
     int startX = 0;
