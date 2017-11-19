@@ -603,24 +603,33 @@ glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
     return glm::vec3(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 }
 
-void GPU::triangle(glm::ivec2 pos[3], int16_t color) {
+void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3]) {
+    for (int i = 0; i < 3; i++) {
+        pos[i].x += drawingOffsetX;
+        pos[i].y += drawingOffsetY;
+    }
     // clang-format off
     glm::ivec2 min = glm::ivec2(
-		std::max(0, std::min({pos[0].x, pos[1].x, pos[2].x})), 
-		std::max(0, std::min({pos[0].y, pos[1].y, pos[2].y}))
+		std::max((int)drawingAreaLeft, std::max(0, std::min({pos[0].x, pos[1].x, pos[2].x}))), 
+		std::max((int)drawingAreaTop, std::max(0, std::min({pos[0].y, pos[1].y, pos[2].y})))
 	);
     glm::ivec2 max = glm::ivec2(
-		std::min(vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x})), 
-		std::min(vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y}))
+		std::min((int)drawingAreaRight, std::min(vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x}))), 
+		std::min((int)drawingAreaBottom, std::min(vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y})))
 	);
     // clang-format on
 
     glm::ivec2 p;
+
     for (p.y = min.y; p.y < max.y; p.y++) {
         for (p.x = min.x; p.x < max.x; p.x++) {
             glm::vec3 s = barycentric(pos, p);
             if (s.x < 0 || s.y < 0 || s.z < 0) continue;
-            VRAM[p.y][p.x] = color;
+
+            glm::vec3 calculatedColor
+                = glm::vec3(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r, s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
+                            s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+            VRAM[p.y][p.x] = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
         }
     }
 }
@@ -631,11 +640,11 @@ void GPU::rasterize() {
         for (int j = 0; j < 3; j++) v[j] = renderList[i + j];
 
         glm::ivec2 pos[3];
+        glm::vec3 color[3];
         for (int j = 0; j < 3; j++) {
             pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
+            color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
         }
-
-        int16_t color = to15bit(v[0].color[0], v[0].color[1], v[0].color[2]);
 
         triangle(pos, color);
     }

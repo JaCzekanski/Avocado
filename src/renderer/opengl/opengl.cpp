@@ -13,6 +13,7 @@ bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_GL_SetSwapInterval(0);
+
     return true;
 }
 
@@ -184,8 +185,8 @@ void OpenGL::render(GPU *gpu) {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
     }
-    //    glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
-    //    glBufferSubData(GL_ARRAY_BUFFER, 0, bb.size() * sizeof(BlitStruct), bb.data());
+    glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, bb.size() * sizeof(BlitStruct), bb.data());
 
     // Update VRAM texture
     //    glBindTexture(GL_TEXTURE_2D, vramTex);

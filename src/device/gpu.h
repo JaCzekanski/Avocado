@@ -327,7 +327,7 @@ class GPU {
     std::vector<Vertex>& render();
 
     bool emulateGpuCycles(int cycles);
-    void triangle(glm::ivec2 pos[], int16_t color);
+    void triangle(glm::ivec2 pos[], glm::vec3 color[]);
     void rasterize();
 
     std::vector<uint16_t> vram;

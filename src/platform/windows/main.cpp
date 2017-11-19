@@ -215,10 +215,10 @@ int start(int argc, char** argv) {
     SDL_Event event;
     while (running && !exitProgram) {
         bool newEvent = false;
-        //        if (cpu->state != mips::CPU::State::run) {
-        SDL_WaitEvent(&event);
-        newEvent = true;
-        //        }
+        if (cpu->state != mips::CPU::State::run) {
+            SDL_WaitEvent(&event);
+            newEvent = true;
+        }
 
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
@@ -289,13 +289,13 @@ int start(int argc, char** argv) {
             hardReset();
         }
 
-        //        if (cpu->state == mips::CPU::State::run) {
-        //            cpu->emulateFrame();
-        //            if (singleFrame) {
-        //                singleFrame = false;
-        //                cpu->state = mips::CPU::State::pause;
-        //            }
-        //        }
+        if (cpu->state == mips::CPU::State::run) {
+            cpu->emulateFrame();
+            if (singleFrame) {
+                singleFrame = false;
+                cpu->state = mips::CPU::State::pause;
+            }
+        }
         ImGui_ImplSdlGL3_NewFrame(window);
 
         cpu->getGPU()->rasterize();
