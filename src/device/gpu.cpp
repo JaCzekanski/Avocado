@@ -626,9 +626,13 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3]) {
             glm::vec3 s = barycentric(pos, p);
             if (s.x < 0 || s.y < 0 || s.z < 0) continue;
 
-            glm::vec3 calculatedColor
-                = glm::vec3(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r, s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
-                            s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+            // clang-format off
+            glm::vec3 calculatedColor = glm::vec3(
+					s.x * color[0].r + s.y * color[1].r + s.z * color[2].r, 
+					s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
+					s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
+			);
+            // clang-format on
             VRAM[p.y][p.x] = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
         }
     }
