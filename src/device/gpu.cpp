@@ -604,9 +604,20 @@ glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
 }
 
 void GPU::triangle(glm::ivec2 pos[3], int16_t color) {
+    // clang-format off
+    glm::ivec2 min = glm::ivec2(
+		std::max(0, std::min({pos[0].x, pos[1].x, pos[2].x})), 
+		std::max(0, std::min({pos[0].y, pos[1].y, pos[2].y}))
+	);
+    glm::ivec2 max = glm::ivec2(
+		std::min(vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x})), 
+		std::min(vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y}))
+	);
+    // clang-format on
+
     glm::ivec2 p;
-    for (p.y = 0; p.y < vramHeight; p.y++) {
-        for (p.x = 0; p.x < vramWidth; p.x++) {
+    for (p.y = min.y; p.y < max.y; p.y++) {
+        for (p.x = min.x; p.x < max.x; p.x++) {
             glm::vec3 s = barycentric(pos, p);
             if (s.x < 0 || s.y < 0 || s.z < 0) continue;
             VRAM[p.y][p.x] = color;
