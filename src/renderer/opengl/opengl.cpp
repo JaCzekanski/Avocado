@@ -184,27 +184,27 @@ void OpenGL::render(GPU *gpu) {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
     }
-    glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, bb.size() * sizeof(BlitStruct), bb.data());
+    //    glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
+    //    glBufferSubData(GL_ARRAY_BUFFER, 0, bb.size() * sizeof(BlitStruct), bb.data());
 
     // Update VRAM texture
-    glBindTexture(GL_TEXTURE_2D, vramTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
+    //    glBindTexture(GL_TEXTURE_2D, vramTex);
+    //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
 
     // Update Render texture
     glBindTexture(GL_TEXTURE_2D, renderTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
 
-    auto &renderList = gpu->render();
+    //    auto &renderList = gpu->render();
 
     // Update renderlist
-    if (!renderList.empty()) {
-        glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, renderList.size() * sizeof(Vertex), renderList.data());
-    }
+    //    if (!renderList.empty()) {
+    //        glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
+    //        glBufferSubData(GL_ARRAY_BUFFER, 0, renderList.size() * sizeof(Vertex), renderList.data());
+    //    }
 
-    glViewport(0, 0, 1024, 512);
-    renderFirstStage(renderList, gpu);
+    //    glViewport(0, 0, 1024, 512);
+    //    renderFirstStage(renderList, gpu);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -213,8 +213,8 @@ void OpenGL::render(GPU *gpu) {
     renderSecondStage();
 
     // Read back rendered texture to VRAM
-    glBindTexture(GL_TEXTURE_2D, renderTex);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
+    //    glBindTexture(GL_TEXTURE_2D, renderTex);
+    //    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
 
-    renderList.clear();
+    //    renderList.clear();
 }

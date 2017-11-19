@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include <glm/detail/_vectorize.hpp>
 
 #define VRAM ((uint16_t(*)[vramWidth])(&vram[0]))
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "device.h"
 #include <vector>
+#include <glm/vec2.hpp>
 
 namespace device {
 namespace gpu {
@@ -304,6 +305,7 @@ class GPU {
     void cmdCpuToVram2(const uint8_t command, uint32_t arguments[]);
     void cmdVramToCpu(const uint8_t command, uint32_t arguments[]);
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
+    uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
     void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false, int flags = 0);
 
@@ -325,6 +327,8 @@ class GPU {
     std::vector<Vertex>& render();
 
     bool emulateGpuCycles(int cycles);
+    void triangle(glm::ivec2 pos[], int16_t color);
+    void rasterize();
 
     std::vector<uint16_t> vram;
     std::vector<uint16_t> prevVram;

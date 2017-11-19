@@ -297,10 +297,11 @@ int start(int argc, char** argv) {
         //            }
         //        }
         ImGui_ImplSdlGL3_NewFrame(window);
-        if (!skipRender)
-            opengl.render(cpu->getGPU());
-        else
-            cpu->getGPU()->render().clear();
+
+        cpu->getGPU()->rasterize();
+        if (!skipRender) opengl.render(cpu->getGPU());
+
+        cpu->getGPU()->render().clear();
 
         renderImgui(cpu.get());
 
