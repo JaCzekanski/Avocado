@@ -75,16 +75,19 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], int t[4], bool isFourVertex,
 #define texX(x) ((!textured) ? 0 : ((x)&0xff))
 #define texY(x) ((!textured) ? 0 : (((x)&0xff00) >> 8))
 
+    Vertex v[3];
     for (int i : {0, 1, 2}) {
-        renderList.push_back(
-            {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags});
+        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+        renderList.push_back(v[i]);
     }
+    //	drawTriangle(v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
-            renderList.push_back(
-                {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags});
+            v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+            renderList.push_back(v[i - 1]);
         }
+        //		drawTriangle(v);
     }
 
 #undef texX
@@ -233,8 +236,8 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 
         _t[0] = arguments[2];                               // Texcoord 1 + Palette
         _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);  // Texcoord2 + texpage
-        _t[2] = tex(texX, texY + h - 1);                    // Texcoord3
-        _t[3] = tex(texX + w, texY + h - 1);                // Texcoord4
+        _t[2] = tex(texX, texY + h);                        // Texcoord3
+        _t[3] = tex(texX + w, texY + h);                    // Texcoord4
 #undef tex
     }
     drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency << 0) | (arg.isRawTexture << 1));
@@ -602,13 +605,13 @@ glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
 
 uint16_t GPU::tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
     uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 4];
-    uint16_t entry = (index >> ((tex.x % 4) * 4)) & 0xf;
+    uint16_t entry = (index >> ((tex.x & 3) * 4)) & 0xf;
     return VRAM[clut.y][clut.x + entry];
 }
 
 uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
     uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 2];
-    uint16_t entry = (index >> ((tex.x % 2) * 8)) & 0xff;
+    uint16_t entry = (index >> ((tex.x & 1) * 8)) & 0xff;
     return VRAM[clut.y][clut.x + entry];
 }
 
@@ -665,27 +668,31 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
     }
 }
 
+void GPU::drawTriangle(Vertex v[3]) {
+    glm::ivec2 pos[3];
+    glm::vec3 color[3];
+    glm::ivec2 texcoord[3];
+    glm::ivec2 texpage;
+    glm::ivec2 clut;
+    int bits;
+    for (int j = 0; j < 3; j++) {
+        pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
+        color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
+        texcoord[j] = glm::ivec2(v[j].texcoord[0], v[j].texcoord[1]);
+    }
+    texpage = glm::ivec2(v[0].texpage[0], v[0].texpage[1]);
+    clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
+    bits = v[0].bitcount;
+
+    triangle(pos, color, texcoord, texpage, clut, bits);
+}
+
 void GPU::rasterize() {
     for (int i = 0; i < renderList.size(); i += 3) {
         Vertex v[3];
         for (int j = 0; j < 3; j++) v[j] = renderList[i + j];
 
-        glm::ivec2 pos[3];
-        glm::vec3 color[3];
-        glm::ivec2 texcoord[3];
-        glm::ivec2 texpage;
-        glm::ivec2 clut;
-        int bits;
-        for (int j = 0; j < 3; j++) {
-            pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
-            color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
-            texcoord[j] = glm::ivec2(v[j].texcoord[0], v[j].texcoord[1]);
-        }
-        texpage = glm::ivec2(v[0].texpage[0], v[0].texpage[1]);
-        clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
-        bits = v[0].bitcount;
-
-        triangle(pos, color, texcoord, texpage, clut, bits);
+        drawTriangle(v);
     }
 }
 }

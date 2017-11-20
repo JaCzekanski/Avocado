@@ -340,6 +340,7 @@ class GPU {
     uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
     uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
     void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits);
+    void drawTriangle(Vertex v[3]);
     void rasterize();
 
     std::vector<uint16_t> vram;
