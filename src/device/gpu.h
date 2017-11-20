@@ -220,6 +220,16 @@ union GP1_08 {
     }
 };
 
+union RGB {
+    struct {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t _;
+    };
+    uint32_t c;
+};
+
 class GPU {
     std::vector<Vertex> renderList;
     /* 0 - nothing
@@ -307,7 +317,7 @@ class GPU {
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
     uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
-    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false, int flags = 0);
+    void drawPolygon(int x[4], int y[4], RGB c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
@@ -327,7 +337,9 @@ class GPU {
     std::vector<Vertex>& render();
 
     bool emulateGpuCycles(int cycles);
-    void triangle(glm::ivec2 pos[], glm::vec3 color[]);
+    uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
+    uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
+    void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits);
     void rasterize();
 
     std::vector<uint16_t> vram;
