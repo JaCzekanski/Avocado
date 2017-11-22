@@ -126,7 +126,8 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         if (arg.isTextureMapped) tex[i] = arguments[ptr++];
         if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1].c = arguments[ptr++];
     }
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, (arg.semiTransparency << 0) | (arg.isRawTexture << 1));
+    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped,
+                (arg.semiTransparency << Vertex::SemiTransparency) | (arg.isRawTexture << Vertex::RawTexture));
 
     cmd = Command::None;
 }
@@ -240,7 +241,8 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
         _t[3] = tex(texX + w, texY + h);                    // Texcoord4
 #undef tex
     }
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped, (arg.semiTransparency << 0) | (arg.isRawTexture << 1));
+    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped,
+                (arg.semiTransparency << Vertex::SemiTransparency) | (arg.isRawTexture << Vertex::RawTexture));
 
     cmd = Command::None;
 }
@@ -615,7 +617,17 @@ uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
     return VRAM[clut.y][clut.x + entry];
 }
 
-void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits) {
+union PSXColor {
+    struct {
+        uint16_t r : 5;
+        uint16_t g : 5;
+        uint16_t b : 5;
+        uint16_t k : 1;
+    };
+    uint16_t _;
+};
+
+void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags) {
     for (int i = 0; i < 3; i++) {
         pos[i].x += drawingOffsetX;
         pos[i].y += drawingOffsetY;
@@ -645,25 +657,31 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
 					s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
 			);
 			glm::ivec2 calculatedTexel = glm::ivec2(
-				(s[0] * tex[0].x + s[1] * tex[1].x + s[2] * tex[2].x),
-				(s[0] * tex[0].y + s[1] * tex[1].y + s[2] * tex[2].y)
+				roundf(s[0] * tex[0].x + s[1] * tex[1].x + s[2] * tex[2].x),
+				roundf(s[0] * tex[0].y + s[1] * tex[1].y + s[2] * tex[2].y)
 			);
             // clang-format on
 
-            uint16_t c = 0;
+            PSXColor c;
             if (bits == 4) {
-                c = tex4bit(calculatedTexel, texPage, clut);
+                c._ = tex4bit(calculatedTexel, texPage, clut);
             } else if (bits == 8) {
-                c = tex8bit(calculatedTexel, texPage, clut);
+                c._ = tex8bit(calculatedTexel, texPage, clut);
             } else if (bits == 16) {
-                c = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
+                c._ = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
             } else {
-                c = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
+                c._ = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
             }
 
-            if (c == 0x0000) continue;
+            if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) continue;
 
-            VRAM[p.y][p.x] = c;
+            if (bits != 0 && (flags & Vertex::RawTexture) != Vertex::RawTexture) {
+                if (color[0].r != 0) c.r *= color[0].r * 2.f;
+                if (color[0].g != 0) c.g *= color[0].g * 2.f;
+                if (color[0].b != 0) c.b *= color[0].b * 2.f;
+            }
+
+            VRAM[p.y][p.x] = c._;
         }
     }
 }
@@ -675,6 +693,7 @@ void GPU::drawTriangle(Vertex v[3]) {
     glm::ivec2 texpage;
     glm::ivec2 clut;
     int bits;
+    int flags;
     for (int j = 0; j < 3; j++) {
         pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
         color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
@@ -683,8 +702,9 @@ void GPU::drawTriangle(Vertex v[3]) {
     texpage = glm::ivec2(v[0].texpage[0], v[0].texpage[1]);
     clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
     bits = v[0].bitcount;
+    flags = v[0].flags;
 
-    triangle(pos, color, texcoord, texpage, clut, bits);
+    triangle(pos, color, texcoord, texpage, clut, bits, flags);
 }
 
 void GPU::rasterize() {

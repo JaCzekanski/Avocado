@@ -85,6 +85,7 @@ enum class Command : int {
 };
 
 struct Vertex {
+    enum Flags { SemiTransparency = 1, RawTexture = 2 };
     int position[2];
     int color[3];
     int texcoord[2];
@@ -339,7 +340,7 @@ class GPU {
     bool emulateGpuCycles(int cycles);
     uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
     uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
-    void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits);
+    void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags);
     void drawTriangle(Vertex v[3]);
     void rasterize();
 
