@@ -197,12 +197,16 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
 
         int x[4] = {sx, sx + 1, ex + 1, ex};
         int y[4] = {sy, sy + 1, ey + 1, ey};
-        int c[4] = {sc, sc, ec, ec};
+        RGB c[4];
+        c[0].c = sc;
+        c[1].c = sc;
+        c[2].c = ec;
+        c[3].c = ec;
 
         // TODO: Switch to proprer line rendering
         // TODO:           ^^^^^^^ fix typo
 
-        //        drawPolygon(x, y, c, nullptr, true, false, (arg.semiTransparency << 0));
+        //                drawPolygon(x, y, c, nullptr, false, false, (arg.semiTransparency << 0));
 
         // No transparency support
         // No Gouroud Shading
@@ -227,7 +231,11 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 
     int _x[4] = {x, x + w, x, x + w};
     int _y[4] = {y, y, y + h, y + h};
-    RGB _c[4] = {arguments[0], arguments[0], arguments[0], arguments[0]};
+    RGB _c[4];
+    _c[0].c = arguments[0];
+    _c[1].c = arguments[0];
+    _c[2].c = arguments[0];
+    _c[3].c = arguments[0];
     int _t[4];
 
     if (arg.isTextureMapped) {
@@ -679,6 +687,17 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
                 if (color[0].r != 0) c.r *= color[0].r * 2.f;
                 if (color[0].g != 0) c.g *= color[0].g * 2.f;
                 if (color[0].b != 0) c.b *= color[0].b * 2.f;
+            }
+
+            if (flags & Vertex::SemiTransparency) {
+                PSXColor bg;
+                bg._ = VRAM[p.y][p.x];
+
+                //				if (c.k) {
+                c.r = (c.r / 4 + bg.r / 2);
+                c.g = (c.g / 4 + bg.g / 2);
+                c.b = (c.b / 4 + bg.b / 2);
+                //				}
             }
 
             VRAM[p.y][p.x] = c._;

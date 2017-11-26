@@ -206,7 +206,7 @@ int start(int argc, char** argv) {
     if (!isEmulatorConfigured())
         cpu->state = mips::CPU::State::stop;
     else
-        cpu->state = mips::CPU::State::pause;
+        cpu->state = mips::CPU::State::run;
 
     float startTime = SDL_GetTicks() / 1000.f;
     float fps = 0.f;
