@@ -231,6 +231,12 @@ union RGB {
     uint32_t c;
 };
 
+struct TextureInfo {
+    uint32_t palette;
+    uint32_t texpage;
+    glm::ivec2 uv[4];
+};
+
 class GPU {
     std::vector<Vertex> renderList;
     /* 0 - nothing
@@ -318,7 +324,7 @@ class GPU {
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
     uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
-    void drawPolygon(int x[4], int y[4], RGB c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false, int flags = 0);
+    void drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);

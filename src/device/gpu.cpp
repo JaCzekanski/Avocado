@@ -44,7 +44,7 @@ void GPU::reset() {
     gp0_e6._reg = 0;
 }
 
-void GPU::drawPolygon(int x[4], int y[4], RGB c[4], int t[4], bool isFourVertex, bool textured, int flags) {
+void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
     int baseX = 0;
     int baseY = 0;
 
@@ -60,31 +60,28 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], int t[4], bool isFourVertex,
         // t[3] 0000YyXx
 
         // TODO: struct
-        clutX = ((t[0] & 0x003f0000) >> 16) * 16;
-        clutY = ((t[0] & 0x7fc00000) >> 22);
+        clutX = ((t.palette & 0x003f0000) >> 16) * 16;
+        clutY = ((t.palette & 0x7fc00000) >> 22);
 
-        baseX = ((t[1] & 0x0f0000) >> 16) * 64;   // N * 64
-        baseY = ((t[1] & 0x100000) >> 20) * 256;  // N * 256
+        baseX = ((t.texpage & 0x0f0000) >> 16) * 64;   // N * 64
+        baseY = ((t.texpage & 0x100000) >> 20) * 256;  // N * 256
 
-        int depth = (t[1] & 0x1800000) >> 23;
+        int depth = (t.texpage & 0x1800000) >> 23;
         if (depth == 0) bitcount = 4;
         if (depth == 1) bitcount = 8;
         if (depth == 2 || depth == 3) bitcount = 16;
     }
 
-#define texX(x) ((!textured) ? 0 : ((x)&0xff))
-#define texY(x) ((!textured) ? 0 : (((x)&0xff00) >> 8))
-
     Vertex v[3];
     for (int i : {0, 1, 2}) {
-        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
         renderList.push_back(v[i]);
     }
     //	drawTriangle(v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
-            v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {texX(t[i]), texY(t[i])}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+            v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
             renderList.push_back(v[i - 1]);
         }
         //		drawTriangle(v);
@@ -116,14 +113,21 @@ void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
 
 void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     int ptr = 1;
-    int x[4], y[4] = {0}, tex[4] = {0};
+    int x[4], y[4] = {0};
     RGB c[4] = {0};
+    TextureInfo tex;
     for (int i = 0; i < arg.getVertexCount(); i++) {
         x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
         y[i] = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
 
         if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i].c = arguments[0] & 0xffffff;
-        if (arg.isTextureMapped) tex[i] = arguments[ptr++];
+        if (arg.isTextureMapped) {
+            if (i == 0) tex.palette = arguments[ptr];
+            if (i == 1) tex.texpage = arguments[ptr];
+            tex.uv[i].x = arguments[ptr] & 0xff;
+            tex.uv[i].y = (arguments[ptr] >> 8) & 0xff;
+            ptr++;
+        }
         if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1].c = arguments[ptr++];
     }
     drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped,
@@ -236,20 +240,28 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
     _c[1].c = arguments[0];
     _c[2].c = arguments[0];
     _c[3].c = arguments[0];
-    int _t[4];
+    TextureInfo tex;
 
     if (arg.isTextureMapped) {
-#define tex(x, y) (((x)&0xff) | (((y)&0xff) << 8));
         int texX = arguments[2] & 0xff;
         int texY = (arguments[2] & 0xff00) >> 8;
 
-        _t[0] = arguments[2];                               // Texcoord 1 + Palette
-        _t[1] = (gp0_e1._reg << 16) | tex(texX + w, texY);  // Texcoord2 + texpage
-        _t[2] = tex(texX, texY + h);                        // Texcoord3
-        _t[3] = tex(texX + w, texY + h);                    // Texcoord4
-#undef tex
+        tex.palette = arguments[2];
+        tex.texpage = (gp0_e1._reg << 16);
+
+        tex.uv[0].x = texX;
+        tex.uv[0].y = texY;
+
+        tex.uv[1].x = texX + w;
+        tex.uv[1].y = texY;
+
+        tex.uv[2].x = texX;
+        tex.uv[2].y = texY + h;
+
+        tex.uv[3].x = texX + w;
+        tex.uv[3].y = texY + h;
     }
-    drawPolygon(_x, _y, _c, _t, true, arg.isTextureMapped,
+    drawPolygon(_x, _y, _c, tex, true, arg.isTextureMapped,
                 (arg.semiTransparency << Vertex::SemiTransparency) | (arg.isRawTexture << Vertex::RawTexture));
 
     cmd = Command::None;
