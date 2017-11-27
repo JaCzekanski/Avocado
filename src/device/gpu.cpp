@@ -752,7 +752,7 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
                 c = c * color[0];
             }
 
-            if (flags & Vertex::SemiTransparency) {
+            if (flags & Vertex::SemiTransparency && c.k) {
                 GP0_E1::SemiTransparency transparency = (GP0_E1::SemiTransparency)((flags & 0xA0) >> 6);
                 PSXColor bg = VRAM[p.y][p.x];
                 if (transparency == GP0_E1::SemiTransparency::Bby2plusFby2) {

@@ -202,6 +202,8 @@ int start(int argc, char** argv) {
 
     ImGui_ImplSdlGL3_Init(window);
 
+    SDL_GL_SetSwapInterval(0);
+
     vramTextureId = opengl.getVramTextureId();
     if (!isEmulatorConfigured())
         cpu->state = mips::CPU::State::stop;
