@@ -66,6 +66,10 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVe
         baseX = ((t.texpage & 0x0f0000) >> 16) * 64;   // N * 64
         baseY = ((t.texpage & 0x100000) >> 20) * 256;  // N * 256
 
+        int transparency = (t.texpage & 0x600000) >> 21;
+
+        flags |= (transparency) << 6;
+
         int depth = (t.texpage & 0x1800000) >> 23;
         if (depth == 0) bitcount = 4;
         if (depth == 1) bitcount = 8;
@@ -130,8 +134,10 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
         }
         if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1].c = arguments[ptr++];
     }
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped,
-                (arg.semiTransparency << Vertex::SemiTransparency) | (arg.isRawTexture << Vertex::RawTexture));
+    int flags = 0;
+    if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
+    if (arg.isRawTexture) flags |= Vertex::RawTexture;
+    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, flags);
 
     cmd = Command::None;
 }
@@ -210,7 +216,9 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
         // TODO: Switch to proprer line rendering
         // TODO:           ^^^^^^^ fix typo
 
-        //                drawPolygon(x, y, c, nullptr, false, false, (arg.semiTransparency << 0));
+        //        int flags = 0;
+        //        if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
+        //                drawPolygon(x, y, c, nullptr, false, false, flags);
 
         // No transparency support
         // No Gouroud Shading
@@ -261,8 +269,10 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
         tex.uv[3].x = texX + w;
         tex.uv[3].y = texY + h;
     }
-    drawPolygon(_x, _y, _c, tex, true, arg.isTextureMapped,
-                (arg.semiTransparency << Vertex::SemiTransparency) | (arg.isRawTexture << Vertex::RawTexture));
+    int flags = 0;
+    if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
+    if (arg.isRawTexture) flags |= Vertex::RawTexture;
+    drawPolygon(_x, _y, _c, tex, true, arg.isTextureMapped, flags);
 
     cmd = Command::None;
 }
@@ -619,9 +629,9 @@ bool GPU::emulateGpuCycles(int cycles) {
 }
 
 glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
-    glm::vec3 u = glm::cross(glm::vec3(pos[2].x - pos[0].x, pos[1].x - pos[0].x, pos[0].x - p[0]),
+    glm::vec3 u = glm::cross(glm::vec3(pos[2].x - pos[0].x, pos[1].x - pos[0].x, pos[0].x - p.x),
                              glm::vec3(pos[2].y - pos[0].y, pos[1].y - pos[0].y, pos[0].y - p.y));
-    //    if (std::abs(u.z) < 1) return glm::vec3(-1.f, 1.f, 1.f);
+    if (std::abs(u.z) < 1) return glm::vec3(-1.f, 1.f, 1.f);
     return glm::vec3(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 }
 
@@ -637,6 +647,8 @@ inline uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut
     return VRAM[clut.y][clut.x + entry];
 }
 
+float lerp(float a, float b, float t) { return a + t * (b - a); }
+
 union PSXColor {
     struct {
         uint16_t r : 5;
@@ -648,6 +660,41 @@ union PSXColor {
 
     PSXColor() : _(0) {}
     PSXColor(uint16_t color) : _(color) {}
+
+    PSXColor operator+(PSXColor rhs) {
+        r = clamp<int>(r + rhs.r, 0, 31);
+        g = clamp<int>(g + rhs.g, 0, 31);
+        b = clamp<int>(b + rhs.b, 0, 31);
+        return *this;
+    }
+
+    PSXColor operator-(PSXColor rhs) {
+        r = clamp<int>(r - rhs.r, 0, 31);
+        g = clamp<int>(g - rhs.g, 0, 31);
+        b = clamp<int>(b - rhs.b, 0, 31);
+        return *this;
+    }
+
+    PSXColor operator*(float rhs) {
+        r *= rhs;
+        g *= rhs;
+        b *= rhs;
+        return *this;
+    }
+
+    PSXColor operator/(float rhs) {
+        r /= rhs;
+        g /= rhs;
+        b /= rhs;
+        return *this;
+    }
+
+    PSXColor operator*(glm::vec3 rhs) {
+        r = clamp<int>((rhs.r / 0.5f) * r, 0, 31);
+        g = clamp<int>((rhs.g / 0.5f) * g, 0, 31);
+        b = clamp<int>((rhs.b / 0.5f) * b, 0, 31);
+        return *this;
+    }
 };
 
 void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags) {
@@ -701,20 +748,22 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
 
             if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) continue;
 
-            if (bits != 0 && (flags & Vertex::RawTexture) != Vertex::RawTexture) {
-                if (color[0].r != 0) c.r *= color[0].r * 2.f;
-                if (color[0].g != 0) c.g *= color[0].g * 2.f;
-                if (color[0].b != 0) c.b *= color[0].b * 2.f;
+            if (bits != 0 && !(flags & Vertex::RawTexture)) {
+                c = c * color[0];
             }
 
             if (flags & Vertex::SemiTransparency) {
+                GP0_E1::SemiTransparency transparency = (GP0_E1::SemiTransparency)((flags & 0xA0) >> 6);
                 PSXColor bg = VRAM[p.y][p.x];
-
-                //				if (c.k) {
-                c.r = (c.r / 4 + bg.r / 2);
-                c.g = (c.g / 4 + bg.g / 2);
-                c.b = (c.b / 4 + bg.b / 2);
-                //				}
+                if (transparency == GP0_E1::SemiTransparency::Bby2plusFby2) {
+                    c = bg / 2.f + c / 2.f;
+                } else if (transparency == GP0_E1::SemiTransparency::BplusF) {
+                    c = bg + c;
+                } else if (transparency == GP0_E1::SemiTransparency::BminusF) {
+                    c = bg - c;
+                } else if (transparency == GP0_E1::SemiTransparency::BplusFby4) {
+                    c = bg + c / 4.f;
+                }
             }
 
             VRAM[p.y][p.x] = c._;
