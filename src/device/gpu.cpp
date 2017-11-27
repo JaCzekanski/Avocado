@@ -621,17 +621,17 @@ bool GPU::emulateGpuCycles(int cycles) {
 glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
     glm::vec3 u = glm::cross(glm::vec3(pos[2].x - pos[0].x, pos[1].x - pos[0].x, pos[0].x - p[0]),
                              glm::vec3(pos[2].y - pos[0].y, pos[1].y - pos[0].y, pos[0].y - p.y));
-    if (std::abs(u.z) < 1) return glm::vec3(-1.f, 1.f, 1.f);
+    //    if (std::abs(u.z) < 1) return glm::vec3(-1.f, 1.f, 1.f);
     return glm::vec3(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 }
 
-uint16_t GPU::tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
+inline uint16_t GPU::tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
     uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 4];
     uint16_t entry = (index >> ((tex.x & 3) * 4)) & 0xf;
     return VRAM[clut.y][clut.x + entry];
 }
 
-uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
+inline uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
     uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 2];
     uint16_t entry = (index >> ((tex.x & 1) * 8)) & 0xff;
     return VRAM[clut.y][clut.x + entry];
@@ -645,6 +645,9 @@ union PSXColor {
         uint16_t k : 1;
     };
     uint16_t _;
+
+    PSXColor() : _(0) {}
+    PSXColor(uint16_t color) : _(color) {}
 };
 
 void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags) {
@@ -654,12 +657,12 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
     }
     // clang-format off
     glm::ivec2 min = glm::ivec2(
-		std::max((int)drawingAreaLeft, std::max(0, std::min({pos[0].x, pos[1].x, pos[2].x}))), 
-		std::max((int)drawingAreaTop, std::max(0, std::min({pos[0].y, pos[1].y, pos[2].y})))
+        std::max((int)drawingAreaLeft, std::max(0, std::min({ pos[0].x, pos[1].x, pos[2].x }))),
+        std::max((int)drawingAreaTop, std::max(0, std::min({ pos[0].y, pos[1].y, pos[2].y })))
 	);
     glm::ivec2 max = glm::ivec2(
-		std::min((int)drawingAreaRight, std::min(vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x}))), 
-		std::min((int)drawingAreaBottom, std::min(vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y})))
+        std::min((int)drawingAreaRight, std::min(vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x }))),
+        std::min((int)drawingAreaBottom, std::min(vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y })))
 	);
     // clang-format on
 
@@ -670,27 +673,30 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
             glm::vec3 s = barycentric(pos, p);
             if (s.x < 0 || s.y < 0 || s.z < 0) continue;
 
-            // clang-format off
-            glm::vec3 calculatedColor = glm::vec3(
-					s.x * color[0].r + s.y * color[1].r + s.z * color[2].r, 
-					s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
-					s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
-			);
-			glm::ivec2 calculatedTexel = glm::ivec2(
-				roundf(s[0] * tex[0].x + s[1] * tex[1].x + s[2] * tex[2].x),
-				roundf(s[0] * tex[0].y + s[1] * tex[1].y + s[2] * tex[2].y)
-			);
-            // clang-format on
-
             PSXColor c;
-            if (bits == 4) {
-                c._ = tex4bit(calculatedTexel, texPage, clut);
-            } else if (bits == 8) {
-                c._ = tex8bit(calculatedTexel, texPage, clut);
-            } else if (bits == 16) {
-                c._ = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
-            } else {
+            if (bits == 0) {
+                // clang-format off
+                glm::vec3 calculatedColor = glm::vec3(
+                    s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
+                    s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
+                    s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
+                );
+                // clang-format on
                 c._ = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
+            } else {
+                // clang-format off
+                glm::ivec2 calculatedTexel = glm::ivec2(
+                    roundf(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
+                    roundf(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
+                );
+                // clang-format on
+                if (bits == 4) {
+                    c = tex4bit(calculatedTexel, texPage, clut);
+                } else if (bits == 8) {
+                    c = tex8bit(calculatedTexel, texPage, clut);
+                } else if (bits == 16) {
+                    c = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
+                }
             }
 
             if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) continue;
@@ -702,8 +708,7 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
             }
 
             if (flags & Vertex::SemiTransparency) {
-                PSXColor bg;
-                bg._ = VRAM[p.y][p.x];
+                PSXColor bg = VRAM[p.y][p.x];
 
                 //				if (c.k) {
                 c.r = (c.r / 4 + bg.r / 2);

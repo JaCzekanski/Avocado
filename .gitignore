@@ -16,6 +16,7 @@ Source/Core/Common/scmrev.h
 *.sdf
 *.suo
 *.vcxproj.user
+*.DotSettings.user
 *.obj
 *.tlog
 # Ignore build info file created by QtCreator
