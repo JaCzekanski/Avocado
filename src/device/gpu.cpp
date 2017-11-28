@@ -79,16 +79,16 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVe
     Vertex v[3];
     for (int i : {0, 1, 2}) {
         v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
-        renderList.push_back(v[i]);
+        //        renderList.push_back(v[i]);
     }
-    //	drawTriangle(v);
+    drawTriangle(v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
             v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
-            renderList.push_back(v[i - 1]);
+            //            renderList.push_back(v[i - 1]);
         }
-        //		drawTriangle(v);
+        drawTriangle(v);
     }
 
 #undef texX
@@ -742,7 +742,13 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
                 } else if (bits == 8) {
                     c = tex8bit(calculatedTexel, texPage, clut);
                 } else if (bits == 16) {
-                    c = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
+                    PSXColor raw = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
+                    // TODO: I don't understand why this is necessary
+                    // Without it PSOne BIOS display invalid colors under "Memory Card" and "CD Player"
+                    c.r = raw.b;
+                    c.g = raw.g;
+                    c.b = raw.r;
+                    c.k = raw.k;
                 }
             }
 
