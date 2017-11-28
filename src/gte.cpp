@@ -803,13 +803,9 @@ void GTE::sqr(bool sf, bool lm) {
 }
 
 void GTE::op(bool sf, bool lm) {
-    int32_t d1 = R11 * R12;
-    int32_t d2 = R22 * R23;
-    int32_t d3 = R33;
-
-    mac[1] = A1(d2 * ir[3] - d3 * ir[2], sf);
-    mac[2] = A2(d3 * ir[1] - d1 * ir[3], sf);
-    mac[3] = A3(d1 * ir[2] - d2 * ir[1], sf);
+    mac[1] = A1(R22 * ir[3] - R33 * ir[2], sf);
+    mac[2] = A2(R33 * ir[1] - R11 * ir[3], sf);
+    mac[3] = A3(R11 * ir[2] - R22 * ir[1], sf);
 
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
