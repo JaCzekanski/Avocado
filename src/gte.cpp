@@ -1,5 +1,6 @@
 #include "gte.h"
 #include <cstdio>
+#include <cassert>
 
 namespace mips {
 namespace gte {
@@ -437,6 +438,58 @@ int32_t GTE::F(int64_t value) {
     return value;
 }
 
+int32_t GTE::setMac(int i, int64_t value) {
+    assert(i >= 0 && i <= 3);
+    uint32_t overflowBits = 1 << 31;
+    uint32_t underflowBits = 1 << 31;
+
+    if (i == 0) {
+        overflowBits |= 1 << 16;
+        underflowBits |= 1 << 15;
+
+        if (value > 0x7fffffffLL) flag |= overflowBits;
+        if (value < -0x80000000LL) flag |= underflowBits;
+
+        mac[0] = (int32_t)value;
+        return (int32_t)value;
+    } else if (i == 1) {
+        overflowBits |= 1 << 30;
+        underflowBits |= 1 << 27;
+    } else if (i == 2) {
+        overflowBits |= 1 << 29;
+        underflowBits |= 1 << 26;
+    } else if (i == 3) {
+        overflowBits |= 1 << 28;
+        underflowBits |= 1 << 25;
+    }
+
+    check43bitsOverflow(value, overflowBits, underflowBits);
+
+    if (sf) value /= 0x1000LL;
+    mac[i] = (int32_t)value;
+    return (int32_t)value;
+}
+
+// clang-format off
+void GTE::setMacAndIr(int i, int64_t value, bool lm) {
+    int32_t valMac = setMac(i, value);
+
+    if (i == 0) {
+        valMac /= 0x1000;
+        ir[0] = clip(valMac, 0x1000, 0x0000, 1 << 12);
+        return;
+    }
+
+    uint32_t saturatedBits = 0;
+    if      (i == 1) saturatedBits = 1 << 24 | 1 << 31;
+    else if (i == 2) saturatedBits = 1 << 23 | 1 << 31;
+    else if (i == 3) saturatedBits = 1 << 22;
+                
+    if (lm) ir[i] = clip(valMac, 0x7fff,  0x0000, saturatedBits);
+    else    ir[i] = clip(valMac, 0x7fff, -0x8000, saturatedBits);
+}
+// clang-format on
+
 #define Lm_H(x) clip((x) >> 12, 0x1000, 0x0000, 1 << 12)
 
 #define Lm_E(x) (x)
@@ -661,32 +714,49 @@ int32_t GTE::divide(uint16_t h, uint16_t sz3) {
     return n;
 }
 
-void GTE::rtps(int n, bool sf, bool lm) {
-    mac[1] = A1(TRX * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z, sf);
-    mac[2] = A2(TRY * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z, sf);
-    mac[3] = A3(TRZ * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z, sf);
-
-    ir[1] = Lm_B1(mac[1], 0);
-    ir[2] = Lm_B2(mac[2], 0);
-    ir[3] = Lm_B3(mac[3], 0);
-
-    s[0].z = s[1].z;
-    s[1].z = s[2].z;
-    s[2].z = s[3].z;
-    s[3].z = Lm_D(mac[3], sf);
-
-    int64_t h_s3z = divide(h, s[3].z);
-
+void GTE::pushScreenXY(int16_t x, int16_t y) {
     s[0].x = s[1].x;
     s[0].y = s[1].y;
     s[1].x = s[2].x;
     s[1].y = s[2].y;
-    s[2].x = Lm_G1(F((int64_t)of[0] + ir[1] * h_s3z) >> 16);
-    s[2].y = Lm_G2(F((int64_t)of[1] + ir[2] * h_s3z) >> 16);
 
-    mac[0] = F(dqb + dqa * h_s3z);
-    ir[0] = Lm_H(mac[0]);
+    s[2].x = clip(x, 0x3ff, -0x400, 1 << 14 | 1 << 31);
+    s[2].y = clip(y, 0x3ff, -0x400, 1 << 13 | 1 << 31);
 }
+
+void GTE::pushScreenZ(int16_t z) {
+    s[0].z = s[1].z;
+    s[1].z = s[2].z;
+    s[2].z = s[3].z;  // There is only s[3].z (no s[3].xy)
+
+    s[3].z = clip(z, 0xffff, 0x000, 1 << 18 | 1 << 31);
+}
+
+/**
+ * Rotate, translate and perspective transformation
+ *
+ * Multiplicate vector (V) with rotation matrix (R),
+ * translate it (TR) and apply perspective transformation.
+ *
+ * lm is ignored - treat like 0
+ */
+// clang-format off
+void GTE::rtps(int n, bool sf, bool lm) {
+    setMacAndIr(1, TRX * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z);
+    setMacAndIr(2, TRY * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z);
+    setMacAndIr(3, TRZ * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z);
+
+    pushScreenZ(sf ? mac[3] : mac[3] / 0x1000);
+    int64_t h_s3z = divide(h, s[3].z);
+
+    pushScreenXY(
+        setMac(0, h_s3z * ir[1] + of[0]) / 0x10000, 
+        setMac(0, h_s3z * ir[2] + of[1]) / 0x10000
+    );
+
+    setMacAndIr(0, h_s3z * dqa + dqb);
+}
+// clang-format on
 
 void GTE::rtpt(bool sf, bool lm) {
     rtps(0, sf, lm);
@@ -810,6 +880,79 @@ void GTE::op(bool sf, bool lm) {
     ir[1] = Lm_B1(mac[1], lm);
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
+}
+
+bool GTE::command(Command& cmd) {
+    flag = 0;
+    this->sf = cmd.sf;
+    this->lm = cmd.lm;
+
+    switch (cmd.cmd) {
+        case 0x01:
+            rtps(0, cmd.sf, cmd.lm);
+            return true;
+        case 0x06:
+            nclip();
+            return true;
+        case 0x0c:
+            op(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x10:
+            dcps(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x11:
+            intpl(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x12:
+            mvmva(cmd.sf, cmd.lm, cmd.mvmvaMultiplyMatrix, cmd.mvmvaMultiplyVector, cmd.mvmvaTranslationVector);
+            return true;
+        case 0x13:
+            ncds(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x16:
+            ncdt(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x1b:
+            nccs(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x2a:
+            dcpt(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x28:
+            sqr(cmd.sf, cmd.lm);
+            return true;
+
+        case 0x29:
+            dcpl(cmd.sf, cmd.lm);
+            return true;
+        case 0x2d:
+            avsz3();
+            return true;
+        case 0x2e:
+            avsz4();
+            return true;
+        case 0x30:
+            rtpt(cmd.sf, cmd.lm);
+            return true;
+        case 0x3d:
+            gpf(cmd.sf, cmd.lm);
+            return true;
+        case 0x3e:
+            gpl(cmd.sf, cmd.lm);
+            return true;
+        case 0x3f:
+            ncct(cmd.sf, cmd.lm);
+            return true;
+        default:
+            return false;
+    }
 }
 }
 }
