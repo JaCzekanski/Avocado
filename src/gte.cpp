@@ -807,10 +807,14 @@ void GTE::gpf(bool lm) {
 }
 
 // TODO: Check with docs and refactor
+// TODO: Remove sf * 10
 void GTE::gpl(bool sf, bool lm) {
-    setMacAndIr(1, ir[0] * ir[1] + A1(mac[1] << (sf * 12)), lm);
-    setMacAndIr(2, ir[0] * ir[2] + A2(mac[2] << (sf * 12)), lm);
-    setMacAndIr(3, ir[0] * ir[3] + A3(mac[3] << (sf * 12)), lm);
+    setMac(1, mac[1] << (sf * 12));
+    setMac(2, mac[2] << (sf * 12));
+    setMac(3, mac[3] << (sf * 12));
+    setMacAndIr(1, ir[0] * ir[1] + mac[1], lm);
+    setMacAndIr(2, ir[0] * ir[2] + mac[2], lm);
+    setMacAndIr(3, ir[0] * ir[3] + mac[3], lm);
 
     pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
