@@ -478,6 +478,11 @@ void GTE::setMacAndIr(int i, int64_t value, bool lm) {
 }
 // clang-format on
 
+void GTE::setOtz(int32_t value) {
+    value /= 0x1000;
+    otz = clip(value, 0xffff, 0x0000, 1 << 18 | 1 << 31);
+}
+
 #define TRX (tr.x)
 #define TRY (tr.y)
 #define TRZ (tr.z)
@@ -499,7 +504,7 @@ void GTE::setMacAndIr(int i, int64_t value, bool lm) {
 #define B (rgbc.read(2) << 4)
 #define CODE (rgbc.read(3))
 
-void GTE::nclip() { mac[0] = F(s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
+void GTE::nclip() { setMac(0, s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
 
 void GTE::ncds(bool sf, bool lm, int n) {
     mac[1] = A1(l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, sf);
@@ -732,13 +737,13 @@ void GTE::rtpt() {
 }
 
 void GTE::avsz3() {
-    mac[0] = F(zsf3 * s[1].z + zsf3 * s[2].z + zsf3 * s[3].z);
-    otz = Lm_D(mac[0], 0);
+    setMac(0, zsf3 * s[1].z + zsf3 * s[2].z + zsf3 * s[3].z);
+    setOtz(mac[0]);
 }
 
 void GTE::avsz4() {
-    mac[0] = F(zsf4 * s[0].z + zsf4 * s[1].z + zsf4 * s[2].z + zsf4 * s[3].z);
-    otz = Lm_D(mac[0], 0);
+    setMac(0, zsf4 * s[0].z + zsf4 * s[1].z + zsf4 * s[2].z + zsf4 * s[3].z);
+    setOtz(mac[0]);
 }
 
 void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
@@ -848,7 +853,7 @@ bool GTE::command(Command& cmd) {
         case 0x01:
             rtps(0);
             return true;
-        case 0x06:
+        case 0x06:  // TODO: Check (MoH)
             nclip();
             return true;
         case 0x0c:
@@ -863,7 +868,7 @@ bool GTE::command(Command& cmd) {
             intpl(cmd.sf, cmd.lm);
             return true;
 
-        case 0x12:
+        case 0x12:  // TODO: Check (MoH)
             mvmva(cmd.sf, cmd.lm, cmd.mvmvaMultiplyMatrix, cmd.mvmvaMultiplyVector, cmd.mvmvaTranslationVector);
             return true;
         case 0x13:
@@ -878,7 +883,7 @@ bool GTE::command(Command& cmd) {
             nccs(cmd.sf, cmd.lm);
             return true;
 
-        case 0x2a:
+        case 0x2a:  // TODO: Check (MoH)
             dcpt(cmd.sf, cmd.lm);
             return true;
 
@@ -889,7 +894,7 @@ bool GTE::command(Command& cmd) {
         case 0x29:
             dcpl(cmd.sf, cmd.lm);
             return true;
-        case 0x2d:
+        case 0x2d:  // TODO: Check (MoH)
             avsz3();
             return true;
         case 0x2e:

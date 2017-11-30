@@ -135,6 +135,7 @@ struct GTE {
 
     int32_t setMac(int mac, int64_t value);
     void setMacAndIr(int i, int64_t value, bool lm = false);
+    void setOtz(int32_t value);
     void pushScreenXY(int16_t x, int16_t y);
     void pushScreenZ(int16_t z);
     void pushColor(uint32_t r, uint32_t g, uint32_t b);
