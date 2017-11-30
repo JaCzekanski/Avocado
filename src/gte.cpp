@@ -465,7 +465,7 @@ int32_t GTE::setMac(int i, int64_t value) {
 
     check43bitsOverflow(value, overflowBits, underflowBits);
 
-    if (sf) value /= 0x1000LL;
+    if (sf) value /= 0x1000;
     mac[i] = (int32_t)value;
     return (int32_t)value;
 }
@@ -741,7 +741,7 @@ void GTE::pushScreenZ(int16_t z) {
  * lm is ignored - treat like 0
  */
 // clang-format off
-void GTE::rtps(int n, bool sf, bool lm) {
+void GTE::rtps(int n) {
     setMacAndIr(1, TRX * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z);
     setMacAndIr(2, TRY * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z);
     setMacAndIr(3, TRZ * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z);
@@ -758,10 +758,13 @@ void GTE::rtps(int n, bool sf, bool lm) {
 }
 // clang-format on
 
-void GTE::rtpt(bool sf, bool lm) {
-    rtps(0, sf, lm);
-    rtps(1, sf, lm);
-    rtps(2, sf, lm);
+/**
+ * Same as RTPS, but repeated for vector 0, 1 and 2
+ */
+void GTE::rtpt() {
+    rtps(0);
+    rtps(1);
+    rtps(2);
 }
 
 void GTE::avsz3() {
@@ -862,14 +865,14 @@ void GTE::gpl(bool sf, bool lm) {
     rgb[2].write(3, CODE);                // CODE
 }
 
-void GTE::sqr(bool sf, bool lm) {
-    mac[1] = A1(ir[1] * ir[1], sf);
-    mac[2] = A2(ir[2] * ir[2], sf);
-    mac[3] = A3(ir[3] * ir[3], sf);
-
-    ir[1] = Lm_B1(mac[1], lm);
-    ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3(mac[3], lm);
+/**
+ * Square vector
+ * lm is ignored, as result cannot be negative
+ */
+void GTE::sqr() {
+    setMacAndIr(0, ir[1] * ir[1]);
+    setMacAndIr(1, ir[2] * ir[2]);
+    setMacAndIr(2, ir[3] * ir[3]);
 }
 
 void GTE::op(bool sf, bool lm) {
@@ -889,7 +892,7 @@ bool GTE::command(Command& cmd) {
 
     switch (cmd.cmd) {
         case 0x01:
-            rtps(0, cmd.sf, cmd.lm);
+            rtps(0);
             return true;
         case 0x06:
             nclip();
@@ -926,7 +929,7 @@ bool GTE::command(Command& cmd) {
             return true;
 
         case 0x28:
-            sqr(cmd.sf, cmd.lm);
+            sqr();
             return true;
 
         case 0x29:
@@ -939,7 +942,7 @@ bool GTE::command(Command& cmd) {
             avsz4();
             return true;
         case 0x30:
-            rtpt(cmd.sf, cmd.lm);
+            rtpt();
             return true;
         case 0x3d:
             gpf(cmd.sf, cmd.lm);

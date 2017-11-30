@@ -103,14 +103,14 @@ struct GTE {
     void dcpl(bool sf, bool lm);
     void intpl(bool sf, bool lm);
     int32_t divide(uint16_t h, uint16_t sz3);
-    void rtps(int n, bool sf, bool lm);
-    void rtpt(bool sf, bool lm);
+    void rtps(int n);
+    void rtpt();
     void avsz3();
     void avsz4();
     void mvmva(bool sf, bool lm, int mx, int vx, int tx);
     void gpf(bool sf, bool lm);
     void gpl(bool sf, bool lm);
-    void sqr(bool sf, bool lm);
+    void sqr();
     void op(bool sf, bool lm);
 
     bool command(Command &cmd);
