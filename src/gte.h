@@ -108,7 +108,7 @@ struct GTE {
     void avsz3();
     void avsz4();
     void mvmva(bool sf, bool lm, int mx, int vx, int tx);
-    void gpf(bool sf, bool lm);
+    void gpf(bool lm);
     void gpl(bool sf, bool lm);
     void sqr();
     void op(bool sf, bool lm);
@@ -139,6 +139,7 @@ struct GTE {
     void setMacAndIr(int i, int64_t value, bool lm = false);
     void pushScreenXY(int16_t x, int16_t y);
     void pushScreenZ(int16_t z);
+    void pushColor(uint32_t r, uint32_t g, uint32_t b, uint8_t c);
 };
 };
 };

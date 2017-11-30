@@ -732,6 +732,16 @@ void GTE::pushScreenZ(int16_t z) {
     s[3].z = clip(z, 0xffff, 0x000, 1 << 18 | 1 << 31);
 }
 
+void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b, uint8_t c) {
+    rgb[0] = rgb[1];
+    rgb[1] = rgb[2];
+
+    rgb[2].write(0, clip(r, 0xff, 0x00, 1 << 21));
+    rgb[2].write(1, clip(g, 0xff, 0x00, 1 << 20));
+    rgb[2].write(2, clip(b, 0xff, 0x00, 1 << 19));
+    rgb[2].write(3, c);
+}
+
 /**
  * Rotate, translate and perspective transformation
  *
@@ -829,40 +839,26 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
     ir[3] = Lm_B3(mac[3], lm);
 }
 
-void GTE::gpf(bool sf, bool lm) {
-    mac[1] = A1(ir[0] * ir[1], sf);
-    mac[2] = A2(ir[0] * ir[2], sf);
-    mac[3] = A3(ir[0] * ir[3], sf);
-
-    ir[1] = Lm_B1(mac[1], lm);
-    ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3(mac[3], lm);
-
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+/**
+ * General purpose interpolation
+ * Multiply vector (ir[1..3]) by scalar(ir[0])
+ *
+ * Result is also saved as 24bit color
+ */
+void GTE::gpf(bool lm) {
+    setMacAndIr(1, ir[0] * ir[1], lm);
+    setMacAndIr(2, ir[0] * ir[2], lm);
+    setMacAndIr(3, ir[0] * ir[3], lm);
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16, CODE);
 }
 
+// TODO: Check with docs and refactor
 void GTE::gpl(bool sf, bool lm) {
-    mac[1] = A1(ir[0] * ir[1] + A1(mac[1] << (sf * 12)), sf);
-    mac[2] = A2(ir[0] * ir[2] + A2(mac[2] << (sf * 12)), sf);
-    mac[3] = A3(ir[0] * ir[3] + A3(mac[3] << (sf * 12)), sf);
+    setMacAndIr(1, ir[0] * ir[1] + A1(mac[1] << (sf * 12)), lm);
+    setMacAndIr(2, ir[0] * ir[2] + A2(mac[2] << (sf * 12)), lm);
+    setMacAndIr(3, ir[0] * ir[3] + A3(mac[3] << (sf * 12)), lm);
 
-    ir[1] = Lm_B1(mac[1], lm);
-    ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3(mac[3], lm);
-
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16, CODE);
 }
 
 /**
@@ -945,7 +941,7 @@ bool GTE::command(Command& cmd) {
             rtpt();
             return true;
         case 0x3d:
-            gpf(cmd.sf, cmd.lm);
+            gpf(cmd.lm);
             return true;
         case 0x3e:
             gpl(cmd.sf, cmd.lm);
