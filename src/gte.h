@@ -131,15 +131,13 @@ struct GTE {
     int32_t A1(int64_t value, bool sf = false);
     int32_t A2(int64_t value, bool sf = false);
     int32_t A3(int64_t value, bool sf = false);
-    int32_t Lm_B3_sf(int64_t x, bool sf, bool lm);
     int32_t F(int64_t value);
-    int32_t Lm_H(int64_t x, bool sf);
 
     int32_t setMac(int mac, int64_t value);
     void setMacAndIr(int i, int64_t value, bool lm = false);
     void pushScreenXY(int16_t x, int16_t y);
     void pushScreenZ(int16_t z);
-    void pushColor(uint32_t r, uint32_t g, uint32_t b, uint8_t c);
+    void pushColor(uint32_t r, uint32_t g, uint32_t b);
 };
 };
 };

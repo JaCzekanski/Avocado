@@ -418,19 +418,7 @@ int32_t GTE::A3(int64_t value, bool sf) {
 #define Lm_B2(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 31 | 1 << 23)
 #define Lm_B3(x, lm) clip((x), 0x7fff, (lm) ? 0 : -0x8000, 1 << 22)
 
-int32_t GTE::Lm_B3_sf(int64_t x, bool sf, bool lm) {
-    Lm_B3(x >> 12, false);
-    return clip(x >> (sf * 12), 0x7fff, lm ? 0 : -0x8000);
-}
-
-#define Lm_C1(x) (x)
-#define Lm_C2(x) (x)
-#define Lm_C3(x) (x)
-
 #define Lm_D(x, sf) clip((x) >> ((1 - sf) * 12), 0xffff, 0x0000, 1 << 31 | 1 << 18)
-
-#define Lm_G1(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 14)
-#define Lm_G2(x) clip((x), 0x3ff, -0x400, 1 << 31 | 1 << 13)
 
 int32_t GTE::F(int64_t value) {
     if (value > 0x7fffffffLL) flag |= 1 << 31 | 1 << 16;
@@ -490,10 +478,6 @@ void GTE::setMacAndIr(int i, int64_t value, bool lm) {
 }
 // clang-format on
 
-#define Lm_H(x) clip((x) >> 12, 0x1000, 0x0000, 1 << 12)
-
-#define Lm_E(x) (x)
-
 #define TRX (tr.x)
 #define TRY (tr.y)
 #define TRZ (tr.z)
@@ -542,13 +526,7 @@ void GTE::ncds(bool sf, bool lm, int n) {
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 void GTE::nccs(bool sf, bool lm, int n) {
@@ -576,13 +554,7 @@ void GTE::nccs(bool sf, bool lm, int n) {
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 void GTE::ncdt(bool sf, bool lm) {
@@ -612,13 +584,7 @@ void GTE::dcps(bool sf, bool lm) {
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 void GTE::dcpl(bool sf, bool lm) {
@@ -630,13 +596,7 @@ void GTE::dcpl(bool sf, bool lm) {
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 void GTE::intpl(bool sf, bool lm) {
@@ -648,13 +608,7 @@ void GTE::intpl(bool sf, bool lm) {
     ir[2] = Lm_B2(mac[2], lm);
     ir[3] = Lm_B3(mac[3], lm);
 
-    rgb[0] = rgb[1];
-    rgb[1] = rgb[2];
-
-    rgb[2].write(0, Lm_C1(mac[1] >> 4));  // R
-    rgb[2].write(1, Lm_C2(mac[2] >> 4));  // G
-    rgb[2].write(2, Lm_C3(mac[3] >> 4));  // B
-    rgb[2].write(3, CODE);                // CODE
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 int GTE::countLeadingZeroes(uint32_t n) {
@@ -732,14 +686,14 @@ void GTE::pushScreenZ(int16_t z) {
     s[3].z = clip(z, 0xffff, 0x000, 1 << 18 | 1 << 31);
 }
 
-void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b, uint8_t c) {
+void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
     rgb[0] = rgb[1];
     rgb[1] = rgb[2];
 
     rgb[2].write(0, clip(r, 0xff, 0x00, 1 << 21));
     rgb[2].write(1, clip(g, 0xff, 0x00, 1 << 20));
     rgb[2].write(2, clip(b, 0xff, 0x00, 1 << 19));
-    rgb[2].write(3, c);
+    rgb[2].write(3, rgbc.read(3));
 }
 
 /**
@@ -849,7 +803,7 @@ void GTE::gpf(bool lm) {
     setMacAndIr(1, ir[0] * ir[1], lm);
     setMacAndIr(2, ir[0] * ir[2], lm);
     setMacAndIr(3, ir[0] * ir[3], lm);
-    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16, CODE);
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 // TODO: Check with docs and refactor
@@ -858,7 +812,7 @@ void GTE::gpl(bool sf, bool lm) {
     setMacAndIr(2, ir[0] * ir[2] + A2(mac[2] << (sf * 12)), lm);
     setMacAndIr(3, ir[0] * ir[3] + A3(mac[3] << (sf * 12)), lm);
 
-    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16, CODE);
+    pushColor(mac[1] / 16, mac[2] / 16, mac[3] / 16);
 }
 
 /**
