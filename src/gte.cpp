@@ -483,10 +483,6 @@ void GTE::setOtz(int32_t value) {
     otz = clip(value, 0xffff, 0x0000, 1 << 18 | 1 << 31);
 }
 
-#define TRX (tr.x)
-#define TRY (tr.y)
-#define TRZ (tr.z)
-
 #define R11 (rt.v11)
 #define R12 (rt.v12)
 #define R13 (rt.v13)
@@ -711,9 +707,9 @@ void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
  */
 // clang-format off
 void GTE::rtps(int n) {
-    setMacAndIr(1, TRX * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z);
-    setMacAndIr(2, TRY * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z);
-    setMacAndIr(3, TRZ * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z);
+    setMacAndIr(1, tr.x * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z);
+    setMacAndIr(2, tr.y * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z);
+    setMacAndIr(3, tr.z * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z);
 
     pushScreenZ(sf ? mac[3] : mac[3] / 0x1000);
     int64_t h_s3z = divide(h, s[3].z);
@@ -775,9 +771,10 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
         Tx = tr;
     else if (tx == 1)
         Tx = bk;
-    else if (tx == 2)
+    else if (tx == 2) {
         Tx = fc;
-    else
+        printf("Bugged mvmva parameter: tx == 2\n");
+    } else
         Tx.x = Tx.y = Tx.z = 0;
 
     if (tx == 2) {
@@ -788,14 +785,10 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
         Lm_B2(A1((Tx.y << 12) + Mx.v21 * V.x), 0);
         Lm_B3(A1((Tx.z << 12) + Mx.v31 * V.x), 0);
     } else {
-        mac[1] = A1((Tx.x * 0x1000) + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, sf);
-        mac[2] = A2((Tx.y * 0x1000) + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, sf);
-        mac[3] = A3((Tx.z * 0x1000) + Mx.v31 * V.x + Mx.v32 * V.y + Mx.v33 * V.z, sf);
+        setMacAndIr(1, Tx.x * 0x1000 + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, lm);
+        setMacAndIr(2, Tx.y * 0x1000 + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, lm);
+        setMacAndIr(3, Tx.z * 0x1000 + Mx.v31 * V.x + Mx.v32 * V.y + Mx.v33 * V.z, lm);
     }
-
-    ir[1] = Lm_B1(mac[1], lm);
-    ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3(mac[3], lm);
 }
 
 /**
