@@ -1,11 +1,11 @@
 #include "gui.h"
 #include <imgui.h>
-#include "gte.h"
+#include "cpu/gte/gte.h"
 #include "platform/windows/config.h"
 
 void openFileWindow();
 
-void gteRegistersWindow(mips::gte::GTE gte);
+void gteRegistersWindow(GTE gte);
 void ioLogWindow(mips::CPU* cpu);
 void gteLogWindow(mips::CPU* cpu);
 void gpuLogWindow(mips::CPU* cpu);

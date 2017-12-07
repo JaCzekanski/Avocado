@@ -2,7 +2,7 @@
 #include <imgui.h>
 #include "imgui/imgui_memory_editor.h"
 #include "utils/string.h"
-#include "gte.h"
+#include "../../../cpu/gte/gte.h"
 #include "debugger/debugger.h"
 #include <vector>
 #include <json.hpp>
@@ -78,7 +78,7 @@ void dumpRegister(const char *name, uint32_t *reg) {
     ImGui::NextColumn();
 }
 
-void gteRegistersWindow(mips::gte::GTE gte) {
+void gteRegistersWindow(GTE gte) {
     if (!gteRegistersEnabled) {
         return;
     }
@@ -186,11 +186,10 @@ void gteLogWindow(mips::CPU *cpu) {
     for (size_t i = 0; i < cpu->gte.log.size(); i++) {
         auto ioEntry = cpu->gte.log[i];
         std::string t;
-        if (ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::func) {
+        if (ioEntry.mode == GTE::GTE_ENTRY::MODE::func) {
             t = string_format("%5d %c 0x%02x", i, 'F', ioEntry.n);
         } else {
-            t = string_format("%5d %c %2d: 0x%08x", i, ioEntry.mode == mips::gte::GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n,
-                              ioEntry.data);
+            t = string_format("%5d %c %2d: 0x%08x", i, ioEntry.mode == GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n, ioEntry.data);
         }
         if (filterActive && t.find(filterBuffer) != std::string::npos)  // if found
         {
