@@ -1,6 +1,7 @@
 #pragma once
 #include "device.h"
 #include <vector>
+#include <glm/vec2.hpp>
 
 namespace device {
 namespace gpu {
@@ -84,6 +85,7 @@ enum class Command : int {
 };
 
 struct Vertex {
+    enum Flags { SemiTransparency = 1 << 0, RawTexture = 1 << 1 };
     int position[2];
     int color[3];
     int texcoord[2];
@@ -219,6 +221,22 @@ union GP1_08 {
     }
 };
 
+union RGB {
+    struct {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t _;
+    };
+    uint32_t c;
+};
+
+struct TextureInfo {
+    uint32_t palette;
+    uint32_t texpage;
+    glm::ivec2 uv[4];
+};
+
 class GPU {
     std::vector<Vertex> renderList;
     /* 0 - nothing
@@ -300,14 +318,16 @@ class GPU {
 
     void cmdFillRectangle(const uint8_t command, uint32_t arguments[]);
     void cmdPolygon(const PolygonArgs arg, uint32_t arguments[]);
+    void drawLine(int x1, int y1, int x2, int y2, int c1, int c2);
     void cmdLine(const LineArgs arg, uint32_t arguments[]);
     void cmdRectangle(const RectangleArgs command, uint32_t arguments[]);
     void cmdCpuToVram1(const uint8_t command, uint32_t arguments[]);
     void cmdCpuToVram2(const uint8_t command, uint32_t arguments[]);
     void cmdVramToCpu(const uint8_t command, uint32_t arguments[]);
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
+    uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
-    void drawPolygon(int x[4], int y[4], int c[4], int t[4] = nullptr, bool isFourVertex = false, bool textured = false, int flags = 0);
+    void drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
@@ -327,6 +347,11 @@ class GPU {
     std::vector<Vertex>& render();
 
     bool emulateGpuCycles(int cycles);
+    uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
+    uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
+    void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags);
+    void drawTriangle(Vertex v[3]);
+    void rasterize();
 
     std::vector<uint16_t> vram;
     std::vector<uint16_t> prevVram;

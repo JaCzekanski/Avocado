@@ -11,3 +11,6 @@
 [submodule "externals/json"]
 	path = externals/json
 	url = https://github.com/nlohmann/json.git
+[submodule "externals/lodepng"]
+	path = externals/lodepng
+	url = https://github.com/lvandeve/lodepng.git

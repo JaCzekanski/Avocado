@@ -646,102 +646,37 @@ void op_cop0(CPU *cpu, Opcode i) {
 }
 
 // Coprocessor two
-void op_cop2(CPU *cpu, Opcode i) { /*printf("COP2: 0x%08x\n", i.opcode);*/
+void op_cop2(CPU *cpu, Opcode i) {
     gte::Command command(i.opcode);
-    if (command.cmd == 0x00) {
-        if (i.rs == 0x00) {
-            // Move data from co-processor two
-            // MFC2 rt, <nn>
-            cpu->reg[i.rt] = cpu->gte.read(i.rd);
-            cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rd, cpu->reg[i.rt]});
-        } else if (i.rs == 0x02) {
-            // Move control from co-processor two
-            // CFC2 rt, <nn>
-            cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
-            cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)(i.rd + 32), cpu->reg[i.rt]});
-        } else if (i.rs == 0x04) {
-            // Move data to co-processor two
-            // MTC2 rt, <nn>
-            cpu->gte.write(i.rd, cpu->reg[i.rt]);
-        } else if (i.rs == 0x06) {
-            // Move control to co-processor two
-            // CTC2 rt, <nn>
-            cpu->gte.write(i.rd + 32, cpu->reg[i.rt]);
-        } else {
-            invalid(cpu, i);
-        }
-    } else {
-        gte::Command command(i.opcode);
+    if (command.cmd != 0x00) {
         cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::func, command.cmd});
 
-        cpu->gte.flag = 0;
-        switch (command.cmd) {
-            case 0x01:
-                cpu->gte.rtps(0, command.sf, command.lm);
-                return;
-            case 0x06:
-                cpu->gte.nclip();
-                return;
-            case 0x0c:
-                cpu->gte.op(command.sf, command.lm);
-                return;
-
-            case 0x10:
-                cpu->gte.dcps(command.sf, command.lm);
-                return;
-
-            case 0x11:
-                cpu->gte.intpl(command.sf, command.lm);
-                return;
-
-            case 0x12:
-                cpu->gte.mvmva(command.sf, command.lm, command.mvmvaMultiplyMatrix, command.mvmvaMultiplyVector,
-                               command.mvmvaTranslationVector);
-                return;
-            case 0x13:
-                cpu->gte.ncds(command.sf, command.lm);
-                return;
-
-            case 0x16:
-                cpu->gte.ncdt(command.sf, command.lm);
-                return;
-
-            case 0x1b:
-                cpu->gte.nccs(command.sf, command.lm);
-                return;
-
-            case 0x2a:
-                cpu->gte.dcpt(command.sf, command.lm);
-                return;
-
-            case 0x28:
-                cpu->gte.sqr(command.sf, command.lm);
-                return;
-
-            case 0x29:
-                cpu->gte.dcpl(command.sf, command.lm);
-                return;
-            case 0x2d:
-                cpu->gte.avsz3();
-                return;
-            case 0x2e:
-                cpu->gte.avsz4();
-                return;
-            case 0x30:
-                cpu->gte.rtpt(command.sf, command.lm);
-                return;
-            case 0x3d:
-                cpu->gte.gpf(command.sf, command.lm);
-                return;
-            case 0x3e:
-                cpu->gte.gpl(command.sf, command.lm);
-                return;
-            case 0x3f:
-                cpu->gte.ncct(command.sf, command.lm);
-                return;
-            default:
-                printf("Unhandled gte command 0x%x\n", command.cmd);
+        if (!cpu->gte.command(command)) {
+            printf("Unhandled gte command 0x%x\n", command.cmd);
         }
+        return;
+    }
+
+    if (i.rs == 0x00) {
+        // Move data from co-processor two
+        // MFC2 rt, <nn>
+        cpu->reg[i.rt] = cpu->gte.read(i.rd);
+        cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rd, cpu->reg[i.rt]});
+    } else if (i.rs == 0x02) {
+        // Move control from co-processor two
+        // CFC2 rt, <nn>
+        cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
+        cpu->gte.log.push_back({gte::GTE::GTE_ENTRY::MODE::read, (uint32_t)(i.rd + 32), cpu->reg[i.rt]});
+    } else if (i.rs == 0x04) {
+        // Move data to co-processor two
+        // MTC2 rt, <nn>
+        cpu->gte.write(i.rd, cpu->reg[i.rt]);
+    } else if (i.rs == 0x06) {
+        // Move control to co-processor two
+        // CTC2 rt, <nn>
+        cpu->gte.write(i.rd + 32, cpu->reg[i.rt]);
+    } else {
+        invalid(cpu, i);
     }
 }
 

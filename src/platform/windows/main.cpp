@@ -97,6 +97,29 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
         return;
     }
 
+    if (ext == "json") {
+        auto file = getFileContents(path);
+        if (file.empty()) {
+            return;
+        }
+        nlohmann::json j = nlohmann::json::parse(file);
+
+        auto& gpuLog = cpu->getGPU()->gpuLogList;
+        gpuLog.clear();
+        for (int i = 0; i < j.size(); i++) {
+            device::gpu::GPU::GPU_LOG_ENTRY e;
+            e.command = j[i]["command"];
+            e.cmd = (device::gpu::Command)(int)j[i]["cmd"];
+
+            for (uint32_t a : j[i]["args"]) {
+                e.args.push_back(a);
+            }
+
+            gpuLog.push_back(e);
+        }
+        return;
+    }
+
     std::unique_ptr<utils::Cue> cue = nullptr;
 
     if (ext == "cue") {
@@ -179,8 +202,13 @@ int start(int argc, char** argv) {
 
     ImGui_ImplSdlGL3_Init(window);
 
+    SDL_GL_SetSwapInterval(0);
+
     vramTextureId = opengl.getVramTextureId();
-    if (!isEmulatorConfigured()) cpu->state = mips::CPU::State::stop;
+    if (!isEmulatorConfigured())
+        cpu->state = mips::CPU::State::stop;
+    else
+        cpu->state = mips::CPU::State::run;
 
     float startTime = SDL_GetTicks() / 1000.f;
     float fps = 0.f;
@@ -271,10 +299,12 @@ int start(int argc, char** argv) {
             }
         }
         ImGui_ImplSdlGL3_NewFrame(window);
-        if (!skipRender)
-            opengl.render(cpu->getGPU());
-        else
-            cpu->getGPU()->render().clear();
+
+        cpu->getGPU()->rasterize();
+        if (!skipRender) opengl.render(cpu->getGPU());
+
+        cpu->getGPU()->render().clear();
+
         renderImgui(cpu.get());
 
         deltaFrames++;
