@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "opcode.h"
+#include "cpu/opcode.h"
 
 namespace debugger {
 struct Instruction {

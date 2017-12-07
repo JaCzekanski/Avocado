@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "cop0.h"
+#include "cpu/cop0.h"
 #include "gte.h"
 #include "device/gpu.h"
 #include "device/dma.h"
@@ -109,7 +109,7 @@ struct CPU {
     uint32_t jumpPC;
     bool shouldJump;
     uint32_t reg[REGISTER_COUNT];
-    cop0::COP0 cop0;
+    COP0 cop0;
     gte::GTE gte;
     uint32_t hi, lo;
     bool exception;

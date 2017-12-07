@@ -161,7 +161,7 @@ PrimaryInstruction SpecialTable[64] = {
 };
 // clang-format on
 
-void exception(CPU *cpu, cop0::CAUSE::Exception cause) {
+void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
     if (cpu->shouldJump) {
@@ -179,9 +179,9 @@ void exception(CPU *cpu, cop0::CAUSE::Exception cause) {
     cpu->cop0.status.previousMode = cpu->cop0.status.mode;
 
     cpu->cop0.status.interruptEnable = false;
-    cpu->cop0.status.mode = cop0::STATUS::Mode::kernel;
+    cpu->cop0.status.mode = COP0::STATUS::Mode::kernel;
 
-    if (cpu->cop0.status.bootExceptionVectors == cop0::STATUS::BootExceptionVectors::rom) {
+    if (cpu->cop0.status.bootExceptionVectors == COP0::STATUS::BootExceptionVectors::rom) {
         cpu->PC = 0xbfc00180;
     } else {
         cpu->PC = 0x80000080;
@@ -242,7 +242,7 @@ void op_srav(CPU *cpu, Opcode i) { cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >>
 void op_jr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
     if (addr & 3) {
-        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
     cpu->shouldJump = true;
@@ -256,7 +256,7 @@ void op_jalr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
     if (addr & 3) {
         // TODO: not working correctly
-        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
     cpu->shouldJump = true;
@@ -268,12 +268,12 @@ void op_jalr(CPU *cpu, Opcode i) {
 // SYSCALL
 void op_syscall(CPU *cpu, Opcode i) {
     if (cpu->biosLog) printf("  SYSCALL(%d)\n", cpu->reg[4]);
-    exception(cpu, cop0::CAUSE::Exception::syscall);
+    exception(cpu, COP0::CAUSE::Exception::syscall);
 }
 
 // Break
 // BREAK
-void op_break(CPU *cpu, Opcode i) { exception(cpu, cop0::CAUSE::Exception::breakpoint); }
+void op_break(CPU *cpu, Opcode i) { exception(cpu, COP0::CAUSE::Exception::breakpoint); }
 
 // Move From Hi
 // MFHI rd
@@ -345,7 +345,7 @@ void op_add(CPU *cpu, Opcode i) {
     uint32_t result = a + b;
 
     if (!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
-        exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
+        exception(cpu, COP0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
     cpu->reg[i.rd] = result;
@@ -363,7 +363,7 @@ void op_sub(CPU *cpu, Opcode i) {
     uint32_t result = a - b;
 
     if (((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
-        exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
+        exception(cpu, COP0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
     cpu->reg[i.rd] = result;
@@ -513,7 +513,7 @@ void op_addi(CPU *cpu, Opcode i) {
     uint32_t result = a + b;
 
     if (!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
-        exception(cpu, cop0::CAUSE::Exception::arithmeticOverflow);
+        exception(cpu, COP0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
     cpu->reg[i.rt] = result;
@@ -693,7 +693,7 @@ void op_lh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
     {
-        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
     cpu->loadDelaySlot(i.rt, (int32_t)(int16_t)cpu->readMemory16(addr));
@@ -736,7 +736,7 @@ void op_lw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 3)  // non aligned address
     {
-        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
     cpu->loadDelaySlot(i.rt, cpu->readMemory32(addr));
@@ -755,7 +755,7 @@ void op_lhu(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
     {
-        exception(cpu, cop0::CAUSE::Exception::addressErrorLoad);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
     cpu->loadDelaySlot(i.rt, cpu->readMemory16(addr));
@@ -806,7 +806,7 @@ void op_sh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 1)  // non aligned address
     {
-        exception(cpu, cop0::CAUSE::Exception::addressErrorStore);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
     cpu->writeMemory16(addr, cpu->reg[i.rt]);
@@ -843,7 +843,7 @@ void op_sw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (addr & 3)  // non aligned address
     {
-        exception(cpu, cop0::CAUSE::Exception::addressErrorStore);
+        exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
     cpu->writeMemory32(addr, cpu->reg[i.rt]);

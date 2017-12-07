@@ -377,7 +377,7 @@ bool CPU::executeInstructions(int count) {
 
 void CPU::checkForInterrupts() {
     if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
-        mipsInstructions::exception(this, cop0::CAUSE::Exception::interrupt);
+        mipsInstructions::exception(this, COP0::CAUSE::Exception::interrupt);
     }
 }
 

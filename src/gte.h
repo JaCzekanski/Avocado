@@ -61,11 +61,11 @@ union Command {
 
 struct GTE {
     Vector<int16_t> v[3];
-    device::Reg32 rgbc;
+    Reg32 rgbc;
     uint16_t otz = 0;
     int16_t ir[4] = {0};
     Vector<int16_t> s[4];
-    device::Reg32 rgb[3];
+    Reg32 rgb[3];
     uint32_t res1 = 0;     // prohibited
     int32_t mac[4] = {0};  // Sum of products
     uint16_t irgb = 0;

@@ -12,7 +12,7 @@ struct PrimaryInstruction {
     _Instruction instruction;
 };
 
-void exception(CPU* cpu, cop0::CAUSE::Exception cause);
+void exception(CPU* cpu, COP0::CAUSE::Exception cause);
 
 void dummy(CPU* cpu, Opcode i);
 void invalid(CPU* cpu, Opcode i);
