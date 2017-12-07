@@ -89,6 +89,7 @@ project "avocado"
         editandcontinue "On"
 
 	filter "action:vs*"
+        flags { "MultiProcessorCompile" }
 		defines "_CRT_SECURE_NO_WARNINGS"
 		libdirs {
 			os.findlib("SDL2")
