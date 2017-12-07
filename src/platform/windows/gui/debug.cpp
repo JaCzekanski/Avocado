@@ -62,6 +62,7 @@ void replayCommands(mips::gpu::GPU *gpu, int to) {
 
             if (j == 0 && i == to && (cmd.cmd == Command::Polygon || cmd.cmd == Command::Rectangle || cmd.cmd == Command::Line)) {
                 arg = (cmd.command << 24) | 0x00ff00;
+                if (cmd.cmd == Command::Polygon || cmd.cmd == Command::Rectangle) arg &= ~(1 << 24);
             }
 
             gpu->write(0, arg);
