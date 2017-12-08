@@ -1,5 +1,6 @@
 #include "gte.h"
 #include <cassert>
+#include <cstdio>
 
 int32_t GTE::clip(int32_t value, int32_t max, int32_t min, uint32_t flags) {
     if (value > max) {

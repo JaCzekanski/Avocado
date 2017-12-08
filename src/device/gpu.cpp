@@ -708,8 +708,8 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
         std::max((int)drawingAreaTop, std::max(0, std::min({ pos[0].y, pos[1].y, pos[2].y })))
 	);
     glm::ivec2 max = glm::ivec2(
-        std::min((int)drawingAreaRight, std::min(vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x }))),
-        std::min((int)drawingAreaBottom, std::min(vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y })))
+        std::min((int)drawingAreaRight, std::min(GPU::vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x }))),
+        std::min((int)drawingAreaBottom, std::min(GPU::vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y })))
 	);
     // clang-format on
 
