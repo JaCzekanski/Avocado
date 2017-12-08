@@ -66,7 +66,7 @@ union CHCR {
     CHCR() : _reg(0) {}
 };
 
-class DMAChannel : public Device {
+class DMAChannel {
     int channel;
     CHCR control;
     MADDR baseAddress;
@@ -79,14 +79,14 @@ class DMAChannel : public Device {
     virtual void beforeRead() {}
 
    protected:
-	bool verbose = false;
+    bool verbose = false;
 
    public:
     bool irqFlag = false;
     DMAChannel(int channel);
-    void step() override;
-    uint8_t read(uint32_t address) override;
-    void write(uint32_t address, uint8_t data) override;
+    void step();
+    uint8_t read(uint32_t address);
+    void write(uint32_t address, uint8_t data);
 
     void setCPU(void *cpu) { this->_cpu = cpu; }
 };

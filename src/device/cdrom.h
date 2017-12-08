@@ -7,7 +7,7 @@
 namespace device {
 namespace cdrom {
 
-class CDROM : public Device {
+class CDROM {
     union StatusCode {
         enum class Mode { None, Reading, Seeking, Playing };
         struct {
@@ -134,9 +134,9 @@ class CDROM : public Device {
 
    public:
     CDROM();
-    void step() override;
-    uint8_t read(uint32_t address) override;
-    void write(uint32_t address, uint8_t data) override;
+    void step();
+    uint8_t read(uint32_t address);
+    void write(uint32_t address, uint8_t data);
 
     void setCPU(void *cpu) { this->_cpu = cpu; }
 

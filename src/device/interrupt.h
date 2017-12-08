@@ -40,7 +40,7 @@ union IRQ {
     IRQ() : _reg(0) {}
 };
 
-class Interrupt : public Device {
+class Interrupt {
     IRQ status;
     IRQ mask;
 
@@ -48,9 +48,9 @@ class Interrupt : public Device {
 
    public:
     Interrupt();
-    void step() override;
-    uint8_t read(uint32_t address) override;
-    void write(uint32_t address, uint8_t data) override;
+    void step();
+    uint8_t read(uint32_t address);
+    void write(uint32_t address, uint8_t data);
 
     void trigger(IrqNumber irq);
     bool interruptPending();

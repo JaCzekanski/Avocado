@@ -39,7 +39,7 @@ class DigitalController {
     DigitalController() : _reg(0) {}
 };
 
-class Controller : public Device {
+class Controller {
     const int baseAddress = 0x1f801040;
     void *_cpu = nullptr;
     DigitalController state;
@@ -66,9 +66,9 @@ class Controller : public Device {
 
    public:
     Controller();
-    void step() override;
-    uint8_t read(uint32_t address) override;
-    void write(uint32_t address, uint8_t data) override;
+    void step();
+    uint8_t read(uint32_t address);
+    void write(uint32_t address, uint8_t data);
     void setCPU(void *cpu) { this->_cpu = cpu; }
     void setState(DigitalController state) { this->state = state; }
 };
