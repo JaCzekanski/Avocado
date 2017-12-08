@@ -3,7 +3,7 @@
 #include <cstdio>
 #include "mips.h"
 #include "cpu/instructions.h"
-#include "psxExe.h"
+#include "utils/psx_exe.h"
 #include "utils/file.h"
 #include "bios/functions.h"
 #include "device/spu.h"
