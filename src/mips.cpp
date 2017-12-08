@@ -1,9 +1,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-#include <cassert>
 #include "mips.h"
-#include "mipsInstructions.h"
+#include "cpu/instructions.h"
 #include "psxExe.h"
 #include "utils/file.h"
 #include "bios/functions.h"
@@ -349,7 +348,7 @@ bool CPU::executeInstructions(int count) {
         Opcode _opcode(readMemory32(PC));
 
         bool isJumpCycle = shouldJump;
-        const auto& op = mipsInstructions::OpcodeTable[_opcode.op];
+        const auto& op = instructions::OpcodeTable[_opcode.op];
 
         op.instruction(this, _opcode);
 
@@ -377,7 +376,7 @@ bool CPU::executeInstructions(int count) {
 
 void CPU::checkForInterrupts() {
     if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
-        mipsInstructions::exception(this, COP0::CAUSE::Exception::interrupt);
+        instructions::exception(this, COP0::CAUSE::Exception::interrupt);
     }
 }
 
