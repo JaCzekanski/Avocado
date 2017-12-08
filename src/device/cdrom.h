@@ -81,7 +81,7 @@ class CDROM {
 
     bool sectorSize = false;  // 0 - 0x800, 1 - 0x924
 
-    void *_cpu = nullptr;
+    mips::CPU *cpu = nullptr;
     int readSector = 0;
 
     StatusCode stat;
@@ -133,12 +133,10 @@ class CDROM {
     }
 
    public:
-    CDROM();
+    CDROM(mips::CPU *cpu);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
-
-    void setCPU(void *cpu) { this->_cpu = cpu; }
 
     void setShell(bool opened) { stat.setShell(opened); }
     bool getShell() const { return stat.getShell(); }

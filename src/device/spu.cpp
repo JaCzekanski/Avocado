@@ -2,9 +2,6 @@
 #include "mips.h"
 #include <cstring>
 
-namespace device {
-namespace spu {
-
 SPU::SPU() { memset(ram, 0, RAM_SIZE); }
 
 void SPU::step() {}
@@ -195,6 +192,4 @@ void SPU::dumpRam() {
     std::vector<uint8_t> ram;
     ram.assign(this->ram, this->ram + RAM_SIZE - 1);
     putFileContents("spu.bin", ram);
-}
-}
 }

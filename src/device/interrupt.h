@@ -2,7 +2,6 @@
 #include "device.h"
 #include <string>
 
-namespace device {
 namespace interrupt {
 enum IrqNumber {
     VBLANK = 0,
@@ -39,25 +38,22 @@ union IRQ {
 
     IRQ() : _reg(0) {}
 };
+}
 
 class Interrupt {
-    IRQ status;
-    IRQ mask;
+    interrupt::IRQ status;
+    interrupt::IRQ mask;
 
-    void *_cpu = nullptr;
+    mips::CPU* cpu;
 
    public:
-    Interrupt();
+    Interrupt(mips::CPU* cpu);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    void trigger(IrqNumber irq);
+    void trigger(interrupt::IrqNumber irq);
     bool interruptPending();
     std::string getMask();
     std::string getStatus();
-
-    void setCPU(void *cpu) { this->_cpu = cpu; }
 };
-}
-}

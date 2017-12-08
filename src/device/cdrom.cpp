@@ -6,13 +6,13 @@
 
 namespace device {
 namespace cdrom {
-CDROM::CDROM() {}
+CDROM::CDROM(mips::CPU* cpu) : cpu(cpu) {}
 
 void CDROM::step() {
     status.transmissionBusy = 0;
     if (!CDROM_interrupt.empty()) {
         if ((interruptEnable & 7) & (CDROM_interrupt.front() & 7)) {
-            ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::CDROM);
+            cpu->interrupt->trigger(interrupt::CDROM);
         }
     }
 
@@ -46,7 +46,7 @@ uint8_t CDROM::read(uint32_t address) {
         return response;
     }
     if (address == 2) {  // CD Data
-        return ((mips::CPU*)_cpu)->dma->dma3.readByte();
+        return cpu->dma->dma3.readByte();
     }
     if (address == 3) {                                // CD Interrupt enable / flags
         if (status.index == 0 || status.index == 2) {  // Interrupt enable
@@ -63,7 +63,7 @@ uint8_t CDROM::read(uint32_t address) {
         }
     }
     printf("CDROM%d.%d->R    ?????\n", address, status.index);
-    ((mips::CPU*)_cpu)->state = mips::CPU::State::pause;
+    cpu->state = mips::CPU::State::pause;
     return 0;
 }
 
@@ -85,7 +85,7 @@ void CDROM::cmdSetloc() {
         printf("cmdSetloc < 0!\n");
         readSector = 0;
     }
-    ((mips::CPU*)_cpu)->dma->dma3.seekTo(readSector);
+    cpu->dma->dma3.seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -160,7 +160,7 @@ void CDROM::cmdInit() {
     stat.setMode(StatusCode::Mode::None);
 
     sectorSize = false;
-    ((mips::CPU*)_cpu)->dma->dma3.sectorSize = sectorSize;
+    cpu->dma->dma3.sectorSize = sectorSize;
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
@@ -189,7 +189,7 @@ void CDROM::cmdSetmode() {
     CDROM_params.pop_front();
 
     sectorSize = setmode & (1 << 5) ? true : false;
-    ((mips::CPU*)_cpu)->dma->dma3.sectorSize = sectorSize;
+    cpu->dma->dma3.sectorSize = sectorSize;
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -283,7 +283,7 @@ void CDROM::cmdGetTD() {
 }
 
 void CDROM::cmdSeekL() {
-    ((mips::CPU*)_cpu)->dma->dma3.seekTo(readSector);
+    cpu->dma->dma3.seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -448,7 +448,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
             if (state == 1) {
                 state = 0;
                 // advance sector
-                ((mips::CPU*)_cpu)->dma->dma3.advanceSector();
+                cpu->dma->dma3.advanceSector();
             }
         } else {  // clear data fifo
             // status.dataFifoEmpty = 0;
@@ -500,7 +500,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
     }
 
     printf("CDROM%d.%d<-W  UNIMPLEMENTED WRITE       0x%02x\n", address, status.index, data);
-    ((mips::CPU*)_cpu)->state = mips::CPU::State::pause;
+    cpu->state = mips::CPU::State::pause;
 }
 }
 }

@@ -47,3 +47,7 @@ union Reg32 {
         return (_reg & (1 << n)) != 0;
     }
 };
+
+namespace mips {
+struct CPU;
+}

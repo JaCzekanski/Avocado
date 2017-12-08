@@ -122,19 +122,19 @@ struct CPU {
     bool debugOutput = true;  // Print BIOS logs
    public:
     // Devices
-    std::unique_ptr<interrupt::Interrupt> interrupt;
+    std::unique_ptr<Interrupt> interrupt;
     std::unique_ptr<controller::Controller> controller;
     std::unique_ptr<cdrom::CDROM> cdrom;
     std::unique_ptr<dma::DMA> dma;
-    std::unique_ptr<spu::SPU> spu;
+    std::unique_ptr<SPU> spu;
 
     std::unique_ptr<Dummy> memoryControl;
     std::unique_ptr<Dummy> serial;
     std::unique_ptr<gpu::GPU> gpu;
-    std::unique_ptr<timer::Timer> timer0;
-    std::unique_ptr<timer::Timer> timer1;
-    std::unique_ptr<timer::Timer> timer2;
-    std::unique_ptr<mdec::MDEC> mdec;
+    std::unique_ptr<Timer> timer0;
+    std::unique_ptr<Timer> timer1;
+    std::unique_ptr<Timer> timer2;
+    std::unique_ptr<MDEC> mdec;
     std::unique_ptr<Dummy> expansion2;
 
     uint8_t readMemory(uint32_t address);

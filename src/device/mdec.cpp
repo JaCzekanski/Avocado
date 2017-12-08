@@ -1,9 +1,5 @@
 #include "mdec.h"
-#include "mips.h"
 #include <cassert>
-
-namespace device {
-namespace mdec {
 
 MDEC::MDEC() { reset(); }
 
@@ -71,6 +67,4 @@ void MDEC::write(uint32_t address, uint8_t data) {
     }
 
     assert(false && "UNHANDLED MDEC WRITE");
-}
-}
 }

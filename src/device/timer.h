@@ -3,9 +3,7 @@
 #include "interrupt.h"
 #include <cassert>
 
-namespace device {
 namespace timer {
-
 union CounterMode {
     enum class SynchronizationEnable { freeRun = 0, synchronize = 1 };
     enum class SynchronizationMode0 {
@@ -79,6 +77,7 @@ union CounterMode {
         return _byte[n];
     }
 };
+}
 
 class Timer {
     const int baseAddress = 0x1f801100;
@@ -87,30 +86,27 @@ class Timer {
 
    public:
     Reg32 current;
-    CounterMode mode;
+    timer::CounterMode mode;
     Reg16 target;
 
    private:
     int cnt = 0;
     bool irqOccured = false;
 
-    void *_cpu = nullptr;
+    mips::CPU* cpu = nullptr;
 
     interrupt::IrqNumber mapIrqNumber() const {
-        if (which == 0) return interrupt::IrqNumber::TIMER0;
-        if (which == 1) return interrupt::IrqNumber::TIMER1;
-        if (which == 2) return interrupt::IrqNumber::TIMER2;
+        if (which == 0) return interrupt::TIMER0;
+        if (which == 1) return interrupt::TIMER1;
+        if (which == 2) return interrupt::TIMER2;
         assert(false);
         return interrupt::TIMER0;
     }
 
    public:
-    Timer(int which);
+    Timer(mips::CPU* cpu, int which);
     void step() { step(1); }
     void step(int cycles);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
-    void setCPU(void *cpu) { this->_cpu = cpu; }
 };
-}
-}

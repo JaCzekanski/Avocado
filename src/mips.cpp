@@ -6,7 +6,6 @@
 #include "utils/psx_exe.h"
 #include "utils/file.h"
 #include "bios/functions.h"
-#include "device/spu.h"
 
 namespace mips {
 CPU::CPU() {
@@ -33,8 +32,7 @@ CPU::CPU() {
 
     serial = std::make_unique<Dummy>("Serial", 0x1f801050, false);
 
-    interrupt = std::make_unique<interrupt::Interrupt>();
-    interrupt->setCPU(this);
+    interrupt = std::make_unique<Interrupt>(this);
 
     gpu = std::make_unique<gpu::GPU>();
 
@@ -42,23 +40,12 @@ CPU::CPU() {
     dma->setCPU(this);
     dma->setGPU(gpu.get());
 
-    timer0 = std::make_unique<timer::Timer>(0);
-    timer0->setCPU(this);
-
-    timer1 = std::make_unique<timer::Timer>(1);
-    timer1->setCPU(this);
-
-    timer2 = std::make_unique<timer::Timer>(2);
-    timer2->setCPU(this);
-
-    cdrom = std::make_unique<cdrom::CDROM>();
-    cdrom->setCPU(this);
-
-    spu = std::make_unique<spu::SPU>();
-    spu->setCPU(this);
-
-    mdec = std::make_unique<mdec::MDEC>();
-    mdec->setCPU(this);
+    timer0 = std::make_unique<Timer>(this, 0);
+    timer1 = std::make_unique<Timer>(this, 1);
+    timer2 = std::make_unique<Timer>(this, 2);
+    cdrom = std::make_unique<cdrom::CDROM>(this);
+    spu = std::make_unique<SPU>();
+    mdec = std::make_unique<MDEC>();
 
     expansion2 = std::make_unique<Dummy>("Expansion2", 0x1f802000, false);
 }
@@ -419,7 +406,7 @@ void CPU::emulateFrame() {
         timer2->step(systemCycles);
 
         static int wtf = 0;
-        if (++wtf % 200 == 0) interrupt->trigger(device::interrupt::TIMER2);
+        if (++wtf % 200 == 0) interrupt->trigger(interrupt::TIMER2);
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {

@@ -1,9 +1,9 @@
 #include "timer.h"
 #include "mips.h"
 
-namespace device {
-namespace timer {
-Timer::Timer(int which) : which(which) {}
+using namespace timer;
+
+Timer::Timer(mips::CPU* cpu, int which) : cpu(cpu), which(which) {}
 void Timer::step(int cycles) {
     cnt += cycles;
 
@@ -54,7 +54,7 @@ void Timer::step(int cycles) {
     }
 
     if (mode.interruptRequest == false && !irqOccured) {
-        static_cast<mips::CPU*>(_cpu)->interrupt->trigger(mapIrqNumber());
+        cpu->interrupt->trigger(mapIrqNumber());
         irqOccured = true;
     }
 }
@@ -85,6 +85,4 @@ void Timer::write(uint32_t address, uint8_t data) {
     } else if (address >= 8 && address < 12) {
         target.write(address - 8, data);
     }
-}
-}
 }

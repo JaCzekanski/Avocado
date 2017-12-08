@@ -232,10 +232,10 @@ int start(int argc, char** argv) {
                     continue;
                 }
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(device::interrupt::TIMER2);
-                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(device::interrupt::CDROM);
-                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(device::interrupt::DMA);
-                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(device::interrupt::SPU);
+                if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(interrupt::TIMER2);
+                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(interrupt::CDROM);
+                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
+                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
                 if (event.key.keysym.sym == SDLK_TAB) skipRender = !skipRender;
                 if (event.key.keysym.sym == SDLK_r) {
                     cpu->dumpRam();
