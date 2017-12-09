@@ -27,26 +27,17 @@ CPU::CPU() {
     }
 
     memoryControl = std::make_unique<Dummy>("MemCtrl", 0x1f801000, false);
-    controller = std::make_unique<controller::Controller>();
-    controller->setCPU(this);
-
+    controller = std::make_unique<controller::Controller>(this);
     serial = std::make_unique<Dummy>("Serial", 0x1f801050, false);
-
     interrupt = std::make_unique<Interrupt>(this);
-
     gpu = std::make_unique<gpu::GPU>();
-
-    dma = std::make_unique<dma::DMA>();
-    dma->setCPU(this);
-    dma->setGPU(gpu.get());
-
+    dma = std::make_unique<dma::DMA>(this);
     timer0 = std::make_unique<Timer>(this, 0);
     timer1 = std::make_unique<Timer>(this, 1);
     timer2 = std::make_unique<Timer>(this, 2);
     cdrom = std::make_unique<cdrom::CDROM>(this);
     spu = std::make_unique<SPU>();
     mdec = std::make_unique<MDEC>();
-
     expansion2 = std::make_unique<Dummy>("Expansion2", 0x1f802000, false);
 }
 
@@ -429,7 +420,7 @@ bool CPU::loadExeFile(std::string exePath) {
     if (_exe.empty()) return false;
     assert(_exe.size() >= 0x800);
 
-    memcpy(&exe, &_exe[0], sizeof(exe));
+    memcpy(&exe, _exe.data(), sizeof(exe));
 
     if (exe.t_size > _exe.size() - 0x800) {
         printf("Invalid exe t_size: 0x%08x\n", exe.t_size);

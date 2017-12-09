@@ -11,9 +11,7 @@ class DMA2Channel : public DMAChannel {
     void writeDevice(uint32_t data) override { gpu->write(0, data); }
 
    public:
-    DMA2Channel(int channel) : DMAChannel(channel) {}
-
-    void setGPU(gpu::GPU *gpu) { this->gpu = gpu; }
+    DMA2Channel(int channel, mips::CPU *cpu, device::gpu::GPU *gpu) : DMAChannel(channel, cpu), gpu(gpu) {}
 };
 }
 }

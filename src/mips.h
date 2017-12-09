@@ -158,7 +158,6 @@ struct CPU {
     void printFunctionInfo(int type, uint8_t number, bios::Function f);
     bool executeInstructions(int count);
     void emulateFrame();
-    gpu::GPU* getGPU() const { return gpu.get(); }
     void softReset();
 
     // Helpers

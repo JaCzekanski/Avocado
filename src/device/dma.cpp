@@ -4,7 +4,8 @@
 
 namespace device {
 namespace dma {
-DMA::DMA() : dma0(0), dma1(1), dma2(2), dma3(3), dma4(4), dma5(5), dma6(6) {}
+DMA::DMA(mips::CPU *cpu)
+    : dma0(0, cpu), dma1(1, cpu), dma2(2, cpu, cpu->gpu.get()), dma3(3, cpu), dma4(4, cpu), dma5(5, cpu), dma6(6, cpu), cpu(cpu) {}
 
 void DMA::step() {
     bool prevMasterFlag = status.masterFlag;
@@ -14,7 +15,7 @@ void DMA::step() {
     status.masterFlag = status.forceIRQ || (status.masterEnable && (enables & flags));
 
     if (!prevMasterFlag && status.masterFlag) {
-        ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::DMA);
+        cpu->interrupt->trigger(interrupt::DMA);
     }
 }
 

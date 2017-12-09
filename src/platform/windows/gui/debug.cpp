@@ -184,7 +184,7 @@ void gteLogWindow(mips::CPU *cpu) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     for (size_t i = 0; i < cpu->gte.log.size(); i++) {
-        auto ioEntry = cpu->gte.log[i];
+        auto ioEntry = cpu->gte.log.at(i);
         std::string t;
         if (ioEntry.mode == GTE::GTE_ENTRY::MODE::func) {
             t = string_format("%5d %c 0x%02x", i, 'F', ioEntry.n);
@@ -223,10 +223,10 @@ void gpuLogWindow(mips::CPU *cpu) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     int renderTo = -1;
-    ImGuiListClipper clipper(cpu->getGPU()->gpuLogList.size());
+    ImGuiListClipper clipper(cpu->gpu.get()->gpuLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-            auto &entry = cpu->getGPU()->gpuLogList[i];
+            auto &entry = cpu->gpu.get()->gpuLogList[i];
 
             bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
 
@@ -257,7 +257,7 @@ void gpuLogWindow(mips::CPU *cpu) {
 
         ImGui::PushItemWidth(140);
         if (ImGui::InputText("", filename, 31, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            auto gpu = cpu->getGPU();
+            auto gpu = cpu->gpu.get();
             auto gpuLog = gpu->gpuLogList;
             nlohmann::json j;
 
@@ -288,7 +288,7 @@ void gpuLogWindow(mips::CPU *cpu) {
     ImGui::End();
 
     if (cpu->state != mips::CPU::State::run && renderTo >= 0) {
-        replayCommands(cpu->getGPU(), renderTo);
+        replayCommands(cpu->gpu.get(), renderTo);
     }
 }
 
@@ -338,7 +338,7 @@ void ioLogWindow(mips::CPU *cpu) {
     ImGuiListClipper clipper(cpu->ioLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-            auto ioEntry = cpu->ioLogList[i];
+            auto ioEntry = cpu->ioLogList.at(i);
             ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s", ioEntry.mode == mips::CPU::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W', ioEntry.size,
                         ioEntry.addr, ioEntry.size / 4, ioEntry.data,
                         // padding

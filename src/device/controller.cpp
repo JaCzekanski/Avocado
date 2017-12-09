@@ -83,7 +83,7 @@ void Controller::handleByte(uint8_t byte) {
     }
 }
 
-Controller::Controller() {}
+Controller::Controller(mips::CPU* cpu) : cpu(cpu) {}
 
 void Controller::step() {
     if (irqTimer > 0) {
@@ -92,7 +92,7 @@ void Controller::step() {
         }
     }
     if (irq) {
-        ((mips::CPU*)_cpu)->interrupt->trigger(interrupt::CONTROLLER);
+        cpu->interrupt->trigger(interrupt::CONTROLLER);
     }
 }
 

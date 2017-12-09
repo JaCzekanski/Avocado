@@ -33,7 +33,7 @@ class DigitalController {
         uint8_t _byte[2];
     };
 
-    void setByName(std::string &name, bool value);
+    void setByName(std::string& name, bool value);
     uint8_t handle(uint8_t byte);
     bool getAck();
     DigitalController() : _reg(0) {}
@@ -41,7 +41,7 @@ class DigitalController {
 
 class Controller {
     const int baseAddress = 0x1f801040;
-    void *_cpu = nullptr;
+    mips::CPU* cpu;
     DigitalController state;
 
     Reg16 mode;
@@ -65,11 +65,10 @@ class Controller {
     }
 
    public:
-    Controller();
+    Controller(mips::CPU* cpu);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
-    void setCPU(void *cpu) { this->_cpu = cpu; }
     void setState(DigitalController state) { this->state = state; }
 };
 }

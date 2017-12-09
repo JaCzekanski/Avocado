@@ -8,7 +8,7 @@ class DMA6Channel : public DMAChannel {
     uint32_t readDevice() override { return 0xffffffff; }
 
    public:
-    DMA6Channel(int channel) : DMAChannel(channel) {}
+    DMA6Channel(int channel, mips::CPU *cpu) : DMAChannel(channel, cpu) {}
 };
 }
 }

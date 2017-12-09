@@ -72,7 +72,7 @@ class DMAChannel {
     MADDR baseAddress;
     BCR count;
 
-    void *_cpu = nullptr;
+    mips::CPU *cpu;
 
     virtual uint32_t readDevice() { return 0; }
     virtual void writeDevice(uint32_t data) {}
@@ -83,12 +83,10 @@ class DMAChannel {
 
    public:
     bool irqFlag = false;
-    DMAChannel(int channel);
+    DMAChannel(int channel, mips::CPU *cpu);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
-
-    void setCPU(void *cpu) { this->_cpu = cpu; }
 };
 }
 }

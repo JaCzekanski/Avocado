@@ -59,6 +59,9 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
             case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
                 buttons.r2 = event.caxis.value > 2048;
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -81,6 +84,8 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
             B(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, buttons.l1);
             B(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, buttons.r1);
 #undef B
+            default:
+                break;
         }
     }
     return buttons;
@@ -104,7 +109,7 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
         }
         nlohmann::json j = nlohmann::json::parse(file);
 
-        auto& gpuLog = cpu->getGPU()->gpuLogList;
+        auto& gpuLog = cpu->gpu.get()->gpuLogList;
         gpuLog.clear();
         for (int i = 0; i < j.size(); i++) {
             device::gpu::GPU::GPU_LOG_ENTRY e;
@@ -300,10 +305,10 @@ int start(int argc, char** argv) {
         }
         ImGui_ImplSdlGL3_NewFrame(window);
 
-        cpu->getGPU()->rasterize();
-        if (!skipRender) opengl.render(cpu->getGPU());
+        cpu->gpu.get()->rasterize();
+        if (!skipRender) opengl.render(cpu->gpu.get());
 
-        cpu->getGPU()->render().clear();
+        cpu->gpu.get()->render().clear();
 
         renderImgui(cpu.get());
 
@@ -317,7 +322,7 @@ int start(int argc, char** argv) {
 
         std::string title
             = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f, ms: %0.2f", cpu->interrupt->getMask().c_str(),
-                            cpu->interrupt->getStatus().c_str(), cpu->getGPU()->frames, fps, (1.f / fps) * 1000.f);
+                            cpu->interrupt->getStatus().c_str(), cpu->gpu.get()->frames, fps, (1.f / fps) * 1000.f);
         SDL_SetWindowTitle(window, title.c_str());
         SDL_GL_SwapWindow(window);
     }

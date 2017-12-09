@@ -89,33 +89,17 @@ class DMA {
     dmaChannel::DMA6Channel dma6;
 
    private:
-    void *_cpu = nullptr;
+    mips::CPU *cpu;
     gpu::GPU *gpu = nullptr;
 
     void writeDma2(uint32_t address, uint8_t data);
     void writeDma6(uint32_t address, uint8_t data);
 
    public:
-    DMA();
+    DMA(mips::CPU *cpu);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
-
-    void setCPU(void *cpu) {
-        this->_cpu = cpu;
-        dma0.setCPU(_cpu);
-        dma1.setCPU(_cpu);
-        dma2.setCPU(_cpu);
-        dma3.setCPU(_cpu);
-        dma4.setCPU(_cpu);
-        dma5.setCPU(_cpu);
-        dma6.setCPU(_cpu);
-    }
-
-    void setGPU(gpu::GPU *gpu) {
-        this->gpu = gpu;
-        dma2.setGPU(gpu);
-    }
 };
 }
 }

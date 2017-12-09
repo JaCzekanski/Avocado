@@ -5,7 +5,7 @@
 namespace device {
 namespace dma {
 namespace dmaChannel {
-DMAChannel::DMAChannel(int channel) : channel(channel) {}
+DMAChannel::DMAChannel(int channel, mips::CPU *cpu) : channel(channel), cpu(cpu) {}
 
 void DMAChannel::step() {}
 
@@ -19,8 +19,6 @@ uint8_t DMAChannel::read(uint32_t address) {
 }
 
 void DMAChannel::write(uint32_t address, uint8_t data) {
-    mips::CPU* cpu = (mips::CPU*)_cpu;
-
     if (address < 0x4)
         baseAddress._byte[address] = data;
     else if (address >= 0x4 && address < 0x8)
