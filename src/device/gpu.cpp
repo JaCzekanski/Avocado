@@ -629,10 +629,20 @@ bool GPU::emulateGpuCycles(int cycles) {
 }
 
 glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
-    glm::vec3 u = glm::cross(glm::vec3(pos[2].x - pos[0].x, pos[1].x - pos[0].x, pos[0].x - p.x),
-                             glm::vec3(pos[2].y - pos[0].y, pos[1].y - pos[0].y, pos[0].y - p.y));
-    if (std::abs(u.z) < 1) return glm::vec3(-1.f, 1.f, 1.f);
-    return glm::vec3(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+    glm::vec2 v0 = pos[1] - pos[0];
+    glm::vec2 v1 = pos[2] - pos[0];
+    glm::vec2 v2 = p - pos[0];
+    float d00 = glm::dot(v0, v0);
+    float d01 = glm::dot(v0, v1);
+    float d11 = glm::dot(v1, v1);
+    float d20 = glm::dot(v2, v0);
+    float d21 = glm::dot(v2, v1);
+    float denom = d00 * d11 - d01 * d01;
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+
+    return glm::vec3(u, v, w);
 }
 
 inline uint16_t GPU::tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
