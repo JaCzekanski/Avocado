@@ -11,6 +11,7 @@
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "platform/windows/config.h"
+#include "utils/profiler/profiler.h"
 
 #undef main
 
@@ -219,6 +220,8 @@ int start(int argc, char** argv) {
     float fps = 0.f;
     int deltaFrames = 0;
 
+    Profiler::enable();
+
     SDL_Event event;
     while (running && !exitProgram) {
         bool newEvent = false;
@@ -226,7 +229,14 @@ int start(int argc, char** argv) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
+        if (cpu->state != mips::CPU::State::pause) {
+            Profiler::reset();
+            Profiler::enable();
+        } else {
+            Profiler::disable();
+        }
 
+        Profiler::start("events");
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
@@ -282,6 +292,7 @@ int start(int argc, char** argv) {
             cpu->controller->setState(getButtonState(event));
             ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
+        Profiler::stop("events");
 
         if (showVRAM != opengl.getViewFullVram()) {
             if (showVRAM)

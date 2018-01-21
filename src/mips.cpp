@@ -6,6 +6,7 @@
 #include "utils/psx_exe.h"
 #include "utils/file.h"
 #include "bios/functions.h"
+#include "utils/profiler/profiler.h"
 
 namespace mips {
 CPU::CPU() {
@@ -385,10 +386,13 @@ void CPU::emulateFrame() {
     gpu->prevVram = gpu->vram;
     int systemCycles = 300;
     for (;;) {
+        Profiler::start("interpreter");
         if (!executeInstructions(systemCycles / 3)) {
             // printf("CPU Halted\n");
+            Profiler::stop("interpreter");
             return;
         }
+        Profiler::stop("interpreter");
 
         dma->step();
         cdrom->step();

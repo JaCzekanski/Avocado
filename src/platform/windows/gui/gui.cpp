@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include "cpu/gte/gte.h"
 #include "platform/windows/config.h"
+#include "utils/profiler/profiler.h"
 
 void openFileWindow();
 
@@ -105,6 +106,22 @@ void renderImgui(mips::CPU* cpu) {
     if (showDisassemblyWindow) disassemblyWindow(cpu);
     if (showBreakpointsWindow) breakpointsWindow(cpu);
     if (showWatchWindow) watchWindow(cpu);
+
+    static bool profiler = true;
+    ImGui::Begin("Profiler", &profiler, ImVec2(300, 200));
+    for (auto& group : Profiler::profiles) {
+        double time = group.second.total() * 1000.0 / SDL_GetPerformanceFrequency();
+        int calls = group.second.samples.size();
+        if (calls > 1) {
+            ImGui::Text("%s: %7.4f ms, calls: %d", group.first, time, calls);
+        } else {
+            ImGui::Text("%s: %7.4f ms", group.first, time);
+        }
+    }
+    uint64_t totalTime = Profiler::getTotalTime();
+    ImGui::Text("%s: %7.4f ms", "Total", totalTime * 1000.0 / SDL_GetPerformanceFrequency());
+
+    ImGui::End();
 
     // Options
     if (showBiosWindow) biosSelectionWindow();
