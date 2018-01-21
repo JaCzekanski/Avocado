@@ -23,6 +23,7 @@ filter "options:enable-io-log"
 	defines "ENABLE_IO_LOG"
 
 project "glad"
+	uuid "9add6bd2-2372-4614-a367-2e8863415083"
 	kind "StaticLib"
 	language "c"
 	location "build/libs/glad"
@@ -34,6 +35,7 @@ project "glad"
 	}
 
 project "imgui"
+	uuid "a8f18b69-f15a-4804-80f7-e8f80ab91369"
 	kind "StaticLib"
 	language "c++"
 	location "build/libs/imgui"
@@ -47,6 +49,7 @@ project "imgui"
 	}
 
 project "avocado"
+	uuid "c2c4899a-ddca-491f-9a66-1d33173a553e"
 	kind "ConsoleApp"
 	language "c++"
 	location "build/libs/avocado"
