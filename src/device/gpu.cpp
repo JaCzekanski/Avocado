@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include "utils/profiler/profiler.h"
 
 #define VRAM ((uint16_t(*)[vramWidth])vram.data())
 
@@ -399,9 +400,13 @@ void GPU::step() {
 }
 
 uint32_t GPU::read(uint32_t address) {
+    Profiler::start("GPU");
     int reg = address & 0xfffffffc;
     if (reg == 0) {
-        if (gpuReadMode == 0 || gpuReadMode == 2) return GPUREAD;
+        if (gpuReadMode == 0 || gpuReadMode == 2) {
+            Profiler::stop("GPU");
+            return GPUREAD;
+        }
         if (gpuReadMode == 1) {
             uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
             currX += 2;
@@ -412,20 +417,25 @@ uint32_t GPU::read(uint32_t address) {
                     gpuReadMode = 0;
                 }
             }
+            Profiler::stop("GPU");
             return word;
         }
     }
     if (reg == 4) {
         step();
+        Profiler::stop("GPU");
         return GPUSTAT;
     }
+    Profiler::stop("GPU");
     return 0;
 }
 
 void GPU::write(uint32_t address, uint32_t data) {
+    Profiler::start("GPU");
     int reg = address & 0xfffffffc;
     if (reg == 0) writeGP0(data);
     if (reg == 4) writeGP1(data);
+    Profiler::stop("GPU");
 }
 
 void GPU::writeGP0(uint32_t data) {
@@ -526,22 +536,37 @@ void GPU::writeGP0(uint32_t data) {
 
     // printf("%s(0x%x)\n", CommandStr[(int)cmd], command);
 
-    if (cmd == Command::FillRectangle)
+    if (cmd == Command::FillRectangle) {
+        Profiler::start("GPU_cmdFillRectangle");
         cmdFillRectangle(command, arguments);
-    else if (cmd == Command::Polygon)
+        Profiler::stop("GPU_cmdFillRectangle");
+    } else if (cmd == Command::Polygon) {
+        Profiler::start("GPU_cmdPolygon");
         cmdPolygon(command, arguments);
-    else if (cmd == Command::Line)
+        Profiler::stop("GPU_cmdPolygon");
+    } else if (cmd == Command::Line) {
+        Profiler::start("GPU_cmdLine");
         cmdLine(command, arguments);
-    else if (cmd == Command::Rectangle)
-        cmdRectangle(command, arguments);
-    else if (cmd == Command::CopyCpuToVram1)
+        Profiler::stop("GPU_cmdLine");
+    } else if (cmd == Command::Rectangle) {
+        PROFILE("GPU_cmdRectangle") { cmdRectangle(command, arguments); }
+    } else if (cmd == Command::CopyCpuToVram1) {
+        Profiler::start("GPU_cmdCpuToVram1");
         cmdCpuToVram1(command, arguments);
-    else if (cmd == Command::CopyCpuToVram2)
+        Profiler::stop("GPU_cmdCpuToVram1");
+    } else if (cmd == Command::CopyCpuToVram2) {
+        Profiler::start("GPU_cmdCpuToVram2");
         cmdCpuToVram2(command, arguments);
-    else if (cmd == Command::CopyVramToCpu)
+        Profiler::stop("GPU_cmdCpuToVram2");
+    } else if (cmd == Command::CopyVramToCpu) {
+        Profiler::start("GPU_cmdVramToCpu");
         cmdVramToCpu(command, arguments);
-    else if (cmd == Command::CopyVramToVram)
+        Profiler::stop("GPU_cmdVramToCpu");
+    } else if (cmd == Command::CopyVramToVram) {
+        Profiler::start("GPU_cmdVramToVram");
         cmdVramToVram(command, arguments);
+        Profiler::stop("GPU_cmdVramToVram");
+    }
 }
 
 void GPU::writeGP1(uint32_t data) {
@@ -738,7 +763,8 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
     for (p.y = min.y; p.y < max.y; p.y++) {
         for (p.x = min.x; p.x < max.x; p.x++) {
             glm::vec3 s = barycentric(pos, p);
-            if (s.x < 0 || s.y < 0 || s.z < 0) continue;
+            // Check if point is outside triangle OR result is NAN
+            if (s.x < 0 || s.y < 0 || s.z < 0 || s.x != s.x || s.y != s.y || s.z != s.z) continue;
 
             PSXColor c;
             if (bits == 0) {
@@ -749,9 +775,9 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
                     s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
                 );
                 // clang-format on
-                if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-                    calculatedColor += ditherTable[p.y % 4][p.x % 4];
-                }
+                //                if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
+                //                    calculatedColor += ditherTable[p.y % 4][p.x % 4];
+                //                }
                 c._ = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
             } else {
                 // clang-format off
@@ -822,12 +848,14 @@ void GPU::drawTriangle(Vertex v[3]) {
 }
 
 void GPU::rasterize() {
+    Profiler::start("rasterize");
     for (int i = 0; i < renderList.size(); i += 3) {
         Vertex v[3];
         for (int j = 0; j < 3; j++) v[j] = renderList[i + j];
 
         drawTriangle(v);
     }
+    Profiler::stop("rasterize");
 }
 }
 }
