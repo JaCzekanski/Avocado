@@ -137,6 +137,7 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     int flags = 0;
     if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
     if (arg.isRawTexture) flags |= Vertex::RawTexture;
+    if (gp0_e1.dither24to15) flags |= Vertex::Dithering;
     drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, flags);
 
     cmd = Command::None;
@@ -628,16 +629,22 @@ bool GPU::emulateGpuCycles(int cycles) {
     return false;
 }
 
+glm::vec2 v0, v1;
+float d00, d01, d11, denom;
+
+void precalcBarycentric(glm::ivec2 pos[3]) {
+    v0 = pos[1] - pos[0];
+    v1 = pos[2] - pos[0];
+    d00 = glm::dot(v0, v0);
+    d01 = glm::dot(v0, v1);
+    d11 = glm::dot(v1, v1);
+    denom = d00 * d11 - d01 * d01;
+}
+
 glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
-    glm::vec2 v0 = pos[1] - pos[0];
-    glm::vec2 v1 = pos[2] - pos[0];
     glm::vec2 v2 = p - pos[0];
-    float d00 = glm::dot(v0, v0);
-    float d01 = glm::dot(v0, v1);
-    float d11 = glm::dot(v1, v1);
     float d20 = glm::dot(v2, v0);
     float d21 = glm::dot(v2, v1);
-    float denom = d00 * d11 - d01 * d01;
     float v = (d11 * d20 - d01 * d21) / denom;
     float w = (d00 * d21 - d01 * d20) / denom;
     float u = 1.0f - v - w;
@@ -707,6 +714,8 @@ union PSXColor {
     }
 };
 
+int ditherTable[4][4] = {{-4, +0, -3, +1}, {+2, -2, +3, -1}, {-3, +1, -4, +0}, {+3, -1, +2, -2}};
+
 void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags) {
     for (int i = 0; i < 3; i++) {
         pos[i].x += drawingOffsetX;
@@ -724,6 +733,7 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
     // clang-format on
 
     glm::ivec2 p;
+    precalcBarycentric(pos);
 
     for (p.y = min.y; p.y < max.y; p.y++) {
         for (p.x = min.x; p.x < max.x; p.x++) {
@@ -739,6 +749,9 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
                     s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
                 );
                 // clang-format on
+                if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
+                    calculatedColor += ditherTable[p.y % 4][p.x % 4];
+                }
                 c._ = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
             } else {
                 // clang-format off
