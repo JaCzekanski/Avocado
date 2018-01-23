@@ -14,7 +14,7 @@ class OpenGL {
 
     bool init();
     bool setup();
-    void render(device::gpu::GPU* gpu);
+    void render(GPU* gpu);
 
     void setViewFullVram(bool v) { viewFullVram = v; }
 
@@ -55,6 +55,6 @@ class OpenGL {
     void createVramTexture();
     void createRenderTexture();
     std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480);
-    void renderFirstStage(const std::vector<device::gpu::Vertex>& renderList, device::gpu::GPU* gpu);
+    void renderFirstStage(const std::vector<Vertex>& renderList, GPU* gpu);
     void renderSecondStage();
 };

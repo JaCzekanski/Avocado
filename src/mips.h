@@ -130,7 +130,7 @@ struct CPU {
 
     std::unique_ptr<Dummy> memoryControl;
     std::unique_ptr<Dummy> serial;
-    std::unique_ptr<gpu::GPU> gpu;
+    std::unique_ptr<GPU> gpu;
     std::unique_ptr<Timer> timer0;
     std::unique_ptr<Timer> timer1;
     std::unique_ptr<Timer> timer2;

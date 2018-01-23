@@ -90,7 +90,7 @@ class DMA {
 
    private:
     mips::CPU *cpu;
-    gpu::GPU *gpu = nullptr;
+    GPU *gpu = nullptr;
 
     void writeDma2(uint32_t address, uint8_t data);
     void writeDma6(uint32_t address, uint8_t data);

@@ -3,8 +3,6 @@
 #include <vector>
 #include <glm/vec2.hpp>
 
-namespace device {
-namespace gpu {
 const int MAX_ARGS = 32;
 
 extern const char* CommandStr[];
@@ -366,5 +364,3 @@ class GPU {
 
     std::vector<GPU_LOG_ENTRY> gpuLogList;
 };
-}
-}

@@ -31,7 +31,7 @@ CPU::CPU() {
     controller = std::make_unique<controller::Controller>(this);
     serial = std::make_unique<Dummy>("Serial", 0x1f801050, false);
     interrupt = std::make_unique<Interrupt>(this);
-    gpu = std::make_unique<gpu::GPU>();
+    gpu = std::make_unique<GPU>();
     dma = std::make_unique<dma::DMA>(this);
     timer0 = std::make_unique<Timer>(this, 0);
     timer1 = std::make_unique<Timer>(this, 1);

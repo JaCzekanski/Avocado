@@ -44,8 +44,7 @@ const char *mapIo(uint32_t address) {
     return "";
 }
 
-void replayCommands(mips::gpu::GPU *gpu, int to) {
-    using namespace device::gpu;
+void replayCommands(GPU *gpu, int to) {
     auto commands = gpu->gpuLogList;
     gpu->vram = gpu->prevVram;
 
@@ -228,7 +227,7 @@ void gpuLogWindow(mips::CPU *cpu) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto &entry = cpu->gpu.get()->gpuLogList[i];
 
-            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, device::gpu::CommandStr[(int)entry.cmd]);
+            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, CommandStr[(int)entry.cmd]);
 
             if (ImGui::IsItemHovered()) {
                 renderTo = i;
@@ -263,14 +262,14 @@ void gpuLogWindow(mips::CPU *cpu) {
 
             for (int i = 0; i < gpuLog.size(); i++) {
                 auto e = gpuLog[i];
-                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", device::gpu::CommandStr[(int)e.cmd]}, {"args", e.args}});
+                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", CommandStr[(int)e.cmd]}, {"args", e.args}});
             }
 
             putFileContents(string_format("%s.json", filename), j.dump(2));
 
             // Binary vram dump
             std::vector<uint8_t> vram;
-            vram.assign(gpu->vram.data(), gpu->vram.data() + (device::gpu::GPU::vramWidth * device::gpu::GPU::vramHeight));
+            vram.assign(gpu->vram.data(), gpu->vram.data() + (GPU::vramWidth * GPU::vramHeight));
             putFileContents(string_format("%s.bin", filename), vram);
 
             ImGui::CloseCurrentPopup();

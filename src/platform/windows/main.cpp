@@ -113,9 +113,9 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
         auto& gpuLog = cpu->gpu.get()->gpuLogList;
         gpuLog.clear();
         for (size_t i = 0; i < j.size(); i++) {
-            device::gpu::GPU::GPU_LOG_ENTRY e;
+            GPU::GPU_LOG_ENTRY e;
             e.command = j[i]["command"];
-            e.cmd = (device::gpu::Command)(int)j[i]["cmd"];
+            e.cmd = (Command)(int)j[i]["cmd"];
 
             for (uint32_t a : j[i]["args"]) {
                 e.args.push_back(a);

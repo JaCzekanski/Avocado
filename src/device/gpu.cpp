@@ -8,9 +8,6 @@
 
 #define VRAM ((uint16_t(*)[vramWidth])vram.data())
 
-namespace device {
-namespace gpu {
-
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
 
@@ -860,6 +857,4 @@ void GPU::rasterize() {
         drawTriangle(v);
     }
     Profiler::stop("rasterize");
-}
-}
 }
