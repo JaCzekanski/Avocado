@@ -46,6 +46,8 @@ void GPU::reset() {
 }
 
 void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
+    PROFILE_FUNCTION;
+
     int baseX = 0;
     int baseY = 0;
 
@@ -97,6 +99,8 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVe
 }
 
 void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     startX = currX = arguments[1] & 0xffff;
     startY = currY = (arguments[1] & 0xffff0000) >> 16;
     endX = startX + (arguments[2] & 0xffff);
@@ -117,6 +121,8 @@ void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
 }
 
 void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     int ptr = 1;
     int x[4], y[4] = {0};
     RGB c[4] = {0};
@@ -150,6 +156,8 @@ T clamp(T v, T min, T max) {
 }
 
 void GPU::drawLine(int x0, int y0, int x1, int y1, int c0, int c1) {
+    PROFILE_FUNCTION;
+
     x0 += drawingOffsetX;
     y0 += drawingOffsetY;
     x1 += drawingOffsetX;
@@ -185,6 +193,8 @@ void GPU::drawLine(int x0, int y0, int x1, int y1, int c0, int c1) {
 }
 
 void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     int ptr = 1;
     int sx = 0, sy = 0, sc = 0;
     int ex = 0, ey = 0, ec = 0;
@@ -232,6 +242,8 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
 }
 
 void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     int w = arg.getSize();
     int h = arg.getSize();
 
@@ -280,6 +292,8 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
 }
 
 void GPU::cmdCpuToVram1(const uint8_t command, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdCpuToVram1: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -295,6 +309,8 @@ void GPU::cmdCpuToVram1(const uint8_t command, uint32_t arguments[]) {
 }
 
 void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
@@ -314,6 +330,8 @@ void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
 }
 
 void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
+
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdVramToCpu: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -327,6 +345,7 @@ void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
 }
 
 void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
+    PROFILE_FUNCTION;
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cpuVramToVram: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -536,37 +555,22 @@ void GPU::writeGP0(uint32_t data) {
 
     // printf("%s(0x%x)\n", CommandStr[(int)cmd], command);
 
-    if (cmd == Command::FillRectangle) {
-        Profiler::start("GPU_cmdFillRectangle");
+    if (cmd == Command::FillRectangle)
         cmdFillRectangle(command, arguments);
-        Profiler::stop("GPU_cmdFillRectangle");
-    } else if (cmd == Command::Polygon) {
-        Profiler::start("GPU_cmdPolygon");
+    else if (cmd == Command::Polygon)
         cmdPolygon(command, arguments);
-        Profiler::stop("GPU_cmdPolygon");
-    } else if (cmd == Command::Line) {
-        Profiler::start("GPU_cmdLine");
+    else if (cmd == Command::Line)
         cmdLine(command, arguments);
-        Profiler::stop("GPU_cmdLine");
-    } else if (cmd == Command::Rectangle) {
-        PROFILE("GPU_cmdRectangle") { cmdRectangle(command, arguments); }
-    } else if (cmd == Command::CopyCpuToVram1) {
-        Profiler::start("GPU_cmdCpuToVram1");
+    else if (cmd == Command::Rectangle)
+        cmdRectangle(command, arguments);
+    else if (cmd == Command::CopyCpuToVram1)
         cmdCpuToVram1(command, arguments);
-        Profiler::stop("GPU_cmdCpuToVram1");
-    } else if (cmd == Command::CopyCpuToVram2) {
-        Profiler::start("GPU_cmdCpuToVram2");
+    else if (cmd == Command::CopyCpuToVram2)
         cmdCpuToVram2(command, arguments);
-        Profiler::stop("GPU_cmdCpuToVram2");
-    } else if (cmd == Command::CopyVramToCpu) {
-        Profiler::start("GPU_cmdVramToCpu");
+    else if (cmd == Command::CopyVramToCpu)
         cmdVramToCpu(command, arguments);
-        Profiler::stop("GPU_cmdVramToCpu");
-    } else if (cmd == Command::CopyVramToVram) {
-        Profiler::start("GPU_cmdVramToVram");
+    else if (cmd == Command::CopyVramToVram)
         cmdVramToVram(command, arguments);
-        Profiler::stop("GPU_cmdVramToVram");
-    }
 }
 
 void GPU::writeGP1(uint32_t data) {

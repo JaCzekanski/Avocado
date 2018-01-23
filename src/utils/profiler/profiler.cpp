@@ -49,12 +49,15 @@ void Profiler::reset() {
     for (auto& profile : profiles) {
         profile.second.samples.clear();
     }
-    // profiles.clear();
     startTime = getCounter();
 }
+
+void Profiler::clear() { profiles.clear(); }
 
 uint64_t Profiler::getTotalTime() { return getCounter() - startTime; }
 
 void Profiler::enable() { enabled = true; }
 
 void Profiler::disable() { enabled = false; }
+
+bool Profiler::isEnabled() { return enabled; }

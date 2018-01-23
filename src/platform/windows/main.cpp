@@ -112,7 +112,7 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
 
         auto& gpuLog = cpu->gpu.get()->gpuLogList;
         gpuLog.clear();
-        for (int i = 0; i < j.size(); i++) {
+        for (size_t i = 0; i < j.size(); i++) {
             device::gpu::GPU::GPU_LOG_ENTRY e;
             e.command = j[i]["command"];
             e.cmd = (device::gpu::Command)(int)j[i]["cmd"];
@@ -229,70 +229,69 @@ int start(int argc, char** argv) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
-        if (cpu->state != mips::CPU::State::pause) {
-            Profiler::reset();
-            Profiler::enable();
-        } else {
-            Profiler::disable();
-        }
+        //        if (cpu->state != mips::CPU::State::pause) {
+        Profiler::reset();
+        //        }
 
-        Profiler::start("events");
-        while (newEvent || SDL_PollEvent(&event)) {
-            newEvent = false;
-            if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
-            if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-                if (waitingForKeyPress) {
-                    waitingForKeyPress = false;
-                    if (event.key.keysym.sym != SDLK_ESCAPE) lastPressedKey = event.key.keysym.sym;
-                    continue;
-                }
-                if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(interrupt::TIMER2);
-                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(interrupt::CDROM);
-                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
-                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
-                if (event.key.keysym.sym == SDLK_TAB) skipRender = !skipRender;
-                if (event.key.keysym.sym == SDLK_r) {
-                    cpu->dumpRam();
-                    cpu->spu->dumpRam();
-                }
-                if (event.key.keysym.sym == SDLK_F2) {
-                    cpu->softReset();
-                }
-                if (event.key.keysym.sym == SDLK_F3) {
-                    printf("Shell toggle\n");
-                    cpu->cdrom->toggleShell();
-                }
-                if (event.key.keysym.sym == SDLK_F7) {
-                    singleFrame = true;
-                    cpu->state = mips::CPU::State::run;
-                }
-                if (event.key.keysym.sym == SDLK_F8) {
-                    cpu->singleStep();
-                }
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    if (cpu->state == mips::CPU::State::pause)
+        {
+            PROFILE_BLOCK("events");
+            while (newEvent || SDL_PollEvent(&event)) {
+                newEvent = false;
+                if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE))
+                    running = false;
+                if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                    if (waitingForKeyPress) {
+                        waitingForKeyPress = false;
+                        if (event.key.keysym.sym != SDLK_ESCAPE) lastPressedKey = event.key.keysym.sym;
+                        continue;
+                    }
+                    if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
+                    if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(interrupt::TIMER2);
+                    if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(interrupt::CDROM);
+                    if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
+                    if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
+                    if (event.key.keysym.sym == SDLK_TAB) skipRender = !skipRender;
+                    if (event.key.keysym.sym == SDLK_r) {
+                        cpu->dumpRam();
+                        cpu->spu->dumpRam();
+                    }
+                    if (event.key.keysym.sym == SDLK_F2) {
+                        cpu->softReset();
+                    }
+                    if (event.key.keysym.sym == SDLK_F3) {
+                        printf("Shell toggle\n");
+                        cpu->cdrom->toggleShell();
+                    }
+                    if (event.key.keysym.sym == SDLK_F7) {
+                        singleFrame = true;
                         cpu->state = mips::CPU::State::run;
-                    else if (cpu->state == mips::CPU::State::run)
-                        cpu->state = mips::CPU::State::pause;
+                    }
+                    if (event.key.keysym.sym == SDLK_F8) {
+                        cpu->singleStep();
+                    }
+                    if (event.key.keysym.sym == SDLK_SPACE) {
+                        if (cpu->state == mips::CPU::State::pause)
+                            cpu->state = mips::CPU::State::run;
+                        else if (cpu->state == mips::CPU::State::run)
+                            cpu->state = mips::CPU::State::pause;
+                    }
+                    if (event.key.keysym.sym == SDLK_q) {
+                        showVRAM = !showVRAM;
+                    }
                 }
-                if (event.key.keysym.sym == SDLK_q) {
-                    showVRAM = !showVRAM;
+                if (event.type == SDL_DROPFILE) {
+                    std::string path = event.drop.file;
+                    SDL_free(event.drop.file);
+                    loadFile(cpu, path);
                 }
+                if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                    opengl.width = event.window.data1;
+                    opengl.height = event.window.data2;
+                }
+                cpu->controller->setState(getButtonState(event));
+                ImGui_ImplSdlGL3_ProcessEvent(&event);
             }
-            if (event.type == SDL_DROPFILE) {
-                std::string path = event.drop.file;
-                SDL_free(event.drop.file);
-                loadFile(cpu, path);
-            }
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                opengl.width = event.window.data1;
-                opengl.height = event.window.data2;
-            }
-            cpu->controller->setState(getButtonState(event));
-            ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
-        Profiler::stop("events");
 
         if (showVRAM != opengl.getViewFullVram()) {
             if (showVRAM)

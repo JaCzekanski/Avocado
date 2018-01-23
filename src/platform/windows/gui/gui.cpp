@@ -2,7 +2,8 @@
 #include <imgui.h>
 #include "cpu/gte/gte.h"
 #include "platform/windows/config.h"
-#include "utils/profiler/profiler.h"
+#include "options.h"
+#include "profiler.h"
 
 void openFileWindow();
 
@@ -16,8 +17,6 @@ void disassemblyWindow(mips::CPU* cpu);
 void breakpointsWindow(mips::CPU* cpu);
 void watchWindow(mips::CPU* cpu);
 void ramWindow(mips::CPU* cpu);
-void biosSelectionWindow();
-void controllerSetupWindow();
 
 int vramTextureId = 0;
 bool gteRegistersEnabled = false;
@@ -35,8 +34,6 @@ SDL_Keycode lastPressedKey = 0;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
-bool showBiosWindow = false;
-bool showControllerSetupWindow = false;
 bool showDisassemblyWindow = false;
 bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
@@ -83,6 +80,7 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
             ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
             ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
+            ImGui::MenuItem("Profiler", nullptr, &showProfilerWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -106,22 +104,7 @@ void renderImgui(mips::CPU* cpu) {
     if (showDisassemblyWindow) disassemblyWindow(cpu);
     if (showBreakpointsWindow) breakpointsWindow(cpu);
     if (showWatchWindow) watchWindow(cpu);
-
-    static bool profiler = true;
-    ImGui::Begin("Profiler", &profiler, ImVec2(300, 200));
-    for (auto& group : Profiler::profiles) {
-        double time = group.second.total() * 1000.0 / SDL_GetPerformanceFrequency();
-        int calls = group.second.samples.size();
-        if (calls > 1) {
-            ImGui::Text("%s: %7.4f ms, calls: %d", group.first, time, calls);
-        } else {
-            ImGui::Text("%s: %7.4f ms", group.first, time);
-        }
-    }
-    uint64_t totalTime = Profiler::getTotalTime();
-    ImGui::Text("%s: %7.4f ms", "Total", totalTime * 1000.0 / SDL_GetPerformanceFrequency());
-
-    ImGui::End();
+    if (showProfilerWindow) profilerWindow();
 
     // Options
     if (showBiosWindow) biosSelectionWindow();

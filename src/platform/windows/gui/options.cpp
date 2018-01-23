@@ -1,14 +1,16 @@
-#include "gui.h"
+#include "options.h"
 #include <imgui.h>
 #include "platform/windows/config.h"
+#include "utils/file.h"
+#include "gui.h"
 
 #ifdef _WIN32
 #include <filesystem>
 using namespace std::experimental::filesystem::v1;
 #endif
 
-extern bool showBiosWindow;
-extern bool showControllerSetupWindow;
+bool showBiosWindow = false;
+bool showControllerSetupWindow = false;
 
 void biosSelectionWindow() {
     static bool biosesFound = false;
@@ -50,8 +52,9 @@ void biosSelectionWindow() {
             "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
             ".bin and .rom extensions are recognised.");
 #else
-	ImGui::Text("No filesystem support on macOS, sorry :(\n"
-		"edit bios in config.json after closing this program");
+        ImGui::Text(
+            "No filesystem support on macOS, sorry :(\n"
+            "edit bios in config.json after closing this program");
 #endif
     } else {
         ImGui::PushItemWidth(300.f);
