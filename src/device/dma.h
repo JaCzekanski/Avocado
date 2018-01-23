@@ -3,7 +3,7 @@
 #include "dmaChannel.h"
 #include "dma2Channel.h"
 #include "dma6Channel.h"
-#include "gpu.h"
+#include "gpu/gpu.h"
 #include "dma3Channel.h"
 
 namespace device {

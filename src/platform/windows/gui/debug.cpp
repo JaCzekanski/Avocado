@@ -260,7 +260,7 @@ void gpuLogWindow(mips::CPU *cpu) {
             auto gpuLog = gpu->gpuLogList;
             nlohmann::json j;
 
-            for (int i = 0; i < gpuLog.size(); i++) {
+            for (size_t i = 0; i < gpuLog.size(); i++) {
                 auto e = gpuLog[i];
                 j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", CommandStr[(int)e.cmd]}, {"args", e.args}});
             }

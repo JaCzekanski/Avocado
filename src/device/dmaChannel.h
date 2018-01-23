@@ -1,6 +1,6 @@
 #pragma once
 #include "device.h"
-#include "gpu.h"
+#include "gpu/gpu.h"
 
 namespace device {
 namespace dma {

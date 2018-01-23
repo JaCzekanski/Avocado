@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <memory>
 #include "shader/Program.h"
-#include "device/gpu.h"
+#include "device/gpu/gpu.h"
 
 bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);

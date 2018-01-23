@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include "shader/Program.h"
 #include <memory>
-#include "device/gpu.h"
+#include "device/gpu/gpu.h"
 
 class OpenGL {
    public:

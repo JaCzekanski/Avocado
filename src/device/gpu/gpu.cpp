@@ -719,23 +719,23 @@ union PSXColor {
     }
 
     PSXColor operator*(float rhs) {
-        r *= rhs;
-        g *= rhs;
-        b *= rhs;
+        r = (uint16_t)(r * rhs);
+        g = (uint16_t)(g * rhs);
+        b = (uint16_t)(b * rhs);
         return *this;
     }
 
     PSXColor operator/(float rhs) {
-        r /= rhs;
-        g /= rhs;
-        b /= rhs;
+        r = (uint16_t)(r / rhs);
+        g = (uint16_t)(g / rhs);
+        b = (uint16_t)(b / rhs);
         return *this;
     }
 
     PSXColor operator*(glm::vec3 rhs) {
-        r = clamp<int>((rhs.r / 0.5f) * r, 0, 31);
-        g = clamp<int>((rhs.g / 0.5f) * g, 0, 31);
-        b = clamp<int>((rhs.b / 0.5f) * b, 0, 31);
+        r = clamp<uint16_t>((uint16_t)(rhs.r / 0.5f * r), 0, 31);
+        g = clamp<uint16_t>((uint16_t)(rhs.g / 0.5f * g), 0, 31);
+        b = clamp<uint16_t>((uint16_t)(rhs.b / 0.5f * b), 0, 31);
         return *this;
     }
 };
@@ -779,7 +779,7 @@ void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm
                 //                if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
                 //                    calculatedColor += ditherTable[p.y % 4][p.x % 4];
                 //                }
-                c._ = to15bit(255 * calculatedColor.r, 255 * calculatedColor.g, 255 * calculatedColor.b);
+                c._ = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g), (uint8_t)(255 * calculatedColor.b));
             } else {
                 // clang-format off
                 glm::ivec2 calculatedTexel = glm::ivec2(
@@ -850,7 +850,7 @@ void GPU::drawTriangle(Vertex v[3]) {
 
 void GPU::rasterize() {
     Profiler::start("rasterize");
-    for (int i = 0; i < renderList.size(); i += 3) {
+    for (size_t i = 0; i < renderList.size(); i += 3) {
         Vertex v[3];
         for (int j = 0; j < 3; j++) v[j] = renderList[i + j];
 

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "cpu/cop0.h"
 #include "cpu/gte/gte.h"
-#include "device/gpu.h"
+#include "device/gpu/gpu.h"
 #include "device/dma.h"
 #include "device/cdrom.h"
 #include "device/interrupt.h"
