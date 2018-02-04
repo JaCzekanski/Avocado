@@ -315,10 +315,10 @@ int start(int argc, char** argv) {
         }
         ImGui_ImplSdlGL3_NewFrame(window);
 
-        cpu->gpu.get()->rasterize();
-        if (!skipRender) opengl.render(cpu->gpu.get());
+        if (!skipRender) cpu->gpu->rasterize();
+        opengl.render(cpu->gpu.get());
 
-        cpu->gpu.get()->render().clear();
+        cpu->gpu->render().clear();
 
         renderImgui(cpu.get());
 

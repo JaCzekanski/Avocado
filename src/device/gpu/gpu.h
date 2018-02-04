@@ -195,7 +195,6 @@ class GPU {
 
     void cmdFillRectangle(const uint8_t command, uint32_t arguments[]);
     void cmdPolygon(const PolygonArgs arg, uint32_t arguments[]);
-    void drawLine(int x1, int y1, int x2, int y2, int c1, int c2);
     void cmdLine(const LineArgs arg, uint32_t arguments[]);
     void cmdRectangle(const RectangleArgs command, uint32_t arguments[]);
     void cmdCpuToVram1(const uint8_t command, uint32_t arguments[]);
@@ -204,6 +203,7 @@ class GPU {
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
     uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
+    void drawLine(int x1, int y1, int x2, int y2, int c1, int c2);
     void drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);

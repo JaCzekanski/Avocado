@@ -79,16 +79,16 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVe
     Vertex v[3];
     for (int i : {0, 1, 2}) {
         v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
-        //        renderList.push_back(v[i]);
+        renderList.push_back(v[i]);
     }
-    drawTriangle(v);
+    //    drawTriangle(v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
             v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
-            //            renderList.push_back(v[i - 1]);
+            renderList.push_back(v[i - 1]);
         }
-        drawTriangle(v);
+        //        drawTriangle(v);
     }
 
 #undef texX
@@ -416,42 +416,40 @@ void GPU::step() {
 }
 
 uint32_t GPU::read(uint32_t address) {
-    Profiler::start("GPU");
+    PROFILE_FUNCTION;
+
     int reg = address & 0xfffffffc;
     if (reg == 0) {
         if (gpuReadMode == 0 || gpuReadMode == 2) {
-            Profiler::stop("GPU");
             return GPUREAD;
         }
         if (gpuReadMode == 1) {
-            uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
-            currX += 2;
-
-            if (currX >= endX) {
-                currX = startX;
-                if (++currY >= endY) {
-                    gpuReadMode = 0;
-                }
-            }
-            Profiler::stop("GPU");
-            return word;
+            //            uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
+            //            currX += 2;
+            //
+            //            if (currX >= endX) {
+            //                currX = startX;
+            //                if (++currY >= endY) {
+            //                    gpuReadMode = 0;
+            //                }
+            //            }
+            //            return word;
+            return 0;
         }
     }
     if (reg == 4) {
         step();
-        Profiler::stop("GPU");
         return GPUSTAT;
     }
-    Profiler::stop("GPU");
     return 0;
 }
 
 void GPU::write(uint32_t address, uint32_t data) {
-    Profiler::start("GPU");
+    PROFILE_FUNCTION;
+
     int reg = address & 0xfffffffc;
     if (reg == 0) writeGP0(data);
     if (reg == 4) writeGP1(data);
-    Profiler::stop("GPU");
 }
 
 void GPU::writeGP0(uint32_t data) {
@@ -743,6 +741,8 @@ union PSXColor {
 int ditherTable[4][4] = {{-4, +0, -3, +1}, {+2, -2, +3, -1}, {-3, +1, -4, +0}, {+3, -1, +2, -2}};
 
 void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags) {
+    PROFILE_FUNCTION;
+
     for (int i = 0; i < 3; i++) {
         pos[i].x += drawingOffsetX;
         pos[i].y += drawingOffsetY;
@@ -849,12 +849,12 @@ void GPU::drawTriangle(Vertex v[3]) {
 }
 
 void GPU::rasterize() {
-    Profiler::start("rasterize");
+    PROFILE_FUNCTION;
+
     for (size_t i = 0; i < renderList.size(); i += 3) {
         Vertex v[3];
-        for (int j = 0; j < 3; j++) v[j] = renderList[i + j];
+        for (size_t j = 0; j < 3; j++) v[j] = renderList[i + j];
 
         drawTriangle(v);
     }
-    Profiler::stop("rasterize");
 }

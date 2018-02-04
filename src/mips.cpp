@@ -102,7 +102,7 @@ uint8_t CPU::readMemory(uint32_t address) {
 void CPU::writeMemory(uint32_t address, uint8_t data) {
     // Cache control
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        //        printf("W Unhandled memory control\n");
+        printf("W Unhandled memory control\n");
         return;
     }
     address &= 0x1FFFFFFF;
@@ -181,7 +181,7 @@ uint16_t CPU::readMemory16(uint32_t address) {
         addr &= RAM_SIZE - 2;
         return READ16(ram, addr);
     }
-    if (address >= 0x1fc00000 && address < 0x1fc00000 + EXPANSION_SIZE) {
+    if (address >= 0x1fc00000 && address < 0x1fc00000 + BIOS_SIZE) {
         addr -= 0x1fc00000;
         return READ16(bios, addr);
     }
@@ -202,7 +202,7 @@ uint32_t CPU::readMemory32(uint32_t address) {
         addr &= RAM_SIZE - 4;
         return READ32(ram, addr);
     }
-    if (addr >= 0x1fc00000 && addr < 0x1fc00000 + EXPANSION_SIZE) {
+    if (addr >= 0x1fc00000 && addr < 0x1fc00000 + BIOS_SIZE) {
         addr -= 0x1fc00000;
         return READ32(bios, addr);
     }
@@ -386,13 +386,13 @@ void CPU::emulateFrame() {
     gpu->prevVram = gpu->vram;
     int systemCycles = 300;
     for (;;) {
-        Profiler::start("interpreter");
-        if (!executeInstructions(systemCycles / 3)) {
-            // printf("CPU Halted\n");
-            Profiler::stop("interpreter");
-            return;
+        {
+            PROFILE_BLOCK("interpreter");
+            if (!executeInstructions(systemCycles / 3)) {
+                // printf("CPU Halted\n");
+                return;
+            }
         }
-        Profiler::stop("interpreter");
 
         dma->step();
         cdrom->step();

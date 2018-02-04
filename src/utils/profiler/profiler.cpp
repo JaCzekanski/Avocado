@@ -19,21 +19,26 @@ void Profiler::start(const char* name) {
     if (!enabled) return;
 
     Sample s;
-    s.start = getCounter();
+    s.end = 0;
 
     auto g = profiles.find(name);
     if (g == profiles.end()) {
         Group group;
+
+        s.start = getCounter();
         group.samples.push_back(s);
         profiles[name] = group;
     } else {
         Group& group = g->second;
+
+        s.start = getCounter();
         group.samples.push_back(s);
     }
 }
 
 void Profiler::stop(const char* name) {
     if (!enabled) return;
+    uint64_t end = getCounter();
 
     auto g = profiles.find(name);
     if (g == profiles.end()) {
@@ -42,7 +47,7 @@ void Profiler::stop(const char* name) {
 
     Group& group = g->second;
     Sample& s = group.samples.back();
-    s.end = getCounter();
+    s.end = end;
 }
 
 void Profiler::reset() {

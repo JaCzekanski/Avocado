@@ -65,7 +65,7 @@ void biosSelectionWindow() {
         }, (void*)&bioses, (int)bioses.size());
         ImGui::PopItemWidth();
 
-        if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < bioses.size()) {
+        if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < (int)bioses.size()) {
             config["bios"] = bioses[selectedBios];
 
             biosesFound = false;
