@@ -1,9 +1,8 @@
 #include "gui.h"
 #include <imgui.h>
 #include "cpu/gte/gte.h"
-#include "platform/windows/config.h"
 #include "options.h"
-#include "profiler.h"
+#include "platform/windows/config.h"
 
 void openFileWindow();
 
@@ -80,7 +79,6 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
             ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
             ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
-            ImGui::MenuItem("Profiler", nullptr, &showProfilerWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -104,7 +102,6 @@ void renderImgui(mips::CPU* cpu) {
     if (showDisassemblyWindow) disassemblyWindow(cpu);
     if (showBreakpointsWindow) breakpointsWindow(cpu);
     if (showWatchWindow) watchWindow(cpu);
-    if (showProfilerWindow) profilerWindow();
 
     // Options
     if (showBiosWindow) biosSelectionWindow();

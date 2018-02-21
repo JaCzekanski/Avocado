@@ -1,12 +1,11 @@
+#include "mips.h"
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
-#include "mips.h"
-#include "cpu/instructions.h"
-#include "utils/psx_exe.h"
-#include "utils/file.h"
 #include "bios/functions.h"
-#include "utils/profiler/profiler.h"
+#include "cpu/instructions.h"
+#include "utils/file.h"
+#include "utils/psx_exe.h"
 
 namespace mips {
 CPU::CPU() {
@@ -386,12 +385,9 @@ void CPU::emulateFrame() {
     gpu->prevVram = gpu->vram;
     int systemCycles = 300;
     for (;;) {
-        {
-            PROFILE_BLOCK("interpreter");
-            if (!executeInstructions(systemCycles / 3)) {
-                // printf("CPU Halted\n");
-                return;
-            }
+        if (!executeInstructions(systemCycles / 3)) {
+            // printf("CPU Halted\n");
+            return;
         }
 
         dma->step();
@@ -474,4 +470,4 @@ void CPU::dumpRam() {
     ram.assign(this->ram, this->ram + 0x1fffff);
     putFileContents("ram.bin", ram);
 }
-}
+}  // namespace mips

@@ -7,14 +7,13 @@
 // If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
 // https://github.com/ocornut/imgui
 
-#include "imgui.h"
 #include "imgui_impl_sdl_gl3.h"
+#include "imgui.h"
 
 // SDL,GL3W
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <glad/glad.h>  // This example is using gl3w to access OpenGL functions (because it is small). You may use glew/glad/glLoadGen/etc. whatever already works for you.
-#include "utils/profiler/profiler.h"
 
 // Data
 static double g_Time = 0.0f;
@@ -155,7 +154,6 @@ static const char* ImGui_ImplSdlGL3_GetClipboardText(void*) { return SDL_GetClip
 static void ImGui_ImplSdlGL3_SetClipboardText(void*, const char* text) { SDL_SetClipboardText(text); }
 
 bool ImGui_ImplSdlGL3_ProcessEvent(SDL_Event* event) {
-    PROFILE_FUNCTION;
     ImGuiIO& io = ImGui::GetIO();
     switch (event->type) {
         case SDL_MOUSEWHEEL: {
