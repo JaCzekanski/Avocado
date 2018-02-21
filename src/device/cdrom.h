@@ -1,8 +1,8 @@
 #pragma once
-#include "device.h"
-#include "utils/cue/cue.h"
 #include <deque>
 #include <memory>
+#include "device.h"
+#include "utils/cue/cue.h"
 
 namespace device {
 namespace cdrom {
@@ -86,8 +86,6 @@ class CDROM {
 
     StatusCode stat;
 
-    utils::Cue cue;
-
     void cmdGetstat();
     void cmdSetloc();
     void cmdPlay();
@@ -133,6 +131,8 @@ class CDROM {
     }
 
    public:
+    utils::Cue cue;
+
     CDROM(mips::CPU *cpu);
     void step();
     uint8_t read(uint32_t address);
@@ -147,8 +147,6 @@ class CDROM {
         CDROM_interrupt.push_back(1);
         writeResponse(stat._reg);
     }
-
-    void setCue(std::unique_ptr<utils::Cue> &cue) { this->cue = *cue; }
 };
-}
-}
+}  // namespace cdrom
+}  // namespace device

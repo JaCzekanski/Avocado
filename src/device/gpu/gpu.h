@@ -1,11 +1,13 @@
 #pragma once
-#include "registers.h"
-#include <vector>
 #include <glm/vec2.hpp>
+#include <vector>
+#include "registers.h"
 
 const int MAX_ARGS = 32;
 
 extern const char* CommandStr[];
+
+#define VRAM ((uint16_t(*)[vramWidth])vram.data())
 
 union PolygonArgs {
     struct {
@@ -109,22 +111,54 @@ union RGB {
 };
 
 struct TextureInfo {
+    // t[0] ClutYyXx
+    // t[1] PageYyXx
+    // t[2] 0000YyXx
+    // t[3] 0000YyXx
+
     uint32_t palette;
     uint32_t texpage;
     glm::ivec2 uv[4];
+
+    int getClutX() const { return ((palette & 0x003f0000) >> 16) * 16; }
+
+    int getClutY() const { return ((palette & 0x7fc00000) >> 22); }
+
+    int getBaseX() const {
+        return ((texpage & 0x0f0000) >> 16) * 64;  // N * 64
+    }
+
+    int getBaseY() const {
+        return ((texpage & 0x100000) >> 20) * 256;  // N * 256
+    }
+
+    int getBitcount() const {
+        int depth = (texpage & 0x1800000) >> 23;
+        switch (depth) {
+            case 0:
+                return 4;
+            case 1:
+                return 8;
+            case 2:
+                return 16;
+            case 3:
+                return 16;
+            default:
+                return 0;
+        }
+    }
+
+    bool isTransparent() const { return (texpage & 0x600000) >> 21; }
 };
 
-class GPU {
-    std::vector<Vertex> renderList;
+struct GPU {
     /* 0 - nothing
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
     */
-   public:
     static const int vramWidth = 1024;
     static const int vramHeight = 512;
 
-   public:
     int resolutionMultiplier = 1;
 
     int startX = 0;
@@ -143,7 +177,6 @@ class GPU {
     int currentArgument = 0;
     int argumentCount = 0;
 
-   public:
     GP0_E1 gp0_e1;
     GP0_E2 gp0_e2;
 
@@ -188,7 +221,6 @@ class GPU {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
-   private:
     void reset();
     uint32_t to15bit(uint32_t color);
     uint32_t to24bit(uint16_t color);
@@ -203,13 +235,18 @@ class GPU {
     void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
     uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
-    void drawLine(int x1, int y1, int x2, int y2, int c1, int c2);
+    void drawLine(int16_t x[2], int16_t y[2], uint32_t c[2]);
     void drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 
-   public:
+    int minDrawingX(int x) const;
+    int minDrawingY(int y) const;
+    int maxDrawingX(int x) const;
+    int maxDrawingY(int y) const;
+    bool insideDrawingArea(int x, int y) const;
+
     bool odd = false;
     int frames = 0;
 
@@ -221,14 +258,11 @@ class GPU {
     uint32_t read(uint32_t address);
     void write(uint32_t address, uint32_t data);
 
-    std::vector<Vertex>& render();
-
     bool emulateGpuCycles(int cycles);
     uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
     uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
     void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags);
     void drawTriangle(Vertex v[3]);
-    void rasterize();
 
     std::vector<uint16_t> vram;
     std::vector<uint16_t> prevVram;

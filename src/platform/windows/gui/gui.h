@@ -1,6 +1,6 @@
 #pragma once
-#include "mips.h"
 #include <SDL.h>
+#include "mips.h"
 
 void renderImgui(mips::CPU *cpu);
 extern int vramTextureId;
@@ -10,7 +10,6 @@ extern bool gteLogEnabled;
 extern bool gpuLogEnabled;
 extern bool showVRAM;
 extern bool singleFrame;
-extern bool skipRender;
 extern bool showIo;
 extern bool exitProgram;
 extern bool doHardReset;

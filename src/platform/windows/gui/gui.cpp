@@ -25,7 +25,6 @@ bool gteLogEnabled = false;
 bool gpuLogEnabled = false;
 bool showVRAM = false;
 bool singleFrame = false;
-bool skipRender = false;
 bool showIo = false;
 bool exitProgram = false;
 bool doHardReset = false;

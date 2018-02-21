@@ -139,7 +139,7 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
     }
 
     if (cue != nullptr) {
-        cpu->cdrom->setCue(cue);
+        cpu->cdrom->cue = *cue;
         bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
         cpu->cdrom->setShell(!success);
         printf("File %s loaded\n", getFilenameExt(path).c_str());
@@ -242,7 +242,6 @@ int start(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(interrupt::CDROM);
                 if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
-                if (event.key.keysym.sym == SDLK_TAB) skipRender = !skipRender;
                 if (event.key.keysym.sym == SDLK_r) {
                     cpu->dumpRam();
                     cpu->spu->dumpRam();
@@ -306,10 +305,7 @@ int start(int argc, char** argv) {
         }
         ImGui_ImplSdlGL3_NewFrame(window);
 
-        if (!skipRender) cpu->gpu->rasterize();
         opengl.render(cpu->gpu.get());
-
-        cpu->gpu->render().clear();
 
         renderImgui(cpu.get());
 
@@ -321,9 +317,14 @@ int start(int argc, char** argv) {
             deltaFrames = 0;
         }
 
-        std::string title
-            = string_format("Avocado: IMASK: %s, ISTAT: %s, frame: %d, FPS: %.0f, ms: %0.2f", cpu->interrupt->getMask().c_str(),
-                            cpu->interrupt->getStatus().c_str(), cpu->gpu.get()->frames, fps, (1.f / fps) * 1000.f);
+        std::string gameName;
+        if (cpu->cdrom->cue.file.empty()) {
+            gameName = "No CD";
+        } else {
+            gameName = getFilename(cpu->cdrom->cue.file);
+        }
+
+        std::string title = string_format("Avocado: %s - FPS: %.0f (%0.2f ms)", gameName.c_str(), fps, (1.f / fps) * 1000.f);
         SDL_SetWindowTitle(window, title.c_str());
         SDL_GL_SwapWindow(window);
     }

@@ -1,20 +1,11 @@
 #include "gpu.h"
 #include <imgui.h>
-#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <glm/glm.hpp>
 
-#define VRAM ((uint16_t(*)[vramWidth])vram.data())
-
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
-
-template <typename T>
-T clamp(T number, size_t range) {
-    if (number > range) number = range;
-    return number;
-}
 
 void GPU::reset() {
     irqRequest = false;
@@ -42,54 +33,29 @@ void GPU::reset() {
 }
 
 void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
-    int baseX = 0;
-    int baseY = 0;
-
-    int clutX = 0;
-    int clutY = 0;
-
-    int bitcount = 0;
+    int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
 
     if (textured) {
-        // t[0] ClutYyXx
-        // t[1] PageYyXx
-        // t[2] 0000YyXx
-        // t[3] 0000YyXx
-
-        // TODO: struct
-        clutX = ((t.palette & 0x003f0000) >> 16) * 16;
-        clutY = ((t.palette & 0x7fc00000) >> 22);
-
-        baseX = ((t.texpage & 0x0f0000) >> 16) * 64;   // N * 64
-        baseY = ((t.texpage & 0x100000) >> 20) * 256;  // N * 256
-
-        int transparency = (t.texpage & 0x600000) >> 21;
-
-        flags |= (transparency) << 6;
-
-        int depth = (t.texpage & 0x1800000) >> 23;
-        if (depth == 0) bitcount = 4;
-        if (depth == 1) bitcount = 8;
-        if (depth == 2 || depth == 3) bitcount = 16;
+        clutX = t.getClutX();
+        clutY = t.getClutY();
+        baseX = t.getBaseX();
+        baseY = t.getBaseY();
+        bitcount = t.getBitcount();
+        flags |= (t.isTransparent()) << 6;
     }
 
     Vertex v[3];
     for (int i : {0, 1, 2}) {
         v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
-        renderList.push_back(v[i]);
     }
-    //    drawTriangle(v);
+    drawTriangle(v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
             v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
-            renderList.push_back(v[i - 1]);
         }
-        //        drawTriangle(v);
+        drawTriangle(v);
     }
-
-#undef texX
-#undef texY
 }
 
 void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
@@ -140,88 +106,33 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-template <typename T>
-T clamp(T v, T min, T max) {
-    return std::min(std::max(v, min), max);
-}
-
-void GPU::drawLine(int x0, int y0, int x1, int y1, int c0, int c1) {
-    x0 += drawingOffsetX;
-    y0 += drawingOffsetY;
-    x1 += drawingOffsetX;
-    y1 += drawingOffsetY;
-    bool steep = false;
-    if (std::abs(x0 - x1) < std::abs(y0 - y1)) {
-        std::swap(x0, y0);
-        std::swap(x1, y1);
-        steep = true;
-    }
-    if (x0 > x1) {
-        std::swap(x0, x1);
-        std::swap(y0, y1);
-    }
-
-    int dx = x1 - x0;
-    int dy = y1 - y0;
-    int derror2 = std::abs(dy) * 2;
-    int error2 = 0;
-    int y = y0;
-    for (int x = x0; x <= x1; x++) {
-        if (steep) {
-            VRAM[clamp(x, 0, 511)][clamp(y, 0, 1023)] = to15bit(c0);
-        } else {
-            VRAM[clamp(y, 0, 511)][clamp(x, 0, 1023)] = to15bit(c0);
-        }
-        error2 += derror2;
-        if (error2 > dx) {
-            y += (y1 > y0 ? 1 : -1);
-            error2 -= dx * 2;
-        }
-    }
-}
-
 void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
     int ptr = 1;
-    int sx = 0, sy = 0, sc = 0;
-    int ex = 0, ey = 0, ec = 0;
+    int16_t x[2], y[2];
+    uint32_t c[2];
     for (int i = 0; i < arg.getArgumentCount() - 1; i++) {
         if (arguments[ptr] == 0x55555555) break;
         if (i == 0) {
-            sx = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
-            sy = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
-            sc = arguments[0] & 0xffffff;
+            x[0] = (arguments[ptr] & 0xffff);
+            y[0] = (arguments[ptr++] & 0xffff0000) >> 16;
+            c[0] = arguments[0] & 0xffffff;
         } else {
-            sx = ex;
-            sy = ey;
-            sc = ec;
+            x[0] = x[1];
+            y[0] = y[1];
+            c[0] = c[1];
         }
 
         if (arg.gouroudShading)
-            ec = arguments[ptr++];
+            c[1] = arguments[ptr++];
         else
-            ec = arguments[0] & 0xffffff;
-        ex = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
-        ey = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
+            c[1] = arguments[0] & 0xffffff;
 
-        int x[4] = {sx, sx + 1, ex + 1, ex};
-        int y[4] = {sy, sy + 1, ey + 1, ey};
-        RGB c[4];
-        c[0].c = sc;
-        c[1].c = sc;
-        c[2].c = ec;
-        c[3].c = ec;
-
-        // TODO: Switch to proprer line rendering
-        // TODO:           ^^^^^^^ fix typo
-
-        //        int flags = 0;
-        //        if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
-        //                drawPolygon(x, y, c, nullptr, false, false, flags);
+        x[1] = (arguments[ptr] & 0xffff);
+        y[1] = ((arguments[ptr++] & 0xffff0000) >> 16);
 
         // No transparency support
         // No Gouroud Shading
-
-        drawLine(sx, sy, ex, ey, sc, ec);
+        drawLine(x, y, c);
     }
 
     cmd = Command::None;
@@ -343,36 +254,11 @@ void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            // TODO: boundary check!
             VRAM[(dstY + y) % 512][(dstX + x) % 1024] = VRAM[(srcY + y) % 512][(srcX + x) % 1024];
         }
     }
 
     cmd = Command::None;
-}
-
-uint32_t GPU::to15bit(uint8_t r, uint8_t g, uint8_t b) {
-    uint32_t newColor = 0;
-    newColor |= (r & 0xf8) >> 3;
-    newColor |= (g & 0xf8) << 2;
-    newColor |= (b & 0xf8) << 7;
-    return newColor;
-}
-
-uint32_t GPU::to15bit(uint32_t color) {
-    uint32_t newColor = 0;
-    newColor |= (color & 0xf80000) >> 19;
-    newColor |= (color & 0xf800) >> 6;
-    newColor |= (color & 0xf8) << 7;
-    return newColor;
-}
-
-uint32_t GPU::to24bit(uint16_t color) {
-    uint32_t newColor = 0;
-    newColor |= (color & 0x7c00) << 1;
-    newColor |= (color & 0x3e0) >> 2;
-    newColor |= (color & 0x1f) << 19;
-    return newColor;
 }
 
 void GPU::step() {
@@ -386,13 +272,26 @@ void GPU::step() {
     else if (dmaDirection == 3)
         dataRequest = cmd != Command::CopyCpuToVram2;  // Same as bit27, ready to send VRAM to CPU
 
-    GPUSTAT = (gp0_e1._reg & 0x7FF) | (gp0_e6.setMaskWhileDrawing << 11) | (gp0_e6.checkMaskBeforeDraw << 12) | (1 << 13)  // always set
-              | ((uint8_t)gp1_08.reverseFlag << 14) | ((uint8_t)gp0_e1.textureDisable << 15) | ((uint8_t)gp1_08.horizontalResolution2 << 16)
-              | ((uint8_t)gp1_08.horizontalResolution1 << 17) | ((uint8_t)gp1_08.verticalResolution << 19)
-              | ((uint8_t)gp1_08.videoMode << 20) | ((uint8_t)gp1_08.colorDepth << 21) | (gp1_08.interlace << 22) | (displayDisable << 23)
-              | (irqRequest << 24) | (dataRequest << 25) | (1 << 26)  // Ready for DMA command
-              | ((cmd != Command::CopyCpuToVram2) << 27) | (1 << 28)  // Ready for receive DMA block
-              | ((dmaDirection & 3) << 29) | (odd << 31);
+    GPUSTAT = gp0_e1._reg & 0x7FF;
+    GPUSTAT |= gp0_e6.setMaskWhileDrawing << 11;
+    GPUSTAT |= gp0_e6.checkMaskBeforeDraw << 12;
+    GPUSTAT |= 1 << 13;  // always set
+    GPUSTAT |= (uint8_t)gp1_08.reverseFlag << 14;
+    GPUSTAT |= (uint8_t)gp0_e1.textureDisable << 15;
+    GPUSTAT |= (uint8_t)gp1_08.horizontalResolution2 << 16;
+    GPUSTAT |= (uint8_t)gp1_08.horizontalResolution1 << 17;
+    GPUSTAT |= (uint8_t)gp1_08.verticalResolution << 19;
+    GPUSTAT |= (uint8_t)gp1_08.videoMode << 20;
+    GPUSTAT |= (uint8_t)gp1_08.colorDepth << 21;
+    GPUSTAT |= gp1_08.interlace << 22;
+    GPUSTAT |= displayDisable << 23;
+    GPUSTAT |= irqRequest << 24;
+    GPUSTAT |= dataRequest << 25;
+    GPUSTAT |= 1 << 26;  // Ready for DMA command
+    GPUSTAT |= (cmd != Command::CopyCpuToVram2) << 27;
+    GPUSTAT |= 1 << 28;  // Ready for receive DMA block
+    GPUSTAT |= (dmaDirection & 3) << 29;
+    GPUSTAT |= odd << 31;
 }
 
 uint32_t GPU::read(uint32_t address) {
@@ -402,17 +301,16 @@ uint32_t GPU::read(uint32_t address) {
             return GPUREAD;
         }
         if (gpuReadMode == 1) {
-            //            uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
-            //            currX += 2;
-            //
-            //            if (currX >= endX) {
-            //                currX = startX;
-            //                if (++currY >= endY) {
-            //                    gpuReadMode = 0;
-            //                }
-            //            }
-            //            return word;
-            return 0;
+            uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
+            currX += 2;
+
+            if (currX >= endX) {
+                currX = startX;
+                if (++currY >= endY) {
+                    gpuReadMode = 0;
+                }
+            }
+            return word;
         }
     }
     if (reg == 4) {
@@ -596,7 +494,6 @@ void GPU::writeGP1(uint32_t data) {
     }
     // command 0x20 is not implemented
 }
-std::vector<Vertex>& GPU::render() { return renderList; }
 
 bool GPU::emulateGpuCycles(int cycles) {
     const int LINE_VBLANK_START_NTSC = 243;
@@ -627,206 +524,4 @@ bool GPU::emulateGpuCycles(int cycles) {
         return true;
     }
     return false;
-}
-
-glm::vec2 v0, v1;
-float d00, d01, d11, denom;
-
-void precalcBarycentric(glm::ivec2 pos[3]) {
-    v0 = pos[1] - pos[0];
-    v1 = pos[2] - pos[0];
-    d00 = glm::dot(v0, v0);
-    d01 = glm::dot(v0, v1);
-    d11 = glm::dot(v1, v1);
-    denom = d00 * d11 - d01 * d01;
-}
-
-glm::vec3 barycentric(glm::ivec2 pos[3], glm::ivec2 p) {
-    glm::vec2 v2 = p - pos[0];
-    float d20 = glm::dot(v2, v0);
-    float d21 = glm::dot(v2, v1);
-    float v = (d11 * d20 - d01 * d21) / denom;
-    float w = (d00 * d21 - d01 * d20) / denom;
-    float u = 1.0f - v - w;
-
-    return glm::vec3(u, v, w);
-}
-
-inline uint16_t GPU::tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
-    uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 4];
-    uint16_t entry = (index >> ((tex.x & 3) * 4)) & 0xf;
-    return VRAM[clut.y][clut.x + entry];
-}
-
-inline uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
-    uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 2];
-    uint16_t entry = (index >> ((tex.x & 1) * 8)) & 0xff;
-    return VRAM[clut.y][clut.x + entry];
-}
-
-float lerp(float a, float b, float t) { return a + t * (b - a); }
-
-union PSXColor {
-    struct {
-        uint16_t r : 5;
-        uint16_t g : 5;
-        uint16_t b : 5;
-        uint16_t k : 1;
-    };
-    uint16_t _;
-
-    PSXColor() : _(0) {}
-    PSXColor(uint16_t color) : _(color) {}
-
-    PSXColor operator+(PSXColor rhs) {
-        r = clamp<int>(r + rhs.r, 0, 31);
-        g = clamp<int>(g + rhs.g, 0, 31);
-        b = clamp<int>(b + rhs.b, 0, 31);
-        return *this;
-    }
-
-    PSXColor operator-(PSXColor rhs) {
-        r = clamp<int>(r - rhs.r, 0, 31);
-        g = clamp<int>(g - rhs.g, 0, 31);
-        b = clamp<int>(b - rhs.b, 0, 31);
-        return *this;
-    }
-
-    PSXColor operator*(float rhs) {
-        r = (uint16_t)(r * rhs);
-        g = (uint16_t)(g * rhs);
-        b = (uint16_t)(b * rhs);
-        return *this;
-    }
-
-    PSXColor operator/(float rhs) {
-        r = (uint16_t)(r / rhs);
-        g = (uint16_t)(g / rhs);
-        b = (uint16_t)(b / rhs);
-        return *this;
-    }
-
-    PSXColor operator*(glm::vec3 rhs) {
-        r = clamp<uint16_t>((uint16_t)(rhs.r / 0.5f * r), 0, 31);
-        g = clamp<uint16_t>((uint16_t)(rhs.g / 0.5f * g), 0, 31);
-        b = clamp<uint16_t>((uint16_t)(rhs.b / 0.5f * b), 0, 31);
-        return *this;
-    }
-};
-
-int ditherTable[4][4] = {{-4, +0, -3, +1}, {+2, -2, +3, -1}, {-3, +1, -4, +0}, {+3, -1, +2, -2}};
-
-void GPU::triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags) {
-    for (int i = 0; i < 3; i++) {
-        pos[i].x += drawingOffsetX;
-        pos[i].y += drawingOffsetY;
-    }
-    // clang-format off
-    glm::ivec2 min = glm::ivec2(
-        std::max((int)drawingAreaLeft, std::max(0, std::min({ pos[0].x, pos[1].x, pos[2].x }))),
-        std::max((int)drawingAreaTop, std::max(0, std::min({ pos[0].y, pos[1].y, pos[2].y })))
-	);
-    glm::ivec2 max = glm::ivec2(
-        std::min((int)drawingAreaRight, std::min(GPU::vramWidth, std::max({ pos[0].x, pos[1].x, pos[2].x }))),
-        std::min((int)drawingAreaBottom, std::min(GPU::vramHeight, std::max({ pos[0].y, pos[1].y, pos[2].y })))
-	);
-    // clang-format on
-
-    glm::ivec2 p;
-    precalcBarycentric(pos);
-
-    for (p.y = min.y; p.y < max.y; p.y++) {
-        for (p.x = min.x; p.x < max.x; p.x++) {
-            glm::vec3 s = barycentric(pos, p);
-            // Check if point is outside triangle OR result is NAN
-            if (s.x < 0 || s.y < 0 || s.z < 0 || s.x != s.x || s.y != s.y || s.z != s.z) continue;
-
-            PSXColor c;
-            if (bits == 0) {
-                // clang-format off
-                glm::vec3 calculatedColor = glm::vec3(
-                    s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
-                    s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
-                    s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
-                );
-                // clang-format on
-                //                if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-                //                    calculatedColor += ditherTable[p.y % 4][p.x % 4];
-                //                }
-                c._ = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g), (uint8_t)(255 * calculatedColor.b));
-            } else {
-                // clang-format off
-                glm::ivec2 calculatedTexel = glm::ivec2(
-                    roundf(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
-                    roundf(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
-                );
-                // clang-format on
-                if (bits == 4) {
-                    c = tex4bit(calculatedTexel, texPage, clut);
-                } else if (bits == 8) {
-                    c = tex8bit(calculatedTexel, texPage, clut);
-                } else if (bits == 16) {
-                    PSXColor raw = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
-                    // TODO: I don't understand why this is necessary
-                    // Without it PSOne BIOS display invalid colors under "Memory Card" and "CD Player"
-                    c.r = raw.b;
-                    c.g = raw.g;
-                    c.b = raw.r;
-                    c.k = raw.k;
-                }
-            }
-
-            if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) continue;
-
-            if (bits != 0 && !(flags & Vertex::RawTexture)) {
-                c = c * color[0];
-            }
-
-            if (flags & Vertex::SemiTransparency && c.k) {
-                GP0_E1::SemiTransparency transparency = (GP0_E1::SemiTransparency)((flags & 0xA0) >> 6);
-                PSXColor bg = VRAM[p.y][p.x];
-                if (transparency == GP0_E1::SemiTransparency::Bby2plusFby2) {
-                    c = bg / 2.f + c / 2.f;
-                } else if (transparency == GP0_E1::SemiTransparency::BplusF) {
-                    c = bg + c;
-                } else if (transparency == GP0_E1::SemiTransparency::BminusF) {
-                    c = bg - c;
-                } else if (transparency == GP0_E1::SemiTransparency::BplusFby4) {
-                    c = bg + c / 4.f;
-                }
-            }
-
-            VRAM[p.y][p.x] = c._;
-        }
-    }
-}
-
-void GPU::drawTriangle(Vertex v[3]) {
-    glm::ivec2 pos[3];
-    glm::vec3 color[3];
-    glm::ivec2 texcoord[3];
-    glm::ivec2 texpage;
-    glm::ivec2 clut;
-    int bits;
-    int flags;
-    for (int j = 0; j < 3; j++) {
-        pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
-        color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
-        texcoord[j] = glm::ivec2(v[j].texcoord[0], v[j].texcoord[1]);
-    }
-    texpage = glm::ivec2(v[0].texpage[0], v[0].texpage[1]);
-    clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
-    bits = v[0].bitcount;
-    flags = v[0].flags;
-
-    triangle(pos, color, texcoord, texpage, clut, bits, flags);
-}
-
-void GPU::rasterize() {
-    for (size_t i = 0; i < renderList.size(); i += 3) {
-        Vertex v[3];
-        for (size_t j = 0; j < 3; j++) v[j] = renderList[i + j];
-
-        drawTriangle(v);
-    }
 }
