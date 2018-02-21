@@ -205,7 +205,9 @@ int start(int argc, char** argv) {
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     SDL_GameControllerEventState(SDL_ENABLE);
 
+    ImGui::CreateContext();
     ImGui_ImplSdlGL3_Init(window);
+    ImGui::StyleColorsDark();
 
     SDL_GL_SetSwapInterval(0);
 

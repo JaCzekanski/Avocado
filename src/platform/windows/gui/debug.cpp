@@ -1,11 +1,11 @@
-#include "gui.h"
 #include <imgui.h>
-#include "imgui/imgui_memory_editor.h"
-#include "utils/string.h"
+#include <json.hpp>
+#include <vector>
 #include "../../../cpu/gte/gte.h"
 #include "debugger/debugger.h"
-#include <vector>
-#include <json.hpp>
+#include "gui.h"
+#include "imgui/imgui_memory_editor.h"
+#include "utils/string.h"
 
 extern bool showVramWindow;
 extern bool showDisassemblyWindow;
@@ -121,7 +121,6 @@ void gteRegistersWindow(GTE gte) {
         ImGui::NextColumn();
     }
 
-    ImGui::Columns(3, nullptr, false);
     ImGui::Separator();
 
     ImGui::Text("RT11:  %04hX", gte.rt.v11);

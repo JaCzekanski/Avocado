@@ -1,6 +1,7 @@
 #include "gui.h"
 #include <imgui.h>
 #include "cpu/gte/gte.h"
+#include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
 #include "platform/windows/config.h"
 
@@ -125,4 +126,5 @@ void renderImgui(mips::CPU* cpu) {
     }
 
     ImGui::Render();
+    ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
 }
