@@ -2,19 +2,25 @@
 #include <cstdint>
 #include "cpu/cop0.h"
 #include "cpu/gte/gte.h"
-#include "device/gpu/gpu.h"
-#include "device/dma.h"
 #include "device/cdrom.h"
-#include "device/interrupt.h"
-#include "device/timer.h"
-#include "device/dummy.h"
 #include "device/controller.h"
+#include "device/dma.h"
+#include "device/dummy.h"
+#include "device/gpu/gpu.h"
+#include "device/interrupt.h"
 #include "device/mdec.h"
 #include "device/spu.h"
+#include "device/timer.h"
 
 #include <memory>
-#include <vector>
 #include <unordered_map>
+#include <vector>
+
+#ifdef _MSC_VER
+#define INLINE __forceinline
+#else
+#define INLINE __attribute__((always_inline))
+#endif
 
 /**
  * NOTE:
@@ -137,8 +143,10 @@ struct CPU {
     std::unique_ptr<MDEC> mdec;
     std::unique_ptr<Dummy> expansion2;
 
-    uint8_t readMemory(uint32_t address);
-    void writeMemory(uint32_t address, uint8_t data);
+    template <typename T>
+    INLINE T readMemory(uint32_t address);
+    template <typename T>
+    INLINE void writeMemory(uint32_t address, T data);
     void checkForInterrupts();
     void singleStep();
     void handleBiosFunction();
@@ -146,7 +154,6 @@ struct CPU {
 
    public:
     CPU();
-
     LoadSlot slots[2];
     void loadDelaySlot(uint32_t r, uint32_t data);
     uint8_t readMemory8(uint32_t address);
@@ -186,4 +193,4 @@ struct CPU {
     };
     std::unordered_map<uint32_t, Breakpoint> breakpoints;
 };
-};
+};  // namespace mips

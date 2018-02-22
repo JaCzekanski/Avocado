@@ -41,30 +41,56 @@ CPU::CPU() {
     expansion2 = std::make_unique<Dummy>("Expansion2", 0x1f802000, false);
 }
 
-uint8_t CPU::readMemory(uint32_t address) {
-    if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        printf("R Unhandled memory control\n");
-        return 0;
+#define READ8(x, addr) (x[addr])
+#define READ16(x, addr) (x[addr] | (x[addr + 1] << 8))
+#define READ32(x, addr) (x[addr] | (x[addr + 1] << 8) | (x[addr + 2] << 16) | (x[addr + 3] << 24))
+
+#define READT(x, addr)                  \
+    {                                   \
+        if (sizeof(T) == 1)             \
+            return READ8((x), (addr));  \
+        else if (sizeof(T) == 2)        \
+            return READ16((x), (addr)); \
+        else if (sizeof(T) == 4)        \
+            return READ32((x), (addr)); \
     }
-    address &= 0x1FFFFFFF;
 
-    if (address < 0x200000 * 4) return ram[address & 0x1FFFFF];
-    if (address >= 0x1f000000 && address < 0x1f000000 + EXPANSION_SIZE) return expansion[address - 0x1f000000];
-    if (address >= 0x1f800000 && address < 0x1f800400) return scratchpad[address - 0x1f800000];
-    if (address >= 0x1fc00000 && address < 0x1fc80000) return bios[address - 0x1fc00000];
+template <typename T>
+INLINE T CPU::readMemory(uint32_t address) {
+    uint32_t addr = address & 0x1FFFFFFF;
 
-#define IO(begin, end, periph)                   \
-    if (address >= (begin) && address < (end)) { \
-        return periph->read(address - (begin));  \
+    // align address
+    if (sizeof(T) == 2)
+        addr &= 0xfffffffe;
+    else if (sizeof(T) == 4)
+        addr &= 0xfffffffc;
+
+    if (addr < 0x200000 * 4) {
+        addr &= 0x1fffff;
+        READT(ram, addr)
+    }
+    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) READT(expansion, addr - 0x1f000000);
+    if (addr >= 0x1f800000 && addr < 0x1f800400) READT(scratchpad, addr - 0x1f800000);
+    if (addr >= 0x1fc00000 && addr < 0x1fc80000) READT(bios, addr - 0x1fc00000);
+
+#define IO(begin, end, periph)                                                                                                   \
+    if (addr >= (begin) && addr < (end)) {                                                                                       \
+        if (sizeof(T) == 1)                                                                                                      \
+            return periph->read(addr - (begin));                                                                                 \
+        else if (sizeof(T) == 2)                                                                                                 \
+            return periph->read(addr - (begin)) | periph->read(addr + 1 - (begin)) << 8;                                         \
+        else if (sizeof(T) == 4)                                                                                                 \
+            return periph->read(addr - (begin)) | periph->read(addr + 1 - (begin)) << 8 | periph->read(addr + 2 - (begin)) << 16 \
+                   | periph->read(addr + 3 - (begin)) << 24;                                                                     \
     }
 
     // IO Ports
-    if (address >= 0x1f801000 && address <= 0x1f803000) {
-        address -= 0x1f801000;
+    if (addr >= 0x1f801000 && addr <= 0x1f803000) {
+        addr -= 0x1f801000;
 
-        if (address >= 0x50 && address < 0x60) {
-            if (address >= 0x54 && address < 0x58) {
-                return 0x5 >> ((address - 0x54) * 8);
+        if (addr >= 0x50 && addr < 0x60) {
+            if (addr >= 0x54 && addr < 0x58) {
+                return 0x5 >> ((addr - 0x54) * 8);
             }
         }
 
@@ -78,27 +104,59 @@ uint8_t CPU::readMemory(uint32_t address) {
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
         IO(0x800, 0x804, cdrom);
-        if (address >= 0x810 && address < 0x818) {
-            static Reg32 d;
-            if (((address - 0x810) & 3) == 0) d._reg = gpu->read(address - 0x810);
-
-            return d.read((address - 0x810) & 3);
+        //        IO(0x810, 0x0818, gpu);
+        if (addr >= (0x810) && addr < (0x0818)) {
+            if (sizeof(T) == 4)
+                return gpu->read(addr - 0x810);
+            else
+                printf("W Unsupported access to GPU with bit size: %d\n", sizeof(T) * 8);
         }
+
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
-        if (address >= 0x1000 && address < 0x1043) {
-            if (address == 0x1021) return 0x0c;
-            return expansion2->read(address);
-        }
-        printf("R Unhandled IO at 0x%08x\n", address + 0x1f801000);
+        IO(0x1000, 0x1043, expansion2);
+        printf("R Unhandled IO at 0x%08x\n", addr + 0x1f801000);
     }
 #undef IO
+
+    if (addr >= 0xfffe0130 && addr < 0xfffe0134) {
+        printf("R Unhandled memory control\n");
+        return 0;
+    }
 
     // printf("R Unhandled address at 0x%08x\n", address);
     return 0;
 }
 
-void CPU::writeMemory(uint32_t address, uint8_t data) {
+#define WRITE8(x, addr, value) \
+    {                          \
+        x[addr] = value;       \
+        return;                \
+    }
+#define WRITE16(x, addr, value)   \
+    {                             \
+        x[addr] = value;          \
+        x[addr + 1] = value >> 8; \
+        return;                   \
+    }
+#define WRITE32(x, addr, value)    \
+    {                              \
+        x[addr] = value;           \
+        x[addr + 1] = value >> 8;  \
+        x[addr + 2] = value >> 16; \
+        x[addr + 3] = value >> 24; \
+        return;                    \
+    }
+
+#define WRITET(x, addr, value)                             \
+    {                                                      \
+        if (sizeof(T) == 1) WRITE8((x), (addr), (value));  \
+        if (sizeof(T) == 2) WRITE16((x), (addr), (value)); \
+        if (sizeof(T) == 4) WRITE32((x), (addr), (value)); \
+    }
+
+template <typename T>
+INLINE void CPU::writeMemory(uint32_t address, T data) {
     // Cache control
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
         printf("W Unhandled memory control\n");
@@ -106,27 +164,42 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
     }
     address &= 0x1FFFFFFF;
 
-    if (address < 0x200000 * 4) {
-        if (!cop0.status.isolateCache) ram[address & 0x1FFFFF] = data;
-        return;
-    }
-    if (address >= 0x1f000000 && address < 0x1f000000 + EXPANSION_SIZE) {
-        expansion[address - 0x1f000000] = data;
-        return;
-    }
-    if (address >= 0x1f800000 && address < 0x1f800400) {
-        scratchpad[address - 0x1f800000] = data;
-        return;
-    }
+    // align address
+    if (sizeof(T) == 2)
+        address &= 0xfffffffe;
+    else if (sizeof(T) == 4)
+        address &= 0xfffffffc;
 
-#define IO(begin, end, periph) \
-    if (address >= (begin) && address < (end)) return periph->write(address - (begin), data)
+    if (address < 0x200000 * 4) {
+        if (cop0.status.isolateCache) return;
+        address &= 0x1fffff;
+        WRITET(ram, address, data);
+        return;
+    }
+    if (address >= 0x1f000000 && address < 0x1f000000 + EXPANSION_SIZE) WRITET(expansion, address - 0x1f000000, data);
+    if (address >= 0x1f800000 && address < 0x1f800400) WRITET(scratchpad, address - 0x1f800000, data);
+
+#define IO(begin, end, periph)                                \
+    if (address >= (begin) && address < (end)) {              \
+        if (sizeof(T) == 1) {                                 \
+            periph->write(address - (begin), data);           \
+            return;                                           \
+        } else if (sizeof(T) == 2) {                          \
+            periph->write(address - (begin), data);           \
+            periph->write(address - (begin) + 1, data >> 8);  \
+            return;                                           \
+        } else if (sizeof(T) == 4) {                          \
+            periph->write(address - (begin), data);           \
+            periph->write(address - (begin) + 1, data >> 8);  \
+            periph->write(address - (begin) + 2, data >> 16); \
+            periph->write(address - (begin) + 3, data >> 24); \
+            return;                                           \
+        }                                                     \
+    }
 
     // IO Ports
     if (address >= 0x1f801000 && address <= 0x1f803000) {
         address -= 0x1f801000;
-
-        if (address == 0x1023) printf("%c", data);  // Debug
 
         IO(0x00, 0x24, memoryControl);
         IO(0x40, 0x50, controller);
@@ -138,11 +211,11 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
         IO(0x800, 0x804, cdrom);
-        if (address >= 0x810 && address < 0x818) {
-            static Reg32 d;
-            d.write((address - 0x810) & 3, data);
-            if (((address - 0x810) & 3) == 3) gpu->write(address - 0x810, d._reg);
-            return;
+        if (address >= (0x810) && address < (0x0818)) {
+            if (sizeof(T) == 4)
+                return gpu->write(address - 0x810, data);
+            else
+                printf("W Unsupported access to GPU with bit size: %d\n", sizeof(T) * 8);
         }
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
@@ -167,72 +240,36 @@ void CPU::writeMemory(uint32_t address, uint8_t data) {
 #endif
 
 uint8_t CPU::readMemory8(uint32_t address) {
-    uint8_t data = readMemory(address);
+    uint8_t data = readMemory<uint8_t>(address);
     LOG_IO(IO_LOG_ENTRY::MODE::READ, 8, address, data);
     return data;
 }
 
-#define READ16(x, addr) (x[addr] | (x[addr + 1] << 8))
-
 uint16_t CPU::readMemory16(uint32_t address) {
-    uint32_t addr = address & 0x1FFFFFFE;
-    if (address < RAM_SIZE * 4) {
-        addr &= RAM_SIZE - 2;
-        return READ16(ram, addr);
-    }
-    if (address >= 0x1fc00000 && address < 0x1fc00000 + BIOS_SIZE) {
-        addr -= 0x1fc00000;
-        return READ16(bios, addr);
-    }
-    uint16_t data = 0;
-    data |= readMemory(address + 0);
-    data |= readMemory(address + 1) << 8;
+    uint16_t data = readMemory<uint16_t>(address);
     LOG_IO(IO_LOG_ENTRY::MODE::READ, 16, address, data);
     return data;
 }
 
-#undef READ16
-
-#define READ32(x, addr) (x[addr] | (x[addr + 1] << 8) | (x[addr + 2] << 16) | (x[addr + 3] << 24))
-
 uint32_t CPU::readMemory32(uint32_t address) {
-    uint32_t addr = address & 0x1FFFFFFC;
-    if (addr < RAM_SIZE * 4) {
-        addr &= RAM_SIZE - 4;
-        return READ32(ram, addr);
-    }
-    if (addr >= 0x1fc00000 && addr < 0x1fc00000 + BIOS_SIZE) {
-        addr -= 0x1fc00000;
-        return READ32(bios, addr);
-    }
-    uint32_t data = 0;
-    data |= readMemory(address + 0);
-    data |= readMemory(address + 1) << 8;
-    data |= readMemory(address + 2) << 16;
-    data |= readMemory(address + 3) << 24;
+    uint32_t data = readMemory<uint32_t>(address);
     LOG_IO(IO_LOG_ENTRY::MODE::READ, 32, address, data);
     return data;
 }
 
-#undef READ32
-
 void CPU::writeMemory8(uint32_t address, uint8_t data) {
     LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 8, address, data);
-    writeMemory(address, data);
+    writeMemory<uint8_t>(address, data);
 }
 
 void CPU::writeMemory16(uint32_t address, uint16_t data) {
     LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 16, address, data);
-    writeMemory(address + 0, data & 0xff);
-    writeMemory(address + 1, data >> 8);
+    writeMemory<uint16_t>(address, data);
 }
 
 void CPU::writeMemory32(uint32_t address, uint32_t data) {
     LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 32, address, data);
-    writeMemory(address + 0, data);
-    writeMemory(address + 1, data >> 8);
-    writeMemory(address + 2, data >> 16);
-    writeMemory(address + 3, data >> 24);
+    writeMemory<uint32_t>(address, data);
 }
 
 void CPU::printFunctionInfo(int type, uint8_t number, bios::Function f) {
