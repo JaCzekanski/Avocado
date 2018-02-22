@@ -140,7 +140,7 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
 
     if (cue != nullptr) {
         cpu->cdrom->cue = *cue;
-        bool success = cpu->dma->dma3.load(cue->tracks[0].filename);
+        bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(cpu->dma->dma[3].get())->load(cue->tracks[0].filename);
         cpu->cdrom->setShell(!success);
         printf("File %s loaded\n", getFilenameExt(path).c_str());
     }

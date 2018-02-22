@@ -1,10 +1,11 @@
 #pragma once
+#include <memory>
 #include "device.h"
-#include "dmaChannel.h"
 #include "dma2Channel.h"
-#include "dma6Channel.h"
-#include "gpu/gpu.h"
 #include "dma3Channel.h"
+#include "dma6Channel.h"
+#include "dmaChannel.h"
+#include "gpu/gpu.h"
 
 namespace device {
 namespace dma {
@@ -70,36 +71,31 @@ union DICR {
     uint8_t _byte[4];
 
     DICR() : _reg(0) {}
+
+    bool getEnableDma(int channel) { return _reg & (1 << (16 + channel)); }
+
+    void setFlagDma(int channel, bool value) {
+        if (value)
+            _reg |= (1 << (24 + channel));
+        else
+            _reg &= ~(1 << (24 + channel));
+    }
 };
 
 class DMA {
     DPCR control;
     DICR status;
 
-    dmaChannel::DMAChannel dma0;  // MDECin
-    dmaChannel::DMAChannel dma1;  // MDECout
-    dmaChannel::DMA2Channel dma2;
-
-   public:
-    dmaChannel::DMA3Channel dma3;
-
-   private:
-    dmaChannel::DMAChannel dma4;  // SPU
-    dmaChannel::DMAChannel dma5;  // PIO?
-    dmaChannel::DMA6Channel dma6;
-
    private:
     mips::CPU *cpu;
-    GPU *gpu = nullptr;
-
-    void writeDma2(uint32_t address, uint8_t data);
-    void writeDma6(uint32_t address, uint8_t data);
 
    public:
+    std::unique_ptr<dmaChannel::DMAChannel> dma[7];
+
     DMA(mips::CPU *cpu);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 };
-}
-}
+}  // namespace dma
+}  // namespace device

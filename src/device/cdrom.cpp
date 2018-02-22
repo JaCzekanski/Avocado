@@ -1,8 +1,10 @@
 #include "cdrom.h"
-#include "mips.h"
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
+#include "mips.h"
 #include "utils/bcd.h"
+
+#define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(cpu->dma->dma[3].get())
 
 namespace device {
 namespace cdrom {
@@ -46,7 +48,7 @@ uint8_t CDROM::read(uint32_t address) {
         return response;
     }
     if (address == 2) {  // CD Data
-        return cpu->dma->dma3.readByte();
+        return dma3->readByte();
     }
     if (address == 3) {                                // CD Interrupt enable / flags
         if (status.index == 0 || status.index == 2) {  // Interrupt enable
@@ -85,7 +87,7 @@ void CDROM::cmdSetloc() {
         printf("cmdSetloc < 0!\n");
         readSector = 0;
     }
-    cpu->dma->dma3.seekTo(readSector);
+    dma3->seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -160,7 +162,7 @@ void CDROM::cmdInit() {
     stat.setMode(StatusCode::Mode::None);
 
     sectorSize = false;
-    cpu->dma->dma3.sectorSize = sectorSize;
+    dma3->sectorSize = sectorSize;
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
@@ -189,7 +191,7 @@ void CDROM::cmdSetmode() {
     CDROM_params.pop_front();
 
     sectorSize = setmode & (1 << 5) ? true : false;
-    cpu->dma->dma3.sectorSize = sectorSize;
+    dma3->sectorSize = sectorSize;
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -283,7 +285,7 @@ void CDROM::cmdGetTD() {
 }
 
 void CDROM::cmdSeekL() {
-    cpu->dma->dma3.seekTo(readSector);
+    dma3->seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -448,7 +450,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
             if (state == 1) {
                 state = 0;
                 // advance sector
-                cpu->dma->dma3.advanceSector();
+                dma3->advanceSector();
             }
         } else {  // clear data fifo
             // status.dataFifoEmpty = 0;
@@ -502,5 +504,5 @@ void CDROM::write(uint32_t address, uint8_t data) {
     printf("CDROM%d.%d<-W  UNIMPLEMENTED WRITE       0x%02x\n", address, status.index, data);
     cpu->state = mips::CPU::State::pause;
 }
-}
-}
+}  // namespace cdrom
+}  // namespace device
