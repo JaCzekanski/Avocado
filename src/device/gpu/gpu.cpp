@@ -68,7 +68,7 @@ void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
     uint32_t color = to15bit(arguments[0] & 0xffffff);
 
     for (;;) {
-        VRAM[currY % 512][currX % 1024] = color;
+        VRAM[currY % GPU::VRAM_HEIGHT][currX % GPU::VRAM_WIDTH] = color;
 
         if (currX++ >= endX) {
             currX = startX;
@@ -183,6 +183,7 @@ void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
     int flags = 0;
     if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
     if (arg.isRawTexture) flags |= Vertex::RawTexture;
+
     drawPolygon(_x, _y, _c, tex, true, arg.isTextureMapped, flags);
 
     cmd = Command::None;
@@ -207,13 +208,13 @@ void GPU::cmdCpuToVram2(uint8_t command, uint32_t arguments[]) {
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
-    VRAM[currY % 512][currX++ % 1024] = byte & 0xffff;
+    VRAM[currY % GPU::VRAM_HEIGHT][currX++ % GPU::VRAM_WIDTH] = byte & 0xffff;
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
     }
 
-    VRAM[currY % 512][currX++ % 1024] = (byte >> 16) & 0xffff;
+    VRAM[currY % GPU::VRAM_HEIGHT][currX++ % GPU::VRAM_WIDTH] = (byte >> 16) & 0xffff;
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
@@ -248,7 +249,7 @@ void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
     int width = (arguments[3] & 0xffff);
     int height = ((arguments[3] & 0xffff0000) >> 16);
 
-    if (width > 1024 || height > 512) {
+    if (width > GPU::VRAM_WIDTH || height > GPU::VRAM_HEIGHT) {
         printf("cpuVramToVram: Suspicious width: 0x%x or height: 0x%x\n", width, height);
         cmd = Command::None;
         return;
@@ -256,7 +257,8 @@ void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            VRAM[(dstY + y) % 512][(dstX + x) % 1024] = VRAM[(srcY + y) % 512][(srcX + x) % 1024];
+            VRAM[(dstY + y) % GPU::VRAM_HEIGHT][(dstX + x) % GPU::VRAM_WIDTH]
+                = VRAM[(srcY + y) % GPU::VRAM_HEIGHT][(srcX + x) % GPU::VRAM_WIDTH];
         }
     }
 

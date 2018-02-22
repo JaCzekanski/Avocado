@@ -2,7 +2,7 @@
 #include "render.h"
 
 #undef VRAM
-#define VRAM ((uint16_t(*)[GPU::vramWidth])gpu->vram.data())
+#define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])gpu->vram.data())
 
 void drawLine(GPU* gpu, const int16_t x[2], const int16_t y[2], const RGB c[2]) {
     int x0 = x[0] + gpu->drawingOffsetX;
@@ -28,9 +28,9 @@ void drawLine(GPU* gpu, const int16_t x[2], const int16_t y[2], const RGB c[2]) 
     int _y = y0;
     for (int _x = x0; _x <= x1; _x++) {
         if (steep) {
-            if (gpu->insideDrawingArea(_y, _x)) VRAM[_x][_y] = gpu->to15bit(c[0].c);
+            if (gpu->insideDrawingArea(_y, _x)) VRAM[_x][_y] = to15bit(c[0].c);
         } else {
-            if (gpu->insideDrawingArea(_x, _y)) VRAM[_y][_x] = gpu->to15bit(c[0].c);
+            if (gpu->insideDrawingArea(_x, _y)) VRAM[_y][_x] = to15bit(c[0].c);
         }
         error += derror;
         if (error > dx) {

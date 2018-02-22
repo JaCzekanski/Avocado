@@ -8,7 +8,7 @@ const int MAX_ARGS = 32;
 
 extern const char* CommandStr[];
 
-#define VRAM ((uint16_t(*)[vramWidth])vram.data())
+#define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])vram.data())
 
 union PolygonArgs {
     struct {
@@ -147,8 +147,8 @@ struct GPU {
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
     */
-    static const int vramWidth = 1024;
-    static const int vramHeight = 512;
+    static const int VRAM_WIDTH = 1024;
+    static const int VRAM_HEIGHT = 512;
 
     int resolutionMultiplier = 1;
 
@@ -213,9 +213,6 @@ struct GPU {
     bool textureDisableAllowed = false;
 
     void reset();
-    uint32_t to15bit(uint32_t color);
-    uint32_t to24bit(uint16_t color);
-
     void cmdFillRectangle(uint8_t command, uint32_t arguments[]);
     void cmdPolygon(PolygonArgs arg, uint32_t arguments[]);
     void cmdLine(LineArgs arg, uint32_t arguments[]);
@@ -224,7 +221,6 @@ struct GPU {
     void cmdCpuToVram2(uint8_t command, uint32_t arguments[]);
     void cmdVramToCpu(uint8_t command, uint32_t arguments[]);
     void cmdVramToVram(uint8_t command, uint32_t arguments[]);
-    uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
     void drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
 
@@ -241,8 +237,8 @@ struct GPU {
     int frames = 0;
 
     GPU() {
-        vram.resize(vramWidth * vramHeight * resolutionMultiplier);
-        prevVram.resize(vramWidth * vramHeight * resolutionMultiplier);
+        vram.resize(VRAM_WIDTH * VRAM_HEIGHT * resolutionMultiplier);
+        prevVram.resize(VRAM_WIDTH * VRAM_HEIGHT * resolutionMultiplier);
     }
     void step();
     uint32_t read(uint32_t address);

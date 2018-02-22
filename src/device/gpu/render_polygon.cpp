@@ -5,7 +5,7 @@
 #include "render.h"
 
 #undef VRAM
-#define VRAM ((uint16_t(*)[GPU::vramWidth])gpu->vram.data())
+#define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])gpu->vram.data())
 
 int ditherTable[4][4] = {{-4, +0, -3, +1}, {+2, -2, +3, -1}, {-3, +1, -4, +0}, {+3, -1, +2, -2}};
 
@@ -47,8 +47,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                 // if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
                 //     calculatedColor += ditherTable[p.y % 4][p.x % 4];
                 // }
-                c._ = gpu->to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g),
-                                   (uint8_t)(255 * calculatedColor.b));
+                c._ = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g), (uint8_t)(255 * calculatedColor.b));
             } else {
                 // clang-format off
                 glm::ivec2 calculatedTexel = glm::ivec2(
