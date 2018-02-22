@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/vec2.hpp>
 #include <vector>
+#include "psx_color.h"
 #include "registers.h"
 
 const int MAX_ARGS = 32;
@@ -98,16 +99,6 @@ struct Vertex {
      *          ^
      *          Transparency enabled (yes for tris, no for rect)
      */
-};
-
-union RGB {
-    struct {
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-        uint8_t _;
-    };
-    uint32_t c;
 };
 
 struct TextureInfo {
@@ -225,18 +216,17 @@ struct GPU {
     uint32_t to15bit(uint32_t color);
     uint32_t to24bit(uint16_t color);
 
-    void cmdFillRectangle(const uint8_t command, uint32_t arguments[]);
-    void cmdPolygon(const PolygonArgs arg, uint32_t arguments[]);
-    void cmdLine(const LineArgs arg, uint32_t arguments[]);
-    void cmdRectangle(const RectangleArgs command, uint32_t arguments[]);
-    void cmdCpuToVram1(const uint8_t command, uint32_t arguments[]);
-    void cmdCpuToVram2(const uint8_t command, uint32_t arguments[]);
-    void cmdVramToCpu(const uint8_t command, uint32_t arguments[]);
-    void cmdVramToVram(const uint8_t command, uint32_t arguments[]);
+    void cmdFillRectangle(uint8_t command, uint32_t arguments[]);
+    void cmdPolygon(PolygonArgs arg, uint32_t arguments[]);
+    void cmdLine(LineArgs arg, uint32_t arguments[]);
+    void cmdRectangle(RectangleArgs arg, uint32_t arguments[]);
+    void cmdCpuToVram1(uint8_t command, uint32_t arguments[]);
+    void cmdCpuToVram2(uint8_t command, uint32_t arguments[]);
+    void cmdVramToCpu(uint8_t command, uint32_t arguments[]);
+    void cmdVramToVram(uint8_t command, uint32_t arguments[]);
     uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b);
 
-    void drawLine(int16_t x[2], int16_t y[2], uint32_t c[2]);
-    void drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
+    void drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
@@ -261,8 +251,6 @@ struct GPU {
     bool emulateGpuCycles(int cycles);
     uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
     uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
-    void triangle(glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits, int flags);
-    void drawTriangle(Vertex v[3]);
 
     std::vector<uint16_t> vram;
     std::vector<uint16_t> prevVram;

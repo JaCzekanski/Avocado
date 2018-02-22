@@ -1,38 +1,40 @@
 #include <algorithm>
-#include "gpu.h"
-#include "math_utils.h"
+#include "render.h"
 
-void GPU::drawLine(int16_t x[2], int16_t y[2], uint32_t c[2]) {
-    x[0] += drawingOffsetX;
-    y[0] += drawingOffsetY;
-    x[1] += drawingOffsetX;
-    y[1] += drawingOffsetY;
+#undef VRAM
+#define VRAM ((uint16_t(*)[GPU::vramWidth])gpu->vram.data())
+
+void drawLine(GPU* gpu, const int16_t x[2], const int16_t y[2], const RGB c[2]) {
+    int x0 = x[0] + gpu->drawingOffsetX;
+    int y0 = y[0] + gpu->drawingOffsetY;
+    int x1 = x[1] + gpu->drawingOffsetX;
+    int y1 = y[1] + gpu->drawingOffsetY;
 
     bool steep = false;
-    if (std::abs(x[0] - x[1]) < std::abs(y[0] - y[1])) {
-        std::swap(x[0], y[0]);
-        std::swap(x[1], y[1]);
+    if (std::abs(x0 - x1) < std::abs(y0 - y1)) {
+        std::swap(x0, y0);
+        std::swap(x1, y1);
         steep = true;
     }
-    if (x[0] > x[1]) {
-        std::swap(x[0], x[1]);
-        std::swap(y[0], y[1]);
+    if (x0 > x1) {
+        std::swap(x0, x1);
+        std::swap(y0, y1);
     }
 
-    int dx = x[1] - x[0];
-    int dy = y[1] - y[0];
+    int dx = x1 - x0;
+    int dy = y1 - y0;
     int derror = std::abs(dy) * 2;
     int error = 0;
-    int _y = y[0];
-    for (int _x = x[0]; _x <= x[1]; _x++) {
+    int _y = y0;
+    for (int _x = x0; _x <= x1; _x++) {
         if (steep) {
-            if (insideDrawingArea(_y, _x)) VRAM[_x][_y] = to15bit(c[0]);
+            if (gpu->insideDrawingArea(_y, _x)) VRAM[_x][_y] = gpu->to15bit(c[0].c);
         } else {
-            if (insideDrawingArea(_x, _y)) VRAM[_y][_x] = to15bit(c[0]);
+            if (gpu->insideDrawingArea(_x, _y)) VRAM[_y][_x] = gpu->to15bit(c[0].c);
         }
         error += derror;
         if (error > dx) {
-            _y += (y[1] > y[0] ? 1 : -1);
+            _y += (y1 > y0 ? 1 : -1);
             error -= dx * 2;
         }
     }

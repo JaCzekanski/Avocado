@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdio>
 #include <glm/glm.hpp>
+#include "render.h"
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
@@ -32,7 +33,7 @@ void GPU::reset() {
     gp0_e6._reg = 0;
 }
 
-void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
+void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
     int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
 
     if (textured) {
@@ -48,17 +49,17 @@ void GPU::drawPolygon(int x[4], int y[4], RGB c[4], TextureInfo t, bool isFourVe
     for (int i : {0, 1, 2}) {
         v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
     }
-    drawTriangle(v);
+    drawTriangle(this, v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
             v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
         }
-        drawTriangle(v);
+        drawTriangle(this, v);
     }
 }
 
-void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
+void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
     startX = currX = arguments[1] & 0xffff;
     startY = currY = (arguments[1] & 0xffff0000) >> 16;
     endX = startX + (arguments[2] & 0xffff);
@@ -78,14 +79,14 @@ void GPU::cmdFillRectangle(const uint8_t command, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
+void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
     int ptr = 1;
-    int x[4], y[4] = {0};
-    RGB c[4] = {0};
+    int16_t x[4], y[4];
+    RGB c[4] = {};
     TextureInfo tex;
     for (int i = 0; i < arg.getVertexCount(); i++) {
-        x[i] = (int32_t)(int16_t)(arguments[ptr] & 0xffff);
-        y[i] = (int32_t)(int16_t)((arguments[ptr++] & 0xffff0000) >> 16);
+        x[i] = arguments[ptr] & 0xffff;
+        y[i] = (arguments[ptr++] & 0xffff0000) >> 16;
 
         if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i].c = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
@@ -106,16 +107,17 @@ void GPU::cmdPolygon(const PolygonArgs arg, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
+void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
     int ptr = 1;
-    int16_t x[2], y[2];
-    uint32_t c[2];
+    int16_t x[2] = {}, y[2] = {};
+    RGB c[2] = {};
+
     for (int i = 0; i < arg.getArgumentCount() - 1; i++) {
         if (arguments[ptr] == 0x55555555) break;
         if (i == 0) {
-            x[0] = (arguments[ptr] & 0xffff);
+            x[0] = arguments[ptr] & 0xffff;
             y[0] = (arguments[ptr++] & 0xffff0000) >> 16;
-            c[0] = arguments[0] & 0xffffff;
+            c[0].c = arguments[0] & 0xffffff;
         } else {
             x[0] = x[1];
             y[0] = y[1];
@@ -123,22 +125,22 @@ void GPU::cmdLine(const LineArgs arg, uint32_t arguments[]) {
         }
 
         if (arg.gouroudShading)
-            c[1] = arguments[ptr++];
+            c[1].c = arguments[ptr++];
         else
-            c[1] = arguments[0] & 0xffffff;
+            c[1].c = arguments[0] & 0xffffff;
 
-        x[1] = (arguments[ptr] & 0xffff);
-        y[1] = ((arguments[ptr++] & 0xffff0000) >> 16);
+        x[1] = arguments[ptr] & 0xffff;
+        y[1] = (arguments[ptr++] & 0xffff0000) >> 16;
 
         // No transparency support
         // No Gouroud Shading
-        drawLine(x, y, c);
+        drawLine(this, x, y, c);
     }
 
     cmd = Command::None;
 }
 
-void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
+void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
     int w = arg.getSize();
     int h = arg.getSize();
 
@@ -147,11 +149,11 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
         h = (int32_t)(int16_t)((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
     }
 
-    int x = (int32_t)(int16_t)(arguments[1] & 0xffff);
-    int y = (int32_t)(int16_t)((arguments[1] & 0xffff0000) >> 16);
+    int16_t x = arguments[1] & 0xffff;
+    int16_t y = (arguments[1] & 0xffff0000) >> 16;
 
-    int _x[4] = {x, x + w, x, x + w};
-    int _y[4] = {y, y, y + h, y + h};
+    int16_t _x[4] = {x, x + w, x, x + w};
+    int16_t _y[4] = {y, y, y + h, y + h};
     RGB _c[4];
     _c[0].c = arguments[0];
     _c[1].c = arguments[0];
@@ -186,7 +188,7 @@ void GPU::cmdRectangle(const RectangleArgs arg, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-void GPU::cmdCpuToVram1(const uint8_t command, uint32_t arguments[]) {
+void GPU::cmdCpuToVram1(uint8_t command, uint32_t arguments[]) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdCpuToVram1: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -201,7 +203,7 @@ void GPU::cmdCpuToVram1(const uint8_t command, uint32_t arguments[]) {
     currentArgument = 0;
 }
 
-void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
+void GPU::cmdCpuToVram2(uint8_t command, uint32_t arguments[]) {
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
@@ -220,7 +222,7 @@ void GPU::cmdCpuToVram2(const uint8_t command, uint32_t arguments[]) {
     currentArgument = 0;
 }
 
-void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
+void GPU::cmdVramToCpu(uint8_t command, uint32_t arguments[]) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdVramToCpu: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -233,7 +235,7 @@ void GPU::cmdVramToCpu(const uint8_t command, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-void GPU::cmdVramToVram(const uint8_t command, uint32_t arguments[]) {
+void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cpuVramToVram: Suspicious arg0: 0x%x\n", arguments[0]);
     }

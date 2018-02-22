@@ -38,3 +38,15 @@ uint32_t GPU::to24bit(uint16_t color) {
     newColor |= (color & 0x1f) << 19;
     return newColor;
 }
+
+uint16_t GPU::tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
+    uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 4];
+    uint16_t entry = (index >> ((tex.x & 3) * 4)) & 0xf;
+    return VRAM[clut.y][clut.x + entry];
+}
+
+uint16_t GPU::tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
+    uint16_t index = VRAM[texPage.y + tex.y][texPage.x + tex.x / 2];
+    uint16_t entry = (index >> ((tex.x & 1) * 8)) & 0xff;
+    return VRAM[clut.y][clut.x + entry];
+}
