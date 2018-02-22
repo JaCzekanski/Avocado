@@ -245,8 +245,6 @@ struct GPU {
     void write(uint32_t address, uint32_t data);
 
     bool emulateGpuCycles(int cycles);
-    uint16_t tex4bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
-    uint16_t tex8bit(glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut);
 
     std::vector<uint16_t> vram;
     std::vector<uint16_t> prevVram;

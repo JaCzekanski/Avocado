@@ -3,6 +3,7 @@
 #include "math_utils.h"
 #include "psx_color.h"
 #include "render.h"
+#include "texture_utils.h"
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])gpu->vram.data())
@@ -56,9 +57,9 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                 );
                 // clang-format on
                 if (bits == 4) {
-                    c = gpu->tex4bit(calculatedTexel, texPage, clut);
+                    c = tex4bit(gpu, calculatedTexel, texPage, clut);
                 } else if (bits == 8) {
-                    c = gpu->tex8bit(calculatedTexel, texPage, clut);
+                    c = tex8bit(gpu, calculatedTexel, texPage, clut);
                 } else if (bits == 16) {
                     PSXColor raw = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
                     // TODO: I don't understand why this is necessary
