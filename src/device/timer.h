@@ -1,7 +1,7 @@
 #pragma once
+#include <cassert>
 #include "device.h"
 #include "interrupt.h"
-#include <cassert>
 
 namespace timer {
 union CounterMode {
@@ -77,12 +77,11 @@ union CounterMode {
         return _byte[n];
     }
 };
-}
+}  // namespace timer
 
+template <int which>
 class Timer {
     const int baseAddress = 0x1f801100;
-
-    int which = 0;
 
    public:
     Reg32 current;
@@ -104,7 +103,7 @@ class Timer {
     }
 
    public:
-    Timer(mips::CPU* cpu, int which);
+    Timer(mips::CPU* cpu);
     void step() { step(1); }
     void step(int cycles);
     uint8_t read(uint32_t address);

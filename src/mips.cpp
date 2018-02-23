@@ -32,9 +32,9 @@ CPU::CPU() {
     interrupt = std::make_unique<Interrupt>(this);
     gpu = std::make_unique<GPU>();
     dma = std::make_unique<dma::DMA>(this);
-    timer0 = std::make_unique<Timer>(this, 0);
-    timer1 = std::make_unique<Timer>(this, 1);
-    timer2 = std::make_unique<Timer>(this, 2);
+    timer0 = std::make_unique<Timer<0>>(this);
+    timer1 = std::make_unique<Timer<1>>(this);
+    timer2 = std::make_unique<Timer<2>>(this);
     cdrom = std::make_unique<cdrom::CDROM>(this);
     spu = std::make_unique<SPU>();
     mdec = std::make_unique<MDEC>();

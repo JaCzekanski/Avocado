@@ -3,8 +3,11 @@
 
 using namespace timer;
 
-Timer::Timer(mips::CPU* cpu, int which) : cpu(cpu), which(which) {}
-void Timer::step(int cycles) {
+template <int which>
+Timer<which>::Timer(mips::CPU* cpu) : cpu(cpu) {}
+
+template <int which>
+void Timer<which>::step(int cycles) {
     cnt += cycles;
 
     if (which == 0) {
@@ -58,7 +61,9 @@ void Timer::step(int cycles) {
         irqOccured = true;
     }
 }
-uint8_t Timer::read(uint32_t address) {
+
+template <int which>
+uint8_t Timer<which>::read(uint32_t address) {
     if (address < 2) {
         return current.read(address);
     }
@@ -75,7 +80,9 @@ uint8_t Timer::read(uint32_t address) {
     }
     return 0;
 }
-void Timer::write(uint32_t address, uint8_t data) {
+
+template <int which>
+void Timer<which>::write(uint32_t address, uint8_t data) {
     if (address < 2) {
         current.write(address, data);
     } else if (address >= 4 && address < 8) {
@@ -86,3 +93,7 @@ void Timer::write(uint32_t address, uint8_t data) {
         target.write(address - 8, data);
     }
 }
+
+template class Timer<0>;
+template class Timer<1>;
+template class Timer<2>;

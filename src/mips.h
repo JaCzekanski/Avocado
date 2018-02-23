@@ -137,9 +137,9 @@ struct CPU {
     std::unique_ptr<Dummy> memoryControl;
     std::unique_ptr<Dummy> serial;
     std::unique_ptr<GPU> gpu;
-    std::unique_ptr<Timer> timer0;
-    std::unique_ptr<Timer> timer1;
-    std::unique_ptr<Timer> timer2;
+    std::unique_ptr<Timer<0>> timer0;
+    std::unique_ptr<Timer<1>> timer1;
+    std::unique_ptr<Timer<2>> timer2;
     std::unique_ptr<MDEC> mdec;
     std::unique_ptr<Dummy> expansion2;
 
