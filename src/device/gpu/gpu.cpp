@@ -68,7 +68,7 @@ void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
     uint32_t color = to15bit(arguments[0] & 0xffffff);
 
     for (;;) {
-        VRAM[currY % GPU::VRAM_HEIGHT][currX % GPU::VRAM_WIDTH] = color;
+        VRAM[currY % VRAM_HEIGHT][currX % VRAM_WIDTH] = color;
 
         if (currX++ >= endX) {
             currX = startX;
@@ -141,8 +141,8 @@ void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
 }
 
 void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
-    int w = arg.getSize();
-    int h = arg.getSize();
+    int16_t w = arg.getSize();
+    int16_t h = arg.getSize();
 
     if (arg.size == 0) {
         w = (int32_t)(int16_t)(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
@@ -152,9 +152,22 @@ void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
     int16_t x = arguments[1] & 0xffff;
     int16_t y = (arguments[1] & 0xffff0000) >> 16;
 
-    int16_t _x[4] = {x, x + w, x, x + w};
-    int16_t _y[4] = {y, y, y + h, y + h};
+    int16_t _x[4];
+    int16_t _y[4];
     RGB _c[4];
+
+    _x[0] = x;
+    _y[0] = y;
+
+    _x[1] = x + w;
+    _y[1] = y;
+
+    _x[2] = x;
+    _y[2] = y + h;
+
+    _x[3] = x + w;
+    _y[3] = y + h;
+
     _c[0].c = arguments[0];
     _c[1].c = arguments[0];
     _c[2].c = arguments[0];
@@ -208,13 +221,13 @@ void GPU::cmdCpuToVram2(uint8_t command, uint32_t arguments[]) {
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
-    VRAM[currY % GPU::VRAM_HEIGHT][currX++ % GPU::VRAM_WIDTH] = byte & 0xffff;
+    VRAM[currY % VRAM_HEIGHT][currX++ % VRAM_WIDTH] = byte & 0xffff;
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
     }
 
-    VRAM[currY % GPU::VRAM_HEIGHT][currX++ % GPU::VRAM_WIDTH] = (byte >> 16) & 0xffff;
+    VRAM[currY % VRAM_HEIGHT][currX++ % VRAM_WIDTH] = (byte >> 16) & 0xffff;
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
@@ -249,7 +262,7 @@ void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
     int width = (arguments[3] & 0xffff);
     int height = ((arguments[3] & 0xffff0000) >> 16);
 
-    if (width > GPU::VRAM_WIDTH || height > GPU::VRAM_HEIGHT) {
+    if (width > VRAM_WIDTH || height > VRAM_HEIGHT) {
         printf("cpuVramToVram: Suspicious width: 0x%x or height: 0x%x\n", width, height);
         cmd = Command::None;
         return;
@@ -257,8 +270,7 @@ void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            VRAM[(dstY + y) % GPU::VRAM_HEIGHT][(dstX + x) % GPU::VRAM_WIDTH]
-                = VRAM[(srcY + y) % GPU::VRAM_HEIGHT][(srcX + x) % GPU::VRAM_WIDTH];
+            VRAM[(dstY + y) % VRAM_HEIGHT][(dstX + x) % VRAM_WIDTH] = VRAM[(srcY + y) % VRAM_HEIGHT][(srcX + x) % VRAM_WIDTH];
         }
     }
 

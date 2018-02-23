@@ -1,5 +1,6 @@
 #include "mdec.h"
 #include <cassert>
+#include <cstdio>
 
 MDEC::MDEC() { reset(); }
 

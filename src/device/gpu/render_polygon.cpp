@@ -5,7 +5,7 @@
 #include "texture_utils.h"
 
 #undef VRAM
-#define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])gpu->vram.data())
+#define VRAM ((uint16_t(*)[VRAM_WIDTH])gpu->vram.data())
 
 // clang-format off
 int ditherTable[4][4] = {
@@ -72,68 +72,69 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
     for (p.y = min.y; p.y < max.y; p.y++) {
         glm::ivec3 is = glm::ivec3(w0_row, w1_row, w2_row);
         for (p.x = min.x; p.x < max.x; p.x++) {
-            if ((is.x | is.y | is.z) < 0) goto skip_pixel;
+            if ((is.x | is.y | is.z) >= 0) {
+                glm::vec3 s = glm::vec3(is) / (float)area;
 
-            glm::vec3 s = glm::vec3(is) / (float)area;
+                PSXColor c;
+                if (bits == 0) {
+                    // clang-format off
+                    glm::vec3 calculatedColor = glm::vec3(
+                        s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
+                        s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
+                        s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
+                    );
+                    // clang-format on
 
-            PSXColor c;
-            if (bits == 0) {
-                // clang-format off
-                glm::vec3 calculatedColor = glm::vec3(
-                    s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
-                    s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
-                    s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
-                );
-                // clang-format on
-
-                // TODO: THPS2 fading screen doesn't look as it should
-                if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-                    calculatedColor += ditherTable[p.y % 4][p.x % 4] / 255.f;
-                    calculatedColor = glm::clamp(calculatedColor, 0.f, 1.f);
+                    // TODO: THPS2 fading screen doesn't look as it should
+                    if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
+                        calculatedColor += ditherTable[p.y % 4][p.x % 4] / 255.f;
+                        calculatedColor = glm::clamp(calculatedColor, 0.f, 1.f);
+                    }
+                    c._ = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g),
+                                  (uint8_t)(255 * calculatedColor.b));
+                } else {
+                    // clang-format off
+                    glm::ivec2 calculatedTexel = glm::ivec2(
+                        roundf(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
+                        roundf(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
+                    );
+                    // clang-format on
+                    if (bits == 4) {
+                        c = tex4bit(gpu, calculatedTexel, texPage, clut);
+                    } else if (bits == 8) {
+                        c = tex8bit(gpu, calculatedTexel, texPage, clut);
+                    } else if (bits == 16) {
+                        c = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
+                        // TODO: In PSOne BIOS colors are swapped (r == b, g == g, b == r, k == k)
+                    }
                 }
-                c._ = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g), (uint8_t)(255 * calculatedColor.b));
-            } else {
-                // clang-format off
-                glm::ivec2 calculatedTexel = glm::ivec2(
-                    roundf(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
-                    roundf(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
-                );
-                // clang-format on
-                if (bits == 4) {
-                    c = tex4bit(gpu, calculatedTexel, texPage, clut);
-                } else if (bits == 8) {
-                    c = tex8bit(gpu, calculatedTexel, texPage, clut);
-                } else if (bits == 16) {
-                    c = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
-                    // TODO: In PSOne BIOS colors are swapped (r == b, g == g, b == r, k == k)
+
+                if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) goto skip_pixel;
+                if (bits != 0 && !(flags & Vertex::RawTexture)) c = c * color[0];
+
+                if (flags & Vertex::SemiTransparency && c.k) {
+                    using Transparency = GP0_E1::SemiTransparency;
+
+                    PSXColor bg = VRAM[p.y][p.x];
+                    Transparency transparency = (Transparency)((flags & 0xA0) >> 6);
+                    switch (transparency) {
+                        case Transparency::Bby2plusFby2:
+                            c = bg / 2.f + c / 2.f;
+                            break;
+                        case Transparency::BplusF:
+                            c = bg + c;
+                            break;
+                        case Transparency::BminusF:
+                            c = bg - c;
+                            break;
+                        case Transparency::BplusFby4:
+                            c = bg + c / 4.f;
+                            break;
+                    }
                 }
+
+                VRAM[p.y][p.x] = c._;
             }
-
-            if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) goto skip_pixel;
-            if (bits != 0 && !(flags & Vertex::RawTexture)) c = c * color[0];
-
-            if (flags & Vertex::SemiTransparency && c.k) {
-                using Transparency = GP0_E1::SemiTransparency;
-
-                PSXColor bg = VRAM[p.y][p.x];
-                Transparency transparency = (Transparency)((flags & 0xA0) >> 6);
-                switch (transparency) {
-                    case Transparency::Bby2plusFby2:
-                        c = bg / 2.f + c / 2.f;
-                        break;
-                    case Transparency::BplusF:
-                        c = bg + c;
-                        break;
-                    case Transparency::BminusF:
-                        c = bg - c;
-                        break;
-                    case Transparency::BplusFby4:
-                        c = bg + c / 4.f;
-                        break;
-                }
-            }
-
-            VRAM[p.y][p.x] = c._;
 
         skip_pixel:
             is.x += A12;
@@ -146,6 +147,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
     }
 }
 
+// TODO: Render in batches
 void drawTriangle(GPU* gpu, Vertex v[3]) {
     glm::ivec2 pos[3];
     glm::vec3 color[3];

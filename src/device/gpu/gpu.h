@@ -8,7 +8,10 @@ const int MAX_ARGS = 32;
 
 extern const char* CommandStr[];
 
-#define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])vram.data())
+const int VRAM_WIDTH = 1024;
+const int VRAM_HEIGHT = 512;
+
+#define VRAM ((uint16_t(*)[VRAM_WIDTH])vram.data())
 
 union PolygonArgs {
     struct {
@@ -147,8 +150,6 @@ struct GPU {
        1 - GP0(0xc0) - VRAM to CPU transfer
        2 - GP1(0x10) - Get GPU Info
     */
-    static const int VRAM_WIDTH = 1024;
-    static const int VRAM_HEIGHT = 512;
 
     int resolutionMultiplier = 1;
 

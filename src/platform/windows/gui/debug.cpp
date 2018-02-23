@@ -268,7 +268,7 @@ void gpuLogWindow(mips::CPU *cpu) {
 
             // Binary vram dump
             std::vector<uint8_t> vram;
-            vram.assign(gpu->vram.data(), gpu->vram.data() + (GPU::VRAM_WIDTH * GPU::VRAM_HEIGHT));
+            vram.assign(gpu->vram.data(), gpu->vram.data() + (VRAM_WIDTH * VRAM_HEIGHT));
             putFileContents(string_format("%s.bin", filename), vram);
 
             ImGui::CloseCurrentPopup();

@@ -1,7 +1,7 @@
 #pragma once
 #include "gpu.h"
 
-#define gpuVRAM ((uint16_t(*)[GPU::VRAM_WIDTH])gpu->vram.data())
+#define gpuVRAM ((uint16_t(*)[VRAM_WIDTH])gpu->vram.data())
 
 uint16_t tex4bit(GPU* gpu, glm::ivec2 tex, glm::ivec2 texPage, glm::ivec2 clut) {
     uint16_t index = gpuVRAM[texPage.y + tex.y][texPage.x + tex.x / 4];
