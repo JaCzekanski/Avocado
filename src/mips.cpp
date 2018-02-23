@@ -55,23 +55,36 @@ CPU::CPU() {
             return READ32((x), (addr)); \
     }
 
+    // Warning: This macro does not check array boundaries. Make sure that address is aligned!
+#define READ_FAST(x, addr)                       \
+    {                                            \
+        if (sizeof(T) == 1)                      \
+            return (x)[(addr)];                  \
+        else if (sizeof(T) == 2)                 \
+            return ((uint16_t*)(x))[(addr) / 2]; \
+        else if (sizeof(T) == 4)                 \
+            return ((uint32_t*)(x))[(addr) / 4]; \
+    }
+
 template <typename T>
 INLINE T CPU::readMemory(uint32_t address) {
-    uint32_t addr = address & 0x1FFFFFFF;
+    uint32_t addr = address;
 
     // align address
-    if (sizeof(T) == 2)
-        addr &= 0xfffffffe;
+    if (sizeof(T) == 1)
+        addr &= 0x1fffffff;
+    else if (sizeof(T) == 2)
+        addr &= 0x1ffffffe;
     else if (sizeof(T) == 4)
-        addr &= 0xfffffffc;
+        addr &= 0x1ffffffc;
 
     if (addr < 0x200000 * 4) {
         addr &= 0x1fffff;
-        READT(ram, addr)
+        READ_FAST(ram, addr);
     }
-    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) READT(expansion, addr - 0x1f000000);
-    if (addr >= 0x1f800000 && addr < 0x1f800400) READT(scratchpad, addr - 0x1f800000);
-    if (addr >= 0x1fc00000 && addr < 0x1fc80000) READT(bios, addr - 0x1fc00000);
+    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) READ_FAST(expansion, addr - 0x1f000000);
+    if (addr >= 0x1f800000 && addr < 0x1f800400) READ_FAST(scratchpad, addr - 0x1f800000);
+    if (addr >= 0x1fc00000 && addr < 0x1fc80000) READ_FAST(bios, addr - 0x1fc00000);
 
 #define IO(begin, end, periph)                                                                                                   \
     if (addr >= (begin) && addr < (end)) {                                                                                       \
@@ -119,12 +132,12 @@ INLINE T CPU::readMemory(uint32_t address) {
     }
 #undef IO
 
-    if (addr >= 0xfffe0130 && addr < 0xfffe0134) {
+    if (address >= 0xfffe0130 && address < 0xfffe0134) {
         printf("R Unhandled memory control\n");
         return 0;
     }
 
-    // printf("R Unhandled address at 0x%08x\n", address);
+    printf("R Unhandled address at 0x%08x\n", address);
     return 0;
 }
 
@@ -155,51 +168,63 @@ INLINE T CPU::readMemory(uint32_t address) {
         if (sizeof(T) == 4) WRITE32((x), (addr), (value)); \
     }
 
+// Warning: This macro does not check array boundaries. Make sure that address is aligned!
+#define WRITE_FAST(x, addr, value)                  \
+    {                                               \
+        if (sizeof(T) == 1) {                       \
+            (x)[(addr)] = (value);                  \
+            return;                                 \
+        } else if (sizeof(T) == 2) {                \
+            ((uint16_t*)(x))[(addr) / 2] = (value); \
+            return;                                 \
+        } else if (sizeof(T) == 4) {                \
+            ((uint32_t*)(x))[(addr) / 4] = (value); \
+            return;                                 \
+        }                                           \
+    }
+
 template <typename T>
 INLINE void CPU::writeMemory(uint32_t address, T data) {
-    // Cache control
-    if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        printf("W Unhandled memory control\n");
-        return;
-    }
-    address &= 0x1FFFFFFF;
+    uint32_t addr = address;
 
     // align address
-    if (sizeof(T) == 2)
-        address &= 0xfffffffe;
+    if (sizeof(T) == 1)
+        addr &= 0x1fffffff;
+    else if (sizeof(T) == 2)
+        addr &= 0x1ffffffe;
     else if (sizeof(T) == 4)
-        address &= 0xfffffffc;
+        addr &= 0x1ffffffc;
 
-    if (address < 0x200000 * 4) {
+    if (addr < 0x200000 * 4) {
         if (cop0.status.isolateCache) return;
-        address &= 0x1fffff;
-        WRITET(ram, address, data);
+        addr &= 0x1fffff;
+        WRITE_FAST(ram, addr, data);
         return;
     }
-    if (address >= 0x1f000000 && address < 0x1f000000 + EXPANSION_SIZE) WRITET(expansion, address - 0x1f000000, data);
-    if (address >= 0x1f800000 && address < 0x1f800400) WRITET(scratchpad, address - 0x1f800000, data);
+    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) WRITE_FAST(expansion, addr - 0x1f000000, data);
+    if (addr >= 0x1f800000 && addr < 0x1f800400) WRITE_FAST(scratchpad, addr - 0x1f800000, data);
 
-#define IO(begin, end, periph)                                \
-    if (address >= (begin) && address < (end)) {              \
-        if (sizeof(T) == 1) {                                 \
-            periph->write(address - (begin), data);           \
-            return;                                           \
-        } else if (sizeof(T) == 2) {                          \
-            periph->write(address - (begin), data);           \
-            periph->write(address - (begin) + 1, data >> 8);  \
-            return;                                           \
-        } else if (sizeof(T) == 4) {                          \
-            periph->write(address - (begin), data);           \
-            periph->write(address - (begin) + 1, data >> 8);  \
-            periph->write(address - (begin) + 2, data >> 16); \
-            periph->write(address - (begin) + 3, data >> 24); \
-            return;                                           \
-        }                                                     \
+#define IO(begin, end, periph)                             \
+    if (addr >= (begin) && addr < (end)) {                 \
+        if (sizeof(T) == 1) {                              \
+            periph->write(addr - (begin), data);           \
+            return;                                        \
+        } else if (sizeof(T) == 2) {                       \
+            periph->write(addr - (begin), data);           \
+            periph->write(addr - (begin) + 1, data >> 8);  \
+            return;                                        \
+        } else if (sizeof(T) == 4) {                       \
+            periph->write(addr - (begin), data);           \
+            periph->write(addr - (begin) + 1, data >> 8);  \
+            periph->write(addr - (begin) + 2, data >> 16); \
+            periph->write(addr - (begin) + 3, data >> 24); \
+            return;                                        \
+        }                                                  \
     }
 
     // IO Ports
-    if (address >= 0x1f801000 && address <= 0x1f803000) {
-        address -= 0x1f801000;
+    if (addr >= 0x1f801000 && addr <= 0x1f803000) {
+        addr -= 0x1f801000;
 
         IO(0x00, 0x24, memoryControl);
         IO(0x40, 0x50, controller);
@@ -211,19 +236,26 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
         IO(0x110, 0x120, timer1);
         IO(0x120, 0x130, timer2);
         IO(0x800, 0x804, cdrom);
-        if (address >= (0x810) && address < (0x0818)) {
+        if (addr >= (0x810) && addr < (0x0818)) {
             if (sizeof(T) == 4)
-                return gpu->write(address - 0x810, data);
+                return gpu->write(addr - 0x810, data);
             else
                 printf("W Unsupported access to GPU with bit size: %d\n", sizeof(T) * 8);
         }
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
         IO(0x1000, 0x1043, expansion2);
-        printf("W Unhandled IO at 0x%08x: 0x%02x\n", address, data);
+        printf("W Unhandled IO at 0x%08x: 0x%02x\n", addr, data);
     }
 #undef IO
-    // printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
+
+    // Cache control
+    if (address >= 0xfffe0130 && address < 0xfffe0134) {
+        printf("W Unhandled memory control\n");
+        return;
+    }
+
+    printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
 }
 
 #ifdef ENABLE_IO_LOG
