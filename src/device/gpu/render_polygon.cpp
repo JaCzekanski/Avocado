@@ -8,7 +8,14 @@
 #undef VRAM
 #define VRAM ((uint16_t(*)[GPU::VRAM_WIDTH])gpu->vram.data())
 
-int ditherTable[4][4] = {{-4, +0, -3, +1}, {+2, -2, +3, -1}, {-3, +1, -4, +0}, {+3, -1, +2, -2}};
+// clang-format off
+int ditherTable[4][4] = {
+    {-4, +0, -3, +1}, 
+    {+2, -2, +3, -1}, 
+    {-3, +1, -4, +0}, 
+    {+3, -1, +2, -2}
+};
+// clang-format on
 
 void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits,
               int flags) {
@@ -78,16 +85,23 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
             }
 
             if (flags & Vertex::SemiTransparency && c.k) {
-                GP0_E1::SemiTransparency transparency = (GP0_E1::SemiTransparency)((flags & 0xA0) >> 6);
+                using Transparency = GP0_E1::SemiTransparency;
+
                 PSXColor bg = VRAM[p.y][p.x];
-                if (transparency == GP0_E1::SemiTransparency::Bby2plusFby2) {
-                    c = bg / 2.f + c / 2.f;
-                } else if (transparency == GP0_E1::SemiTransparency::BplusF) {
-                    c = bg + c;
-                } else if (transparency == GP0_E1::SemiTransparency::BminusF) {
-                    c = bg - c;
-                } else if (transparency == GP0_E1::SemiTransparency::BplusFby4) {
-                    c = bg + c / 4.f;
+                Transparency transparency = (Transparency)((flags & 0xA0) >> 6);
+                switch (transparency) {
+                    case Transparency::Bby2plusFby2:
+                        c = bg / 2.f + c / 2.f;
+                        break;
+                    case Transparency::BplusF:
+                        c = bg + c;
+                        break;
+                    case Transparency::BminusF:
+                        c = bg - c;
+                        break;
+                    case Transparency::BplusFby4:
+                        c = bg + c / 4.f;
+                        break;
                 }
             }
 
