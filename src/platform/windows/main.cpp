@@ -107,9 +107,9 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
         if (file.empty()) {
             return;
         }
-        nlohmann::json j = nlohmann::json::parse(file);
+        nlohmann::json j = json::parse(file.begin(), file.end());
 
-        auto& gpuLog = cpu->gpu.get()->gpuLogList;
+        auto& gpuLog = cpu->gpu->gpuLogList;
         gpuLog.clear();
         for (size_t i = 0; i < j.size(); i++) {
             GPU::GPU_LOG_ENTRY e;

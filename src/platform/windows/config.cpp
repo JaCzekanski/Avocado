@@ -4,7 +4,7 @@
 const char* CONFIG_NAME = "config.json";
 
 // clang-format off
-const nlohmann::json defaultConfig = {
+const json defaultConfig = {
 	{"bios", ""}, 
 	{"extension", ""}, 
 	{"iso", ""},
@@ -27,7 +27,7 @@ const nlohmann::json defaultConfig = {
 };
 // clang-format on
 
-nlohmann::json config = defaultConfig;
+json config = defaultConfig;
 
 void saveConfigFile(const char* configName) { putFileContents(configName, config.dump(4)); }
 
@@ -37,7 +37,7 @@ void loadConfigFile(const char* configName) {
         saveConfigFile(configName);
         return;
     }
-    nlohmann::json newconfig = nlohmann::json::parse(file);
+    nlohmann::json newconfig = json::parse(file.begin(), file.end());
 
     for (auto it = config.begin(); it != config.end(); ++it) {
         auto field = newconfig.find(it.key());

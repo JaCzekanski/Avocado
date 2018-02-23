@@ -1,6 +1,8 @@
 #pragma once
 #include <json.hpp>
 
+using json = nlohmann::json;
+
 extern const char* CONFIG_NAME;
 extern const nlohmann::json defaultConfig;
 extern nlohmann::json config;
