@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <glm/glm.hpp>
-#include "math_utils.h"
 #include "psx_color.h"
 #include "render.h"
 #include "texture_utils.h"
@@ -16,6 +15,22 @@ int ditherTable[4][4] = {
     {+3, -1, +2, -2}
 };
 // clang-format on
+
+int orient2d(const glm::ivec2& a, const glm::ivec2& b, const glm::ivec2& c) {
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+bool isCw(const glm::ivec2 v[3]) {
+    glm::vec3 a = glm::vec3(v[0].x, v[0].y, 1);
+    glm::vec3 b = glm::vec3(v[1].x, v[1].y, 1);
+    glm::vec3 c = glm::vec3(v[2].x, v[2].y, 1);
+
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    glm::vec3 n = glm::cross(ab, ac);
+
+    return n.z < 0;
+}
 
 void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits,
               int flags) {
@@ -34,14 +49,32 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
     );
     // clang-format on
 
+    // https://fgiesen.wordpress.com/2013/02/10/optimizing-the-basic-rasterizer/
+    int A01 = pos[0].y - pos[1].y;
+    int B01 = pos[1].x - pos[0].x;
+
+    int A12 = pos[1].y - pos[2].y;
+    int B12 = pos[2].x - pos[1].x;
+
+    int A20 = pos[2].y - pos[0].y;
+    int B20 = pos[0].x - pos[2].x;
+
+    glm::ivec2 minp = glm::ivec2(min.x, min.y);
+    int w0_row = orient2d(pos[1], pos[2], minp);
+    int w1_row = orient2d(pos[2], pos[0], minp);
+    int w2_row = orient2d(pos[0], pos[1], minp);
+
+    int area = orient2d(pos[0], pos[1], pos[2]);
+    if (area == 0) return;
+
     glm::ivec2 p;
-    precalcBarycentric(pos);
 
     for (p.y = min.y; p.y < max.y; p.y++) {
+        glm::ivec3 is = glm::ivec3(w0_row, w1_row, w2_row);
         for (p.x = min.x; p.x < max.x; p.x++) {
-            glm::vec3 s = barycentric(pos, p);
-            // Check if point is outside triangle OR result is NAN
-            if (s.x < 0 || s.y < 0 || s.z < 0 || s.x != s.x || s.y != s.y || s.z != s.z) continue;
+            if ((is.x | is.y | is.z) < 0) goto skip_pixel;
+
+            glm::vec3 s = glm::vec3(is) / (float)area;
 
             PSXColor c;
             if (bits == 0) {
@@ -78,7 +111,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                 }
             }
 
-            if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) continue;
+            if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) goto skip_pixel;
 
             if (bits != 0 && !(flags & Vertex::RawTexture)) {
                 c = c * color[0];
@@ -106,7 +139,15 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
             }
 
             VRAM[p.y][p.x] = c._;
+
+        skip_pixel:
+            is.x += A12;
+            is.y += A20;
+            is.z += A01;
         }
+        w0_row += B12;
+        w1_row += B20;
+        w2_row += B01;
     }
 }
 
@@ -122,6 +163,13 @@ void drawTriangle(GPU* gpu, Vertex v[3]) {
         pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
         color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
         texcoord[j] = glm::ivec2(v[j].texcoord[0], v[j].texcoord[1]);
+    }
+
+    // TODO: Remove this hack
+    if (isCw(pos)) {
+        std::swap(pos[1], pos[2]);
+        std::swap(color[1], color[2]);
+        std::swap(texcoord[1], texcoord[2]);
     }
     texpage = glm::ivec2(v[0].texpage[0], v[0].texpage[1]);
     clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
