@@ -41,33 +41,64 @@ CPU::CPU() {
     expansion2 = std::make_unique<Dummy>("Expansion2", 0x1f802000, false);
 }
 
-#define READ8(x, addr) (x[addr])
-#define READ16(x, addr) (x[addr] | (x[addr + 1] << 8))
-#define READ32(x, addr) (x[addr] | (x[addr + 1] << 8) | (x[addr + 2] << 16) | (x[addr + 3] << 24))
+// Note: stupid static_casts and asserts are only to supress MSVC warnings
 
-#define READT(x, addr)                  \
-    {                                   \
-        if (sizeof(T) == 1)             \
-            return READ8((x), (addr));  \
-        else if (sizeof(T) == 2)        \
-            return READ16((x), (addr)); \
-        else if (sizeof(T) == 4)        \
-            return READ32((x), (addr)); \
-    }
+// Warning: This function does not check array boundaries. Make sure that address is aligned!
+template <typename T>
+INLINE T read_fast(uint8_t* device, uint32_t addr) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
-    // Warning: This macro does not check array boundaries. Make sure that address is aligned!
-#define READ_FAST(x, addr)                       \
-    {                                            \
-        if (sizeof(T) == 1)                      \
-            return (x)[(addr)];                  \
-        else if (sizeof(T) == 2)                 \
-            return ((uint16_t*)(x))[(addr) / 2]; \
-        else if (sizeof(T) == 4)                 \
-            return ((uint32_t*)(x))[(addr) / 4]; \
+    if (sizeof(T) == 1) return static_cast<T>(((uint8_t*)device)[addr]);
+    if (sizeof(T) == 2) return static_cast<T>(((uint16_t*)device)[addr / 2]);
+    if (sizeof(T) == 4) return static_cast<T>(((uint32_t*)device)[addr / 4]);
+    return 0;
+}
+
+// Warning: This function does not check array boundaries. Make sure that address is aligned!
+template <typename T>
+INLINE void write_fast(uint8_t* device, uint32_t addr, T value) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
+
+    if (sizeof(T) == 1)
+        ((uint8_t*)device)[addr] = static_cast<uint8_t>(value);
+    else if (sizeof(T) == 2)
+        ((uint16_t*)device)[addr / 2] = static_cast<uint16_t>(value);
+    else if (sizeof(T) == 4)
+        ((uint32_t*)device)[addr / 4] = static_cast<uint32_t>(value);
+}
+
+template <typename T, typename Device>
+INLINE T read_io(Device& periph, uint32_t addr) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
+
+    if (sizeof(T) == 1) return periph->read(addr);
+    if (sizeof(T) == 2) return periph->read(addr) | periph->read(addr + 1) << 8;
+    if (sizeof(T) == 4)
+        return periph->read(addr) | periph->read(addr + 1) << 8 | periph->read(addr + 2) << 16 | periph->read(addr + 3) << 24;
+    return 0;
+}
+
+template <typename T, typename Device>
+INLINE void write_io(Device& periph, uint32_t addr, T data) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
+
+    if (sizeof(T) == 1) {
+        periph->write(addr, (static_cast<uint8_t>(data)) & 0xff);
+    } else if (sizeof(T) == 2) {
+        periph->write(addr, (static_cast<uint16_t>(data)) & 0xff);
+        periph->write(addr + 1, (static_cast<uint16_t>(data) >> 8) & 0xff);
+    } else if (sizeof(T) == 4) {
+        periph->write(addr, (static_cast<uint32_t>(data)) & 0xff);
+        periph->write(addr + 1, (static_cast<uint32_t>(data) >> 8) & 0xff);
+        periph->write(addr + 2, (static_cast<uint32_t>(data) >> 16) & 0xff);
+        periph->write(addr + 3, (static_cast<uint32_t>(data) >> 24) & 0xff);
     }
+}
 
 template <typename T>
 INLINE T CPU::readMemory(uint32_t address) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
+
     uint32_t addr = address;
 
     // align address
@@ -78,24 +109,13 @@ INLINE T CPU::readMemory(uint32_t address) {
     else if (sizeof(T) == 4)
         addr &= 0x1ffffffc;
 
-    if (addr < 0x200000 * 4) {
-        addr &= 0x1fffff;
-        READ_FAST(ram, addr);
-    }
-    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) READ_FAST(expansion, addr - 0x1f000000);
-    if (addr >= 0x1f800000 && addr < 0x1f800400) READ_FAST(scratchpad, addr - 0x1f800000);
-    if (addr >= 0x1fc00000 && addr < 0x1fc80000) READ_FAST(bios, addr - 0x1fc00000);
+    if (addr < 0x200000 * 4) return read_fast<T>(ram, addr & 0x1fffff);
+    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) return read_fast<T>(expansion, addr - 0x1f000000);
+    if (addr >= 0x1f800000 && addr < 0x1f800400) return read_fast<T>(scratchpad, addr - 0x1f800000);
+    if (addr >= 0x1fc00000 && addr < 0x1fc80000) return read_fast<T>(bios, addr - 0x1fc00000);
 
-#define IO(begin, end, periph)                                                                                                   \
-    if (addr >= (begin) && addr < (end)) {                                                                                       \
-        if (sizeof(T) == 1)                                                                                                      \
-            return periph->read(addr - (begin));                                                                                 \
-        else if (sizeof(T) == 2)                                                                                                 \
-            return periph->read(addr - (begin)) | periph->read(addr + 1 - (begin)) << 8;                                         \
-        else if (sizeof(T) == 4)                                                                                                 \
-            return periph->read(addr - (begin)) | periph->read(addr + 1 - (begin)) << 8 | periph->read(addr + 2 - (begin)) << 16 \
-                   | periph->read(addr + 3 - (begin)) << 24;                                                                     \
-    }
+#define IO(begin, end, periph) \
+    if (addr >= (begin) && addr < (end)) return read_io<T>((periph), addr - (begin))
 
     // IO Ports
     if (addr >= 0x1f801000 && addr <= 0x1f803000) {
@@ -122,7 +142,7 @@ INLINE T CPU::readMemory(uint32_t address) {
             if (sizeof(T) == 4)
                 return gpu->read(addr - 0x810);
             else
-                printf("W Unsupported access to GPU with bit size: %d\n", sizeof(T) * 8);
+                printf("W Unsupported access to GPU with bit size: %d\n", static_cast<int>(sizeof(T) * 8));
         }
 
         IO(0x820, 0x828, mdec);
@@ -140,51 +160,10 @@ INLINE T CPU::readMemory(uint32_t address) {
     printf("R Unhandled address at 0x%08x\n", address);
     return 0;
 }
-
-#define WRITE8(x, addr, value) \
-    {                          \
-        x[addr] = value;       \
-        return;                \
-    }
-#define WRITE16(x, addr, value)   \
-    {                             \
-        x[addr] = value;          \
-        x[addr + 1] = value >> 8; \
-        return;                   \
-    }
-#define WRITE32(x, addr, value)    \
-    {                              \
-        x[addr] = value;           \
-        x[addr + 1] = value >> 8;  \
-        x[addr + 2] = value >> 16; \
-        x[addr + 3] = value >> 24; \
-        return;                    \
-    }
-
-#define WRITET(x, addr, value)                             \
-    {                                                      \
-        if (sizeof(T) == 1) WRITE8((x), (addr), (value));  \
-        if (sizeof(T) == 2) WRITE16((x), (addr), (value)); \
-        if (sizeof(T) == 4) WRITE32((x), (addr), (value)); \
-    }
-
-// Warning: This macro does not check array boundaries. Make sure that address is aligned!
-#define WRITE_FAST(x, addr, value)                  \
-    {                                               \
-        if (sizeof(T) == 1) {                       \
-            (x)[(addr)] = (value);                  \
-            return;                                 \
-        } else if (sizeof(T) == 2) {                \
-            ((uint16_t*)(x))[(addr) / 2] = (value); \
-            return;                                 \
-        } else if (sizeof(T) == 4) {                \
-            ((uint32_t*)(x))[(addr) / 4] = (value); \
-            return;                                 \
-        }                                           \
-    }
-
 template <typename T>
 INLINE void CPU::writeMemory(uint32_t address, T data) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
+
     uint32_t addr = address;
 
     // align address
@@ -197,30 +176,17 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
 
     if (addr < 0x200000 * 4) {
         if (cop0.status.isolateCache) return;
-        addr &= 0x1fffff;
-        WRITE_FAST(ram, addr, data);
-        return;
+        return write_fast<T>(ram, addr & 0x1fffff, data);
     }
-    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) WRITE_FAST(expansion, addr - 0x1f000000, data);
-    if (addr >= 0x1f800000 && addr < 0x1f800400) WRITE_FAST(scratchpad, addr - 0x1f800000, data);
+    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) {
+        return write_fast<T>(expansion, addr - 0x1f000000, data);
+    }
+    if (addr >= 0x1f800000 && addr < 0x1f800400) {
+        return write_fast<T>(scratchpad, addr - 0x1f800000, data);
+    }
 
-#define IO(begin, end, periph)                             \
-    if (addr >= (begin) && addr < (end)) {                 \
-        if (sizeof(T) == 1) {                              \
-            periph->write(addr - (begin), data);           \
-            return;                                        \
-        } else if (sizeof(T) == 2) {                       \
-            periph->write(addr - (begin), data);           \
-            periph->write(addr - (begin) + 1, data >> 8);  \
-            return;                                        \
-        } else if (sizeof(T) == 4) {                       \
-            periph->write(addr - (begin), data);           \
-            periph->write(addr - (begin) + 1, data >> 8);  \
-            periph->write(addr - (begin) + 2, data >> 16); \
-            periph->write(addr - (begin) + 3, data >> 24); \
-            return;                                        \
-        }                                                  \
-    }
+#define IO(begin, end, periph) \
+    if (addr >= (begin) && addr < (end)) return write_io<T>((periph), addr - (begin), data);
 
     // IO Ports
     if (addr >= 0x1f801000 && addr <= 0x1f803000) {
@@ -240,7 +206,7 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
             if (sizeof(T) == 4)
                 return gpu->write(addr - 0x810, data);
             else
-                printf("W Unsupported access to GPU with bit size: %d\n", sizeof(T) * 8);
+                printf("W Unsupported access to GPU with bit size: %d\n", static_cast<int>(sizeof(T) * 8));
         }
         IO(0x820, 0x828, mdec);
         IO(0xC00, 0x1000, spu);
