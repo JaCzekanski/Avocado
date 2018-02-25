@@ -11,16 +11,11 @@
 #include "device/mdec.h"
 #include "device/spu.h"
 #include "device/timer.h"
+#include "utils/macros.h"
 
 #include <memory>
 #include <unordered_map>
 #include <vector>
-
-#ifdef _MSC_VER
-#define INLINE __forceinline
-#else
-#define INLINE __attribute__((always_inline))
-#endif
 
 /**
  * NOTE:

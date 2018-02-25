@@ -3,6 +3,7 @@
 #include "psx_color.h"
 #include "render.h"
 #include "texture_utils.h"
+#include "utils/macros.h"
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[VRAM_WIDTH])gpu->vram.data())
@@ -30,6 +31,12 @@ bool isCw(const glm::ivec2 v[3]) {
     glm::vec3 n = glm::cross(ab, ac);
 
     return n.z < 0;
+}
+
+INLINE int fast_round(float n) {
+    int i = (int)n;
+    float r = n - i;
+    return i + r * 2;
 }
 
 void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits,
@@ -95,8 +102,8 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                 } else {
                     // clang-format off
                     glm::ivec2 calculatedTexel = glm::ivec2(
-                        roundf(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
-                        roundf(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
+                        fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
+                        fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
                     );
                     // clang-format on
                     if (bits == 4) {
