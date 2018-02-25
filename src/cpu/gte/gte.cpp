@@ -247,7 +247,7 @@ void GTE::write(uint8_t n, uint32_t d) {
             mac[3] = d;
             break;
         case 28:
-            irgb = d;
+            irgb = d & 0x00007fff;
             ir[1] = (d & 0x1f) * 0x80;
             ir[2] = ((d >> 5) & 0x1f) * 0x80;
             ir[3] = ((d >> 10) & 0x1f) * 0x80;
@@ -370,7 +370,7 @@ void GTE::write(uint8_t n, uint32_t d) {
             zsf4 = d;
             break;
         case 63:
-            flag = d;
+            flag = d & 0x7FFFF000;
             break;
         default:
             return;
