@@ -20,4 +20,8 @@ int Position::toLba() const { return (mm * 60 * 75) + (ss * 75) + ff; }
 Position Position::operator+(const Position& p) const { return fromLba(toLba() + p.toLba()); }
 
 Position Position::operator-(const Position& p) const { return fromLba(toLba() - p.toLba()); }
-}
+
+bool Position::operator>=(const Position& p) const { return toLba() >= p.toLba(); }
+
+bool Position::operator<(const Position& p) const { return toLba() < p.toLba(); }
+}  // namespace utils

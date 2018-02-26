@@ -71,7 +71,7 @@ class CDROM {
         CDROM_Status() : _reg(0x18) {}
     };
 
-    int verbose = 0;
+    int verbose = 1;
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
@@ -80,6 +80,7 @@ class CDROM {
     std::deque<uint8_t> CDROM_interrupt;
 
     bool sectorSize = false;  // 0 - 0x800, 1 - 0x924
+    bool report = false;      // generate report on playback?
 
     mips::CPU *cpu = nullptr;
     int readSector = 0;

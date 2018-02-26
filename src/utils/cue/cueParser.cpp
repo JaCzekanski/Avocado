@@ -57,7 +57,7 @@ bool CueParser::parsePregap(std::string& line) {
 }
 
 void CueParser::addTrackToCue() {
-    // ignore is track is not completed
+    // ignore if track is not completed
     if (track.number == 0) return;
 
     // Treat index0 as pregap
@@ -126,4 +126,4 @@ std::unique_ptr<Cue> CueParser::parse(const char* path) {
     if (cue.getTrackCount() == 0) return nullptr;
     return std::make_unique<Cue>(cue);
 }
-}
+}  // namespace utils

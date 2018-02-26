@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include "mips.h"
+#include "sound/audio_cd.h"
 #include "utils/bcd.h"
 
 #define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(cpu->dma->dma[3].get())
@@ -24,6 +25,41 @@ void CDROM::step() {
         if (++cnt == 500) {
             cnt = 0;
             ackMoreData();
+        }
+    }
+
+    static int reportcnt = 0;
+    if (report && stat.play && reportcnt++ == 4000) {
+        reportcnt = 0;
+        // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
+        auto pos = AudioCD::currentPosition;
+
+        int track = 0;
+        for (int i = 0; i < cue.getTrackCount(); i++) {
+            if (pos >= cue.getTrackStart(i) && pos < cue.getTrackEnd(i)) {
+                track = i;
+                break;
+            }
+        }
+
+        auto posInTrack = pos - cue.getTrackStart(track);
+
+        CDROM_interrupt.push_back(1);
+        writeResponse(stat._reg);           // stat
+        writeResponse(track);               // track
+        writeResponse(0x01);                // index
+        writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
+        writeResponse(bcd::toBcd(pos.ss));  // second (disc)
+        writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
+        writeResponse(bcd::toBcd(0));       // peaklo
+        writeResponse(bcd::toBcd(0));       // peakhi
+
+        if (verbose) {
+            printf("CDROM: CDDA report -> (");
+            for (auto r : CDROM_response) {
+                printf("0x%02x,", r);
+            }
+            printf(")\n");
         }
     }
 }
@@ -113,6 +149,8 @@ void CDROM::cmdPlay() {
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    AudioCD::play(cue, pos);
 }
 
 void CDROM::cmdReadN() {
@@ -142,9 +180,12 @@ void CDROM::cmdStop() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+
+    AudioCD::stop();
 }
 
 void CDROM::cmdPause() {
+    printf("CDROM: PAUSE\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -152,6 +193,8 @@ void CDROM::cmdPause() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+
+    AudioCD::stop();
 }
 
 void CDROM::cmdInit() {
@@ -191,10 +234,13 @@ void CDROM::cmdSetmode() {
     CDROM_params.pop_front();
 
     sectorSize = setmode & (1 << 5) ? true : false;
+    report = setmode & (1 << 2) ? true : false;
     dma3->sectorSize = sectorSize;
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    printf("CDROM: cmdSetmode: 0x%02x\n", setmode);
 }
 
 void CDROM::cmdSetSession() {
@@ -219,6 +265,7 @@ void CDROM::cmdSeekP() {
 }
 
 void CDROM::cmdGetlocL() {
+    printf("CDROM: cmdGetlocL\n");
     // TODO: Invalid implementation, but allows GTA2 to run
     uint32_t tmp = readSector + 2 * 75;
     uint32_t minute = tmp / 75 / 60;
@@ -237,20 +284,33 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    uint32_t tmp = readSector + 2 * 75;
-    uint32_t minute = tmp / 75 / 60;
-    uint32_t second = (tmp / 75) % 60;
-    uint32_t sector = tmp % 75;
+    auto pos = AudioCD::currentPosition;
+
+    int track = 0;
+    for (int i = 0; i < cue.getTrackCount(); i++) {
+        if (pos >= cue.getTrackStart(i) && pos < cue.getTrackEnd(i)) {
+            track = i;
+            break;
+        }
+    }
+
+    auto posInTrack = pos - cue.getTrackStart(track);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(0x01);                // track
-    writeResponse(0x01);                // index
-    writeResponse(bcd::toBcd(minute));  // minute (track)
-    writeResponse(bcd::toBcd(second));  // second (track)
-    writeResponse(bcd::toBcd(sector));  // sector (track)
-    writeResponse(bcd::toBcd(minute));  // minute (disc)
-    writeResponse(bcd::toBcd(second));  // second (disc)
-    writeResponse(bcd::toBcd(sector));  // sector (disc)
+    writeResponse(track);                      // track
+    writeResponse(0x01);                       // index
+    writeResponse(bcd::toBcd(posInTrack.mm));  // minute (track)
+    writeResponse(bcd::toBcd(posInTrack.ss));  // second (track)
+    writeResponse(bcd::toBcd(posInTrack.ff));  // sector (track)
+    writeResponse(bcd::toBcd(pos.mm));         // minute (disc)
+    writeResponse(bcd::toBcd(pos.ss));         // second (disc)
+    writeResponse(bcd::toBcd(pos.ff));         // sector (disc)
+
+    printf("CDROM: cmdGetlocP -> (");
+    for (auto r : CDROM_response) {
+        printf("0x%02x,", r);
+    }
+    printf(")\n");
 }
 
 void CDROM::cmdGetTN() {
@@ -277,7 +337,8 @@ void CDROM::cmdGetTD() {
             return;
         }
 
-        auto start = cue.tracks.at(track - 1).start;
+        auto start = cue.getTrackStart(track - 1);
+        //        auto start = cue.tracks.at(track - 1).start;
         if (track == 1) start.ss += 2;
         printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
         writeResponse(bcd::toBcd(start.mm));
@@ -321,6 +382,25 @@ void CDROM::cmdGetId() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
+    // No CD
+    if (cue.getTrackCount() == 0) {
+        CDROM_interrupt.push_back(5);
+        writeResponse(0x08);
+        writeResponse(0x40);
+        for (int i = 0; i < 6; i++) writeResponse(0);
+        return;
+    }
+
+    // Audio CD
+    if (cue.tracks[0].type == utils::Track::Type::AUDIO) {
+        CDROM_interrupt.push_back(5);
+        writeResponse(0x0a);
+        writeResponse(0x90);
+        for (int i = 0; i < 6; i++) writeResponse(0);
+        return;
+    }
+
+    // Game C
     CDROM_interrupt.push_back(2);
     writeResponse(0x02);
     writeResponse(0x00);

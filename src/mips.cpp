@@ -475,7 +475,7 @@ bool CPU::loadBios(std::string path) {
         printf("Cannot open BIOS %s", path.c_str());
         return false;
     }
-    assert(_bios.size() == 512 * 1024);
+    //    assert(_bios.size() == 512 * 1024);
     copy(_bios.begin(), _bios.end(), bios);
     state = State::run;
     return true;

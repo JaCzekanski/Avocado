@@ -8,6 +8,7 @@
 #include "platform/windows/config.h"
 #include "platform/windows/gui/gui.h"
 #include "renderer/opengl/opengl.h"
+#include "sound/audio_cd.h"
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "utils/string.h"
@@ -171,7 +172,7 @@ void hardReset() {
 int start(int argc, char** argv) {
     loadConfigFile(CONFIG_NAME);
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
         printf("Cannot init SDL\n");
         return 1;
     }
@@ -199,6 +200,8 @@ int start(int argc, char** argv) {
         printf("Cannot setup graphics\n");
         return 1;
     }
+
+    AudioCD::init();
 
     hardReset();
 
@@ -329,6 +332,8 @@ int start(int argc, char** argv) {
         SDL_GL_SwapWindow(window);
     }
     saveConfigFile(CONFIG_NAME);
+
+    AudioCD::close();
     ImGui_ImplSdlGL3_Shutdown();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

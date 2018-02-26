@@ -1,9 +1,11 @@
 #pragma once
+#include <cstdio>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 #include "position.h"
 #include "track.h"
 #include "utils/file.h"
-#include <vector>
-#include <memory>
 
 namespace utils {
 struct Cue {
@@ -13,10 +15,16 @@ struct Cue {
     Position getDiskSize() const;
     int getTrackCount() const;
     Position getTrackLength(int track) const;
+    Position getTrackStart(int track);
+    Position getTrackEnd(int track);
 
     void seekTo();
+    std::vector<uint8_t> read(Position& pos, size_t bytes);
     // read method
 
     static std::unique_ptr<Cue> fromBin(const char* file);
+
+   private:
+    std::unordered_map<std::string, std::shared_ptr<FILE>> files;
 };
-}
+}  // namespace utils
