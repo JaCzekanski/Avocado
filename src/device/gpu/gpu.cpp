@@ -113,7 +113,7 @@ void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
     RGB c[2] = {};
 
     for (int i = 0; i < arg.getArgumentCount() - 1; i++) {
-        if (arguments[ptr] == 0x55555555) break;
+        if (arguments[ptr] == 0x50005000 || arguments[ptr] == 0x55555555) break;
         if (i == 0) {
             x[0] = arguments[ptr] & 0xffff;
             y[0] = (arguments[ptr++] & 0xffff0000) >> 16;
@@ -426,7 +426,7 @@ void GPU::writeGP0(uint32_t data) {
 
     if (currentArgument < argumentCount) {
         arguments[currentArgument++] = data;
-        if (argumentCount == MAX_ARGS && data == 0x55555555) argumentCount = currentArgument;
+        if (argumentCount == MAX_ARGS && (data == 0x50005000 || data == 0x55555555)) argumentCount = currentArgument;
         if (currentArgument != argumentCount) return;
     }
 
