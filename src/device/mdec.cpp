@@ -11,14 +11,14 @@ void MDEC::reset() {
     status._reg = 0x80040000;
 }
 
-uint8_t MDEC::read(uint32_t address) {
+uint32_t MDEC::read(uint32_t address) {
     return 0;
-    // printf("MDEC read @ 0x%02x\n", address);
+    //     printf("MDEC read @ 0x%02x\n", address);
     if (address < 4) {
-        return data.read(address);
+        return data._reg;
     }
     if (address >= 4 && address < 8) {
-        return status.read(address - 4);
+        return status._reg;
     }
 
     assert(false && "UNHANDLED MDEC READ");
@@ -42,28 +42,26 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
     }
 }
 
-void MDEC::write(uint32_t address, uint8_t data) {
+void MDEC::write(uint32_t address, uint32_t data) {
     printf("MDEC write @ 0x%02x: 0x%02x\n", address, data);
     if (address < 4) {
-        command.write(address, data);
-        if (address == 3) {
-            if (paramCount == 0)
-                handleCommand((command._reg >> 29) & 0x07, command._reg & 0x1FFFFFFF);
-            else {
-                paramCount--;
-                status._reg &= 0xffff0000;
-                status._reg |= (paramCount - 1) & 0xffff;
-            }
+        command._reg = data;
+
+        if (paramCount == 0)
+            handleCommand((command._reg >> 29) & 0x07, command._reg & 0x1FFFFFFF);
+        else {
+            paramCount--;
+            status._reg &= 0xffff0000;
+            status._reg |= (paramCount - 1) & 0xffff;
         }
         return;
     }
     if (address >= 4 && address < 8) {
-        _control.write(address, data);
-        if (address == 7) {
-            if (_control.getBit(31)) reset();
-            status.setBit(30, _control.getBit(28));
-            status.setBit(29, _control.getBit(27));
-        }
+        _control._reg = data;
+
+        if (_control.getBit(31)) reset();
+        status.setBit(30, _control.getBit(28));
+        status.setBit(29, _control.getBit(27));
         return;
     }
 

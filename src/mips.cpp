@@ -95,6 +95,51 @@ INLINE void write_io(Device& periph, uint32_t addr, T data) {
     }
 }
 
+#ifdef ENABLE_IO_LOG
+#define LOG_IO(mode, size, addr, data) ioLogList.push_back({(mode), (size), (addr), (data)})
+#else
+#define LOG_IO(mode, size, addr, data)
+#endif
+
+#define READ_IO(begin, end, periph)                                     \
+    if (addr >= (begin) && addr < (end)) {                              \
+        auto data = read_io<T>((periph), addr - (begin));               \
+                                                                        \
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data); \
+        return data;                                                    \
+    }
+
+#define READ_IO32(begin, end, periph)                                                                          \
+    if (addr >= (begin) && addr < (end)) {                                                                     \
+        T data = 0;                                                                                            \
+        if (sizeof(T) == 4)                                                                                    \
+            data = (periph)->read(addr - (begin));                                                             \
+        else                                                                                                   \
+            printf("R Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
+                                                                                                               \
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data);                                        \
+        return data;                                                                                           \
+    }
+
+#define WRITE_IO(begin, end, periph)                                     \
+    if (addr >= (begin) && addr < (end)) {                               \
+        write_io<T>((periph), addr - (begin), data);                     \
+                                                                         \
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data); \
+        return;                                                          \
+    }
+
+#define WRITE_IO32(begin, end, periph)                                                                         \
+    if (addr >= (begin) && addr < (end)) {                                                                     \
+        if (sizeof(T) == 4)                                                                                    \
+            (periph)->write(addr - (begin), data);                                                             \
+        else                                                                                                   \
+            printf("W Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
+                                                                                                               \
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data);                                       \
+        return;                                                                                                \
+    }
+
 template <typename T>
 INLINE T CPU::readMemory(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
@@ -114,9 +159,6 @@ INLINE T CPU::readMemory(uint32_t address) {
     if (addr >= 0x1f800000 && addr < 0x1f800400) return read_fast<T>(scratchpad, addr - 0x1f800000);
     if (addr >= 0x1fc00000 && addr < 0x1fc80000) return read_fast<T>(bios, addr - 0x1fc00000);
 
-#define IO(begin, end, periph) \
-    if (addr >= (begin) && addr < (end)) return read_io<T>((periph), addr - (begin))
-
     // IO Ports
     if (addr >= 0x1f801000 && addr <= 0x1f803000) {
         addr -= 0x1f801000;
@@ -127,30 +169,22 @@ INLINE T CPU::readMemory(uint32_t address) {
             }
         }
 
-        IO(0x00, 0x24, memoryControl);
-        IO(0x40, 0x50, controller);
-        IO(0x50, 0x60, serial);
-        IO(0x60, 0x64, memoryControl);
-        IO(0x70, 0x78, interrupt);
-        IO(0x80, 0x100, dma);
-        IO(0x100, 0x110, timer0);
-        IO(0x110, 0x120, timer1);
-        IO(0x120, 0x130, timer2);
-        IO(0x800, 0x804, cdrom);
-        //        IO(0x810, 0x0818, gpu);
-        if (addr >= (0x810) && addr < (0x0818)) {
-            if (sizeof(T) == 4)
-                return gpu->read(addr - 0x810);
-            else
-                printf("W Unsupported access to GPU with bit size: %d\n", static_cast<int>(sizeof(T) * 8));
-        }
-
-        IO(0x820, 0x828, mdec);
-        IO(0xC00, 0x1000, spu);
-        IO(0x1000, 0x1043, expansion2);
+        READ_IO(0x00, 0x24, memoryControl);
+        READ_IO(0x40, 0x50, controller);
+        READ_IO(0x50, 0x60, serial);
+        READ_IO(0x60, 0x64, memoryControl);
+        READ_IO(0x70, 0x78, interrupt);
+        READ_IO(0x80, 0x100, dma);
+        READ_IO(0x100, 0x110, timer0);
+        READ_IO(0x110, 0x120, timer1);
+        READ_IO(0x120, 0x130, timer2);
+        READ_IO(0x800, 0x804, cdrom);
+        READ_IO32(0x810, 0x0818, gpu);
+        READ_IO32(0x820, 0x828, mdec);
+        READ_IO(0xC00, 0x1000, spu);
+        READ_IO(0x1000, 0x1043, expansion2);
         printf("R Unhandled IO at 0x%08x\n", addr + 0x1f801000);
     }
-#undef IO
 
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
         printf("R Unhandled memory control\n");
@@ -185,35 +219,26 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
         return write_fast<T>(scratchpad, addr - 0x1f800000, data);
     }
 
-#define IO(begin, end, periph) \
-    if (addr >= (begin) && addr < (end)) return write_io<T>((periph), addr - (begin), data);
-
     // IO Ports
     if (addr >= 0x1f801000 && addr <= 0x1f803000) {
         addr -= 0x1f801000;
 
-        IO(0x00, 0x24, memoryControl);
-        IO(0x40, 0x50, controller);
-        IO(0x50, 0x60, serial);
-        IO(0x60, 0x64, memoryControl);
-        IO(0x70, 0x78, interrupt);
-        IO(0x80, 0x100, dma);
-        IO(0x100, 0x110, timer0);
-        IO(0x110, 0x120, timer1);
-        IO(0x120, 0x130, timer2);
-        IO(0x800, 0x804, cdrom);
-        if (addr >= (0x810) && addr < (0x0818)) {
-            if (sizeof(T) == 4)
-                return gpu->write(addr - 0x810, data);
-            else
-                printf("W Unsupported access to GPU with bit size: %d\n", static_cast<int>(sizeof(T) * 8));
-        }
-        IO(0x820, 0x828, mdec);
-        IO(0xC00, 0x1000, spu);
-        IO(0x1000, 0x1043, expansion2);
+        WRITE_IO(0x00, 0x24, memoryControl);
+        WRITE_IO(0x40, 0x50, controller);
+        WRITE_IO(0x50, 0x60, serial);
+        WRITE_IO(0x60, 0x64, memoryControl);
+        WRITE_IO(0x70, 0x78, interrupt);
+        WRITE_IO(0x80, 0x100, dma);
+        WRITE_IO(0x100, 0x110, timer0);
+        WRITE_IO(0x110, 0x120, timer1);
+        WRITE_IO(0x120, 0x130, timer2);
+        WRITE_IO(0x800, 0x804, cdrom);
+        WRITE_IO32(0x810, 0x0818, gpu);
+        WRITE_IO32(0x820, 0x828, mdec);
+        WRITE_IO(0xC00, 0x1000, spu);
+        WRITE_IO(0x1000, 0x1043, expansion2);
         printf("W Unhandled IO at 0x%08x: 0x%02x\n", addr, data);
     }
-#undef IO
 
     // Cache control
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
@@ -224,51 +249,17 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
     printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
 }
 
-#ifdef ENABLE_IO_LOG
-#define LOG_IO(mode, size, addr, data)                             \
-    do {                                                           \
-        if ((addr) >= 0x1f801000 && (addr) <= 0x1f803000) {        \
-            ioLogList.push_back({(mode), (size), (addr), (data)}); \
-        }                                                          \
-    } while (0)
-#else
-#define LOG_IO(mode, size, addr, data) \
-    do {                               \
-    } while (0)
-#endif
+uint8_t CPU::readMemory8(uint32_t address) { return readMemory<uint8_t>(address); }
 
-uint8_t CPU::readMemory8(uint32_t address) {
-    uint8_t data = readMemory<uint8_t>(address);
-    LOG_IO(IO_LOG_ENTRY::MODE::READ, 8, address, data);
-    return data;
-}
+uint16_t CPU::readMemory16(uint32_t address) { return readMemory<uint16_t>(address); }
 
-uint16_t CPU::readMemory16(uint32_t address) {
-    uint16_t data = readMemory<uint16_t>(address);
-    LOG_IO(IO_LOG_ENTRY::MODE::READ, 16, address, data);
-    return data;
-}
+uint32_t CPU::readMemory32(uint32_t address) { return readMemory<uint32_t>(address); }
 
-uint32_t CPU::readMemory32(uint32_t address) {
-    uint32_t data = readMemory<uint32_t>(address);
-    LOG_IO(IO_LOG_ENTRY::MODE::READ, 32, address, data);
-    return data;
-}
+void CPU::writeMemory8(uint32_t address, uint8_t data) { writeMemory<uint8_t>(address, data); }
 
-void CPU::writeMemory8(uint32_t address, uint8_t data) {
-    LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 8, address, data);
-    writeMemory<uint8_t>(address, data);
-}
+void CPU::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16_t>(address, data); }
 
-void CPU::writeMemory16(uint32_t address, uint16_t data) {
-    LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 16, address, data);
-    writeMemory<uint16_t>(address, data);
-}
-
-void CPU::writeMemory32(uint32_t address, uint32_t data) {
-    LOG_IO(IO_LOG_ENTRY::MODE::WRITE, 32, address, data);
-    writeMemory<uint32_t>(address, data);
-}
+void CPU::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
 
 void CPU::printFunctionInfo(int type, uint8_t number, bios::Function f) {
     printf("  BIOS %02X(%02x): %s(", type, number, f.name);

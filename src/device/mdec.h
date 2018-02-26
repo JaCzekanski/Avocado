@@ -1,6 +1,6 @@
 #pragma once
-#include "device.h"
 #include <deque>
+#include "device.h"
 
 class MDEC {
     static const uint32_t BASE_ADDRESS = 0x1f801820;
@@ -18,7 +18,7 @@ class MDEC {
    public:
     MDEC();
     void step();
-    uint8_t read(uint32_t address);
+    uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
-    void write(uint32_t address, uint8_t data);
+    void write(uint32_t address, uint32_t data);
 };

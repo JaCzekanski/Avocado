@@ -278,7 +278,7 @@ void CDROM::cmdGetTD() {
         }
 
         auto start = cue.tracks.at(track - 1).start;
-        start.ss += 2;
+        if (track == 1) start.ss += 2;
         printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
         writeResponse(bcd::toBcd(start.mm));
         writeResponse(bcd::toBcd(start.ss));
