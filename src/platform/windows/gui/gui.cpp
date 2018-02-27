@@ -17,6 +17,7 @@ void disassemblyWindow(mips::CPU* cpu);
 void breakpointsWindow(mips::CPU* cpu);
 void watchWindow(mips::CPU* cpu);
 void ramWindow(mips::CPU* cpu);
+void cdromWindow(mips::CPU* cpu);
 
 int vramTextureId = 0;
 bool gteRegistersEnabled = false;
@@ -37,6 +38,7 @@ bool showDisassemblyWindow = false;
 bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
+bool showCdromWindow = true;
 
 void renderImgui(mips::CPU* cpu) {
     auto gte = cpu->gte;
@@ -79,6 +81,7 @@ void renderImgui(mips::CPU* cpu) {
             ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
             ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
             ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
+            ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Options")) {
@@ -102,6 +105,7 @@ void renderImgui(mips::CPU* cpu) {
     if (showDisassemblyWindow) disassemblyWindow(cpu);
     if (showBreakpointsWindow) breakpointsWindow(cpu);
     if (showWatchWindow) watchWindow(cpu);
+    if (showCdromWindow) cdromWindow(cpu);
 
     // Options
     if (showBiosWindow) biosSelectionWindow();

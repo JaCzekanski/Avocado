@@ -15,11 +15,9 @@ struct Cue {
     Position getDiskSize() const;
     int getTrackCount() const;
     Position getTrackLength(int track) const;
-    Position getTrackStart(int track);
-    Position getTrackEnd(int track);
 
     void seekTo();
-    std::vector<uint8_t> read(Position& pos, size_t bytes);
+    std::vector<uint8_t> read(Position& pos, size_t bytes, bool audio = false);
     // read method
 
     static std::unique_ptr<Cue> fromBin(const char* file);

@@ -11,7 +11,7 @@ SDL_AudioDeviceID dev = 0;
 Cue currentCue;
 
 void audioCallback(void* userdata, Uint8* raw_stream, int len) {
-    auto bytes = currentCue.read(AudioCD::currentPosition, len);
+    auto bytes = currentCue.read(AudioCD::currentPosition, len, true);
     AudioCD::currentPosition = AudioCD::currentPosition + Position(0, 0, 4);
     uint8_t* samples = (uint8_t*)bytes.data();
 
@@ -51,7 +51,7 @@ void AudioCD::init() {
 
 void AudioCD::play(Cue& cue, Position& position) {
     currentCue = cue;
-    currentPosition = position;  // +Position(0, 0, 8);
+    currentPosition = position;
 
     SDL_PauseAudioDevice(dev, false);
 }

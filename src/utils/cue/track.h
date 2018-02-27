@@ -13,14 +13,14 @@ struct Track {
     // Pregap is not included
     // Pause is included in image
 
-    Position pregap;  // size, not position
-    Position pause;
+    Position pregap;  // Length, not included in image
+    Position pause;   // Length, included in image
     Position start;
     Position end;
 
+    size_t offsetInFile = 0;
     size_t size;
-    Position _index0;  // not used
 
     Position getTrackSize() const;
 };
-}
+}  // namespace utils

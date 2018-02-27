@@ -1,6 +1,6 @@
 #pragma once
-#include "utils/file.h"
 #include "dmaChannel.h"
+#include "utils/file.h"
 
 namespace device {
 namespace dma {
@@ -73,7 +73,7 @@ class DMA3Channel : public DMAChannel {
     }
 
     void seekTo(uint32_t destSector) {
-        sector = destSector;
+        sector = destSector - 150;
         doSeek = true;
         bytesReaded = 0;
     }
@@ -92,6 +92,6 @@ class DMA3Channel : public DMAChannel {
         return buffer[bytesReaded++];
     }
 };
-}
-}
-}
+}  // namespace dmaChannel
+}  // namespace dma
+}  // namespace device

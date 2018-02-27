@@ -1,8 +1,8 @@
 #pragma once
+#include <memory>
+#include <regex>
 #include "cue.h"
 #include "track.h"
-#include <regex>
-#include <memory>
 
 namespace utils {
 class CueParser {
@@ -17,6 +17,10 @@ class CueParser {
     Cue cue;
     Track track;
 
+    Position index0;
+
+    Position globalOffset;
+
     bool parseFile(std::string& line);
     bool parseTrack(std::string& line);
     bool parseIndex(std::string& line);
@@ -28,4 +32,4 @@ class CueParser {
    public:
     std::unique_ptr<Cue> parse(const char* path);
 };
-}
+}  // namespace utils

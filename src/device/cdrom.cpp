@@ -36,13 +36,13 @@ void CDROM::step() {
 
         int track = 0;
         for (int i = 0; i < cue.getTrackCount(); i++) {
-            if (pos >= cue.getTrackStart(i) && pos < cue.getTrackEnd(i)) {
+            if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
                 track = i;
                 break;
             }
         }
 
-        auto posInTrack = pos - cue.getTrackStart(track);
+        auto posInTrack = pos - cue.tracks[track].start;
 
         CDROM_interrupt.push_back(1);
         writeResponse(stat._reg);           // stat
@@ -117,12 +117,6 @@ void CDROM::cmdSetloc() {
     if (verbose) printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
 
     readSector = sector + (second * 75) + (minute * 60 * 75);
-    readSector -= 2 * 75;
-
-    if (readSector < 0) {
-        printf("cmdSetloc < 0!\n");
-        readSector = 0;
-    }
     dma3->seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
@@ -141,7 +135,7 @@ void CDROM::cmdPlay() {
         pos = cue.tracks[track].start;
         printf("CDROM: PLAY (track: %d)\n", track);
     } else {
-        pos = utils::Position::fromLba(readSector + 150);
+        pos = utils::Position::fromLba(readSector);
     }
 
     printf("CDROM: PLAY (pos: %s)\n", pos.toString().c_str());
@@ -288,13 +282,13 @@ void CDROM::cmdGetlocP() {
 
     int track = 0;
     for (int i = 0; i < cue.getTrackCount(); i++) {
-        if (pos >= cue.getTrackStart(i) && pos < cue.getTrackEnd(i)) {
+        if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
             track = i;
             break;
         }
     }
 
-    auto posInTrack = pos - cue.getTrackStart(track);
+    auto posInTrack = pos - cue.tracks[track].start;
 
     CDROM_interrupt.push_back(3);
     writeResponse(track);                      // track
@@ -337,9 +331,8 @@ void CDROM::cmdGetTD() {
             return;
         }
 
-        auto start = cue.getTrackStart(track - 1);
-        //        auto start = cue.tracks.at(track - 1).start;
-        if (track == 1) start.ss += 2;
+        auto start = cue.tracks[track - 1].start - cue.tracks[track - 1].pause;
+
         printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
         writeResponse(bcd::toBcd(start.mm));
         writeResponse(bcd::toBcd(start.ss));

@@ -13,26 +13,7 @@ int Cue::getTrackCount() const { return tracks.size(); }
 
 Position Cue::getTrackLength(int track) const { return tracks.at(track).getTrackSize(); }
 
-Position Cue::getTrackStart(int track) {
-    Position start;
-    if (track == 0) {
-        return tracks[0].start;
-    }
-
-    if (tracks[track].filename == tracks[0].filename) {
-        return tracks[track].start;
-    }
-
-    for (int i = 0; i < track; i++) {
-        start = start + tracks[i].getTrackSize();
-    }
-    start = start;
-    return start;
-}
-
-Position Cue::getTrackEnd(int track) { return getTrackStart(track) + tracks[track].getTrackSize(); }
-
-std::vector<uint8_t> Cue::read(Position& pos, size_t bytes) {
+std::vector<uint8_t> Cue::read(Position& pos, size_t bytes, bool audio) {
     // 1. Iterate through tracks and find if pos >= track.start && pos < track.end
     // 2. Open file if not in cache
     // 3. read n bytes
@@ -40,8 +21,10 @@ std::vector<uint8_t> Cue::read(Position& pos, size_t bytes) {
     auto buffer = std::vector<uint8_t>();
 
     for (int i = 0; i < getTrackCount(); i++) {
-        if (pos >= getTrackStart(i) && pos < getTrackEnd(i)) {
-            auto track = tracks[i];
+        auto track = tracks[i];
+
+        if (pos >= (track.start - track.pause) && pos < track.end) {
+            if (audio && track.type != Track::Type::AUDIO) break;
 
             if (files.find(track.filename) == files.end()) {
                 FILE* f = fopen(track.filename.c_str(), "rb");
@@ -55,8 +38,8 @@ std::vector<uint8_t> Cue::read(Position& pos, size_t bytes) {
 
             auto file = files[track.filename];
 
-            auto seek = pos - getTrackStart(i);
-            fseek(file.get(), seek.toLba() * 2352, SEEK_SET);
+            auto seek = pos - track.start;
+            fseek(file.get(), track.offsetInFile + seek.toLba() * 2352, SEEK_SET);
 
             buffer.resize(bytes);
             fread(buffer.data(), bytes, 1, file.get());
@@ -74,6 +57,7 @@ std::unique_ptr<Cue> Cue::fromBin(const char* file) {
     Track t;
     t.filename = file;
     t.number = 1;
+    t.offsetInFile = 0;
     t.size = size;
     t.type = Track::Type::DATA;
     t.start = Position(0, 0, 0);

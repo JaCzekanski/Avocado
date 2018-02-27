@@ -35,9 +35,15 @@ bool CueParser::parseIndex(std::string& line) {
     int ss = stoi(matches[3].str());
     int ff = stoi(matches[4].str());
     if (index == 0) {
-        track._index0 = {mm, ss, ff};
+        index0 = {mm, ss, ff};
     } else if (index == 1) {
         track.start = {mm, ss, ff};
+
+        if (track.number == 1 && track.type == Track::Type::DATA) {
+            // Even though Index1 points to 00:00:00
+            // binary file of first track (data) cointains data from 00:02:00, not 00:00:00.
+            // Two seconds are missing and this code adapts for that
+        }
 
         addTrackToCue();
     }
@@ -62,36 +68,66 @@ void CueParser::addTrackToCue() {
 
     // Treat index0 as pregap
     // Pregap and index0 are mutually exclusive
-    if (track._index0.toLba() != 0) {
-        track.pause = track.start - track._index0;
+    if (track.number > 1 && track.pregap.toLba() == 0) {
+        track.pause = track.start - index0;
     }
     track.filename = lastFile;
     track.size = getFileSize(lastFile);
 
+    track.start = globalOffset + track.start + track.pregap;
+
     cue.tracks.push_back(track);
     track = Track();
+    index0 = Position(0, 0, 0);
 }
 
 void CueParser::fixTracksLength() {
-    // Adjust previous track size:
-    // - If filename is the same - prev.end = next.start
-    // - If filenames are different - prev.end = prev.size / SECTOR_SIZE
+    if (cue.getTrackCount() == 1) {
+        Track& track = cue.tracks[0];
 
-    for (size_t i = 0; i < cue.tracks.size(); i++) {
-        Track& prev = cue.tracks.at(i);
+        track.offsetInFile = 0;
+        track.end = Position::fromLba(track.size / Track::SECTOR_SIZE);
+        return;
+    }
 
-        if (i == cue.tracks.size() - 1) {
-            prev.end = Position::fromLba(prev.size / Track::SECTOR_SIZE);
-            return;
+    Position lastEnd = globalOffset;
+
+    for (int i = 0; i < cue.getTrackCount(); i++) {
+        Track& t = cue.tracks[i];
+        // last track
+        // fix length for last track
+        if (i == cue.getTrackCount() - 1) {
+            t.end = lastEnd + Position::fromLba(t.size / Track::SECTOR_SIZE);
+
+            break;
         }
 
-        Track& next = cue.tracks.at(i + 1);
+        Track& n = cue.tracks[i + 1];
 
-        if (prev.filename == next.filename) {
-            prev.end = next.start - next.pause;
+        if (t.filename == n.filename) {
+            t.end = n.start - (n.pregap + n.pause) + t.pregap;
+            n.offsetInFile = t.end.toLba() * Track::SECTOR_SIZE;
         } else {
-            prev.end = Position::fromLba(prev.size / Track::SECTOR_SIZE);
+            t.offsetInFile = 0;
+            t.end = Position::fromLba(t.size / Track::SECTOR_SIZE) + lastEnd;
+            n.start = n.start + t.end;
+
+            lastEnd = t.end;
         }
+
+        //        Track& prev = cue.tracks[i - 1];
+        //        Track& next = cue.tracks[i];
+        //
+        //        // Separate bin files
+        //        if (next.filename != prev.filename) {
+        //            prev.end = prev.start + Position::fromLba(prev.size / Track::SECTOR_SIZE);
+        //            next.start = next.start + prev.end;
+        //            next.offsetInFile = 0;
+        //        } else {
+        //            // Single bin
+        //            prev.end = next.start - (next.pregap + next.pause);
+        //            next.offsetInFile = prev.end.toLba() * Track::SECTOR_SIZE;
+        //        }
     }
 }
 
@@ -106,6 +142,8 @@ std::unique_ptr<Cue> CueParser::parse(const char* path) {
     cuePath = getPath(path);
     auto contents = getFileContentsAsString(path);
     if (contents.empty()) return nullptr;
+
+    globalOffset = Position(0, 2, 0);
 
     cue.file = path;
 
