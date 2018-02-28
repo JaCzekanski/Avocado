@@ -38,7 +38,7 @@ bool showDisassemblyWindow = false;
 bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
-bool showCdromWindow = true;
+bool showCdromWindow = false;
 
 void renderImgui(mips::CPU* cpu) {
     auto gte = cpu->gte;
