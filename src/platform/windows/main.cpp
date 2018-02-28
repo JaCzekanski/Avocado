@@ -169,7 +169,49 @@ void hardReset() {
     }
 }
 
-int start(int argc, char** argv) {
+// Warning: this method might have 1 or more miliseconds of inaccuracy.
+void limitFramerate(SDL_Window* window, bool framelimiter) {
+    static double counterFrequency = SDL_GetPerformanceFrequency();
+    static double startTime = SDL_GetPerformanceCounter() / counterFrequency;
+    static double fps;
+    static double fpsTime = 0.0;
+    static int deltaFrames = 0;
+
+    double currentTime = SDL_GetPerformanceCounter() / counterFrequency;
+    double deltaTime = currentTime - startTime;
+
+    if (framelimiter) {
+        while (deltaTime < 1.0 / 60.0) {  // calculate real difference
+            SDL_Delay(1);
+
+            currentTime = SDL_GetPerformanceCounter() / counterFrequency;
+            deltaTime = currentTime - startTime;
+        }
+    }
+
+    startTime = currentTime;
+    fpsTime += deltaTime;
+    deltaFrames++;
+
+    if (fpsTime > 0.25f) {
+        fps = (double)deltaFrames / fpsTime;
+        deltaFrames = 0;
+        fpsTime = 0.0;
+
+        // TODO: Move this part outside method
+        std::string gameName;
+        if (cpu->cdrom->cue.file.empty())
+            gameName = "No CD";
+        else
+            gameName = getFilename(cpu->cdrom->cue.file);
+
+        std::string title = string_format("Avocado: %s - FPS: %.0f (%0.2f ms) %s", gameName.c_str(), fps, (1.0 / fps) * 1000.0,
+                                          !framelimiter ? "unlimited" : "");
+        SDL_SetWindowTitle(window, title.c_str());
+    }
+}
+
+int main(int argc, char** argv) {
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
@@ -220,20 +262,23 @@ int start(int argc, char** argv) {
     else
         cpu->state = mips::CPU::State::run;
 
-    float startTime = SDL_GetTicks() / 1000.f;
-    float fps = 0.f;
-    int deltaFrames = 0;
+    bool frameLimitEnabled = true;
+    bool windowFocused = true;
 
     SDL_Event event;
     while (running && !exitProgram) {
         bool newEvent = false;
-        if (cpu->state != mips::CPU::State::run) {
+        if (cpu->state != mips::CPU::State::run && !windowFocused) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
+            if (event.type == SDL_WINDOWEVENT) {
+                if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
+                if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
+            }
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (waitingForKeyPress) {
                     waitingForKeyPress = false;
@@ -242,7 +287,6 @@ int start(int argc, char** argv) {
                 }
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(interrupt::TIMER2);
-                if (event.key.keysym.sym == SDLK_c) cpu->interrupt->trigger(interrupt::CDROM);
                 if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
                 if (event.key.keysym.sym == SDLK_r) {
@@ -272,6 +316,10 @@ int start(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_q) {
                     showVRAM = !showVRAM;
                 }
+                if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = false;
+            }
+            if (event.type == SDL_KEYUP) {
+                if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = true;
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
@@ -309,27 +357,11 @@ int start(int argc, char** argv) {
         ImGui_ImplSdlGL3_NewFrame(window);
 
         opengl.render(cpu->gpu.get());
-
         renderImgui(cpu.get());
 
-        deltaFrames++;
-        float currentTime = SDL_GetTicks() / 1000.f;
-        if (currentTime - startTime > 0.25f) {
-            fps = (float)deltaFrames / (currentTime - startTime);
-            startTime = currentTime;
-            deltaFrames = 0;
-        }
-
-        std::string gameName;
-        if (cpu->cdrom->cue.file.empty()) {
-            gameName = "No CD";
-        } else {
-            gameName = getFilename(cpu->cdrom->cue.file);
-        }
-
-        std::string title = string_format("Avocado: %s - FPS: %.0f (%0.2f ms)", gameName.c_str(), fps, (1.f / fps) * 1000.f);
-        SDL_SetWindowTitle(window, title.c_str());
         SDL_GL_SwapWindow(window);
+
+        limitFramerate(window, frameLimitEnabled);
     }
     saveConfigFile(CONFIG_NAME);
 
@@ -339,13 +371,4 @@ int start(int argc, char** argv) {
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
-}
-
-int main(int argc, char** argv) {
-    int retval = start(argc, argv);
-    if (retval != 0) {
-        printf("\nPress enter to close");
-        getchar();
-    }
-    return retval;
 }

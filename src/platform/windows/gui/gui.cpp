@@ -41,8 +41,6 @@ bool showRamWindow = false;
 bool showCdromWindow = false;
 
 void renderImgui(mips::CPU* cpu) {
-    auto gte = cpu->gte;
-
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;
@@ -95,11 +93,11 @@ void renderImgui(mips::CPU* cpu) {
     // File
 
     // Debug
-    gteRegistersWindow(gte);
-    ioLogWindow(cpu);
-    gteLogWindow(cpu);
-    gpuLogWindow(cpu);
-    ioWindow(cpu);
+    if (gteRegistersEnabled) gteRegistersWindow(cpu->gte);
+    if (ioLogEnabled) ioLogWindow(cpu);
+    if (gteLogEnabled) gteLogWindow(cpu);
+    if (gpuLogEnabled) gpuLogWindow(cpu);
+    if (showIo) ioWindow(cpu);
     if (showRamWindow) ramWindow(cpu);
     if (showVramWindow) vramWindow();
     if (showDisassemblyWindow) disassemblyWindow(cpu);
