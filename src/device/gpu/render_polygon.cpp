@@ -105,6 +105,12 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                         fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
                         fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
                     );
+
+                    // Texture masking
+                    // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
+                    calculatedTexel.x = (calculatedTexel.x & ~(gpu->gp0_e2.textureWindowMaskX * 8)) | ((gpu->gp0_e2.textureWindowOffsetX &gpu->gp0_e2.textureWindowMaskX) * 8);
+                    calculatedTexel.y = (calculatedTexel.y & ~(gpu->gp0_e2.textureWindowMaskY * 8)) | ((gpu->gp0_e2.textureWindowOffsetY &gpu->gp0_e2.textureWindowMaskY) * 8);
+
                     // clang-format on
                     if (bits == 4) {
                         c = tex4bit(gpu, calculatedTexel, texPage, clut);
