@@ -60,19 +60,19 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 }
 
 void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
-    startX = currX = arguments[1] & 0xffff;
-    startY = currY = (arguments[1] & 0xffff0000) >> 16;
-    endX = startX + (arguments[2] & 0xffff);
-    endY = startY + ((arguments[2] & 0xffff0000) >> 16);
+    // Note: documentation doesn't say anything about clipping to drawing area
+    // but without it textures are being corrupted in some games (THPS2, Tekken)
+    startX = minDrawingX(arguments[1] & 0xffff);
+    startY = minDrawingY((arguments[1] & 0xffff0000) >> 16);
+    endX = maxDrawingX(startX + (arguments[2] & 0xffff));
+    endY = maxDrawingY(startY + ((arguments[2] & 0xffff0000) >> 16));
 
     uint32_t color = to15bit(arguments[0] & 0xffffff);
 
-    for (;;) {
-        VRAM[currY % VRAM_HEIGHT][currX % VRAM_WIDTH] = color;
-
-        if (currX++ >= endX) {
-            currX = startX;
-            if (++currY >= endY) break;
+    // Note: not sure if coords should include last column and row
+    for (int y = startY; y < endY; y++) {
+        for (int x = startX; x < endX; x++) {
+            VRAM[y][x] = color;
         }
     }
 
