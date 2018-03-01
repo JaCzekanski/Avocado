@@ -123,9 +123,25 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                 }
 
                 if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) goto skip_pixel;
-                if (bits != 0 && !(flags & Vertex::RawTexture)) c = c * color[0];
 
-                if (flags & Vertex::SemiTransparency && c.k) {
+                // If texture blending is enabled
+                if (bits != 0 && !(flags & Vertex::RawTexture)) {
+                    glm::vec3 brightness;
+
+                    if (flags & Vertex::GouroudShading) {
+                        brightness = glm::vec3(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
+                                               s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
+                                               s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+                    } else {  // Flat shading
+                        brightness = glm::vec3(color[0]);
+                    }
+
+                    c = c * (brightness * 2.f);
+                }
+
+                // TODO: Mask support
+
+                if ((flags & Vertex::SemiTransparency) && c.k) {
                     using Transparency = GP0_E1::SemiTransparency;
 
                     PSXColor bg = VRAM[p.y][p.x];

@@ -77,9 +77,9 @@ union PSXColor {
     }
 
     PSXColor operator*(const glm::vec3& rhs) {
-        r = std::min<uint16_t>((uint16_t)(rhs.r / 0.5f * r), 31);
-        g = std::min<uint16_t>((uint16_t)(rhs.g / 0.5f * g), 31);
-        b = std::min<uint16_t>((uint16_t)(rhs.b / 0.5f * b), 31);
+        r = std::min<uint16_t>((uint16_t)(rhs.r * r), 31);
+        g = std::min<uint16_t>((uint16_t)(rhs.g * g), 31);
+        b = std::min<uint16_t>((uint16_t)(rhs.b * b), 31);
         return *this;
     }
 };

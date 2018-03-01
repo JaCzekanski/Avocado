@@ -101,6 +101,7 @@ void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
     int flags = 0;
     if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
     if (arg.isRawTexture) flags |= Vertex::RawTexture;
+    if (arg.gouroudShading) flags |= Vertex::GouroudShading;
     if (gp0_e1.dither24to15) flags |= Vertex::Dithering;
     drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, flags);
 
