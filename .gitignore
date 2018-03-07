@@ -67,3 +67,5 @@ config.json
 /.vscode/
 
 /*.json
+
+src/version.h

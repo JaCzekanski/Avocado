@@ -12,6 +12,7 @@
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "utils/string.h"
+#include "version.h"
 
 #undef main
 
@@ -205,8 +206,8 @@ void limitFramerate(SDL_Window* window, bool framelimiter) {
         else
             gameName = getFilename(cpu->cdrom->cue.file);
 
-        std::string title = string_format("Avocado: %s - FPS: %.0f (%0.2f ms) %s", gameName.c_str(), fps, (1.0 / fps) * 1000.0,
-                                          !framelimiter ? "unlimited" : "");
+        std::string title = string_format("Avocado %s | %s | FPS: %.0f (%0.2f ms) %s", BUILD_STRING, gameName.c_str(), fps,
+                                          (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
