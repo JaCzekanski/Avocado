@@ -287,7 +287,6 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_BACKQUOTE) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
@@ -295,6 +294,7 @@ int main(int argc, char** argv) {
                     cpu->dumpRam();
                     cpu->spu->dumpRam();
                 }
+                if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_F2) {
                     cpu->softReset();
                 }

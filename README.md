@@ -37,8 +37,8 @@ To load .cue/.bin/.img file just drag and drop it.
 
 ## Controls
 
-- **~** (tilda) - hide GUI
 - **Space** - pause/resume emulation
+- **F1** - hide GUI
 - **F2** - soft reset
 - **F7** - single frame
 - **Tab** - disable framelimiting
