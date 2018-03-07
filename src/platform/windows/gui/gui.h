@@ -3,6 +3,7 @@
 #include "mips.h"
 
 void renderImgui(mips::CPU *cpu);
+extern bool showGui;
 extern int vramTextureId;
 extern bool gteRegistersEnabled;
 extern bool ioLogEnabled;

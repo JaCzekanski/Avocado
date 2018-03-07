@@ -4,6 +4,7 @@
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
 #include "platform/windows/config.h"
+#include "version.h"
 
 void openFileWindow();
 
@@ -18,6 +19,8 @@ void breakpointsWindow(mips::CPU* cpu);
 void watchWindow(mips::CPU* cpu);
 void ramWindow(mips::CPU* cpu);
 void cdromWindow(mips::CPU* cpu);
+
+bool showGui = true;
 
 int vramTextureId = 0;
 bool gteRegistersEnabled = false;
@@ -40,74 +43,92 @@ bool showWatchWindow = false;
 bool showRamWindow = false;
 bool showCdromWindow = false;
 
+bool showAboutWindow = false;
+
+void aboutWindow() {
+    ImGui::Begin("About", &showAboutWindow);
+    ImGui::Text("Avocado %s", BUILD_STRING);
+    ImGui::Text("Build date: %s", BUILD_DATE);
+    ImGui::End();
+}
+
 void renderImgui(mips::CPU* cpu) {
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Emulation")) {
-            if (ImGui::MenuItem("Soft reset", "F2")) cpu->softReset();
-            if (ImGui::MenuItem("Hard reset")) doHardReset = true;
-
-            const char* shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
-            if (ImGui::MenuItem(shellStatus, "F3")) {
-                cpu->cdrom->toggleShell();
+    if (showGui) {
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;
+                ImGui::EndMenu();
             }
+            if (ImGui::BeginMenu("Emulation")) {
+                if (ImGui::MenuItem("Soft reset", "F2")) cpu->softReset();
+                if (ImGui::MenuItem("Hard reset")) doHardReset = true;
 
-            if (ImGui::MenuItem("Single frame", "F7")) {
-                singleFrame = true;
-                cpu->state = mips::CPU::State::run;
+                const char* shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
+                if (ImGui::MenuItem(shellStatus, "F3")) {
+                    cpu->cdrom->toggleShell();
+                }
+
+                if (ImGui::MenuItem("Single frame", "F7")) {
+                    singleFrame = true;
+                    cpu->state = mips::CPU::State::run;
+                }
+
+                ImGui::EndMenu();
             }
-
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Debug")) {
-            ImGui::MenuItem("BIOS log", nullptr, &cpu->biosLog);
+            if (ImGui::BeginMenu("Debug")) {
+                ImGui::MenuItem("BIOS log", nullptr, &cpu->biosLog);
 #ifdef ENABLE_IO_LOG
-            ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
+                ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
 #endif
-            ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
-            ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
+                ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
+                ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
 
-            ImGui::Separator();
+                ImGui::Separator();
 
-            ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
-            ImGui::MenuItem("IO", nullptr, &showIo);
-            ImGui::MenuItem("Memory", nullptr, &showRamWindow);
-            ImGui::MenuItem("Video memory", nullptr, &showVramWindow);
-            ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
-            ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
-            ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
-            ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
-            ImGui::EndMenu();
+                ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
+                ImGui::MenuItem("IO", nullptr, &showIo);
+                ImGui::MenuItem("Memory", nullptr, &showRamWindow);
+                ImGui::MenuItem("Video memory", nullptr, &showVramWindow);
+                ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
+                ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
+                ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
+                ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Options")) {
+                if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
+                if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Help")) {
+                if (ImGui::MenuItem("About")) showAboutWindow = true;
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
         }
-        if (ImGui::BeginMenu("Options")) {
-            if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
-            if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
+
+        // File
+
+        // Debug
+        if (gteRegistersEnabled) gteRegistersWindow(cpu->gte);
+        if (ioLogEnabled) ioLogWindow(cpu);
+        if (gteLogEnabled) gteLogWindow(cpu);
+        if (gpuLogEnabled) gpuLogWindow(cpu);
+        if (showIo) ioWindow(cpu);
+        if (showRamWindow) ramWindow(cpu);
+        if (showVramWindow) vramWindow();
+        if (showDisassemblyWindow) disassemblyWindow(cpu);
+        if (showBreakpointsWindow) breakpointsWindow(cpu);
+        if (showWatchWindow) watchWindow(cpu);
+        if (showCdromWindow) cdromWindow(cpu);
+
+        // Options
+        if (showBiosWindow) biosSelectionWindow();
+        if (showControllerSetupWindow) controllerSetupWindow();
+
+        // Help
+        if (showAboutWindow) aboutWindow();
     }
-
-    // File
-
-    // Debug
-    if (gteRegistersEnabled) gteRegistersWindow(cpu->gte);
-    if (ioLogEnabled) ioLogWindow(cpu);
-    if (gteLogEnabled) gteLogWindow(cpu);
-    if (gpuLogEnabled) gpuLogWindow(cpu);
-    if (showIo) ioWindow(cpu);
-    if (showRamWindow) ramWindow(cpu);
-    if (showVramWindow) vramWindow();
-    if (showDisassemblyWindow) disassemblyWindow(cpu);
-    if (showBreakpointsWindow) breakpointsWindow(cpu);
-    if (showWatchWindow) watchWindow(cpu);
-    if (showCdromWindow) cdromWindow(cpu);
-
-    // Options
-    if (showBiosWindow) biosSelectionWindow();
-    if (showControllerSetupWindow) controllerSetupWindow();
 
     if (!isEmulatorConfigured() && !notInitializedWindowShown) {
         notInitializedWindowShown = true;
