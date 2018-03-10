@@ -60,12 +60,10 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 }
 
 void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
-    // Note: documentation doesn't say anything about clipping to drawing area
-    // but without it textures are being corrupted in some games (THPS2, Tekken)
-    startX = minDrawingX(arguments[1] & 0xffff);
-    startY = minDrawingY((arguments[1] & 0xffff0000) >> 16);
-    endX = maxDrawingX(startX + (arguments[2] & 0xffff));
-    endY = maxDrawingY(startY + ((arguments[2] & 0xffff0000) >> 16));
+    startX = std::max<int>(0, arguments[1] & 0xffff);
+    startY = std::max<int>(0, (arguments[1] & 0xffff0000) >> 16);
+    endX = std::min<int>(VRAM_WIDTH, startX + (arguments[2] & 0xffff));
+    endY = std::min<int>(VRAM_HEIGHT, startY + ((arguments[2] & 0xffff0000) >> 16));
 
     uint32_t color = to15bit(arguments[0] & 0xffffff);
 
@@ -88,7 +86,7 @@ void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
         x[i] = arguments[ptr] & 0xffff;
         y[i] = (arguments[ptr++] & 0xffff0000) >> 16;
 
-        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i].c = arguments[0] & 0xffffff;
+        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i].raw = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
             if (i == 0) tex.palette = arguments[ptr];
             if (i == 1) tex.texpage = arguments[ptr];
@@ -96,7 +94,7 @@ void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
             tex.uv[i].y = (arguments[ptr] >> 8) & 0xff;
             ptr++;
         }
-        if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1].c = arguments[ptr++];
+        if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1].raw = arguments[ptr++];
     }
     int flags = 0;
     if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
@@ -118,7 +116,7 @@ void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
         if (i == 0) {
             x[0] = arguments[ptr] & 0xffff;
             y[0] = (arguments[ptr++] & 0xffff0000) >> 16;
-            c[0].c = arguments[0] & 0xffffff;
+            c[0].raw = arguments[0] & 0xffffff;
         } else {
             x[0] = x[1];
             y[0] = y[1];
@@ -126,9 +124,9 @@ void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
         }
 
         if (arg.gouroudShading)
-            c[1].c = arguments[ptr++];
+            c[1].raw = arguments[ptr++];
         else
-            c[1].c = arguments[0] & 0xffffff;
+            c[1].raw = arguments[0] & 0xffffff;
 
         x[1] = arguments[ptr] & 0xffff;
         y[1] = (arguments[ptr++] & 0xffff0000) >> 16;
@@ -169,10 +167,10 @@ void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
     _x[3] = x + w;
     _y[3] = y + h;
 
-    _c[0].c = arguments[0];
-    _c[1].c = arguments[0];
-    _c[2].c = arguments[0];
-    _c[3].c = arguments[0];
+    _c[0].raw = arguments[0];
+    _c[1].raw = arguments[0];
+    _c[2].raw = arguments[0];
+    _c[3].raw = arguments[0];
     TextureInfo tex;
 
     if (arg.isTextureMapped) {

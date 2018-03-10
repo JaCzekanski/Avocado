@@ -97,8 +97,8 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                         calculatedColor += ditherTable[p.y % 4][p.x % 4] / 255.f;
                         calculatedColor = glm::clamp(calculatedColor, 0.f, 1.f);
                     }
-                    c._ = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g),
-                                  (uint8_t)(255 * calculatedColor.b));
+                    c.raw = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g),
+                                    (uint8_t)(255 * calculatedColor.b));
                 } else {
                     // clang-format off
                     glm::ivec2 calculatedTexel = glm::ivec2(
@@ -122,7 +122,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                     }
                 }
 
-                if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c._ == 0x0000) goto skip_pixel;
+                if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c.raw == 0x0000) goto skip_pixel;
 
                 // If texture blending is enabled
                 if (bits != 0 && !(flags & Vertex::RawTexture)) {
@@ -162,7 +162,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
                     }
                 }
 
-                VRAM[p.y][p.x] = c._;
+                VRAM[p.y][p.x] = c.raw;
             }
 
         skip_pixel:

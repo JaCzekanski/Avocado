@@ -28,9 +28,9 @@ void drawLine(GPU* gpu, const int16_t x[2], const int16_t y[2], const RGB c[2]) 
     int _y = y0;
     for (int _x = x0; _x <= x1; _x++) {
         if (steep) {
-            if (gpu->insideDrawingArea(_y, _x)) VRAM[_x][_y] = to15bit(c[0].c);
+            if (gpu->insideDrawingArea(_y, _x)) VRAM[_x][_y] = to15bit(c[0].raw);
         } else {
-            if (gpu->insideDrawingArea(_x, _y)) VRAM[_y][_x] = to15bit(c[0].c);
+            if (gpu->insideDrawingArea(_x, _y)) VRAM[_y][_x] = to15bit(c[0].raw);
         }
         error += derror;
         if (error > dx) {

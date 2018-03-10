@@ -2,30 +2,6 @@
 #include <cstdint>
 #include "math_utils.h"
 
-inline uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b) {
-    uint32_t newColor = 0;
-    newColor |= (r & 0xf8) >> 3;
-    newColor |= (g & 0xf8) << 2;
-    newColor |= (b & 0xf8) << 7;
-    return newColor;
-}
-
-inline uint32_t to15bit(uint32_t color) {
-    uint32_t newColor = 0;
-    newColor |= (color & 0xf80000) >> 19;
-    newColor |= (color & 0xf800) >> 6;
-    newColor |= (color & 0xf8) << 7;
-    return newColor;
-}
-
-inline uint32_t to24bit(uint16_t color) {
-    uint32_t newColor = 0;
-    newColor |= (color & 0x7c00) << 1;
-    newColor |= (color & 0x3e0) >> 2;
-    newColor |= (color & 0x1f) << 19;
-    return newColor;
-}
-
 union RGB {
     struct {
         uint8_t r;
@@ -33,7 +9,7 @@ union RGB {
         uint8_t b;
         uint8_t _;
     };
-    uint32_t c;
+    uint32_t raw;
 };
 
 union PSXColor {
@@ -43,10 +19,10 @@ union PSXColor {
         uint16_t b : 5;
         uint16_t k : 1;
     };
-    uint16_t _;
+    uint16_t raw;
 
-    PSXColor() : _(0) {}
-    PSXColor(uint16_t color) : _(color) {}
+    PSXColor() : raw(0) {}
+    PSXColor(uint16_t color) : raw(color) {}
 
     PSXColor operator+(const PSXColor& rhs) {
         r = std::min(r + rhs.r, 31);
@@ -83,3 +59,31 @@ union PSXColor {
         return *this;
     }
 };
+
+inline uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b) {
+    uint32_t newColor = 0;
+    newColor |= (r & 0xf8) >> 3;
+    newColor |= (g & 0xf8) << 2;
+    newColor |= (b & 0xf8) << 7;
+    return newColor;
+}
+
+inline uint32_t to15bit(uint32_t color) {
+    RGB rgb = {};
+    rgb.raw = color;
+
+    PSXColor c;
+    c.r = rgb.r >> 3;
+    c.g = rgb.g >> 3;
+    c.b = rgb.b >> 3;
+    c.k = 0;
+    return c.raw;
+}
+
+inline uint32_t to24bit(uint16_t color) {
+    uint32_t newColor = 0;
+    newColor |= (color & 0x7c00) << 1;
+    newColor |= (color & 0x3e0) >> 2;
+    newColor |= (color & 0x1f) << 19;
+    return newColor;
+}
