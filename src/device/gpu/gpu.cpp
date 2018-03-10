@@ -60,10 +60,18 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 }
 
 void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
-    startX = std::max<int>(0, arguments[1] & 0xffff);
-    startY = std::max<int>(0, (arguments[1] & 0xffff0000) >> 16);
-    endX = std::min<int>(VRAM_WIDTH, startX + (arguments[2] & 0xffff));
-    endY = std::min<int>(VRAM_HEIGHT, startY + ((arguments[2] & 0xffff0000) >> 16));
+    // I'm sorry, but it appears that C++ doesn't have local functions.
+    struct mask {
+        constexpr static int startX(int x) { return x & 0x3f0; }
+        constexpr static int startY(int y) { return y & 0x1ff; }
+        constexpr static int endX(int x) { return ((x & 0x3ff) + 0x0f) & ~0x0f; }
+        constexpr static int endY(int y) { return y & 0x1ff; }
+    };
+
+    startX = std::max<int>(0, mask::startX(arguments[1] & 0xffff));
+    startY = std::max<int>(0, mask::startY((arguments[1] & 0xffff0000) >> 16));
+    endX = std::min<int>(VRAM_WIDTH, startX + mask::endX(arguments[2] & 0xffff));
+    endY = std::min<int>(VRAM_HEIGHT, startY + mask::endY((arguments[2] & 0xffff0000) >> 16));
 
     uint32_t color = to15bit(arguments[0] & 0xffffff);
 
@@ -201,15 +209,22 @@ void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
+struct MaskCopy {
+    constexpr static int startX(int x) { return x & 0x3ff; }
+    constexpr static int startY(int y) { return y & 0x1ff; }
+    constexpr static int endX(int x) { return ((x - 1) & 0x3ff) + 1; }
+    constexpr static int endY(int y) { return ((y - 1) & 0x1ff) + 1; }
+};
+
 void GPU::cmdCpuToVram1(uint8_t command, uint32_t arguments[]) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdCpuToVram1: Suspicious arg0: 0x%x\n", arguments[0]);
     }
-    startX = currX = arguments[1] & 0xffff;
-    startY = currY = (arguments[1] & 0xffff0000) >> 16;
+    startX = currX = MaskCopy::startX(arguments[1] & 0xffff);
+    startY = currY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
 
-    endX = startX + (arguments[2] & 0xffff);
-    endY = startY + ((arguments[2] & 0xffff0000) >> 16);
+    endX = startX + MaskCopy::endX(arguments[2] & 0xffff);
+    endY = startY + MaskCopy::endY((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::CopyCpuToVram2;
     argumentCount = 1;
@@ -240,10 +255,10 @@ void GPU::cmdVramToCpu(uint8_t command, uint32_t arguments[]) {
         printf("cmdVramToCpu: Suspicious arg0: 0x%x\n", arguments[0]);
     }
     gpuReadMode = 1;
-    startX = currX = arguments[1] & 0xffff;
-    startY = currY = (arguments[1] & 0xffff0000) >> 16;
-    endX = startX + (arguments[2] & 0xffff);
-    endY = startY + ((arguments[2] & 0xffff0000) >> 16);
+    startX = currX = MaskCopy::startX(arguments[1] & 0xffff);
+    startY = currY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
+    endX = startX + MaskCopy::endX(arguments[2] & 0xffff);
+    endY = startY + MaskCopy::endY((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::None;
 }
@@ -252,14 +267,14 @@ void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cpuVramToVram: Suspicious arg0: 0x%x\n", arguments[0]);
     }
-    int srcX = arguments[1] & 0xffff;
-    int srcY = (arguments[1] & 0xffff0000) >> 16;
+    int srcX = MaskCopy::startX(arguments[1] & 0xffff);
+    int srcY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
 
-    int dstX = arguments[2] & 0xffff;
-    int dstY = (arguments[2] & 0xffff0000) >> 16;
+    int dstX = MaskCopy::startX(arguments[2] & 0xffff);
+    int dstY = MaskCopy::startY((arguments[2] & 0xffff0000) >> 16);
 
-    int width = (arguments[3] & 0xffff);
-    int height = ((arguments[3] & 0xffff0000) >> 16);
+    int width = MaskCopy::endX(arguments[3] & 0xffff);
+    int height = MaskCopy::endY((arguments[3] & 0xffff0000) >> 16);
 
     if (width > VRAM_WIDTH || height > VRAM_HEIGHT) {
         printf("cpuVramToVram: Suspicious width: 0x%x or height: 0x%x\n", width, height);
