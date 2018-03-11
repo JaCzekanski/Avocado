@@ -10,6 +10,7 @@
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "platform/windows/gui/gui.h"
 #include "renderer/opengl/opengl.h"
+#include "sound/adpcm.h"
 #include "sound/audio_cd.h"
 #include "system.h"
 #include "utils/cue/cueParser.h"
@@ -359,6 +360,29 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_2) sys->interrupt->trigger(interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_d) sys->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) sys->interrupt->trigger(interrupt::SPU);
+                if (event.key.keysym.sym == SDLK_a) {
+                    auto spu = getFileContents("spu.bin");
+                    if (spu.empty()) {
+                        printf("No spu.bin found.\n");
+                    } else {
+                        printf("Decoding ADPCM in spu.bin");
+                        auto adpcm = std::vector<uint8_t>(spu.begin() + 0x1000, spu.begin() + 512 * 1024 - 0x1000);
+
+                        auto pcm = ADPCM::decode(adpcm);
+
+                        {
+                            FILE* f = fopen("pcm.bin", "wb");
+                            if (f) {
+                                for (int i = 0; i < pcm.size(); i++) {
+                                    fputc(pcm[i] & 0xff, f);
+                                    fputc((pcm[i] >> 8) & 0xff, f);
+                                }
+
+                                fclose(f);
+                            }
+                        }
+                    }
+                }
                 if (event.key.keysym.sym == SDLK_r) {
                     sys->dumpRam();
                     sys->spu->dumpRam();
