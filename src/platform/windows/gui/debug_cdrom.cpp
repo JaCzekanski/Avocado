@@ -15,7 +15,7 @@ void cdromWindow(System* sys) {
     }
     static bool useLba = false;
 
-    ImGui::Begin("CDROM", &showCdromWindow, ImVec2(300, 400));
+    ImGui::Begin("CDROM", &showCdromWindow);
 
     auto cue = sys->cdrom->cue;
 
@@ -26,6 +26,7 @@ void cdromWindow(System* sys) {
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::Text("Track  Pregap    Pause     Start     End       Offset B   Type   File");
+
         ImGuiListClipper clipper(cue.getTrackCount());
         while (clipper.Step()) {
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {

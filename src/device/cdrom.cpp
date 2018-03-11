@@ -109,19 +109,22 @@ uint8_t CDROM::read(uint32_t address) {
 void CDROM::cmdGetstat() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdGetstat -> 0x%02x\n", CDROM_response[0]);
 }
 
 void CDROM::cmdSetloc() {
     uint8_t minute = bcd::toBinary(readParam());
     uint8_t second = bcd::toBinary(readParam());
     uint8_t sector = bcd::toBinary(readParam());
-    if (verbose) printf("Setloc: min: %d  sec: %d  sect: %d\n", minute, second, sector);
 
     readSector = sector + (second * 75) + (minute * 60 * 75);
     dma3->seekTo(readSector);
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdSetloc(min = %d, sec = %d, sect = %d)\n", minute, second, sector);
 }
 
 void CDROM::cmdPlay() {
@@ -146,6 +149,8 @@ void CDROM::cmdPlay() {
     writeResponse(stat._reg);
 
     AudioCD::play(cue, pos);
+
+    if (verbose) printf("CDROM: cmdPlay (pos: %s)\n", pos.toString().c_str());
 }
 
 void CDROM::cmdReadN() {
@@ -153,6 +158,8 @@ void CDROM::cmdReadN() {
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdReadN\n");
 }
 
 void CDROM::cmdMotorOn() {
@@ -163,6 +170,8 @@ void CDROM::cmdMotorOn() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdMotorOn\n");
 }
 
 void CDROM::cmdStop() {
@@ -177,6 +186,8 @@ void CDROM::cmdStop() {
     writeResponse(stat._reg);
 
     AudioCD::stop();
+
+    if (verbose) printf("CDROM: cmdStop\n");
 }
 
 void CDROM::cmdPause() {
@@ -190,6 +201,8 @@ void CDROM::cmdPause() {
     writeResponse(stat._reg);
 
     AudioCD::stop();
+
+    if (verbose) printf("CDROM: cmdPause\n");
 }
 
 void CDROM::cmdInit() {
@@ -204,16 +217,22 @@ void CDROM::cmdInit() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdInit\n");
 }
 
 void CDROM::cmdMute() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdMute\n");
 }
 
 void CDROM::cmdDemute() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdDemute\n");
 }
 
 void CDROM::cmdSetFilter() {
@@ -222,11 +241,12 @@ void CDROM::cmdSetFilter() {
     int channel = readParam();
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdSetFilter(file = 0x%02x, ch = 0x%02x)\n", file, channel);
 }
 
 void CDROM::cmdSetmode() {
-    uint8_t setmode = CDROM_params.front();
-    CDROM_params.pop_front();
+    uint8_t setmode = readParam();
 
     sectorSize = setmode & (1 << 5) ? true : false;
     report = setmode & (1 << 2) ? true : false;
@@ -239,11 +259,15 @@ void CDROM::cmdSetmode() {
 }
 
 void CDROM::cmdSetSession() {
+    uint8_t session = readParam();
+
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdSetSession(0x%02x)\n", session);
 }
 
 void CDROM::cmdSeekP() {
@@ -257,6 +281,8 @@ void CDROM::cmdSeekP() {
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::None);
+
+    if (verbose) printf("CDROM: cmdSeekP\n");
 }
 
 void CDROM::cmdGetlocL() {
@@ -276,6 +302,14 @@ void CDROM::cmdGetlocL() {
     writeResponse(bcd::toBcd(0x00));    // channel
     writeResponse(bcd::toBcd(0x08));    // sm
     writeResponse(bcd::toBcd(0x00));    // ci
+
+    if (verbose) {
+        printf("CDROM: cmdGetlocL -> (");
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
+    }
 }
 
 void CDROM::cmdGetlocP() {
@@ -315,6 +349,14 @@ void CDROM::cmdGetTN() {
     writeResponse(stat._reg);
     writeResponse(0x01);
     writeResponse(cue.getTrackCount());
+
+    if (verbose) {
+        printf("CDROM: cmdGetTN -> (");
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
+    }
 }
 
 void CDROM::cmdGetTD() {
@@ -340,6 +382,14 @@ void CDROM::cmdGetTD() {
         writeResponse(bcd::toBcd(start.mm));
         writeResponse(bcd::toBcd(start.ss));
     }
+
+    if (verbose) {
+        printf("CDROM: cmdGetTD(0x%02x) -> (", track);
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
+    }
 }
 
 void CDROM::cmdSeekL() {
@@ -354,6 +404,8 @@ void CDROM::cmdSeekL() {
     writeResponse(stat._reg);
 
     status.dataFifoEmpty = 0;
+
+    if (verbose) printf("CDROM: cmdSeekL\n");
 }
 
 void CDROM::cmdTest() {
@@ -372,6 +424,14 @@ void CDROM::cmdTest() {
     } else {
         printf("Unimplemented test CDROM opcode (0x%x)!\n", opcode);
         CDROM_interrupt.push_back(5);
+    }
+
+    if (verbose) {
+        printf("CDROM: cmdTest(0x%02x) -> (", opcode);
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
     }
 }
 
@@ -394,28 +454,33 @@ void CDROM::cmdGetId() {
         writeResponse(0x08);
         writeResponse(0x40);
         for (int i = 0; i < 6; i++) writeResponse(0);
-        return;
     }
-
     // Audio CD
-    if (cue.tracks[0].type == utils::Track::Type::AUDIO) {
+    else if (cue.tracks[0].type == utils::Track::Type::AUDIO) {
         CDROM_interrupt.push_back(5);
         writeResponse(0x0a);
         writeResponse(0x90);
         for (int i = 0; i < 6; i++) writeResponse(0);
-        return;
+    } else {
+        // Game C
+        CDROM_interrupt.push_back(2);
+        writeResponse(0x02);
+        writeResponse(0x00);
+        writeResponse(0x20);
+        writeResponse(0x00);
+        writeResponse('S');
+        writeResponse('C');
+        writeResponse('E');
+        writeResponse('A');  // 0x45 E, 0x41 A, 0x49 I
     }
 
-    // Game C
-    CDROM_interrupt.push_back(2);
-    writeResponse(0x02);
-    writeResponse(0x00);
-    writeResponse(0x20);
-    writeResponse(0x00);
-    writeResponse('S');
-    writeResponse('C');
-    writeResponse('E');
-    writeResponse('A');  // 0x45 E, 0x41 A, 0x49 I
+    if (verbose) {
+        printf("CDROM: cmdGetId -> (");
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
+    }
 }
 
 void CDROM::cmdReadS() {
@@ -423,6 +488,8 @@ void CDROM::cmdReadS() {
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdReadS\n");
 }
 
 void CDROM::cmdReadTOC() {
@@ -431,6 +498,8 @@ void CDROM::cmdReadTOC() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
+
+    if (verbose) printf("CDROM: cmdReadTOC\n");
 }
 
 void CDROM::cmdUnlock() {
@@ -438,24 +507,17 @@ void CDROM::cmdUnlock() {
     CDROM_interrupt.push_back(5);
     writeResponse(0x11);
     writeResponse(0x40);
+
+    if (verbose) {
+        printf("CDROM: cmdUnlock -> (");
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
+    }
 }
 
 void CDROM::handleCommand(uint8_t cmd) {
-    if (verbose) {
-        printf("CDROM  COMMAND: 0x%02x", cmd);
-        if (!CDROM_params.empty()) {
-            putchar('(');
-            bool first = true;
-            for (auto p : CDROM_params) {
-                if (!first) printf(", ");
-                printf("0x%02x", p);
-                first = false;
-            }
-            putchar(')');
-        }
-        printf("\n");
-    }
-
     CDROM_interrupt.clear();
     CDROM_response.clear();
     if (cmd == 0x01)
