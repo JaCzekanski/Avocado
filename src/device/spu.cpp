@@ -101,7 +101,7 @@ uint8_t SPU::read(uint32_t address) {
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
         // printf("SPUCNT READ 0x%04x\n", SPUCNT._reg);
-        return SPUCNT.read(address - 0x1f801daa);
+        return control._byte[address - 0x1f801daa];
     }
 
     if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
@@ -109,7 +109,7 @@ uint8_t SPU::read(uint32_t address) {
     }
 
     if (address >= 0x1f801dae && address <= 0x1f801daf) {  // SPUSTAT
-        SPUSTAT._reg = SPUCNT._reg & 0x3F;
+        SPUSTAT._reg = control._reg & 0x3F;
         // printf("SPUSTAT READ 0x%04x\n", SPUSTAT._reg);
         return SPUSTAT.read(address - 0x1f801dae);
     }
@@ -173,7 +173,7 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        SPUCNT.write(address - 0x1f801daa, data);
+        control._byte[address - 0x1f801daa] = data;
         return;
     }
 
@@ -184,7 +184,19 @@ void SPU::write(uint32_t address, uint8_t data) {
 
     if (address >= 0x1f801dae && address <= 0x1f801daf) {  // SPUSTAT
         SPUSTAT.write(address - 0x1f801dae, data);
+        return;
     }
+
+    if (address >= 0x1f801db0 && address <= 0x1f801db3) {  // CD Volume L/R
+        cdVolume.write(address - 0x1f801db0, data);
+        return;
+    }
+
+    if (address >= 0x1F801DB4 && address <= 0x1F801DB3) {  // External input Volume L/R
+        extVolume.write(address - 0x1F801DB4, data);
+        return;
+    }
+
     // printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
