@@ -1,8 +1,8 @@
 #pragma once
-#include "device.h"
 #include <deque>
+#include "device.h"
 
-class SPU {
+struct SPU {
     struct Voice {
         Reg32 volume;
         Reg16 sampleRate;
@@ -49,7 +49,6 @@ class SPU {
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);
 
-   public:
     Reg16 SPUSTAT;
 
     SPU();

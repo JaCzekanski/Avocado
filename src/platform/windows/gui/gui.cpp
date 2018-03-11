@@ -21,6 +21,7 @@ void breakpointsWindow(System* sys);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
 void cdromWindow(System* sys);
+void spuWindow(SPU* spu);
 
 bool showGui = true;
 
@@ -44,6 +45,7 @@ bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
 bool showCdromWindow = false;
+bool showSpuWindow = false;
 
 bool showAboutWindow = false;
 
@@ -102,6 +104,7 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
                 ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
                 ImGui::MenuItem("GPU", nullptr, &showGpuWindow);
+                ImGui::MenuItem("SPU", nullptr, &showSpuWindow);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {
@@ -133,6 +136,7 @@ void renderImgui(System* sys) {
         if (showCdromWindow) cdromWindow(sys);
         if (showKernelWindow) kernelWindow(sys);
         if (showGpuWindow) gpuWindow(sys);
+        if (showSpuWindow) spuWindow(sys->spu.get());
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
