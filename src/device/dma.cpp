@@ -9,7 +9,7 @@ DMA::DMA(System* sys) : sys(sys) {
     dma[1] = std::make_unique<dmaChannel::DMAChannel>(1, sys);
     dma[2] = std::make_unique<dmaChannel::DMA2Channel>(2, sys, sys->gpu.get());
     dma[3] = std::make_unique<dmaChannel::DMA3Channel>(3, sys);
-    dma[4] = std::make_unique<dmaChannel::DMAChannel>(4, sys);
+    dma[4] = std::make_unique<dmaChannel::DMA4Channel>(4, sys, sys->spu.get());
     dma[5] = std::make_unique<dmaChannel::DMAChannel>(5, sys);
     dma[6] = std::make_unique<dmaChannel::DMA6Channel>(6, sys);
 }
