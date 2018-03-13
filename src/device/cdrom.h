@@ -73,7 +73,23 @@ class CDROM {
         CDROM_Status() : _reg(0x18) {}
     };
 
-    int verbose = 0;  // 0 - none, 1 - high level commands, 2 - low level access
+    union Mode {
+        struct {
+            uint8_t cddaEnable : 1;     // 0 - off, 1 - on
+            uint8_t cddaAutoPause : 1;  // Pause upon End of track (CDDA)
+            uint8_t cddaReport : 1;     // Report CDDA report interrupts (like cmdGetlocP)
+            uint8_t xaFilter : 1;       // Match XA sectors matching Setfilter
+            uint8_t ignoreBit : 1;      // dunno, something sector size related
+            uint8_t sectorSize : 1;     // 0 - 0x800, 1 - 0x924
+            uint8_t xaEnabled : 1;      // 0 - off, 1 - on
+            uint8_t speed : 1;          // 0 - normal (75 sectors / second), 1 - double speed
+        };
+        uint8_t _reg;
+
+        Mode() : _reg(0) {}
+    };
+
+    int verbose = 1;
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
@@ -81,8 +97,7 @@ class CDROM {
     std::deque<uint8_t> CDROM_response;
     std::deque<uint8_t> CDROM_interrupt;
 
-    bool sectorSize = false;  // 0 - 0x800, 1 - 0x924
-    bool report = false;      // generate report on playback?
+    Mode mode;
 
     System* sys;
     int readSector = 0;
@@ -132,6 +147,8 @@ class CDROM {
 
         return param;
     }
+
+    void debugLog(const char *cmd);
 
    public:
     utils::Cue cue;

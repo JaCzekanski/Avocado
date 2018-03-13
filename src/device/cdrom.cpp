@@ -30,7 +30,7 @@ void CDROM::step() {
     }
 
     static int reportcnt = 0;
-    if (report && stat.play && reportcnt++ == 4000) {
+    if (mode.cddaReport && stat.play && reportcnt++ == 4000) {
         reportcnt = 0;
         // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
         auto pos = AudioCD::currentPosition;
@@ -104,6 +104,33 @@ uint8_t CDROM::read(uint32_t address) {
     printf("CDROM%d.%d->R    ?????\n", address, status.index);
     sys->state = System::State::pause;
     return 0;
+}
+
+void CDROM::debugLog(const char* cmd) {
+    if (!verbose) return;
+
+    std::string log = "CDROM: ";
+    log += cmd;
+
+    if (!CDROM_params.empty()) {
+        log += "(";
+        for (size_t i = 0; i < CDROM_params.size(); i++) {
+            log += string_format("0x%02x", CDROM_params[i]);
+            if (i < CDROM_params.size() - 1) log += ", ";
+        }
+        log += ")";
+    }
+
+    if (!CDROM_response.empty()) {
+        log += " -> (";
+        for (size_t i = 0; i < CDROM_response.size(); i++) {
+            log += string_format("0x%02x", CDROM_response[i]);
+            if (i < CDROM_response.size() - 1) log += ", ";
+        }
+        log += ")";
+    }
+
+    log += "\n";
 }
 
 void CDROM::cmdGetstat() {
@@ -212,8 +239,8 @@ void CDROM::cmdInit() {
     stat.motor = 1;
     stat.setMode(StatusCode::Mode::None);
 
-    sectorSize = false;
-    dma3->sectorSize = sectorSize;
+    mode._reg = 0;
+    dma3->sectorSize = mode.sectorSize;
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
@@ -248,9 +275,9 @@ void CDROM::cmdSetFilter() {
 void CDROM::cmdSetmode() {
     uint8_t setmode = readParam();
 
-    sectorSize = setmode & (1 << 5) ? true : false;
-    report = setmode & (1 << 2) ? true : false;
-    dma3->sectorSize = sectorSize;
+    mode._reg = setmode;
+
+    dma3->sectorSize = mode.sectorSize;
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
