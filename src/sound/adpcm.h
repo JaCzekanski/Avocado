@@ -2,5 +2,5 @@
 #include <vector>
 
 namespace ADPCM {
-std::vector<int16_t> decode(std::vector<uint8_t> buffer);
-};  // namespace ADPCM
+std::vector<int16_t> decode(uint8_t* buffer, size_t sampleCount);  // 1 sample == 16 bytes
+};                                                                 // namespace ADPCM

@@ -1,5 +1,6 @@
 #pragma once
 #include <deque>
+#include <vector>
 #include "device.h"
 #include "utils/string.h"
 
@@ -11,6 +12,20 @@ struct SPU {
         Reg32 ADSR;
         Reg16 ADSRVolume;
         Reg16 repeatAddress;
+
+        Reg16 currentAddress;
+        bool playing;
+
+        Voice() {
+            volume._reg = 0;
+            sampleRate._reg = 0;
+            startAddress._reg = 0;
+            ADSR._reg = 0;
+            ADSRVolume._reg = 0;
+            repeatAddress._reg = 0;
+            currentAddress._reg = 0;
+            playing = false;
+        }
     };
 
     union DataTransferControl {
@@ -48,6 +63,7 @@ struct SPU {
     static const uint32_t BASE_ADDRESS = 0x1f801c00;
     static const int VOICE_COUNT = 24;
     static const int RAM_SIZE = 1024 * 512;
+    static const size_t AUDIO_BUFFER_SIZE = 28;
 
     Voice voices[VOICE_COUNT];
 
@@ -55,8 +71,6 @@ struct SPU {
     Reg32 cdVolume;
     Reg32 extVolume;
     Reg32 reverbVolume;
-    Reg32 voiceKeyOn;
-    Reg32 voiceKeyOff;
 
     Reg32 voiceChannelReverbMode;
 
@@ -64,15 +78,17 @@ struct SPU {
     Reg16 dataAddress;
     uint32_t currentDataAddress;
     DataTransferControl dataTransferControl;
-
     SpuControl control;
+    Reg16 SPUSTAT;
 
     uint8_t ram[1024 * 512];
 
+    std::vector<int16_t> audioBuffer;
+
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);
-
-    Reg16 SPUSTAT;
+    void voiceKeyOn(int i);
+    void voiceKeyOff(int i);
 
     SPU();
     void step();

@@ -1,10 +1,42 @@
 #include "spu.h"
 #include <cstring>
 #include "system.h"
+#include "sound/adpcm.h"
 
-SPU::SPU() { memset(ram, 0, RAM_SIZE); }
+SPU::SPU() {
+    memset(ram, 0, RAM_SIZE);
+    audioBuffer.resize(AUDIO_BUFFER_SIZE);
+}
 
-void SPU::step() {}
+void SPU::step() {
+    for (auto& b : audioBuffer) b = 0;
+
+    for (int v = 0; v < VOICE_COUNT; v++) {
+        Voice& voice = voices[v];
+
+        if (!voice.playing) continue;
+
+        auto pcm = ADPCM::decode(&ram[voice.currentAddress._reg * 8], 1);
+
+        // Modify volume
+
+        for (int i = 0; i < pcm.size(); i++) {
+            audioBuffer[i] += pcm[i];
+        }
+
+        uint8_t flag = ram[voice.currentAddress._reg * 8 + 1];
+
+        if (flag & 4) {  // Loop start
+            voice.repeatAddress._reg = voice.currentAddress._reg;
+        }
+
+        voice.currentAddress._reg += 2;
+
+        if (flag & 1) {  // Loop end
+            voice.currentAddress._reg = voice.repeatAddress._reg;
+        }
+    }
+}
 
 uint8_t SPU::readVoice(uint32_t address) const {
     int voice = address / 0x10;
@@ -88,6 +120,21 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
     }
 }
 
+void SPU::voiceKeyOn(int i) {
+    Voice& voice = voices[i];
+
+    voice.ADSRVolume._reg = 0;
+    voice.repeatAddress._reg = voice.startAddress._reg;
+    voice.currentAddress._reg = voice.startAddress._reg;
+    voice.playing = true;
+}
+
+void SPU::voiceKeyOff(int i) {
+    Voice& voice = voices[i];
+
+    voice.playing = false;
+}
+
 uint8_t SPU::read(uint32_t address) {
     address += BASE_ADDRESS;
 
@@ -114,7 +161,7 @@ uint8_t SPU::read(uint32_t address) {
         return SPUSTAT.read(address - 0x1f801dae);
     }
 
-    // printf("UNHANDLED SPU READ AT 0x%08x\n", address);
+    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
 
     return 0;
 }
@@ -138,12 +185,26 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801d88 && address <= 0x1f801d8b) {  // Voices Key On
-        voiceKeyOn.write(address - 0x1f801d88, data);
+        static Reg32 keyOn;
+
+        keyOn.write(address - 0x1f801d88, data);
+        if (address == 0x1f801d8b) {
+            for (int i = 0; i < VOICE_COUNT; i++) {
+                if (keyOn.getBit(i)) voiceKeyOn(i);
+            }
+        }
         return;
     }
 
     if (address >= 0x1f801d8c && address <= 0x1f801d8f) {  // Voices Key Off
-        voiceKeyOff.write(address - 0x1f801d8c, data);
+        static Reg32 keyOff;
+
+        keyOff.write(address - 0x1f801d8c, data);
+        if (address == 0x1f801d8c) {
+            for (int i = 0; i < VOICE_COUNT; i++) {
+                if (keyOff.getBit(i)) voiceKeyOff(i);
+            }
+        }
         return;
     }
 
@@ -197,7 +258,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         return;
     }
 
-    // printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
 void SPU::dumpRam() {

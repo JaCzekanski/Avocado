@@ -5,12 +5,12 @@ namespace ADPCM {
 int filterTablePos[5] = {0, 60, 115, 98, 122};
 int filterTableNeg[5] = {0, 0, -52, -55, -60};
 
-std::vector<int16_t> decode(std::vector<uint8_t> buffer) {
+std::vector<int16_t> decode(uint8_t* buffer, size_t sampleCount) {
     std::vector<int16_t> decoded;
 
     int16_t prevSample[2] = {0};
 
-    for (size_t i = 0; i < buffer.size() / 16; i++) {
+    for (size_t i = 0; i < sampleCount; i++) {
         uint8_t shift = buffer[i * 16 + 0] & 0x0f;
         uint8_t filter = (buffer[i * 16 + 0] & 0x70) >> 4;  // 0x40 for xa adpcm
 

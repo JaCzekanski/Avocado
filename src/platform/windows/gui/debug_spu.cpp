@@ -6,6 +6,15 @@
 
 extern bool showSpuWindow;
 
+void renderSamples(SPU *spu) {
+    std::vector<float> samples;
+    for (auto s : spu->audioBuffer) {
+        samples.push_back((float)s / (float)0x7fff);
+    }
+
+    ImGui::PlotLines("Preview", samples.data(), samples.size(), 0, 0, -1.0f, 1.0f, ImVec2(0, 80));
+}
+
 void spuWindow(SPU *spu) {
     if (!showSpuWindow) {
         return;
@@ -51,9 +60,8 @@ void spuWindow(SPU *spu) {
         ImGui::Text("%d", i + 1);
         ImGui::NextColumn();
 
-        bool keyOn = spu->voiceKeyOn.getBit(i);
-        bool keyOff = spu->voiceKeyOff.getBit(i);
-        ImGui::Text("%c  %c", keyOn ? 'P' : ' ', keyOff ? 'S' : ' ');
+        bool keyOn = v.playing;
+        ImGui::Text("%c", keyOn ? 'P' : ' ');
         ImGui::NextColumn();
 
         ImGui::Text("%08x", v.volume._reg);
@@ -82,5 +90,7 @@ void spuWindow(SPU *spu) {
                 spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "");
 
     ImGui::PopStyleVar();
+
+    renderSamples(spu);
     ImGui::End();
 }

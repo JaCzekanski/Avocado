@@ -24,7 +24,11 @@
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
+<<<<<<< HEAD
 std::unique_ptr<System> sys;
+=======
+std::vector<int16_t> audioBuf;
+>>>>>>> spu: handle voiceOn (no ADSR)
 
 device::controller::DigitalController& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
@@ -365,17 +369,19 @@ int main(int argc, char** argv) {
                     if (spu.empty()) {
                         printf("No spu.bin found.\n");
                     } else {
-                        printf("Decoding ADPCM in spu.bin");
-                        auto adpcm = std::vector<uint8_t>(spu.begin() + 0x1000, spu.begin() + 512 * 1024 - 0x1000);
+                        printf("save audio buf\n");
+                        //                        printf("Decoding ADPCM in spu.bin");
+                        //                        auto adpcm = std::vector<uint8_t>(spu.begin() + 0x1000, spu.begin() + 512 * 1024 -
+                        //                        0x1000);
 
-                        auto pcm = ADPCM::decode(adpcm);
-
+                        //                        auto pcm = ADPCM::decode(adpcm);
+                        //
                         {
-                            FILE* f = fopen("pcm.bin", "wb");
+                            FILE* f = fopen("audio.bin", "wb");
                             if (f) {
-                                for (int i = 0; i < pcm.size(); i++) {
-                                    fputc(pcm[i] & 0xff, f);
-                                    fputc((pcm[i] >> 8) & 0xff, f);
+                                for (int i = 0; i < audioBuf.size(); i++) {
+                                    fputc(audioBuf[i] & 0xff, f);
+                                    fputc((audioBuf[i] >> 8) & 0xff, f);
                                 }
 
                                 fclose(f);

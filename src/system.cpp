@@ -291,6 +291,7 @@ void System::singleStep() {
     timer1->step(3);
     timer2->step(3);
     controller->step();
+    spu->step();
 
     if (gpu->emulateGpuCycles(3)) {
         interrupt->trigger(interrupt::VBLANK);
@@ -298,6 +299,7 @@ void System::singleStep() {
 }
 
 void System::emulateFrame() {
+    extern std::vector<int16_t> audioBuf;
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();
 #endif
@@ -317,6 +319,10 @@ void System::emulateFrame() {
         timer0->step(systemCycles);
         timer1->step(systemCycles);
         timer2->step(systemCycles);
+
+        spu->step();
+
+        audioBuf.insert(audioBuf.end(), spu->audioBuffer.begin(), spu->audioBuffer.end());
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {
