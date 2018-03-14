@@ -48,6 +48,13 @@ after_build:
   # make zip archive
   - 7z a avocado.zip %APPVEYOR_BUILD_FOLDER%\artifact\.
 
+test_script:
+  - .\build\Release\avocado_test.exe --success -r junit > test-result.xml
+
+after_test:
+  - ps: (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test-result.xml))
+
+
 artifacts:
   - path: avocado.zip
     name: avocado

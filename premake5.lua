@@ -70,6 +70,33 @@ newoption {
 filter "options:enable-io-log"
 	defines "ENABLE_IO_LOG"
 
+
+filter "configurations:Debug"
+	defines { "DEBUG" }
+	symbols "On"
+
+filter "configurations:Release"
+	defines { "NDEBUG" }
+	optimize "Full"
+
+filter "configurations:FastDebug"
+    defines { "DEBUG" }
+    symbols "On"
+    optimize "Speed"
+    editandcontinue "On"
+
+filter "action:vs*"
+    flags { "MultiProcessorCompile" }
+	defines "_CRT_SECURE_NO_WARNINGS"
+
+filter "action:gmake"
+	buildoptions { 
+		"-Wall",
+		"-Wextra",
+		"-Wno-unused-parameter",
+		"-Wno-macro-redefined",
+	}
+
 project "glad"
 	uuid "9add6bd2-2372-4614-a367-2e8863415083"
 	kind "StaticLib"
@@ -124,24 +151,8 @@ project "avocado"
 		"src/renderer/**.*",
 		"src/platform/**.*"
 	}
-	
-	filter "configurations:Debug"
-		defines { "DEBUG" }
-		symbols "On"
-	
-	filter "configurations:Release"
-		defines { "NDEBUG" }
-		optimize "Full"
-
-	filter "configurations:FastDebug"
-        defines { "DEBUG" }
-        symbols "On"
-        optimize "Speed"
-        editandcontinue "On"
 
 	filter "action:vs*"
-        flags { "MultiProcessorCompile" }
-		defines "_CRT_SECURE_NO_WARNINGS"
 		libdirs {
 			os.findlib("SDL2")
 		}
@@ -149,14 +160,6 @@ project "avocado"
 			"externals/SDL2/lib/x86"
 		}
 
-	filter "action:gmake"
-		buildoptions { 
-			"-Wall",
-			"-Wextra",
-			"-Wno-unused-parameter",
-			"-Wno-macro-redefined",
-		}
-			
 	filter "system:windows" 
 		defines "WIN32" 
 		files { 
@@ -218,3 +221,32 @@ project "avocado"
 		generateVersionFile()
 	end
 	
+
+project "avocado_test"
+	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
+	kind "ConsoleApp"
+	language "c++"
+	location "build/libs/avocado_test"
+	targetdir "build/%{cfg.buildcfg}"
+	debugdir "."
+	flags { "C++14" }
+	dependson { "avocado" }
+
+	includedirs { 
+		"src", 
+		"externals/imgui",
+		"externals/glad/include",
+		"externals/SDL2/include",
+		"externals/glm",
+		"externals/json/src",
+		"externals/catch/single_include"
+	}
+
+	files { 
+		"tests/**.h",
+		"tests/**.cpp"
+	}
+
+	links {
+		"avocado"
+	}

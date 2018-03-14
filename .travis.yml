@@ -111,6 +111,8 @@ before_script:
 script:
   - make config=release -j3
 
+after_success:
+  - ./build/Release/avocado_test --success
 
 before_deploy:
   - mkdir artifact
