@@ -92,7 +92,7 @@ class Timer {
     int cnt = 0;
     bool irqOccured = false;
 
-    mips::CPU* cpu = nullptr;
+    System* sys;
 
     interrupt::IrqNumber mapIrqNumber() const {
         if (which == 0) return interrupt::TIMER0;
@@ -103,7 +103,7 @@ class Timer {
     }
 
    public:
-    Timer(mips::CPU* cpu);
+    Timer(System* sys);
     void step() { step(1); }
     void step(int cycles);
     uint8_t read(uint32_t address);

@@ -1,15 +1,15 @@
 #include <imgui.h>
 #include <json.hpp>
 #include <vector>
-#include "debugger/debugger.h"
 #include "gui.h"
+#include "system.h"
 #include "utils/string.h"
 
 extern bool showCdromWindow;
 
 #define POSITION(x) ((useLba) ? string_format("%d", (x).toLba()).c_str() : (x).toString().c_str())
 
-void cdromWindow(mips::CPU *cpu) {
+void cdromWindow(System* sys) {
     if (!showCdromWindow) {
         return;
     }
@@ -17,7 +17,7 @@ void cdromWindow(mips::CPU *cpu) {
 
     ImGui::Begin("CDROM", &showCdromWindow, ImVec2(300, 400));
 
-    auto cue = cpu->cdrom->cue;
+    auto cue = sys->cdrom->cue;
 
     if (cue.file.empty()) {
         ImGui::Text("No CD");
@@ -32,7 +32,7 @@ void cdromWindow(mips::CPU *cpu) {
                 auto track = cue.tracks[i];
 
                 bool nodeOpened
-                    = ImGui::TreeNode((void *)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-8s  %-9d  %-5s  %s", i, POSITION(track.pregap),
+                    = ImGui::TreeNode((void*)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-8s  %-9d  %-5s  %s", i, POSITION(track.pregap),
                                       POSITION(track.pause), POSITION(track.start), POSITION(track.end), track.offsetInFile,
                                       track.type == utils::Track::Type::DATA ? "DATA" : "AUDIO", track.filename.c_str());
 

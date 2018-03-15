@@ -1,5 +1,4 @@
 #include "debugger.h"
-#include "mips.h"
 #include "utils/string.h"
 
 namespace debugger {
@@ -160,4 +159,4 @@ Instruction mapSpecialInstruction(mips::Opcode& i) {
     }
     return ins;
 }
-};
+};  // namespace debugger

@@ -1,6 +1,6 @@
 #include "spu.h"
-#include "mips.h"
 #include <cstring>
+#include "system.h"
 
 SPU::SPU() { memset(ram, 0, RAM_SIZE); }
 

@@ -169,7 +169,7 @@ void gteRegistersWindow(GTE gte) {
     ImGui::End();
 }
 
-void gteLogWindow(mips::CPU *cpu) {
+void gteLogWindow(System *sys) {
     if (!gteLogEnabled) {
         return;
     }
@@ -181,8 +181,8 @@ void gteLogWindow(mips::CPU *cpu) {
     ImGui::BeginChild("GTE Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-    for (size_t i = 0; i < cpu->gte.log.size(); i++) {
-        auto ioEntry = cpu->gte.log.at(i);
+    for (size_t i = 0; i < sys->cpu->gte.log.size(); i++) {
+        auto ioEntry = sys->cpu->gte.log.at(i);
         std::string t;
         if (ioEntry.mode == GTE::GTE_ENTRY::MODE::func) {
             t = string_format("%5d %c 0x%02x", i, 'F', ioEntry.n);
@@ -211,7 +211,7 @@ void gteLogWindow(mips::CPU *cpu) {
     ImGui::End();
 }
 
-void gpuLogWindow(mips::CPU *cpu) {
+void gpuLogWindow(System *sys) {
     if (!gpuLogEnabled) {
         return;
     }
@@ -221,10 +221,10 @@ void gpuLogWindow(mips::CPU *cpu) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     int renderTo = -1;
-    ImGuiListClipper clipper(cpu->gpu.get()->gpuLogList.size());
+    ImGuiListClipper clipper(sys->gpu.get()->gpuLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-            auto &entry = cpu->gpu.get()->gpuLogList[i];
+            auto &entry = sys->gpu.get()->gpuLogList[i];
 
             bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, CommandStr[(int)entry.cmd]);
 
@@ -255,7 +255,7 @@ void gpuLogWindow(mips::CPU *cpu) {
 
         ImGui::PushItemWidth(140);
         if (ImGui::InputText("", filename, 31, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            auto gpu = cpu->gpu.get();
+            auto gpu = sys->gpu.get();
             auto gpuLog = gpu->gpuLogList;
             nlohmann::json j;
 
@@ -285,12 +285,12 @@ void gpuLogWindow(mips::CPU *cpu) {
 
     ImGui::End();
 
-    if (cpu->state != mips::CPU::State::run && renderTo >= 0) {
-        replayCommands(cpu->gpu.get(), renderTo);
+    if (sys->state != System::State::run && renderTo >= 0) {
+        replayCommands(sys->gpu.get(), renderTo);
     }
 }
 
-void ioWindow(mips::CPU *cpu) {
+void ioWindow(System *sys) {
     if (!showIo) {
         return;
     }
@@ -300,30 +300,30 @@ void ioWindow(mips::CPU *cpu) {
     ImGui::Text("Timer 0");
 
     ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", (uint32_t *)&cpu->timer0->current);
-    dumpRegister("target", (uint32_t *)&cpu->timer0->target);
-    dumpRegister("mode", (uint32_t *)&cpu->timer0->mode);
+    dumpRegister("current", (uint32_t *)&sys->timer0->current);
+    dumpRegister("target", (uint32_t *)&sys->timer0->target);
+    dumpRegister("mode", (uint32_t *)&sys->timer0->mode);
 
     ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 1");
 
     ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", (uint32_t *)&cpu->timer1->current);
-    dumpRegister("target", (uint32_t *)&cpu->timer1->target);
-    dumpRegister("mode", (uint32_t *)&cpu->timer1->mode);
+    dumpRegister("current", (uint32_t *)&sys->timer1->current);
+    dumpRegister("target", (uint32_t *)&sys->timer1->target);
+    dumpRegister("mode", (uint32_t *)&sys->timer1->mode);
 
     ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 2");
 
     ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", (uint32_t *)&cpu->timer2->current);
-    dumpRegister("target", (uint32_t *)&cpu->timer2->target);
-    dumpRegister("mode", (uint32_t *)&cpu->timer2->mode);
+    dumpRegister("current", (uint32_t *)&sys->timer2->current);
+    dumpRegister("target", (uint32_t *)&sys->timer2->target);
+    dumpRegister("mode", (uint32_t *)&sys->timer2->mode);
 
     ImGui::End();
 }
 
-void ioLogWindow(mips::CPU *cpu) {
+void ioLogWindow(System *sys) {
 #ifdef ENABLE_IO_LOG
     if (!ioLogEnabled) {
         return;
@@ -333,11 +333,11 @@ void ioLogWindow(mips::CPU *cpu) {
     ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-    ImGuiListClipper clipper(cpu->ioLogList.size());
+    ImGuiListClipper clipper(sys->ioLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-            auto ioEntry = cpu->ioLogList.at(i);
-            ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s", ioEntry.mode == mips::CPU::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W', ioEntry.size,
+            auto ioEntry = sys->ioLogList.at(i);
+            ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s", ioEntry.mode == System::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W', ioEntry.size,
                         ioEntry.addr, ioEntry.size / 4, ioEntry.data,
                         // padding
                         8 - ioEntry.size / 4, "", mapIo(ioEntry.addr));
@@ -364,21 +364,21 @@ std::string formatOpcode(mips::Opcode &opcode) {
     return string_format("%s %*s %s", disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "", disasm.parameters.c_str());
 }
 
-void disassemblyWindow(mips::CPU *cpu) {
+void disassemblyWindow(System *sys) {
     static uint32_t startAddress = 0;
     static bool lockAddress = false;
 
     ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(400, 500));
 
-    if (ImGui::Button(cpu->state == mips::CPU::State::run ? "Pause" : "Run")) {
-        if (cpu->state == mips::CPU::State::run)
-            cpu->state = mips::CPU::State::pause;
+    if (ImGui::Button(sys->state == System::State::run ? "Pause" : "Run")) {
+        if (sys->state == System::State::run)
+            sys->state = System::State::pause;
         else
-            cpu->state = mips::CPU::State::run;
+            sys->state = System::State::run;
     }
     ImGui::SameLine();
     if (ImGui::Button("Step")) {
-        cpu->singleStep();
+        sys->singleStep();
     }
     ImGui::SameLine();
     ImGui::Checkbox("Map register names", &debugger::mapRegisterNames);
@@ -389,13 +389,13 @@ void disassemblyWindow(mips::CPU *cpu) {
     ImGui::Columns(4);
     for (int i = 0; i < 34; i++) {
         if (i == 0)
-            ImGui::Text("PC: 0x%08x", cpu->PC);
+            ImGui::Text("PC: 0x%08x", sys->cpu->PC);
         else if (i == 32)
-            ImGui::Text("hi: 0x%08x", cpu->hi);
+            ImGui::Text("hi: 0x%08x", sys->cpu->hi);
         else if (i == 33)
-            ImGui::Text("lo: 0x%08x", cpu->lo);
+            ImGui::Text("lo: 0x%08x", sys->cpu->lo);
         else
-            ImGui::Text("%s: 0x%08x", debugger::reg(i).c_str(), cpu->reg[i]);
+            ImGui::Text("%s: 0x%08x", debugger::reg(i).c_str(), sys->cpu->reg[i]);
 
         ImGui::NextColumn();
     }
@@ -404,24 +404,24 @@ void disassemblyWindow(mips::CPU *cpu) {
     ImGui::NewLine();
 
     ImGui::BeginChild("Disassembly", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
-    if (!lockAddress) startAddress = cpu->PC;
+    if (!lockAddress) startAddress = sys->cpu->PC;
     for (int i = -15; i < 15; i++) {
         uint32_t address = (startAddress + i * 4) & 0xFFFFFFFC;
-        mips::Opcode opcode(cpu->readMemory32(address));
+        mips::Opcode opcode(sys->readMemory32(address));
 
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
         if (i == 0)
             color = ImVec4(1.f, 1.f, 0.f, 1.f);
-        else if (cpu->breakpoints.find(address) != cpu->breakpoints.end())
+        else if (sys->cpu->breakpoints.find(address) != sys->cpu->breakpoints.end())
             color = ImVec4(1.f, 0.f, 0.f, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
 
         if (ImGui::Selectable(string_format("0x%08x: %s", address, formatOpcode(opcode).c_str()).c_str())) {
-            auto bp = cpu->breakpoints.find(address);
-            if (bp == cpu->breakpoints.end()) {
-                cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+            auto bp = sys->cpu->breakpoints.find(address);
+            if (bp == sys->cpu->breakpoints.end()) {
+                sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
             } else {
-                cpu->breakpoints.erase(bp);
+                sys->cpu->breakpoints.erase(bp);
             }
         }
 
@@ -452,14 +452,14 @@ void disassemblyWindow(mips::CPU *cpu) {
     ImGui::End();
 }
 
-void breakpointsWindow(mips::CPU *cpu) {
+void breakpointsWindow(System *sys) {
     static uint32_t selectedBreakpoint = 0;
     ImGui::Begin("Breakpoints", &showBreakpointsWindow, ImVec2(300, 200));
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
-    for (auto &bp : cpu->breakpoints) {
-        mips::Opcode opcode(cpu->readMemory32(bp.first));
+    for (auto &bp : sys->cpu->breakpoints) {
+        mips::Opcode opcode(sys->readMemory32(bp.first));
 
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
         if (!bp.second.enabled) color = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
@@ -482,9 +482,9 @@ void breakpointsWindow(mips::CPU *cpu) {
 
     bool showPopup = false;
     if (ImGui::BeginPopupContextItem("breakpoint_menu")) {
-        auto breakpointExist = cpu->breakpoints.find(selectedBreakpoint) != cpu->breakpoints.end();
+        auto breakpointExist = sys->cpu->breakpoints.find(selectedBreakpoint) != sys->cpu->breakpoints.end();
 
-        if (breakpointExist && ImGui::Selectable("Remove")) cpu->breakpoints.erase(selectedBreakpoint);
+        if (breakpointExist && ImGui::Selectable("Remove")) sys->cpu->breakpoints.erase(selectedBreakpoint);
         if (ImGui::Selectable("Add")) showPopup = true;
 
         ImGui::EndPopup();
@@ -500,7 +500,7 @@ void breakpointsWindow(mips::CPU *cpu) {
         ImGui::PushItemWidth(80);
         if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)
             && sscanf(addressInput, "%x", &address) == 1) {
-            cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+            sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
             ImGui::CloseCurrentPopup();
         }
         ImGui::PopItemWidth();
@@ -517,7 +517,7 @@ void breakpointsWindow(mips::CPU *cpu) {
     ImGui::End();
 }
 
-void watchWindow(mips::CPU *cpu) {
+void watchWindow(System *sys) {
     static int selectedWatch = -1;
     ImGui::Begin("Watch", &showWatchWindow, ImVec2(300, 200));
 
@@ -527,11 +527,11 @@ void watchWindow(mips::CPU *cpu) {
     for (auto &watch : watches) {
         uint32_t value = 0;
         if (watch.size == 1)
-            value = cpu->readMemory8(watch.address);
+            value = sys->readMemory8(watch.address);
         else if (watch.size == 2)
-            value = cpu->readMemory16(watch.address);
+            value = sys->readMemory16(watch.address);
         else if (watch.size == 4)
-            value = cpu->readMemory32(watch.address);
+            value = sys->readMemory32(watch.address);
         else
             continue;
 
@@ -611,7 +611,7 @@ void watchWindow(mips::CPU *cpu) {
     ImGui::End();
 }
 
-void ramWindow(mips::CPU *cpu) {
+void ramWindow(System *sys) {
     static MemoryEditor editor;
-    editor.DrawWindow("Ram", cpu->ram, mips::CPU::RAM_SIZE);
+    editor.DrawWindow("Ram", sys->ram, System::RAM_SIZE);
 }

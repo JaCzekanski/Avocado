@@ -53,7 +53,7 @@ class DMA3Channel : public DMAChannel {
     uint8_t buffer[SECTOR_SIZE];
     bool sectorSize = false;
 
-    DMA3Channel(int channel, mips::CPU* cpu) : DMAChannel(channel, cpu) { verbose = false; }
+    DMA3Channel(int channel, System* sys) : DMAChannel(channel, sys) { verbose = false; }
 
     bool load(const std::string& iso) {
         if (f != nullptr) {

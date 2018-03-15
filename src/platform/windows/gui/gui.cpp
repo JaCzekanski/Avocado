@@ -9,16 +9,16 @@
 void openFileWindow();
 
 void gteRegistersWindow(GTE gte);
-void ioLogWindow(mips::CPU* cpu);
-void gteLogWindow(mips::CPU* cpu);
-void gpuLogWindow(mips::CPU* cpu);
-void ioWindow(mips::CPU* cpu);
+void ioLogWindow(System* sys);
+void gteLogWindow(System* sys);
+void gpuLogWindow(System* sys);
+void ioWindow(System* sys);
 void vramWindow();
-void disassemblyWindow(mips::CPU* cpu);
-void breakpointsWindow(mips::CPU* cpu);
-void watchWindow(mips::CPU* cpu);
-void ramWindow(mips::CPU* cpu);
-void cdromWindow(mips::CPU* cpu);
+void disassemblyWindow(System* sys);
+void breakpointsWindow(System* sys);
+void watchWindow(System* sys);
+void ramWindow(System* sys);
+void cdromWindow(System* sys);
 
 bool showGui = true;
 
@@ -52,7 +52,7 @@ void aboutWindow() {
     ImGui::End();
 }
 
-void renderImgui(mips::CPU* cpu) {
+void renderImgui(System* sys) {
     if (showGui) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
@@ -60,23 +60,23 @@ void renderImgui(mips::CPU* cpu) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Emulation")) {
-                if (ImGui::MenuItem("Soft reset", "F2")) cpu->softReset();
+                if (ImGui::MenuItem("Soft reset", "F2")) sys->softReset();
                 if (ImGui::MenuItem("Hard reset")) doHardReset = true;
 
-                const char* shellStatus = cpu->cdrom->getShell() ? "Shell opened" : "Shell closed";
+                const char* shellStatus = sys->cdrom->getShell() ? "Shell opened" : "Shell closed";
                 if (ImGui::MenuItem(shellStatus, "F3")) {
-                    cpu->cdrom->toggleShell();
+                    sys->cdrom->toggleShell();
                 }
 
                 if (ImGui::MenuItem("Single frame", "F7")) {
                     singleFrame = true;
-                    cpu->state = mips::CPU::State::run;
+                    sys->state = System::State::run;
                 }
 
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Debug")) {
-                ImGui::MenuItem("BIOS log", nullptr, &cpu->biosLog);
+                ImGui::MenuItem("BIOS log", nullptr, &sys->biosLog);
 #ifdef ENABLE_IO_LOG
                 ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
 #endif
@@ -110,17 +110,17 @@ void renderImgui(mips::CPU* cpu) {
         // File
 
         // Debug
-        if (gteRegistersEnabled) gteRegistersWindow(cpu->gte);
-        if (ioLogEnabled) ioLogWindow(cpu);
-        if (gteLogEnabled) gteLogWindow(cpu);
-        if (gpuLogEnabled) gpuLogWindow(cpu);
-        if (showIo) ioWindow(cpu);
-        if (showRamWindow) ramWindow(cpu);
+        if (gteRegistersEnabled) gteRegistersWindow(sys->cpu->gte);
+        if (ioLogEnabled) ioLogWindow(sys);
+        if (gteLogEnabled) gteLogWindow(sys);
+        if (gpuLogEnabled) gpuLogWindow(sys);
+        if (showIo) ioWindow(sys);
+        if (showRamWindow) ramWindow(sys);
         if (showVramWindow) vramWindow();
-        if (showDisassemblyWindow) disassemblyWindow(cpu);
-        if (showBreakpointsWindow) breakpointsWindow(cpu);
-        if (showWatchWindow) watchWindow(cpu);
-        if (showCdromWindow) cdromWindow(cpu);
+        if (showDisassemblyWindow) disassemblyWindow(sys);
+        if (showBreakpointsWindow) breakpointsWindow(sys);
+        if (showWatchWindow) watchWindow(sys);
+        if (showCdromWindow) cdromWindow(sys);
 
         // Options
         if (showBiosWindow) biosSelectionWindow();

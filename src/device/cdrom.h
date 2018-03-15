@@ -4,6 +4,8 @@
 #include "device.h"
 #include "utils/cue/cue.h"
 
+struct System;
+
 namespace device {
 namespace cdrom {
 
@@ -82,7 +84,7 @@ class CDROM {
     bool sectorSize = false;  // 0 - 0x800, 1 - 0x924
     bool report = false;      // generate report on playback?
 
-    mips::CPU *cpu = nullptr;
+    System* sys;
     int readSector = 0;
 
     StatusCode stat;
@@ -134,7 +136,7 @@ class CDROM {
    public:
     utils::Cue cue;
 
-    CDROM(mips::CPU *cpu);
+    CDROM(System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);

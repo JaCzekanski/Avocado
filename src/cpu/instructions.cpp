@@ -1,5 +1,6 @@
 #include "instructions.h"
 #include <cstdio>
+#include "system.h"
 
 using namespace mips;
 
@@ -194,12 +195,14 @@ void dummy(CPU *cpu, Opcode i) {}
 
 void invalid(CPU *cpu, Opcode i) {
     printf("Invalid opcode at 0x%08x: 0x%08x\n", cpu->PC, i.opcode);
-    cpu->state = CPU::State::halted;
+    cpu->sys->state = System::State::halted;
+    // TODO: cpu->sys kinda sucks
 }
 
 void notImplemented(CPU *cpu, Opcode i) {
     printf("Opcode not implemented at 0x%08x: 0x%08x\n", cpu->PC, i.opcode);
-    cpu->state = CPU::State::halted;
+    cpu->sys->state = System::State::halted;
+    // TODO: cpu->sys kinda sucks
 }
 
 void special(CPU *cpu, Opcode i) {
@@ -266,7 +269,7 @@ void op_jalr(CPU *cpu, Opcode i) {
 // Syscall
 // SYSCALL
 void op_syscall(CPU *cpu, Opcode i) {
-    if (cpu->biosLog) printf("  SYSCALL(%d)\n", cpu->reg[4]);
+    if (cpu->sys->biosLog) printf("  SYSCALL(%d)\n", cpu->reg[4]);
     exception(cpu, COP0::CAUSE::Exception::syscall);
 }
 
@@ -683,7 +686,7 @@ void op_cop2(CPU *cpu, Opcode i) {
 // LB rt, offset(base)
 void op_lb(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->loadDelaySlot(i.rt, ((int32_t)(cpu->readMemory8(addr) << 24)) >> 24);
+    cpu->loadDelaySlot(i.rt, ((int32_t)(cpu->sys->readMemory8(addr) << 24)) >> 24);
 }
 
 // Load Halfword
@@ -695,14 +698,14 @@ void op_lh(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->loadDelaySlot(i.rt, (int32_t)(int16_t)cpu->readMemory16(addr));
+    cpu->loadDelaySlot(i.rt, (int32_t)(int16_t)cpu->sys->readMemory16(addr));
 }
 
 // Load Word Left
 // LWL rt, offset(base)
 void op_lwl(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->sys->readMemory32(addr & 0xfffffffc);
 
     uint32_t reg;
     if (cpu->slots[0].reg == i.rt) {
@@ -738,14 +741,14 @@ void op_lw(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->loadDelaySlot(i.rt, cpu->readMemory32(addr));
+    cpu->loadDelaySlot(i.rt, cpu->sys->readMemory32(addr));
 }
 
 // Load Byte Unsigned
 // LBU rt, offset(base)
 void op_lbu(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->loadDelaySlot(i.rt, cpu->readMemory8(addr));
+    cpu->loadDelaySlot(i.rt, cpu->sys->readMemory8(addr));
 }
 
 // Load Halfword Unsigned
@@ -757,7 +760,7 @@ void op_lhu(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
-    cpu->loadDelaySlot(i.rt, cpu->readMemory16(addr));
+    cpu->loadDelaySlot(i.rt, cpu->sys->readMemory16(addr));
 }
 
 // Load Word Right
@@ -765,7 +768,7 @@ void op_lhu(CPU *cpu, Opcode i) {
 void op_lwr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
 
-    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->sys->readMemory32(addr & 0xfffffffc);
 
     uint32_t reg;
     if (cpu->slots[0].reg == i.rt) {
@@ -796,7 +799,7 @@ void op_lwr(CPU *cpu, Opcode i) {
 // SB rt, offset(base)
 void op_sb(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    cpu->writeMemory8(addr, cpu->reg[i.rt]);
+    cpu->sys->writeMemory8(addr, cpu->reg[i.rt]);
 }
 
 // Store Halfword
@@ -808,14 +811,14 @@ void op_sh(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
-    cpu->writeMemory16(addr, cpu->reg[i.rt]);
+    cpu->sys->writeMemory16(addr, cpu->reg[i.rt]);
 }
 
 // Store Word Left
 // SWL rt, offset(base)
 void op_swl(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->sys->readMemory32(addr & 0xfffffffc);
     uint32_t reg = cpu->reg[i.rt];
 
     uint32_t result = 0;
@@ -833,7 +836,7 @@ void op_swl(CPU *cpu, Opcode i) {
             result = (mem & 0x00000000) | (reg);
             break;
     }
-    cpu->writeMemory32(addr & 0xfffffffc, result);
+    cpu->sys->writeMemory32(addr & 0xfffffffc, result);
 }
 
 // Store Word
@@ -845,14 +848,14 @@ void op_sw(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
-    cpu->writeMemory32(addr, cpu->reg[i.rt]);
+    cpu->sys->writeMemory32(addr, cpu->reg[i.rt]);
 }
 
 // Store Word Right
 // SWR rt, offset(base)
 void op_swr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    uint32_t mem = cpu->readMemory32(addr & 0xfffffffc);
+    uint32_t mem = cpu->sys->readMemory32(addr & 0xfffffffc);
     uint32_t reg = cpu->reg[i.rt];
 
     uint32_t result = 0;
@@ -870,7 +873,7 @@ void op_swr(CPU *cpu, Opcode i) {
             result = (reg << 24) | (mem & 0x00ffffff);
             break;
     }
-    cpu->writeMemory32(addr & 0xfffffffc, result);
+    cpu->sys->writeMemory32(addr & 0xfffffffc, result);
 }
 
 // Load to coprocessor 2
@@ -879,7 +882,7 @@ void op_lwc2(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
 
     assert(i.rt < 64);
-    auto data = cpu->readMemory32(addr);
+    auto data = cpu->sys->readMemory32(addr);
     cpu->gte.write(i.rt, data);
     cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::write, (uint32_t)i.rt, data});
 }
@@ -890,13 +893,13 @@ void op_swc2(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     assert(i.rt < 64);
     auto gteRead = cpu->gte.read(i.rt);
-    cpu->writeMemory32(addr, gteRead);
+    cpu->sys->writeMemory32(addr, gteRead);
     cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rt, gteRead});
 }
 
 // BREAKPOINT
 void op_breakpoint(CPU *cpu, Opcode i) {
-    cpu->state = CPU::State::halted;
+    cpu->sys->state = System::State::halted;
     cpu->PC += 4;
 }
 };  // namespace instructions

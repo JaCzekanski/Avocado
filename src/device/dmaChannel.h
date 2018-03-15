@@ -2,6 +2,8 @@
 #include "device.h"
 #include "gpu/gpu.h"
 
+struct System;
+
 namespace device {
 namespace dma {
 namespace dmaChannel {
@@ -72,7 +74,7 @@ class DMAChannel {
     MADDR baseAddress;
     BCR count;
 
-    mips::CPU *cpu;
+    System* sys;
 
     virtual uint32_t readDevice() { return 0; }
     virtual void writeDevice(uint32_t data) {}
@@ -83,11 +85,11 @@ class DMAChannel {
 
    public:
     bool irqFlag = false;
-    DMAChannel(int channel, mips::CPU *cpu);
+    DMAChannel(int channel, System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 };
-}
-}
-}
+}  // namespace dmaChannel
+}  // namespace dma
+}  // namespace device

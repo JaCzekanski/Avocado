@@ -1,6 +1,8 @@
 #pragma once
-#include "device.h"
 #include <string>
+#include "device.h"
+
+struct System;
 
 namespace device {
 namespace controller {
@@ -41,7 +43,7 @@ class DigitalController {
 
 class Controller {
     const int baseAddress = 0x1f801040;
-    mips::CPU* cpu;
+    System* sys;
     DigitalController state;
 
     Reg16 mode;
@@ -65,11 +67,11 @@ class Controller {
     }
 
    public:
-    Controller(mips::CPU* cpu);
+    Controller(System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
     void setState(DigitalController state) { this->state = state; }
 };
-}
-}
+}  // namespace controller
+}  // namespace device

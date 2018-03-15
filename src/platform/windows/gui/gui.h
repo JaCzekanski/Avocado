@@ -1,8 +1,8 @@
 #pragma once
 #include <SDL.h>
-#include "mips.h"
+#include "system.h"
 
-void renderImgui(mips::CPU *cpu);
+void renderImgui(System* sys);
 extern bool showGui;
 extern int vramTextureId;
 extern bool gteRegistersEnabled;

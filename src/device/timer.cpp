@@ -1,10 +1,10 @@
 #include "timer.h"
-#include "mips.h"
+#include "system.h"
 
 using namespace timer;
 
 template <int which>
-Timer<which>::Timer(mips::CPU* cpu) : cpu(cpu) {}
+Timer<which>::Timer(System* sys) : sys(sys) {}
 
 template <int which>
 void Timer<which>::step(int cycles) {
@@ -57,7 +57,7 @@ void Timer<which>::step(int cycles) {
     }
 
     if (mode.interruptRequest == false && !irqOccured) {
-        cpu->interrupt->trigger(mapIrqNumber());
+        sys->interrupt->trigger(mapIrqNumber());
         irqOccured = true;
     }
 }

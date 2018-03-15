@@ -1,21 +1,21 @@
 #include "cdrom.h"
 #include <cassert>
 #include <cstdio>
-#include "mips.h"
 #include "sound/audio_cd.h"
+#include "system.h"
 #include "utils/bcd.h"
 
-#define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(cpu->dma->dma[3].get())
+#define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())
 
 namespace device {
 namespace cdrom {
-CDROM::CDROM(mips::CPU* cpu) : cpu(cpu) {}
+CDROM::CDROM(System* sys) : sys(sys) {}
 
 void CDROM::step() {
     status.transmissionBusy = 0;
     if (!CDROM_interrupt.empty()) {
         if ((interruptEnable & 7) & (CDROM_interrupt.front() & 7)) {
-            cpu->interrupt->trigger(interrupt::CDROM);
+            sys->interrupt->trigger(interrupt::CDROM);
         }
     }
 
@@ -101,7 +101,7 @@ uint8_t CDROM::read(uint32_t address) {
         }
     }
     printf("CDROM%d.%d->R    ?????\n", address, status.index);
-    cpu->state = mips::CPU::State::pause;
+    sys->state = System::State::pause;
     return 0;
 }
 
@@ -576,7 +576,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
     }
 
     printf("CDROM%d.%d<-W  UNIMPLEMENTED WRITE       0x%02x\n", address, status.index, data);
-    cpu->state = mips::CPU::State::pause;
+    sys->state = System::State::pause;
 }
 }  // namespace cdrom
 }  // namespace device

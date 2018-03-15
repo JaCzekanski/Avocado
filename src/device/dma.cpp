@@ -1,17 +1,17 @@
 #include "dma.h"
 #include <cstdio>
-#include "mips.h"
+#include "system.h"
 
 namespace device {
 namespace dma {
-DMA::DMA(mips::CPU *cpu) : cpu(cpu) {
-    dma[0] = std::make_unique<dmaChannel::DMAChannel>(0, cpu);
-    dma[1] = std::make_unique<dmaChannel::DMAChannel>(1, cpu);
-    dma[2] = std::make_unique<dmaChannel::DMA2Channel>(2, cpu, cpu->gpu.get());
-    dma[3] = std::make_unique<dmaChannel::DMA3Channel>(3, cpu);
-    dma[4] = std::make_unique<dmaChannel::DMAChannel>(4, cpu);
-    dma[5] = std::make_unique<dmaChannel::DMAChannel>(5, cpu);
-    dma[6] = std::make_unique<dmaChannel::DMA6Channel>(6, cpu);
+DMA::DMA(System* sys) : sys(sys) {
+    dma[0] = std::make_unique<dmaChannel::DMAChannel>(0, sys);
+    dma[1] = std::make_unique<dmaChannel::DMAChannel>(1, sys);
+    dma[2] = std::make_unique<dmaChannel::DMA2Channel>(2, sys, sys->gpu.get());
+    dma[3] = std::make_unique<dmaChannel::DMA3Channel>(3, sys);
+    dma[4] = std::make_unique<dmaChannel::DMAChannel>(4, sys);
+    dma[5] = std::make_unique<dmaChannel::DMAChannel>(5, sys);
+    dma[6] = std::make_unique<dmaChannel::DMA6Channel>(6, sys);
 }
 
 void DMA::step() {
@@ -22,7 +22,7 @@ void DMA::step() {
     status.masterFlag = status.forceIRQ || (status.masterEnable && (enables & flags));
 
     if (!prevMasterFlag && status.masterFlag) {
-        cpu->interrupt->trigger(interrupt::DMA);
+        sys->interrupt->trigger(interrupt::DMA);
     }
 }
 

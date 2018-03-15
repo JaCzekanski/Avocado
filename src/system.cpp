@@ -1,44 +1,31 @@
-#include "mips.h"
+#include "system.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "bios/functions.h"
-#include "cpu/instructions.h"
 #include "utils/file.h"
 #include "utils/psx_exe.h"
 
-namespace mips {
-CPU::CPU() {
-    PC = 0xBFC00000;
-    jumpPC = 0;
-    shouldJump = false;
-    for (int i = 0; i < 32; i++) reg[i] = 0;
-    hi = 0;
-    lo = 0;
-    exception = false;
-
+System::System() {
     memset(bios, 0, BIOS_SIZE);
     memset(ram, 0, RAM_SIZE);
     memset(scratchpad, 0, SCRATCHPAD_SIZE);
     memset(expansion, 0, EXPANSION_SIZE);
 
-    for (int i = 0; i < 2; i++) {
-        slots[i].reg = 0;
-    }
-
-    memoryControl = std::make_unique<Dummy>("MemCtrl", 0x1f801000, false);
-    controller = std::make_unique<controller::Controller>(this);
-    serial = std::make_unique<Dummy>("Serial", 0x1f801050, false);
+    cpu = std::make_unique<mips::CPU>(this);
+    memoryControl = std::make_unique<device::Dummy>("MemCtrl", 0x1f801000, false);
+    controller = std::make_unique<device::controller::Controller>(this);
+    serial = std::make_unique<device::Dummy>("Serial", 0x1f801050, false);
     interrupt = std::make_unique<Interrupt>(this);
     gpu = std::make_unique<GPU>();
-    dma = std::make_unique<dma::DMA>(this);
+    dma = std::make_unique<device::dma::DMA>(this);
     timer0 = std::make_unique<Timer<0>>(this);
     timer1 = std::make_unique<Timer<1>>(this);
     timer2 = std::make_unique<Timer<2>>(this);
-    cdrom = std::make_unique<cdrom::CDROM>(this);
+    cdrom = std::make_unique<device::cdrom::CDROM>(this);
     spu = std::make_unique<SPU>();
     mdec = std::make_unique<MDEC>();
-    expansion2 = std::make_unique<Dummy>("Expansion2", 0x1f802000, false);
+    expansion2 = std::make_unique<device::Dummy>("Expansion2", 0x1f802000, false);
 }
 
 // Note: stupid static_casts and asserts are only to supress MSVC warnings
@@ -53,6 +40,22 @@ INLINE T read_fast(uint8_t* device, uint32_t addr) {
     if (sizeof(T) == 4) return static_cast<T>(((uint32_t*)device)[addr / 4]);
     return 0;
 }
+
+/*
+Based on http://problemkaputt.de/psx-spx.htm
+0x00000000 - 0x20000000 is cache enabled
+0x80000000 is mirrored to 0x00000000 (with cache)
+0xA0000000 is mirrored to 0x00000000 (without cache)
+
+00000000 - 00200000 2048K  RAM
+1F000000 - 1F800000 8192K  Expansion ROM
+1F800000 - 1F800400 1K     Scratchpad
+1F801000 - 1F803000 8K     I/O
+1F802000 - 1F804000 8K     Expansion 2
+1FA00000 - 1FC00000 2048K  Expansion 3
+1FC00000 - 1FC80000 512K   BIOS ROM
+FFFE0000 - FFFE0100 0.5K   I/O (Cache Control)
+*/
 
 // Warning: This function does not check array boundaries. Make sure that address is aligned!
 template <typename T>
@@ -141,7 +144,7 @@ INLINE void write_io(Device& periph, uint32_t addr, T data) {
     }
 
 template <typename T>
-INLINE T CPU::readMemory(uint32_t address) {
+INLINE T System::readMemory(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     uint32_t addr = address;
@@ -195,7 +198,7 @@ INLINE T CPU::readMemory(uint32_t address) {
     return 0;
 }
 template <typename T>
-INLINE void CPU::writeMemory(uint32_t address, T data) {
+INLINE void System::writeMemory(uint32_t address, T data) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     uint32_t addr = address;
@@ -209,7 +212,7 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
         addr &= 0x1ffffffc;
 
     if (addr < 0x200000 * 4) {
-        if (cop0.status.isolateCache) return;
+        if (cpu->cop0.status.isolateCache) return;
         return write_fast<T>(ram, addr & 0x1fffff, data);
     }
     if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) {
@@ -249,144 +252,54 @@ INLINE void CPU::writeMemory(uint32_t address, T data) {
     printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
 }
 
-uint8_t CPU::readMemory8(uint32_t address) { return readMemory<uint8_t>(address); }
+uint8_t System::readMemory8(uint32_t address) { return readMemory<uint8_t>(address); }
 
-uint16_t CPU::readMemory16(uint32_t address) { return readMemory<uint16_t>(address); }
+uint16_t System::readMemory16(uint32_t address) { return readMemory<uint16_t>(address); }
 
-uint32_t CPU::readMemory32(uint32_t address) { return readMemory<uint32_t>(address); }
+uint32_t System::readMemory32(uint32_t address) { return readMemory<uint32_t>(address); }
 
-void CPU::writeMemory8(uint32_t address, uint8_t data) { writeMemory<uint8_t>(address, data); }
+void System::writeMemory8(uint32_t address, uint8_t data) { writeMemory<uint8_t>(address, data); }
 
-void CPU::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16_t>(address, data); }
+void System::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16_t>(address, data); }
 
-void CPU::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
+void System::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
 
-void CPU::printFunctionInfo(int type, uint8_t number, bios::Function f) {
+void System::printFunctionInfo(int type, uint8_t number, bios::Function f) {
     printf("  BIOS %02X(%02x): %s(", type, number, f.name);
     for (int i = 0; i < f.argc; i++) {
         if (i > 4) break;
-        printf("0x%x%s", reg[4 + i], i == (f.argc - 1) ? "" : ", ");
+        printf("0x%x%s", cpu->reg[4 + i], i == (f.argc - 1) ? "" : ", ");
     }
     printf(")\n");
 }
 
-void CPU::handleBiosFunction() {
+void System::handleBiosFunction() {
     std::unordered_map<uint8_t, bios::Function>::const_iterator function;
-    uint32_t maskedPC = PC & 0x1FFFFF;
-    uint8_t functionNumber = reg[9];
+    uint32_t maskedPC = cpu->PC & 0x1FFFFF;
+    uint8_t functionNumber = cpu->reg[9];
     bool log = biosLog;
 
     if (maskedPC == 0xA0) {
         function = bios::A0.find(functionNumber);
         if (function == bios::A0.end()) return;
-        if (function->second.callback != nullptr) log = function->second.callback(*this);
+        if (function->second.callback != nullptr) log = function->second.callback(this);
     } else if (maskedPC == 0xB0) {
         function = bios::B0.find(functionNumber);
         if (function == bios::B0.end()) return;
-        if (function->second.callback != nullptr) log = function->second.callback(*this);
+        if (function->second.callback != nullptr) log = function->second.callback(this);
     } else {
         if (log)
-            printf("  BIOS %02X(%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", maskedPC >> 4, functionNumber, reg[4], reg[5], reg[6], reg[7]);
+            printf("  BIOS %02X(%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", maskedPC >> 4, functionNumber, cpu->reg[4], cpu->reg[5],
+                   cpu->reg[6], cpu->reg[7]);
         return;
     }
 
     if (log) printFunctionInfo(maskedPC >> 4, function->first, function->second);
 }
 
-void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
-#ifdef ENABLE_LOAD_DELAY_SLOTS
-    assert(r < REGISTER_COUNT);
-    if (r == 0) return;
-    if (r == slots[0].reg) slots[0].reg = 0;  // Override previous write to same register
-
-    slots[1].reg = r;
-    slots[1].data = data;
-    slots[1].prevData = reg[r];
-#else
-    reg[r] = data;
-#endif
-}
-
-void CPU::moveLoadDelaySlots() {
-#ifdef ENABLE_LOAD_DELAY_SLOTS
-    if (slots[0].reg != 0) {
-        assert(slots[0].reg < REGISTER_COUNT);
-
-        // If register contents has been changed during delay slot - ignore it
-        if (reg[slots[0].reg] == slots[0].prevData) {
-            reg[slots[0].reg] = slots[0].data;
-        }
-    }
-
-    slots[0] = slots[1];
-    slots[1].reg = 0;  // cancel
-#endif
-}
-
-bool CPU::executeInstructions(int count) {
-    checkForInterrupts();
-    for (int i = 0; i < count; i++) {
-        reg[0] = 0;
-
-#ifdef ENABLE_BREAKPOINTS
-        if (cop0.dcic & (1 << 24) && PC == cop0.bpc) {
-            cop0.dcic &= ~(1 << 24);  // disable breakpoint
-            state = State::pause;
-            return false;
-        }
-#endif
-        if (!breakpoints.empty()) {
-            auto bp = breakpoints.find(PC);
-            if (bp != breakpoints.end() && bp->second.enabled) {
-                if (!bp->second.hit) {
-                    bp->second.hitCount++;
-                    bp->second.hit = true;
-                    state = State::pause;
-
-                    return false;
-                }
-                bp->second.hit = false;
-            }
-        }
-
-        Opcode _opcode(readMemory32(PC));
-
-        bool isJumpCycle = shouldJump;
-        const auto& op = instructions::OpcodeTable[_opcode.op];
-
-        op.instruction(this, _opcode);
-
-        moveLoadDelaySlots();
-
-        if (exception) {
-            exception = false;
-            return true;
-        }
-
-        if (state != State::run) return false;
-        if (isJumpCycle) {
-            PC = jumpPC & 0xFFFFFFFC;
-            jumpPC = 0;
-            shouldJump = false;
-
-            uint32_t maskedPc = PC & 0x1FFFFF;
-            if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) handleBiosFunction();
-        } else {
-            PC += 4;
-        }
-    }
-    return true;
-}
-
-void CPU::checkForInterrupts() {
-    if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
-        instructions::exception(this, COP0::CAUSE::Exception::interrupt);
-    }
-}
-
-void CPU::singleStep() {
+void System::singleStep() {
     state = State::run;
-    executeInstructions(1);
+    cpu->executeInstructions(1);
     state = State::pause;
 
     dma->step();
@@ -401,17 +314,17 @@ void CPU::singleStep() {
     }
 }
 
-void CPU::emulateFrame() {
+void System::emulateFrame() {
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();
 #endif
-    gte.log.clear();
+    cpu->gte.log.clear();
     gpu->gpuLogList.clear();
 
     gpu->prevVram = gpu->vram;
     int systemCycles = 300;
     for (;;) {
-        if (!executeInstructions(systemCycles / 3)) {
+        if (!cpu->executeInstructions(systemCycles / 3)) {
             // printf("CPU Halted\n");
             return;
         }
@@ -433,14 +346,14 @@ void CPU::emulateFrame() {
     }
 }
 
-void CPU::softReset() {
+void System::softReset() {
     printf("Soft reset\n");
-    PC = 0xBFC00000;
-    shouldJump = false;
+    cpu->PC = 0xBFC00000;
+    cpu->shouldJump = false;
     state = State::run;
 }
 
-bool CPU::loadExeFile(std::string exePath) {
+bool System::loadExeFile(std::string exePath) {
     auto _exe = getFileContents(exePath);
     PsxExe exe;
     if (_exe.empty()) return false;
@@ -462,14 +375,14 @@ bool CPU::loadExeFile(std::string exePath) {
     // reg[29] = exe.s_addr + exe.s_size;
     // reg[30] = exe.s_addr + exe.s_size;
 
-    exception = false;
-    shouldJump = false;
-    jumpPC = 0;
+    cpu->exception = false;
+    cpu->shouldJump = false;
+    cpu->jumpPC = 0;
 
     return true;
 }
 
-bool CPU::loadBios(std::string path) {
+bool System::loadBios(std::string path) {
     auto _bios = getFileContents(path);
     if (_bios.empty()) {
         printf("Cannot open BIOS %s", path.c_str());
@@ -481,7 +394,7 @@ bool CPU::loadBios(std::string path) {
     return true;
 }
 
-bool CPU::loadExpansion(std::string path) {
+bool System::loadExpansion(std::string path) {
     auto _exp = getFileContents(path);
     if (_exp.empty()) {
         return false;
@@ -491,9 +404,8 @@ bool CPU::loadExpansion(std::string path) {
     return true;
 }
 
-void CPU::dumpRam() {
+void System::dumpRam() {
     std::vector<uint8_t> ram;
     ram.assign(this->ram, this->ram + 0x1fffff);
     putFileContents("ram.bin", ram);
 }
-}  // namespace mips

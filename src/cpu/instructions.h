@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "mips.h"
+#include "cpu.h"
 #include "opcode.h"
 
 namespace instructions {
@@ -83,4 +83,4 @@ void op_swc2(CPU* cpu, Opcode i);
 void op_breakpoint(CPU* cpu, Opcode i);
 
 extern PrimaryInstruction OpcodeTable[64];
-}
+}  // namespace instructions

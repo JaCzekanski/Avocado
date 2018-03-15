@@ -4,11 +4,11 @@
 #include <json.hpp>
 #include <string>
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "mips.h"
 #include "platform/windows/config.h"
 #include "platform/windows/gui/gui.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/audio_cd.h"
+#include "system.h"
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "utils/string.h"
@@ -95,7 +95,7 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
 
 bool running = true;
 
-void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
+void loadFile(std::unique_ptr<System>& sys, std::string path) {
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
@@ -111,7 +111,7 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
         }
         nlohmann::json j = json::parse(file.begin(), file.end());
 
-        auto& gpuLog = cpu->gpu->gpuLogList;
+        auto& gpuLog = sys->gpu->gpuLogList;
         gpuLog.clear();
         for (size_t i = 0; i < j.size(); i++) {
             GPU::GPU_LOG_ENTRY e;
@@ -141,31 +141,31 @@ void loadFile(std::unique_ptr<mips::CPU>& cpu, std::string path) {
     }
 
     if (cue != nullptr) {
-        cpu->cdrom->cue = *cue;
-        bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(cpu->dma->dma[3].get())->load(cue->tracks[0].filename);
-        cpu->cdrom->setShell(!success);
+        sys->cdrom->cue = *cue;
+        bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())->load(cue->tracks[0].filename);
+        sys->cdrom->setShell(!success);
         printf("File %s loaded\n", getFilenameExt(path).c_str());
     }
 }
 
-std::unique_ptr<mips::CPU> cpu;
+std::unique_ptr<System> sys;
 
 void hardReset() {
-    cpu = std::make_unique<mips::CPU>();
+    sys = std::make_unique<System>();
 
     std::string bios = config["bios"];
-    if (!bios.empty() && cpu->loadBios(bios)) {
+    if (!bios.empty() && sys->loadBios(bios)) {
         printf("Using bios %s\n", bios.c_str());
     }
 
     std::string extension = config["extension"];
-    if (!extension.empty() && cpu->loadExpansion(extension)) {
+    if (!extension.empty() && sys->loadExpansion(extension)) {
         printf("Using extension %s\n", extension.c_str());
     }
 
     std::string iso = config["iso"];
     if (!iso.empty()) {
-        loadFile(cpu, iso);
+        loadFile(sys, iso);
         printf("Using iso %s\n", iso.c_str());
     }
 }
@@ -201,10 +201,10 @@ void limitFramerate(SDL_Window* window, bool framelimiter) {
 
         // TODO: Move this part outside method
         std::string gameName;
-        if (cpu->cdrom->cue.file.empty())
+        if (sys->cdrom->cue.file.empty())
             gameName = "No CD";
         else
-            gameName = getFilename(cpu->cdrom->cue.file);
+            gameName = getFilename(sys->cdrom->cue.file);
 
         std::string title = string_format("Avocado %s | %s | FPS: %.0f (%0.2f ms) %s", BUILD_STRING, gameName.c_str(), fps,
                                           (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
@@ -259,9 +259,9 @@ int main(int argc, char** argv) {
 
     vramTextureId = opengl.getVramTextureId();
     if (!isEmulatorConfigured())
-        cpu->state = mips::CPU::State::stop;
+        sys->state = System::State::stop;
     else
-        cpu->state = mips::CPU::State::run;
+        sys->state = System::State::run;
 
     bool frameLimitEnabled = true;
     bool windowFocused = true;
@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
     SDL_Event event;
     while (running && !exitProgram) {
         bool newEvent = false;
-        if (cpu->state != mips::CPU::State::run && !windowFocused) {
+        if (sys->state != System::State::run && !windowFocused) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
@@ -287,33 +287,33 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_2) cpu->interrupt->trigger(interrupt::TIMER2);
-                if (event.key.keysym.sym == SDLK_d) cpu->interrupt->trigger(interrupt::DMA);
-                if (event.key.keysym.sym == SDLK_s) cpu->interrupt->trigger(interrupt::SPU);
+                if (event.key.keysym.sym == SDLK_2) sys->interrupt->trigger(interrupt::TIMER2);
+                if (event.key.keysym.sym == SDLK_d) sys->interrupt->trigger(interrupt::DMA);
+                if (event.key.keysym.sym == SDLK_s) sys->interrupt->trigger(interrupt::SPU);
                 if (event.key.keysym.sym == SDLK_r) {
-                    cpu->dumpRam();
-                    cpu->spu->dumpRam();
+                    sys->dumpRam();
+                    sys->spu->dumpRam();
                 }
                 if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_F2) {
-                    cpu->softReset();
+                    sys->softReset();
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
                     printf("Shell toggle\n");
-                    cpu->cdrom->toggleShell();
+                    sys->cdrom->toggleShell();
                 }
                 if (event.key.keysym.sym == SDLK_F7) {
                     singleFrame = true;
-                    cpu->state = mips::CPU::State::run;
+                    sys->state = System::State::run;
                 }
                 if (event.key.keysym.sym == SDLK_F8) {
-                    cpu->singleStep();
+                    sys->singleStep();
                 }
                 if (event.key.keysym.sym == SDLK_SPACE) {
-                    if (cpu->state == mips::CPU::State::pause)
-                        cpu->state = mips::CPU::State::run;
-                    else if (cpu->state == mips::CPU::State::run)
-                        cpu->state = mips::CPU::State::pause;
+                    if (sys->state == System::State::pause)
+                        sys->state = System::State::run;
+                    else if (sys->state == System::State::run)
+                        sys->state = System::State::pause;
                 }
                 if (event.key.keysym.sym == SDLK_q) {
                     showVRAM = !showVRAM;
@@ -326,13 +326,13 @@ int main(int argc, char** argv) {
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
                 SDL_free(event.drop.file);
-                loadFile(cpu, path);
+                loadFile(sys, path);
             }
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                 opengl.width = event.window.data1;
                 opengl.height = event.window.data2;
             }
-            cpu->controller->setState(getButtonState(event));
+            sys->controller->setState(getButtonState(event));
             ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
@@ -349,17 +349,17 @@ int main(int argc, char** argv) {
             hardReset();
         }
 
-        if (cpu->state == mips::CPU::State::run) {
-            cpu->emulateFrame();
+        if (sys->state == System::State::run) {
+            sys->emulateFrame();
             if (singleFrame) {
                 singleFrame = false;
-                cpu->state = mips::CPU::State::pause;
+                sys->state = System::State::pause;
             }
         }
         ImGui_ImplSdlGL3_NewFrame(window);
 
-        opengl.render(cpu->gpu.get());
-        renderImgui(cpu.get());
+        opengl.render(sys->gpu.get());
+        renderImgui(sys.get());
 
         SDL_GL_SwapWindow(window);
 

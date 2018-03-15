@@ -1,11 +1,11 @@
 #include "dmaChannel.h"
-#include "mips.h"
 #include <cstdio>
+#include "system.h"
 
 namespace device {
 namespace dma {
 namespace dmaChannel {
-DMAChannel::DMAChannel(int channel, mips::CPU *cpu) : channel(channel), cpu(cpu) {}
+DMAChannel::DMAChannel(int channel, System* sys) : channel(channel), sys(sys) {}
 
 void DMAChannel::step() {}
 
@@ -41,16 +41,16 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 beforeRead();
                 if (verbose) printf("DMA%d CDROM -> CPU @ 0x%08x, count: 0x%04x\n", channel, addr, count.syncMode0.wordCount);
                 for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
-                    cpu->writeMemory32(addr, readDevice());
+                    sys->writeMemory32(addr, readDevice());
                     addr += 4;
                 }
                 // cpu->cdrom->status.dataFifoEmpty = 0;
             } else {
                 for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
                     if (i == count.syncMode0.wordCount - 1)
-                        cpu->writeMemory32(addr, 0xffffff);
+                        sys->writeMemory32(addr, 0xffffff);
                     else
-                        cpu->writeMemory32(addr, (addr - 4) & 0xffffff);
+                        sys->writeMemory32(addr, (addr - 4) & 0xffffff);
                     addr -= 4;
                 }
             }
@@ -67,7 +67,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
-                        cpu->writeMemory32(addr, readDevice());
+                        sys->writeMemory32(addr, readDevice());
                     }
                 }
             } else if (control.transferDirection == CHCR::TransferDirection::fromMainRam)  // VRAM WRITE
@@ -81,7 +81,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
-                        writeDevice(cpu->readMemory32(addr));
+                        writeDevice(sys->readMemory32(addr));
                     }
                 }
             }
@@ -91,12 +91,12 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             int breaker = 0;
             for (;;) {
-                uint32_t blockInfo = cpu->readMemory32(addr);
+                uint32_t blockInfo = sys->readMemory32(addr);
                 int commandCount = blockInfo >> 24;
 
                 addr += 4;
                 for (int i = 0; i < commandCount; i++, addr += 4) {
-                    writeDevice(cpu->readMemory32(addr));
+                    writeDevice(sys->readMemory32(addr));
                 }
                 addr = blockInfo & 0xffffff;
                 if (addr == 0xffffff || addr == 0) break;
@@ -112,6 +112,6 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.enabled = CHCR::Enabled::completed;
     }
 }
-}
-}
-}
+}  // namespace dmaChannel
+}  // namespace dma
+}  // namespace device

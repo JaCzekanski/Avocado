@@ -1,5 +1,5 @@
 #include "controller.h"
-#include "mips.h"
+#include "system.h"
 
 namespace device {
 namespace controller {
@@ -83,7 +83,7 @@ void Controller::handleByte(uint8_t byte) {
     }
 }
 
-Controller::Controller(mips::CPU* cpu) : cpu(cpu) {}
+Controller::Controller(System* sys) : sys(sys) {}
 
 void Controller::step() {
     if (irqTimer > 0) {
@@ -92,7 +92,7 @@ void Controller::step() {
         }
     }
     if (irq) {
-        cpu->interrupt->trigger(interrupt::CONTROLLER);
+        sys->interrupt->trigger(interrupt::CONTROLLER);
     }
 }
 
@@ -134,5 +134,5 @@ void Controller::write(uint32_t address, uint8_t data) {
         baud._byte[address - 14] = data;
     }
 }
-}
-}
+}  // namespace controller
+}  // namespace device

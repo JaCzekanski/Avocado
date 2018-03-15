@@ -7,6 +7,8 @@
 #include "dmaChannel.h"
 #include "gpu/gpu.h"
 
+struct System;
+
 namespace device {
 namespace dma {
 
@@ -87,12 +89,12 @@ class DMA {
     DICR status;
 
    private:
-    mips::CPU *cpu;
+    System* sys;
 
    public:
     std::unique_ptr<dmaChannel::DMAChannel> dma[7];
 
-    DMA(mips::CPU *cpu);
+    DMA(System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);

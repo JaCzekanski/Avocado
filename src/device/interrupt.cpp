@@ -1,9 +1,9 @@
 #include "interrupt.h"
-#include "mips.h"
+#include "system.h"
 
 using namespace interrupt;
 
-Interrupt::Interrupt(mips::CPU* cpu) : cpu(cpu) {}
+Interrupt::Interrupt(System* sys) : sys(sys) {}
 void Interrupt::trigger(IrqNumber irq) {
     if (irq > 10) return;
     status._reg |= (1 << irq);
@@ -50,7 +50,7 @@ std::string Interrupt::getStatus() {
 
 void Interrupt::step() {
     // notify cop0
-    cpu->cop0.cause.interruptPending = interruptPending() ? 4 : 0;
+    sys->cpu->cop0.cause.interruptPending = interruptPending() ? 4 : 0;
 }
 
 uint8_t Interrupt::read(uint32_t address) {

@@ -1,30 +1,31 @@
 #pragma once
 #include <cstdint>
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
+#include "system.h"
 
 namespace bios {
 struct Function {
     const char* name;
     int argc;
-    std::function<bool(mips::CPU& cpu)> callback;
+    std::function<bool(System* sys)> callback;
 
     Function(const char* name, int argc) : name(name), argc(argc), callback(nullptr) {}
 
-    Function(const char* name, int argc, std::function<bool(mips::CPU& cpu)> callback) : name(name), argc(argc), callback(callback) {}
+    Function(const char* name, int argc, std::function<bool(System* sys)> callback) : name(name), argc(argc), callback(callback) {}
 };
 
-inline bool noLog(mips::CPU& cpu) { return false; }
+inline bool noLog(System* sys) { return false; }
 
-inline bool dbgOutputChar(mips::CPU& cpu) {
-    if (cpu.debugOutput) putchar(cpu.reg[4]);
+inline bool dbgOutputChar(System* sys) {
+    if (sys->debugOutput) putchar(sys->cpu->reg[4]);
     return false;  // Do not log function call
 }
 
-inline bool dbgOutputString(mips::CPU& cpu) {
-    if (!cpu.debugOutput) return false;
+inline bool dbgOutputString(System* sys) {
+    if (!sys->debugOutput) return false;
     for (int i = 0; i < 80; i++) {
-        char c = cpu.readMemory8(cpu.reg[4] + i);
+        char c = sys->readMemory8(sys->cpu->reg[4] + i);
         if (c == 0) {
             printf("\n");
             return false;
@@ -34,8 +35,8 @@ inline bool dbgOutputString(mips::CPU& cpu) {
     return false;  // Do not log function call
 }
 
-inline bool haltSystem(mips::CPU& cpu) {
-    cpu.state = mips::CPU::State::halted;
+inline bool haltSystem(System* sys) {
+    sys->state = System::State::halted;
     return true;
 }
 
@@ -251,4 +252,4 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x5C, {"get_card_status", 1}},   // slot,
     {0x5D, {"wait_card_status", 1}},  // slot,
 };
-};
+};  // namespace bios

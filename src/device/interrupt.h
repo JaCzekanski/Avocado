@@ -1,6 +1,8 @@
 #pragma once
-#include "device.h"
 #include <string>
+#include "device.h"
+
+struct System;
 
 namespace interrupt {
 enum IrqNumber {
@@ -38,16 +40,16 @@ union IRQ {
 
     IRQ() : _reg(0) {}
 };
-}
+}  // namespace interrupt
 
 class Interrupt {
     interrupt::IRQ status;
     interrupt::IRQ mask;
 
-    mips::CPU* cpu;
+    System* sys;
 
    public:
-    Interrupt(mips::CPU* cpu);
+    Interrupt(System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
