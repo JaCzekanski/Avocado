@@ -1,6 +1,7 @@
 #include "cdrom.h"
 #include <cassert>
 #include <cstdio>
+#include "platform/windows/config.h"
 #include "sound/audio_cd.h"
 #include "system.h"
 #include "utils/bcd.h"
@@ -9,7 +10,7 @@
 
 namespace device {
 namespace cdrom {
-CDROM::CDROM(System* sys) : sys(sys) {}
+CDROM::CDROM(System* sys) : sys(sys) { verbose = config["debug"]["log"]["cdrom"]; }
 
 void CDROM::step() {
     status.transmissionBusy = 0;
@@ -133,12 +134,12 @@ void CDROM::cmdPlay() {
             return;
         }
         pos = cue.tracks[track].start;
-        printf("CDROM: PLAY (track: %d)\n", track);
+        if (verbose) printf("CDROM: PLAY (track: %d)\n", track);
     } else {
         pos = utils::Position::fromLba(readSector);
     }
 
-    printf("CDROM: PLAY (pos: %s)\n", pos.toString().c_str());
+    if (verbose) printf("CDROM: PLAY (pos: %s)\n", pos.toString().c_str());
     stat.setMode(StatusCode::Mode::Playing);
 
     CDROM_interrupt.push_back(3);
@@ -165,7 +166,7 @@ void CDROM::cmdMotorOn() {
 }
 
 void CDROM::cmdStop() {
-    printf("CDROM: STOP\n");
+    if (verbose) printf("CDROM: STOP\n");
     stat.setMode(StatusCode::Mode::None);
     stat.motor = 0;
 
@@ -179,7 +180,7 @@ void CDROM::cmdStop() {
 }
 
 void CDROM::cmdPause() {
-    printf("CDROM: PAUSE\n");
+    if (verbose) printf("CDROM: PAUSE\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -234,7 +235,7 @@ void CDROM::cmdSetmode() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
-    printf("CDROM: cmdSetmode: 0x%02x\n", setmode);
+    if (verbose) printf("CDROM: cmdSetmode: 0x%02x\n", setmode);
 }
 
 void CDROM::cmdSetSession() {
@@ -246,7 +247,7 @@ void CDROM::cmdSetSession() {
 }
 
 void CDROM::cmdSeekP() {
-    printf("CDROM: SEEKP\n");
+    if (verbose) printf("CDROM: SEEKP\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -259,7 +260,7 @@ void CDROM::cmdSeekP() {
 }
 
 void CDROM::cmdGetlocL() {
-    printf("CDROM: cmdGetlocL\n");
+    if (verbose) printf("CDROM: cmdGetlocL\n");
     // TODO: Invalid implementation, but allows GTA2 to run
     uint32_t tmp = readSector + 2 * 75;
     uint32_t minute = tmp / 75 / 60;
@@ -300,11 +301,13 @@ void CDROM::cmdGetlocP() {
     writeResponse(bcd::toBcd(pos.ss));         // second (disc)
     writeResponse(bcd::toBcd(pos.ff));         // sector (disc)
 
-    printf("CDROM: cmdGetlocP -> (");
-    for (auto r : CDROM_response) {
-        printf("0x%02x,", r);
+    if (verbose) {
+        printf("CDROM: cmdGetlocP -> (");
+        for (auto r : CDROM_response) {
+            printf("0x%02x,", r);
+        }
+        printf(")\n");
     }
-    printf(")\n");
 }
 
 void CDROM::cmdGetTN() {
@@ -321,7 +324,7 @@ void CDROM::cmdGetTD() {
     if (track == 0)  // end of last track
     {
         auto diskSize = cue.getDiskSize();
-        printf("GetTD(0): minute: %d, second: %d\n", diskSize.mm, diskSize.ss);
+        if (verbose) printf("GetTD(0): minute: %d, second: %d\n", diskSize.mm, diskSize.ss);
 
         writeResponse(bcd::toBcd(diskSize.mm));
         writeResponse(bcd::toBcd(diskSize.ss));
@@ -333,7 +336,7 @@ void CDROM::cmdGetTD() {
 
         auto start = cue.tracks[track - 1].start - cue.tracks[track - 1].pause;
 
-        printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
+        if (verbose) printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
         writeResponse(bcd::toBcd(start.mm));
         writeResponse(bcd::toBcd(start.ss));
     }

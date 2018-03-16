@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "bios/functions.h"
+#include "platform/windows/config.h"
 #include "utils/file.h"
 #include "utils/psx_exe.h"
 
@@ -26,6 +27,8 @@ System::System() {
     spu = std::make_unique<SPU>();
     mdec = std::make_unique<MDEC>();
     expansion2 = std::make_unique<device::Dummy>("Expansion2", 0x1f802000, false);
+
+    biosLog = config["debug"]["log"]["bios"];
 }
 
 // Note: stupid static_casts and asserts are only to supress MSVC warnings

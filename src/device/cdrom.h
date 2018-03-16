@@ -73,7 +73,7 @@ class CDROM {
         CDROM_Status() : _reg(0x18) {}
     };
 
-    int verbose = 1;
+    int verbose = 0;  // 0 - none, 1 - high level commands, 2 - low level access
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
