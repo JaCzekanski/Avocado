@@ -1,3 +1,6 @@
+// Uncomment for leak detection
+// #include <vld.h>
+
 #include <SDL.h>
 #include <algorithm>
 #include <cstdio>
@@ -369,6 +372,7 @@ int main(int argc, char** argv) {
 
     AudioCD::close();
     ImGui_ImplSdlGL3_Shutdown();
+    ImGui::DestroyContext();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
