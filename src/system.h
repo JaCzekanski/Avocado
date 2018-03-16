@@ -107,7 +107,7 @@ struct System {
     void softReset();
 
     // Helpers
-    bool biosLog = false;
+    int biosLog = 0;
     bool printStackTrace = false;
     bool loadBios(std::string name);
     bool loadExpansion(std::string name);

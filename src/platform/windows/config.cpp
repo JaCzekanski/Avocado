@@ -55,6 +55,8 @@ void loadConfigFile(const char* configName) {
             continue;
         }
 
+        // BUG: Check field recursively
+
         // Repair these with invalid types
         if (field.value().type() != it.value().type()) {
             printf("Config: Invalid type of %s (%s), changing to %s\n", field.key().c_str(), field.value().type_name().c_str(),
