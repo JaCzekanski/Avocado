@@ -50,7 +50,11 @@ union LineArgs {
 
     LineArgs(uint8_t arg) : _(arg) {}
 
-    int getArgumentCount() const { return (polyLine ? MAX_ARGS - 1 : (gouroudShading ? 2 : 1) * 2); }
+    int getArgumentCount() const {
+        if (polyLine) return MAX_ARGS - 1;
+
+        return 2 + (gouroudShading ? 1 : 0);
+    }
 };
 
 union RectangleArgs {

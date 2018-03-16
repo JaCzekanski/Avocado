@@ -114,29 +114,32 @@ void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
+// fixme: handle multiline with > 15 lines (arguments array hold only 31 elements)
 void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
     int ptr = 1;
     int16_t x[2] = {}, y[2] = {};
     RGB c[2] = {};
 
-    for (int i = 0; i < arg.getArgumentCount() - 1; i++) {
+    int lineCount = (!arg.polyLine) ? 1 : 15;
+    for (int i = 0; i < lineCount; i++) {
         if (arguments[ptr] == 0x50005000 || arguments[ptr] == 0x55555555) break;
         if (i == 0) {
-            x[0] = arguments[ptr] & 0xffff;
+            x[0] = (arguments[ptr] & 0xffff);
             y[0] = (arguments[ptr++] & 0xffff0000) >> 16;
-            c[0].raw = arguments[0] & 0xffffff;
+            c[0].raw = (arguments[0] & 0xffffff);
         } else {
             x[0] = x[1];
             y[0] = y[1];
             c[0] = c[1];
         }
 
-        if (arg.gouroudShading)
+        if (arg.gouroudShading) {
             c[1].raw = arguments[ptr++];
-        else
-            c[1].raw = arguments[0] & 0xffffff;
+        } else {
+            c[1].raw = (arguments[0] & 0xffffff);
+        }
 
-        x[1] = arguments[ptr] & 0xffff;
+        x[1] = (arguments[ptr] & 0xffff);
         y[1] = (arguments[ptr++] & 0xffff0000) >> 16;
 
         // No transparency support
