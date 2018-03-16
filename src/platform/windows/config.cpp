@@ -26,14 +26,41 @@ const json defaultConfig = {
         }},
         {"debug", {
             {"log", {
-                { "bios", 0 },
-                { "cdrom", 0 }
+                { "bios",  0u },
+                { "cdrom", 0u }
             }}
         }}
 };
 // clang-format on
 
 json config = defaultConfig;
+
+json fixObject(json oldconfig, json newconfig) {
+    for (auto oldField = oldconfig.begin(); oldField != oldconfig.end(); ++oldField) {
+        auto newField = newconfig.find(oldField.key());
+
+        // Add nonexisting fields
+        if (newField == newconfig.end()) {
+            printf("Config: No field %s \n", oldField.key().c_str());
+            newconfig.emplace(oldField.key(), oldField.value());
+            continue;
+        }
+
+        // Repair these with invalid types
+        if (newField.value().type() != oldField.value().type()) {
+            printf("[CONFIG]: Invalid type of field \"%s\" (%s), changing to %s\n", newField.key().c_str(),
+                   newField.value().type_name().c_str(), oldField.value().type_name().c_str());
+            newconfig[oldField.key()] = oldField.value();
+            continue;
+        }
+
+        // If field is an object or an array - fix it recursively
+        if (newField.value().is_object() || newField.value().is_array()) {
+            newconfig[oldField.key()] = fixObject(oldField.value(), newField.value());
+        }
+    }
+    return newconfig;
+}
 
 void saveConfigFile(const char* configName) { putFileContents(configName, config.dump(4)); }
 
@@ -45,27 +72,8 @@ void loadConfigFile(const char* configName) {
     }
     nlohmann::json newconfig = json::parse(file.begin(), file.end());
 
-    for (auto it = config.begin(); it != config.end(); ++it) {
-        auto field = newconfig.find(it.key());
-
-        // Add nonexisting fields
-        if (field == newconfig.end()) {
-            printf("Config: No field %s \n", it.key().c_str());
-            newconfig.emplace(it.key(), it.value());
-            continue;
-        }
-
-        // BUG: Check field recursively
-
-        // Repair these with invalid types
-        if (field.value().type() != it.value().type()) {
-            printf("Config: Invalid type of %s (%s), changing to %s\n", field.key().c_str(), field.value().type_name().c_str(),
-                   it.value().type_name().c_str());
-            newconfig[it.key()] = it.value();
-        }
-    }
-
-    config = newconfig;
+    // Add missing and repair invalid fields
+    config = fixObject(config, newconfig);
 }
 
 bool isEmulatorConfigured() { return !config["bios"].get<std::string>().empty(); }

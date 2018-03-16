@@ -386,23 +386,38 @@ bool System::loadExeFile(std::string exePath) {
 }
 
 bool System::loadBios(std::string path) {
+    const char* licenseString = "Sony Computer Entertainment Inc";
+
     auto _bios = getFileContents(path);
     if (_bios.empty()) {
         printf("Cannot open BIOS %s", path.c_str());
         return false;
     }
-    //    assert(_bios.size() == 512 * 1024);
+    assert(_bios.size() <= 512 * 1024);
+
+    if (memcmp(_bios.data() + 0x108, licenseString, strlen(licenseString)) != 0) {
+        printf("[WARNING]: Loaded bios (%s) have invalid header, are you using correct file?\n", getFilenameExt(path).c_str());
+    }
+
     copy(_bios.begin(), _bios.end(), bios);
     state = State::run;
     return true;
 }
 
 bool System::loadExpansion(std::string path) {
+    const char* licenseString = "Licensed by Sony Computer Entertainment Inc";
+
     auto _exp = getFileContents(path);
     if (_exp.empty()) {
         return false;
     }
-    assert(_exp.size() < EXPANSION_SIZE);
+
+    assert(_exp.size() <= EXPANSION_SIZE);
+
+    if (memcmp(_exp.data() + 4, licenseString, strlen(licenseString)) != 0) {
+        printf("[WARNING]: Loaded expansion (%s) have invalid header, are you using correct file?\n", getFilenameExt(path).c_str());
+    }
+
     copy(_exp.begin(), _exp.end(), expansion);
     return true;
 }

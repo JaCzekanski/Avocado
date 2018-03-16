@@ -76,7 +76,7 @@ void renderImgui(System* sys) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Debug")) {
-                if (ImGui::MenuItem("BIOS log", nullptr, &sys->biosLog)) {
+                if (ImGui::MenuItem("BIOS log", nullptr, (bool*)&sys->biosLog)) {
                     config["debug"]["log"]["bios"] = sys->biosLog;
                 }
 #ifdef ENABLE_IO_LOG

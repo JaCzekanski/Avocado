@@ -155,12 +155,12 @@ void hardReset() {
 
     std::string bios = config["bios"];
     if (!bios.empty() && sys->loadBios(bios)) {
-        printf("Using bios %s\n", bios.c_str());
+        printf("[INFO] Using bios %s\n", getFilenameExt(bios).c_str());
     }
 
     std::string extension = config["extension"];
     if (!extension.empty() && sys->loadExpansion(extension)) {
-        printf("Using extension %s\n", extension.c_str());
+        printf("[INFO] Using extension %s\n", getFilenameExt(extension).c_str());
     }
 
     std::string iso = config["iso"];
