@@ -46,7 +46,7 @@ int32_t GTE::F(int64_t value) {
     return (int32_t)value;
 }
 
-int32_t GTE::setMac(int i, int64_t value) {
+int64_t GTE::setMac(int i, int64_t value) {
     assert(i >= 0 && i <= 3);
     uint32_t overflowBits = 1 << 31;
     uint32_t underflowBits = 1 << 31;
@@ -59,7 +59,7 @@ int32_t GTE::setMac(int i, int64_t value) {
         if (value < -0x80000000LL) flag |= underflowBits;
 
         mac[0] = (int32_t)value;
-        return (int32_t)value;
+        return value;
     } else if (i == 1) {
         overflowBits |= 1 << 30;
         underflowBits |= 1 << 27;
@@ -75,7 +75,7 @@ int32_t GTE::setMac(int i, int64_t value) {
 
     if (sf) value /= 0x1000;
     mac[i] = (int32_t)value;
-    return (int32_t)value;
+    return value;
 }
 
 // clang-format off
@@ -266,12 +266,12 @@ void GTE::pushScreenXY(int16_t x, int16_t y) {
     s[2].y = clip(y, 0x3ff, -0x400, 1 << 13 | 1 << 31);
 }
 
-void GTE::pushScreenZ(int16_t z) {
+void GTE::pushScreenZ(uint32_t z) {
     s[0].z = s[1].z;
     s[1].z = s[2].z;
     s[2].z = s[3].z;  // There is only s[3].z (no s[3].xy)
 
-    s[3].z = clip(z, 0xffff, 0x000, 1 << 18 | 1 << 31);
+    s[3].z = clip(z, 0xffff, 0x0000, 1 << 18 | 1 << 31);
 }
 
 void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
@@ -298,12 +298,14 @@ void GTE::rtps(int n) {
     setMacAndIr(2, tr.y * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z);
     setMacAndIr(3, tr.z * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z);
 
-    pushScreenZ(sf ? mac[3] : mac[3] / 0x1000);
+    // Z (mac[3]) that is shifted 12 bits regardless of sf bit
+    int32_t zShifted = sf ? mac[3] : mac[3] >> 12;
+    pushScreenZ(zShifted);
     int64_t h_s3z = divide(h, s[3].z);
 
     pushScreenXY(
-        setMac(0, h_s3z * ir[1] + of[0]) / 0x10000, 
-        setMac(0, h_s3z * ir[2] + of[1]) / 0x10000
+        setMac(0, h_s3z * ir[1] + of[0]) >> 16, 
+        setMac(0, h_s3z * ir[2] + of[1]) >> 16
     );
 
     setMacAndIr(0, h_s3z * dqa + dqb);

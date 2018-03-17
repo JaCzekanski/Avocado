@@ -1,6 +1,14 @@
 #include "gte.h"
 
 uint32_t GTE::read(uint8_t n) {
+    uint32_t res = read_(n);
+
+    log.push_back({GTE_ENTRY::MODE::read, n, res});
+
+    return res;
+}
+
+uint32_t GTE::read_(uint8_t n) {
     switch (n) {
         // Data
         case 0:
@@ -146,6 +154,7 @@ uint32_t GTE::read(uint8_t n) {
 }
 
 void GTE::write(uint8_t n, uint32_t d) {
+    log.push_back({GTE_ENTRY::MODE::write, n, d});
     switch (n) {
         case 0:
             v[0].y = d >> 16;
@@ -375,7 +384,6 @@ void GTE::write(uint8_t n, uint32_t d) {
         default:
             return;
     }
-    log.push_back({GTE_ENTRY::MODE::write, n, d});
 }
 
 bool GTE::command(gte::Command& cmd) {

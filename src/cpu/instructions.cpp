@@ -663,12 +663,10 @@ void op_cop2(CPU *cpu, Opcode i) {
         // Move data from co-processor two
         // MFC2 rt, <nn>
         cpu->reg[i.rt] = cpu->gte.read(i.rd);
-        cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rd, cpu->reg[i.rt]});
     } else if (i.rs == 0x02) {
         // Move control from co-processor two
         // CFC2 rt, <nn>
         cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
-        cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::read, (uint32_t)(i.rd + 32), cpu->reg[i.rt]});
     } else if (i.rs == 0x04) {
         // Move data to co-processor two
         // MTC2 rt, <nn>
@@ -884,7 +882,6 @@ void op_lwc2(CPU *cpu, Opcode i) {
     assert(i.rt < 64);
     auto data = cpu->sys->readMemory32(addr);
     cpu->gte.write(i.rt, data);
-    cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::write, (uint32_t)i.rt, data});
 }
 
 // Store from coprocessor 2
@@ -894,7 +891,6 @@ void op_swc2(CPU *cpu, Opcode i) {
     assert(i.rt < 64);
     auto gteRead = cpu->gte.read(i.rt);
     cpu->sys->writeMemory32(addr, gteRead);
-    cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::read, (uint32_t)i.rt, gteRead});
 }
 
 // BREAKPOINT

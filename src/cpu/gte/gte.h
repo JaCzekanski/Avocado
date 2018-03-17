@@ -1,16 +1,16 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include "command.h"
 #include "device/device.h"
 #include "math.h"
-#include "command.h"
 
 struct GTE {
     gte::Vector<int16_t> v[3];
     Reg32 rgbc;
     uint16_t otz = 0;
     int16_t ir[4] = {0};
-    gte::Vector<int16_t> s[4];
+    gte::Vector<int16_t, int16_t, uint16_t> s[4];
     Reg32 rgb[3];
     uint32_t res1 = 0;     // prohibited
     int32_t mac[4] = {0};  // Sum of products
@@ -36,6 +36,7 @@ struct GTE {
     bool sf;
     bool lm;
 
+    uint32_t read_(uint8_t n);
     uint32_t read(uint8_t n);
     void write(uint8_t n, uint32_t d);
 
@@ -79,10 +80,10 @@ struct GTE {
     int32_t A3(int64_t value, bool sf = false);
     int32_t F(int64_t value);
 
-    int32_t setMac(int mac, int64_t value);
+    int64_t setMac(int mac, int64_t value);
     void setMacAndIr(int i, int64_t value, bool lm = false);
     void setOtz(int32_t value);
     void pushScreenXY(int16_t x, int16_t y);
-    void pushScreenZ(int16_t z);
+    void pushScreenZ(uint32_t z);
     void pushColor(uint32_t r, uint32_t g, uint32_t b);
 };
