@@ -16,18 +16,18 @@ struct Matrix {
     int16_t v33 = 0;
 };
 
-template <typename T>
+template <typename X, typename Y = X, typename Z = X>
 struct Vector {
     union {
-        T x, r;
+        X x, r;
     };
 
     union {
-        T y, g;
+        Y y, g;
     };
 
     union {
-        T z, b;
+        Z z, b;
     };
 };
 
@@ -36,4 +36,4 @@ struct Color {
     int32_t g = 0;
     int32_t b = 0;
 };
-};
+};  // namespace gte

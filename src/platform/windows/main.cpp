@@ -98,9 +98,57 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
 
 bool running = true;
 
+void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& basePath, const std::string& content) {
+    auto datDirRegex = std::regex("DATDIR=(.*)");
+    auto regex = std::regex("pqbload (.*) (.*)");
+
+    if (content.empty()) return;
+
+    std::string datDir;
+
+    std::stringstream stream;
+    stream.str(content);
+
+    std::string line;
+    while (std::getline(stream, line)) {
+        std::smatch matches;
+
+        std::regex_search(line, matches, datDirRegex);
+        if (matches.size() == 2) {
+            datDir = matches[1].str();
+        }
+
+        std::regex_search(line, matches, regex);
+        if (matches.size() == 3) {
+            std::string file = std::regex_replace(matches[1].str(), std::regex("\\$\\(DATDIR\\)"), datDir);
+            uint32_t addr = std::stoul(matches[2].str(), 0, 16);
+
+            printf("[INFO] Loading %s to 0x%x ", file.c_str(), addr);
+
+            // Load data file
+            auto data = getFileContents(basePath + file);
+            if (data.empty()) {
+                printf("failed\n");
+                continue;
+            }
+
+            for (int i = 0; i < data.size(); i++) sys->writeMemory8(addr + i, data[i]);
+            printf("ok\n");
+        }
+    }
+}
+
 void loadFile(std::unique_ptr<System>& sys, std::string path) {
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
+
+    std::string filenameExt = getFilenameExt(path);
+    transform(filenameExt.begin(), filenameExt.end(), filenameExt.begin(), tolower);
+
+    if (filenameExt == "makefile.mak") {
+        loadAssetsFromMakefile(sys, getPath(path), getFileContentsAsString(path));
+        return;
+    }
 
     if (ext == "exe" || ext == "psexe") {
         sys->loadExeFile(path);
@@ -148,7 +196,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         sys->cdrom->cue = *cue;
         bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())->load(cue->tracks[0].filename);
         sys->cdrom->setShell(!success);
-        printf("File %s loaded\n", getFilenameExt(path).c_str());
+        printf("File %s loaded\n", filenameExt.c_str());
     }
 }
 
