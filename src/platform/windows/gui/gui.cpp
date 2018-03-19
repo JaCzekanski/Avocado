@@ -8,7 +8,7 @@
 
 void openFileWindow();
 
-void gteRegistersWindow(GTE gte);
+void gteRegistersWindow(GTE& gte);
 void ioLogWindow(System* sys);
 void gteLogWindow(System* sys);
 void gpuLogWindow(System* sys);

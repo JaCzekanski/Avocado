@@ -373,10 +373,10 @@ bool System::loadExeFile(std::string exePath) {
         writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
     }
 
-    // PC = exe.pc0;
-    // reg[28] = exe.gp0;
-    // reg[29] = exe.s_addr + exe.s_size;
-    // reg[30] = exe.s_addr + exe.s_size;
+    cpu->PC = exe.pc0;
+    cpu->reg[28] = exe.gp0;
+    cpu->reg[29] = exe.s_addr + exe.s_size;
+    cpu->reg[30] = exe.s_addr + exe.s_size;
 
     cpu->exception = false;
     cpu->shouldJump = false;

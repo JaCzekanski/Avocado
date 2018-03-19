@@ -77,7 +77,7 @@ void dumpRegister(const char *name, uint32_t *reg) {
     ImGui::NextColumn();
 }
 
-void gteRegistersWindow(GTE gte) {
+void gteRegistersWindow(GTE &gte) {
     if (!gteRegistersEnabled) {
         return;
     }

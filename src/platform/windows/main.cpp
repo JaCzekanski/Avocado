@@ -103,6 +103,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
     if (ext == "exe" || ext == "psexe") {
+        sys->loadExeFile(path);
         printf("Loading .exe is currently not supported.\n");
         return;
     }
