@@ -1,6 +1,6 @@
-#include "gte.h"
 #include <cassert>
 #include <cstdio>
+#include "gte.h"
 
 int32_t GTE::clip(int32_t value, int32_t max, int32_t min, uint32_t flags) {
     if (value > max) {
@@ -409,9 +409,9 @@ void GTE::gpl(bool sf, bool lm) {
  * lm is ignored, as result cannot be negative
  */
 void GTE::sqr() {
-    setMacAndIr(0, ir[1] * ir[1]);
-    setMacAndIr(1, ir[2] * ir[2]);
-    setMacAndIr(2, ir[3] * ir[3]);
+    setMacAndIr(1, ir[1] * ir[1]);
+    setMacAndIr(2, ir[2] * ir[2]);
+    setMacAndIr(3, ir[3] * ir[3]);
 }
 
 void GTE::op(bool sf, bool lm) {
