@@ -1,6 +1,10 @@
 sudo: false
 dist: trusty
 language: generic
+cache:
+  directories:
+    - $HOME/.ccache
+
 
 matrix:
   include:
@@ -15,61 +19,57 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.6
+    #- os: linux
+    #  env: COMPILER_NAME=clang CXX=clang++-3.7 CC=clang-3.7
+    #  addons:
+    #    apt:
+    #      packages:
+    #        - clang-3.7
+    #        - libc++-dev
+    #        - libc++abi-dev
+    #      sources:
+    #        - ubuntu-toolchain-r-test
+    #        - llvm-toolchain-precise-3.7
+    #- os: linux
+    #  env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
+    #  addons:
+    #    apt:
+    #      packages:
+    #        - clang-3.8
+    #        - g++-5
+    #      sources:
+    #        - ubuntu-toolchain-r-test
+    #        - llvm-toolchain-precise-3.8
+    #- os: linux
+    #  env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
+    #  addons:
+    #    apt:
+    #      packages:
+    #        - clang-3.9
+    #        - g++-5
+    #      sources:
+    #        - ubuntu-toolchain-r-test
+    #        - llvm-toolchain-trusty-3.9
     - os: linux
-      env: COMPILER_NAME=clang CXX=clang++-3.7 CC=clang-3.7
+      env: COMPILER_NAME=clang CXX=clang++-4.0 CC=clang-4.0
       addons:
         apt:
           packages:
-            - clang-3.7
-            - libc++-dev
-            - libc++abi-dev
+            - clang-4.0
+            - g++-6
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.7
-    # - os: linux
-    #   env: COMPILER_NAME=clang CXX=clang++-3.8 CC=clang-3.8
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - clang-3.8
-    #         - libc++-dev
-    #         - libc++abi-dev
-    #       sources:
-    #         - ubuntu-toolchain-r-test
-    #         - llvm-toolchain-precise-3.8
-    # - os: linux
-    #   env: COMPILER_NAME=clang CXX=clang++-3.9 CC=clang-3.9
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - clang-3.9
-    #         - libc++-dev
-    #         - libc++abi-dev
-    #       sources:
-    #         - ubuntu-toolchain-r-test
-    #         - llvm-toolchain-trusty-3.9
-    # - os: linux
-    #   env: COMPILER_NAME=clang CXX=clang++-4.0 CC=clang-4.0
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - clang-4.0
-    #         - libc++-dev
-    #         - libc++abi-dev
-    #       sources:
-    #         - ubuntu-toolchain-r-test
-    #         - llvm-toolchain-trusty-4.0
-    # - os: linux
-    #   env: COMPILER_NAME=clang CXX=clang++-5.0 CC=clang-5.0
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - clang-5.0
-    #         - libc++-dev
-    #         - libc++abi-dev
-    #       sources:
-    #         - ubuntu-toolchain-r-test
-    #         - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-trusty-4.0
+    - os: linux
+      env: COMPILER_NAME=clang CXX=clang++-5.0 CC=clang-5.0
+      addons:
+        apt:
+          packages:
+            - clang-5.0
+            - g++-6
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-5.0
     - os: linux
       env: COMPILER_NAME=gcc CXX=g++-6 CC=gcc-6
       addons:
@@ -78,9 +78,38 @@ matrix:
             - g++-6
           sources:
             - ubuntu-toolchain-r-test
+    - os: linux
+      env: COMPILER_NAME=gcc CXX=g++-7 CC=gcc-7
+      addons:
+        apt:
+          packages:
+            - g++-7
+          sources:
+            - ubuntu-toolchain-r-test
+
+before_install:
+  - export CC="ccache $CC"
+  - export CXX="ccache $CXX"
+  - export BASE=$PWD
+
+  # Prevent ccache & clang from spitting "argument unused during compilation"
+  - if [ $COMPILER_NAME == "clang" ]; then
+      export CC="$CC -Qunused-arguments -fcolor-diagnostics";
+      export CXX="$CXX -Qunused-arguments -fcolor-diagnostics";
+    fi
+
+  # Print sysmem & compiler info
+  - uname -a
+  - cat /proc/cpuinfo
+  - $CC --version
+  - $CXX --version
+  - ccache --version
+  - make --version
+  - echo $COMPILER_NAME
+  - echo $CFLAGS
+  - echo $CXXFLAGS
 
 install:
-  - export BASE=$PWD
 
   # Linux build does not support window and rendering for now
   # Build SDL2 from externals
