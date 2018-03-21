@@ -12,15 +12,15 @@ uint32_t GTE::read_(uint8_t n) {
     switch (n) {
         // Data
         case 0:
-            return (v[0].y << 16) | v[0].x;
+            return ((uint16_t)v[0].y << 16) | (uint16_t)v[0].x;
         case 1:
             return (int32_t)v[0].z;
         case 2:
-            return (v[1].y << 16) | v[1].x;
+            return ((uint16_t)v[1].y << 16) | (uint16_t)v[1].x;
         case 3:
             return (int32_t)v[1].z;
         case 4:
-            return (v[2].y << 16) | v[2].x;
+            return ((uint16_t)v[2].y << 16) | (uint16_t)v[2].x;
         case 5:
             return (int32_t)v[2].z;
         case 6:
@@ -137,15 +137,18 @@ uint32_t GTE::read_(uint8_t n) {
         case 57:
             return of[1];
         case 58:
-            return h;
+            // gte_bug: H is sign extended on read
+            return (int32_t)(int16_t)h;
         case 59:
             return (int32_t)dqa;
         case 60:
             return dqb;
         case 61:
-            return (uint16_t)zsf3;
+            // gte_bug?: sign extended
+            return (int32_t)(int16_t)zsf3;
         case 62:
-            return (uint16_t)zsf4;
+            // gte_bug?: sign extended
+            return (int32_t)(int16_t)zsf4;
         case 63:
             return flag;
         default:

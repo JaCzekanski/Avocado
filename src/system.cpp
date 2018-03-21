@@ -248,7 +248,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
 
     // Cache control
     if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        printf("W Unhandled memory control\n");
+        //        printf("W Unhandled memory control\n");
         return;
     }
 
