@@ -1,5 +1,5 @@
-# Avocado 
-Modern Playstation 1 emulator project.
+# Avocado
+A Modern Playstation 1 emulator.
 
 <p align="center">
     <img src="docs/boot.png" height="200">
@@ -15,25 +15,25 @@ Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.s
 AppVeyor (Windows) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017)
 
 
-Emulator is in very early stage of development. Despite that it is able to run few 3D games. [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability)
+Despite this emulator being in early development, some 3D games can run. [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability)
 
 
-Right now there are no SPU (so **no sound** except simple Audio CD in games), MDEC (**black screen instead of movies**), timer implementation is bad (**games fail to boot** or run at wrong speed).
+There is currently no SPU (**no sound** except simple in-game Audio CDs) or MDEC (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed).
 
 ## Running
 
-Avocado require BIOS from real console placed in data/bios directory.
-On first run you'll be asked to select BIOS rom. This can be changed later using Options->BIOS or by modifying **config.json** file.
+Avocado requires the BIOS from real console in the data/bios directory.
+Selection of a BIOS rom will be required on the first run. The rom can be changed under Options->BIOS or by modifying the **config.json** file.
 
-Avocado doesn't support fast booting. [UniROM](http://www.psxdev.net/forum/viewtopic.php?t=722) can be used to work around this problem. Place .rom file in data/bios directory and modify **config.json**:
+Avocado doesn't support fast booting. [UniROM](http://www.psxdev.net/forum/viewtopic.php?t=722) can be used as a work around. Place the .rom file in the data/bios directory and modify **config.json**:
 ```
 "extension": "data/bios/unirom_caetlaNTSC_plugin.rom"
 ```
 
-To fastbook game press **Start** button (Enter by default) or **R2** (keypad *) to slowboot.
-You can run included Caetla with **Select** button (Right shift) and run .exe from disc directly. 
+Press the **Start** button (Enter by default) to fastboot, or **R2** (keypad *) to slowboot a game.
+You can run the included Playstation firmware replacement *Caetla* with the **Select** button (Right shift) then run the .exe directly from the disk.
 
-To load .cue/.bin/.img file just drag and drop it.
+To load a .cue/.bin/.img file just drag and drop it.
 
 ## Controls
 
@@ -45,7 +45,7 @@ To load .cue/.bin/.img file just drag and drop it.
 - **Q** - toggle full VRAM preview
 - **R** - dump RAM and SPU RAM to file
 
-Avocado maps any Xbox360 like controller to Playstation Controller. Keyboard also can be used (see Options->Controller to modify keymap). 
+Avocado maps any Xbox360-like controller to the Playstation Controller. A keyboard can also be used (modify the keymap under Options->Controller).
 
 ## Build
 
@@ -66,6 +66,6 @@ See appveyor.yml in case of problems.
 
 ## Bugs
 
-Use [GitHub issue tracker](https://github.com/JaCzekanski/Avocado/issues) to file bugs. Please attach [Game ID](http://redump.org/discs/system/psx/), screenshots/video, BIOS and build version. 
+Use [GitHub issue tracker](https://github.com/JaCzekanski/Avocado/issues) to file bugs. Please attach [Game ID](http://redump.org/discs/system/psx/), screenshots/video, BIOS and build version.
 
 See [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability) before creating a bug issue.
