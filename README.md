@@ -31,7 +31,7 @@ Avocado doesn't support fast booting. [UniROM](http://www.psxdev.net/forum/viewt
 ```
 
 Press the **Start** button (Enter by default) to fastboot, or **R2** (keypad *) to slowboot a game.
-You can run the included game *Caetla* with the **Select** button (Right shift) then run the .exe directly from the disk.
+You can run the included Playstation firmware replacement *Caetla* with the **Select** button (Right shift) then run the .exe directly from the disk.
 
 To load a .cue/.bin/.img file just drag and drop it.
 
