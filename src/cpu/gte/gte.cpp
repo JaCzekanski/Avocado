@@ -1,4 +1,21 @@
 #include "gte.h"
+#include <algorithm>
+#include <cmath>
+
+template <size_t from, size_t to>
+bool orRange(uint32_t v) {
+    static_assert(from >= 0 && from < 32, "from out of range");
+    static_assert(to >= 0 && to < 32, "to out of range");
+
+    const size_t max = std::max(from, to);
+    const size_t min = std::min(from, to);
+
+    bool result = false;
+    for (size_t i = min; i <= max; i++) {
+        result |= (v & (1 << i)) != 0;
+    }
+    return result;
+}
 
 uint32_t GTE::read(uint8_t n) {
     uint32_t res = read_(n);
@@ -149,8 +166,13 @@ uint32_t GTE::read_(uint8_t n) {
         case 62:
             // gte_bug?: sign extended
             return (int32_t)(int16_t)zsf4;
-        case 63:
-            return flag;
+        case 63: {
+            bool errorFlag = orRange<30, 23>(flag) | orRange<18, 13>(flag);
+
+            flag &= ~(1 << 31);
+
+            return (errorFlag << 31) | flag;
+        }
         default:
             return 0;
     }
@@ -184,6 +206,7 @@ void GTE::write(uint8_t n, uint32_t d) {
             rgbc._reg = d;
             break;
         case 7:
+            otz = d;
             break;
 
         case 8:

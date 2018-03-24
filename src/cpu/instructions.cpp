@@ -650,11 +650,11 @@ void op_cop0(CPU *cpu, Opcode i) {
 // Coprocessor two
 void op_cop2(CPU *cpu, Opcode i) {
     gte::Command command(i.opcode);
-    if (command.cmd != 0x00) {
+    if (i.opcode & (1 << 25)) {
         cpu->gte.log.push_back({GTE::GTE_ENTRY::MODE::func, command.cmd, 0});
 
         if (!cpu->gte.command(command)) {
-            printf("Unhandled gte command 0x%x\n", command.cmd);
+            //            printf("Unhandled gte command 0x%x\n", command.cmd);
         }
         return;
     }
