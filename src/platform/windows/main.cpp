@@ -370,10 +370,7 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_q) {
                     showVRAM = !showVRAM;
                 }
-                if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = false;
-            }
-            if (event.type == SDL_KEYUP) {
-                if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = true;
+                if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = !frameLimitEnabled;
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;

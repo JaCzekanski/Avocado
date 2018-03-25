@@ -222,31 +222,31 @@ project "avocado"
 	end
 	
 
-project "avocado_test"
-	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
-	kind "ConsoleApp"
-	language "c++"
-	location "build/libs/avocado_test"
-	targetdir "build/%{cfg.buildcfg}"
-	debugdir "."
-	flags { "C++14" }
-	dependson { "avocado" }
+-- project "avocado_test"
+-- 	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
+-- 	kind "ConsoleApp"
+-- 	language "c++"
+-- 	location "build/libs/avocado_test"
+-- 	targetdir "build/%{cfg.buildcfg}"
+-- 	debugdir "."
+-- 	flags { "C++14" }
+-- 	dependson { "avocado" }
 
-	includedirs { 
-		"src", 
-		"externals/imgui",
-		"externals/glad/include",
-		"externals/SDL2/include",
-		"externals/glm",
-		"externals/json/src",
-		"externals/catch/single_include"
-	}
+-- 	includedirs { 
+-- 		"src", 
+-- 		"externals/imgui",
+-- 		"externals/glad/include",
+-- 		"externals/SDL2/include",
+-- 		"externals/glm",
+-- 		"externals/json/src",
+-- 		"externals/catch/single_include"
+-- 	}
 
-	files { 
-		"tests/**.h",
-		"tests/**.cpp"
-	}
+-- 	files { 
+-- 		"tests/**.h",
+-- 		"tests/**.cpp"
+-- 	}
 
-	links {
-		"avocado"
-	}
+-- 	links {
+-- 		"avocado"
+-- 	}

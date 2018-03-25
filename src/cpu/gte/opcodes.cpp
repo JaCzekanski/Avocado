@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdio>
 #include "gte.h"
 
@@ -48,8 +50,8 @@ int32_t GTE::F(int64_t value) {
 
 int64_t GTE::setMac(int i, int64_t value) {
     assert(i >= 0 && i <= 3);
-    uint32_t overflowBits = 1 << 31;
-    uint32_t underflowBits = 1 << 31;
+    uint32_t overflowBits = 0;
+    uint32_t underflowBits = 0;
 
     if (i == 0) {
         overflowBits |= 1 << 16;
@@ -59,7 +61,7 @@ int64_t GTE::setMac(int i, int64_t value) {
         if (value < -0x80000000LL) flag |= underflowBits;
 
         mac[0] = (int32_t)value;
-        return (int32_t)value;
+        return value;
     } else if (i == 1) {
         overflowBits |= 1 << 30;
         underflowBits |= 1 << 27;
@@ -73,34 +75,34 @@ int64_t GTE::setMac(int i, int64_t value) {
 
     check43bitsOverflow(value, overflowBits, underflowBits);
 
-    if (sf) value /= 0x1000;
+    if (sf) value >>= 12;
     mac[i] = (int32_t)value;
-    return (int32_t)value;
+    return value;
 }
 
 // clang-format off
-void GTE::setMacAndIr(int i, int64_t value, bool lm) {
-    int32_t valMac = setMac(i, value);
-
+void GTE::setIr(int i, int32_t value, bool lm) {
     if (i == 0) {
-        valMac /= 0x1000;
-        ir[0] = clip(valMac, 0x1000, 0x0000, 1 << 12);
+        value >>= 12; // todo: / 0x1000 in docs
+        ir[0] = clip(value, 0x1000, 0x0000, 1 << 12);
         return;
     }
 
     uint32_t saturatedBits = 0;
-    if      (i == 1) saturatedBits = 1 << 24 | 1 << 31;
-    else if (i == 2) saturatedBits = 1 << 23 | 1 << 31;
+    if (i == 1) saturatedBits = 1 << 24;
+    else if (i == 2) saturatedBits = 1 << 23;
     else if (i == 3) saturatedBits = 1 << 22;
-                
-    if (lm) ir[i] = clip(valMac, 0x7fff,  0x0000, saturatedBits);
-    else    ir[i] = clip(valMac, 0x7fff, -0x8000, saturatedBits);
+
+    if (lm) ir[i] = clip(value, 0x7fff, 0x0000, saturatedBits);
+    else    ir[i] = clip(value, 0x7fff, -0x8000, saturatedBits);
 }
 // clang-format on
 
+void GTE::setMacAndIr(int i, int64_t value, bool lm) { setIr(i, setMac(i, value), lm); }
+
 void GTE::setOtz(int32_t value) {
-    value /= 0x1000;
-    otz = clip(value, 0xffff, 0x0000, 1 << 18 | 1 << 31);
+    value >>= 12;
+    otz = clip(value, 0xffff, 0x0000, 1 << 18);
 }
 
 #define R11 (rt.v11)
@@ -243,17 +245,71 @@ int GTE::countLeadingZeroes(uint32_t n) {
     return zeroes;
 }
 
-int32_t GTE::divide(uint16_t h, uint16_t sz3) {
+size_t GTE::countLeadingZeroes16(uint16_t n) {
+    size_t zeroes = 0;
+
+    while (!(n & 0x8000) && zeroes < 16) {
+        zeroes++;
+        n <<= 1;
+    }
+    return zeroes;
+}
+
+uint32_t GTE::divide(uint16_t h, uint16_t sz3) {
     if (sz3 == 0) {
-        flag |= (1 << 31) | (1 << 17);
+        flag |= 1 << 17;
         return 0x1ffff;
     }
-    int32_t n = (h * 0x10000 + sz3 / 2) / sz3;
+    uint64_t n = (((uint64_t)h * 0x20000 / (uint64_t)sz3) + 1) / 2;
     if (n > 0x1ffff) {
-        flag |= (1 << 31) | (1 << 17);
+        flag |= 1 << 17;
         return 0x1ffff;
     }
     return n;
+}
+
+uint8_t unr_table[0x101]
+    = {0xff, 0xfd, 0xfb, 0xf9, 0xf7, 0xf5, 0xf3, 0xf1, 0xef, 0xee, 0xec, 0xea, 0xe8, 0xe6, 0xe4, 0xe3, 0xe1, 0xdf, 0xdd, 0xdc, 0xda, 0xd8,
+       0xd6, 0xd5, 0xd3, 0xd1, 0xd0, 0xce, 0xcd, 0xcb, 0xc9, 0xc8, 0xc6, 0xc5, 0xc3, 0xc1, 0xc0, 0xbe, 0xbd, 0xbb, 0xba, 0xb8, 0xb7, 0xb5,
+       0xb4, 0xb2, 0xb1, 0xb0, 0xae, 0xad, 0xab, 0xaa, 0xa9, 0xa7, 0xa6, 0xa4, 0xa3, 0xa2, 0xa0, 0x9f, 0x9e, 0x9c, 0x9b, 0x9a, 0x99, 0x97,
+       0x96, 0x95, 0x94, 0x92, 0x91, 0x90, 0x8f, 0x8d, 0x8c, 0x8b, 0x8a, 0x89, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0x81, 0x7f, 0x7e, 0x7d,
+       0x7c, 0x7b, 0x7a, 0x79, 0x78, 0x77, 0x75, 0x74, 0x73, 0x72, 0x71, 0x70, 0x6f, 0x6e, 0x6d, 0x6c, 0x6b, 0x6a, 0x69, 0x68, 0x67, 0x66,
+       0x65, 0x64, 0x63, 0x62, 0x61, 0x60, 0x5f, 0x5e, 0x5d, 0x5d, 0x5c, 0x5b, 0x5a, 0x59, 0x58, 0x57, 0x56, 0x55, 0x54, 0x53, 0x53, 0x52,
+       0x51, 0x50, 0x4f, 0x4e, 0x4d, 0x4d, 0x4c, 0x4b, 0x4a, 0x49, 0x48, 0x48, 0x47, 0x46, 0x45, 0x44, 0x43, 0x43, 0x42, 0x41, 0x40, 0x3f,
+       0x3f, 0x3e, 0x3d, 0x3c, 0x3c, 0x3b, 0x3a, 0x39, 0x39, 0x38, 0x37, 0x36, 0x36, 0x35, 0x34, 0x33, 0x33, 0x32, 0x31, 0x31, 0x30, 0x2f,
+       0x2e, 0x2e, 0x2d, 0x2c, 0x2c, 0x2b, 0x2a, 0x2a, 0x29, 0x28, 0x28, 0x27, 0x26, 0x26, 0x25, 0x24, 0x24, 0x23, 0x22, 0x22, 0x21, 0x20,
+       0x20, 0x1f, 0x1e, 0x1e, 0x1d, 0x1d, 0x1c, 0x1b, 0x1b, 0x1a, 0x19, 0x19, 0x18, 0x18, 0x17, 0x16, 0x16, 0x15, 0x15, 0x14, 0x14, 0x13,
+       0x12, 0x12, 0x11, 0x11, 0x10, 0x0f, 0x0f, 0x0e, 0x0e, 0x0d, 0x0d, 0x0c, 0x0c, 0x0b, 0x0a, 0x0a, 0x09, 0x09, 0x08, 0x08, 0x07, 0x07,
+       0x06, 0x06, 0x05, 0x05, 0x04, 0x04, 0x03, 0x03, 0x02, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00};
+
+uint32_t recip(uint16_t divisor) {
+    int32_t x = 0x101 + unr_table[((divisor & 0x7fff) + 0x40) >> 7];
+
+    int32_t tmp = (((int32_t)divisor * -x) + 0x80) >> 8;
+    int32_t tmp2 = ((x * (131072 + tmp)) + 0x80) >> 8;
+
+    return tmp2;
+}
+
+uint32_t GTE::divideUNR(uint32_t lhs, uint32_t rhs) {
+    if (!(rhs * 2 > lhs)) {
+        flag |= 1 << 17;
+        return 0x1ffff;
+    }
+
+    size_t shift = countLeadingZeroes16(rhs);
+    lhs <<= shift;
+    rhs <<= shift;
+
+    uint32_t reciprocal = recip(rhs | 0x8000);
+
+    uint32_t result = ((uint64_t)lhs * reciprocal + 0x8000) >> 16;
+
+    if (result > 0x1ffff) {
+        flag |= 1 << 17;
+        return 0x1ffff;
+    }
+    return result;
 }
 
 void GTE::pushScreenXY(int32_t x, int32_t y) {
@@ -262,16 +318,16 @@ void GTE::pushScreenXY(int32_t x, int32_t y) {
     s[1].x = s[2].x;
     s[1].y = s[2].y;
 
-    s[2].x = clip(x, 0x3ff, -0x400, 1 << 14 | 1 << 31);
-    s[2].y = clip(y, 0x3ff, -0x400, 1 << 13 | 1 << 31);
+    s[2].x = clip(x, 0x3ff, -0x400, 1 << 14);
+    s[2].y = clip(y, 0x3ff, -0x400, 1 << 13);
 }
 
-void GTE::pushScreenZ(uint32_t z) {
+void GTE::pushScreenZ(int32_t z) {
     s[0].z = s[1].z;
     s[1].z = s[2].z;
     s[2].z = s[3].z;  // There is only s[3].z (no s[3].xy)
 
-    s[3].z = clip(z, 0xffff, 0x000, 1 << 18 | 1 << 31);
+    s[3].z = clip(z, 0xffff, 0x0000, 1 << 18);
 }
 
 void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
@@ -294,11 +350,12 @@ void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
  */
 // clang-format off
 void GTE::rtps(int n) {
-    setMacAndIr(1, tr.x * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z);
-    setMacAndIr(2, tr.y * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z);
-    setMacAndIr(3, tr.z * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z);
+    setMacAndIr(1, (int64_t)tr.x * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z, lm);
+    setMacAndIr(2, (int64_t)tr.y * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z, lm);
+    int64_t mac3 = (int64_t)tr.z * 0x1000 + R31 * v[n].x + R32 * v[n].y + R33 * v[n].z;
+    setMacAndIr(3, mac3, lm);
 
-    pushScreenZ(sf ? mac[3] : mac[3] / 0x1000);
+    pushScreenZ(mac3 >> 12);
     int64_t h_s3z = divide(h, s[3].z);
 
     pushScreenXY(
@@ -306,7 +363,7 @@ void GTE::rtps(int n) {
         setMac(0, h_s3z * ir[2] + of[1]) / 0x10000
     );
 
-    setMacAndIr(0, h_s3z * dqa + dqb);
+    setMacAndIr(0, h_s3z * dqa + dqb, lm);
 }
 // clang-format on
 
@@ -320,12 +377,12 @@ void GTE::rtpt() {
 }
 
 void GTE::avsz3() {
-    setMac(0, zsf3 * s[1].z + zsf3 * s[2].z + zsf3 * s[3].z);
+    setMac(0, (int64_t)zsf3 * (s[1].z + s[2].z + s[3].z));
     setOtz(mac[0]);
 }
 
 void GTE::avsz4() {
-    setMac(0, zsf4 * s[0].z + zsf4 * s[1].z + zsf4 * s[2].z + zsf4 * s[3].z);
+    setMac(0, (int64_t)zsf4 * (s[0].z + s[1].z + s[2].z + s[3].z));
     setOtz(mac[0]);
 }
 
@@ -365,12 +422,12 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
         Tx.x = Tx.y = Tx.z = 0;
 
     if (tx == 2) {
-        mac[1] = A1(Mx.v12 * V.y + Mx.v13 * V.z, sf);
-        mac[2] = A2(Mx.v22 * V.y + Mx.v23 * V.z, sf);
-        mac[3] = A3(Mx.v32 * V.y + Mx.v33 * V.z, sf);
-        Lm_B1(A1((Tx.x << 12) + Mx.v11 * V.x), 0);
-        Lm_B2(A1((Tx.y << 12) + Mx.v21 * V.x), 0);
-        Lm_B3(A1((Tx.z << 12) + Mx.v31 * V.x), 0);
+        setMacAndIr(1, Mx.v12 * V.y + Mx.v13 * V.z, lm);
+        setMacAndIr(2, Mx.v22 * V.y + Mx.v23 * V.z, lm);
+        setMacAndIr(3, Mx.v32 * V.y + Mx.v33 * V.z, lm);
+        //        Lm_B1(A1((Tx.x << 12) + Mx.v11 * V.x), 0);
+        //        Lm_B2(A1((Tx.y << 12) + Mx.v21 * V.x), 0);
+        //        Lm_B3(A1((Tx.z << 12) + Mx.v31 * V.x), 0);
     } else {
         setMacAndIr(1, Tx.x * 0x1000 + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, lm);
         setMacAndIr(2, Tx.y * 0x1000 + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, lm);
@@ -415,11 +472,11 @@ void GTE::sqr() {
 }
 
 void GTE::op(bool sf, bool lm) {
-    mac[1] = A1(R22 * ir[3] - R33 * ir[2], sf);
-    mac[2] = A2(R33 * ir[1] - R11 * ir[3], sf);
-    mac[3] = A3(R11 * ir[2] - R22 * ir[1], sf);
+    setMac(1, R22 * ir[3] - R33 * ir[2]);
+    setMac(2, R33 * ir[1] - R11 * ir[3]);
+    setMac(3, R11 * ir[2] - R22 * ir[1]);
 
-    ir[1] = Lm_B1(mac[1], lm);
-    ir[2] = Lm_B2(mac[2], lm);
-    ir[3] = Lm_B3(mac[3], lm);
+    setIr(1, mac[1], lm);
+    setIr(2, mac[2], lm);
+    setIr(3, mac[3], lm);
 }
