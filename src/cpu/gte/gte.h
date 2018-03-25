@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 #include "command.h"
@@ -49,7 +50,8 @@ struct GTE {
     void dcps(bool sf, bool lm);
     void dcpl(bool sf, bool lm);
     void intpl(bool sf, bool lm);
-    int32_t divide(uint16_t h, uint16_t sz3);
+    uint32_t divide(uint16_t h, uint16_t sz3);
+    uint32_t divideUNR(uint32_t a, uint32_t b);
     void rtps(int n);
     void rtpt();
     void avsz3();
@@ -73,7 +75,9 @@ struct GTE {
 
    private:
     int countLeadingZeroes(uint32_t n);
+    size_t countLeadingZeroes16(uint16_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
+    uint32_t clipUnsigned(uint32_t value, uint32_t max, uint32_t min, uint32_t flags = 0);
     void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
     int32_t A1(int64_t value, bool sf = false);
     int32_t A2(int64_t value, bool sf = false);
@@ -81,9 +85,10 @@ struct GTE {
     int32_t F(int64_t value);
 
     int64_t setMac(int mac, int64_t value);
+    void setIr(int i, int32_t value, bool lm = false);
     void setMacAndIr(int i, int64_t value, bool lm = false);
     void setOtz(int32_t value);
     void pushScreenXY(int32_t x, int32_t y);
-    void pushScreenZ(uint32_t z);
+    void pushScreenZ(int32_t z);
     void pushColor(uint32_t r, uint32_t g, uint32_t b);
 };
