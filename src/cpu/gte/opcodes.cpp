@@ -355,8 +355,8 @@ void GTE::rtps(int n) {
     pushScreenZ(mac3 >> 12);
     int64_t h_s3z = divide(h, s[3].z);
 
-    int32_t x = setMac(0, h_s3z * ir[1] + of[0]) / 0x10000;
-    int32_t y = setMac(0, h_s3z * ir[2] + of[1]) / 0x10000;
+    int32_t x = setMac(0, h_s3z * ir[1] + of[0]) >> 16;
+    int32_t y = setMac(0, h_s3z * ir[2] + of[1]) >> 16;
     pushScreenXY(x, y);
 
     setMacAndIr(0, h_s3z * dqa + dqb, lm);
