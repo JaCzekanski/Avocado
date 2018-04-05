@@ -81,9 +81,9 @@ int64_t GTE::setMac(int i, int64_t value) {
 }
 
 // clang-format off
-void GTE::setIr(int i, int32_t value, bool lm) {
+void GTE::setIr(int i, int64_t value, bool lm) {
     if (i == 0) {
-        value >>= 12; // todo: / 0x1000 in docs
+        value >>= 12;
         ir[0] = clip(value, 0x1000, 0x0000, 1 << 12);
         return;
     }
@@ -345,10 +345,7 @@ void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
  *
  * Multiplicate vector (V) with rotation matrix (R),
  * translate it (TR) and apply perspective transformation.
- *
- * lm is ignored - treat like 0
  */
-// clang-format off
 void GTE::rtps(int n) {
     setMacAndIr(1, (int64_t)tr.x * 0x1000 + R11 * v[n].x + R12 * v[n].y + R13 * v[n].z, lm);
     setMacAndIr(2, (int64_t)tr.y * 0x1000 + R21 * v[n].x + R22 * v[n].y + R23 * v[n].z, lm);
@@ -358,14 +355,12 @@ void GTE::rtps(int n) {
     pushScreenZ(mac3 >> 12);
     int64_t h_s3z = divide(h, s[3].z);
 
-    pushScreenXY(
-        setMac(0, h_s3z * ir[1] + of[0]) / 0x10000, 
-        setMac(0, h_s3z * ir[2] + of[1]) / 0x10000
-    );
+    int32_t x = setMac(0, h_s3z * ir[1] + of[0]) / 0x10000;
+    int32_t y = setMac(0, h_s3z * ir[2] + of[1]) / 0x10000;
+    pushScreenXY(x, y);
 
     setMacAndIr(0, h_s3z * dqa + dqb, lm);
 }
-// clang-format on
 
 /**
  * Same as RTPS, but repeated for vector 0, 1 and 2
