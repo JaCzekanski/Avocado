@@ -1,5 +1,5 @@
 #include <imgui.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <vector>
 #include "../../../cpu/gte/gte.h"
 #include "debugger/debugger.h"

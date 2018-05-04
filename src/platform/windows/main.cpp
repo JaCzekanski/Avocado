@@ -4,7 +4,7 @@
 #include <SDL.h>
 #include <algorithm>
 #include <cstdio>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <string>
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "platform/windows/config.h"
