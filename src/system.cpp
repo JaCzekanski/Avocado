@@ -14,19 +14,20 @@ System::System() {
     memset(expansion, 0, EXPANSION_SIZE);
 
     cpu = std::make_unique<mips::CPU>(this);
-    memoryControl = std::make_unique<device::Dummy>("MemCtrl", 0x1f801000, false);
-    controller = std::make_unique<device::controller::Controller>(this);
-    serial = std::make_unique<device::Dummy>("Serial", 0x1f801050, false);
-    interrupt = std::make_unique<Interrupt>(this);
     gpu = std::make_unique<GPU>();
+
+    cdrom = std::make_unique<device::cdrom::CDROM>(this);
+    controller = std::make_unique<device::controller::Controller>(this);
     dma = std::make_unique<device::dma::DMA>(this);
+    expansion2 = std::make_unique<Expansion2>();
+    interrupt = std::make_unique<Interrupt>(this);
+    mdec = std::make_unique<MDEC>();
+    memoryControl = std::make_unique<MemoryControl>();
+    serial = std::make_unique<Serial>();
+    spu = std::make_unique<SPU>();
     timer0 = std::make_unique<Timer<0>>(this);
     timer1 = std::make_unique<Timer<1>>(this);
     timer2 = std::make_unique<Timer<2>>(this);
-    cdrom = std::make_unique<device::cdrom::CDROM>(this);
-    spu = std::make_unique<SPU>();
-    mdec = std::make_unique<MDEC>();
-    expansion2 = std::make_unique<device::Dummy>("Expansion2", 0x1f802000, false);
 
     biosLog = config["debug"]["log"]["bios"];
 }
@@ -43,22 +44,6 @@ INLINE T read_fast(uint8_t* device, uint32_t addr) {
     if (sizeof(T) == 4) return static_cast<T>(((uint32_t*)device)[addr / 4]);
     return 0;
 }
-
-/*
-Based on http://problemkaputt.de/psx-spx.htm
-0x00000000 - 0x20000000 is cache enabled
-0x80000000 is mirrored to 0x00000000 (with cache)
-0xA0000000 is mirrored to 0x00000000 (without cache)
-
-00000000 - 00200000 2048K  RAM
-1F000000 - 1F800000 8192K  Expansion ROM
-1F800000 - 1F800400 1K     Scratchpad
-1F801000 - 1F803000 8K     I/O
-1F802000 - 1F804000 8K     Expansion 2
-1FA00000 - 1FC00000 2048K  Expansion 3
-1FC00000 - 1FC80000 512K   BIOS ROM
-FFFE0000 - FFFE0100 0.5K   I/O (Cache Control)
-*/
 
 // Warning: This function does not check array boundaries. Make sure that address is aligned!
 template <typename T>
@@ -101,6 +86,22 @@ INLINE void write_io(Device& periph, uint32_t addr, T data) {
     }
 }
 
+template <typename T>
+INLINE uint32_t align_mips(uint32_t address) {
+    static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
+
+    if (sizeof(T) == 1) return address & 0x1fffffff;
+    if (sizeof(T) == 2) return address & 0x1ffffffe;
+    if (sizeof(T) == 4) return address & 0x1ffffffc;
+    return 0;
+}
+
+// TODO: constexpr
+template <uint32_t base, uint32_t size>
+INLINE bool in_range(const uint32_t addr) {
+    return (addr >= base && addr < base + size);
+}
+
 #ifdef ENABLE_IO_LOG
 #define LOG_IO(mode, size, addr, data) ioLogList.push_back({(mode), (size), (addr), (data)})
 #else
@@ -118,10 +119,11 @@ INLINE void write_io(Device& periph, uint32_t addr, T data) {
 #define READ_IO32(begin, end, periph)                                                                          \
     if (addr >= (begin) && addr < (end)) {                                                                     \
         T data = 0;                                                                                            \
-        if (sizeof(T) == 4)                                                                                    \
+        if (sizeof(T) == 4) {                                                                                  \
             data = (periph)->read(addr - (begin));                                                             \
-        else                                                                                                   \
+        } else {                                                                                               \
             printf("R Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
+        }                                                                                                      \
                                                                                                                \
         LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data);                                        \
         return data;                                                                                           \
@@ -137,10 +139,11 @@ INLINE void write_io(Device& periph, uint32_t addr, T data) {
 
 #define WRITE_IO32(begin, end, periph)                                                                         \
     if (addr >= (begin) && addr < (end)) {                                                                     \
-        if (sizeof(T) == 4)                                                                                    \
+        if (sizeof(T) == 4) {                                                                                  \
             (periph)->write(addr - (begin), data);                                                             \
-        else                                                                                                   \
+        } else {                                                                                               \
             printf("W Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
+        }                                                                                                      \
                                                                                                                \
         LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data);                                       \
         return;                                                                                                \
@@ -150,51 +153,40 @@ template <typename T>
 INLINE T System::readMemory(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
-    uint32_t addr = address;
+    uint32_t addr = align_mips<T>(address);
 
-    // align address
-    if (sizeof(T) == 1)
-        addr &= 0x1fffffff;
-    else if (sizeof(T) == 2)
-        addr &= 0x1ffffffe;
-    else if (sizeof(T) == 4)
-        addr &= 0x1ffffffc;
-
-    if (addr < 0x200000 * 4) return read_fast<T>(ram, addr & 0x1fffff);
-    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) return read_fast<T>(expansion, addr - 0x1f000000);
-    if (addr >= 0x1f800000 && addr < 0x1f800400) return read_fast<T>(scratchpad, addr - 0x1f800000);
-    if (addr >= 0x1fc00000 && addr < 0x1fc80000) return read_fast<T>(bios, addr - 0x1fc00000);
-
-    // IO Ports
-    if (addr >= 0x1f801000 && addr <= 0x1f803000) {
-        addr -= 0x1f801000;
-
-        if (addr >= 0x50 && addr < 0x60) {
-            if (addr >= 0x54 && addr < 0x58) {
-                return 0x5 >> ((addr - 0x54) * 8);
-            }
-        }
-
-        READ_IO(0x00, 0x24, memoryControl);
-        READ_IO(0x40, 0x50, controller);
-        READ_IO(0x50, 0x60, serial);
-        READ_IO(0x60, 0x64, memoryControl);
-        READ_IO(0x70, 0x78, interrupt);
-        READ_IO(0x80, 0x100, dma);
-        READ_IO(0x100, 0x110, timer0);
-        READ_IO(0x110, 0x120, timer1);
-        READ_IO(0x120, 0x130, timer2);
-        READ_IO(0x800, 0x804, cdrom);
-        READ_IO32(0x810, 0x0818, gpu);
-        READ_IO32(0x820, 0x828, mdec);
-        READ_IO(0xC00, 0x1000, spu);
-        READ_IO(0x1000, 0x1043, expansion2);
-        printf("R Unhandled IO at 0x%08x\n", addr + 0x1f801000);
+    if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
+        return read_fast<T>(ram, (addr - RAM_BASE) & (RAM_SIZE - 1));
+    }
+    if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
+        return read_fast<T>(expansion, addr - EXPANSION_BASE);
+    }
+    if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
+        return read_fast<T>(scratchpad, addr - SCRATCHPAD_BASE);
+    }
+    if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
+        return read_fast<T>(bios, addr - BIOS_BASE);
     }
 
-    if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        printf("R Unhandled memory control\n");
-        return 0;
+    READ_IO(0x1f801000, 0x1f801024, memoryControl);
+    READ_IO(0x1f801040, 0x1f801050, controller);
+    READ_IO(0x1f801050, 0x1f801060, serial);
+    READ_IO(0x1f801060, 0x1f801064, memoryControl);
+    READ_IO(0x1f801070, 0x1f801078, interrupt);
+    READ_IO(0x1f801080, 0x1f801100, dma);
+    READ_IO(0x1f801100, 0x1f801110, timer0);
+    READ_IO(0x1f801110, 0x1f801120, timer1);
+    READ_IO(0x1f801120, 0x1f801130, timer2);
+    READ_IO(0x1f801800, 0x1f801804, cdrom);
+    READ_IO32(0x1f801810, 0x1f801818, gpu);
+    READ_IO32(0x1f801820, 0x1f801828, mdec);
+    READ_IO(0x1f801C00, 0x1f802000, spu);
+    READ_IO(0x1f802000, 0x1f802043, expansion2);
+
+    if (in_range<0xfffe0130, 4>(address)) {
+        auto data = read_io<T>(memoryControl, address);
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data);
+        return data;
     }
 
     printf("R Unhandled address at 0x%08x\n", address);
@@ -204,51 +196,38 @@ template <typename T>
 INLINE void System::writeMemory(uint32_t address, T data) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
-    uint32_t addr = address;
+    uint32_t addr = align_mips<T>(address);
 
-    // align address
-    if (sizeof(T) == 1)
-        addr &= 0x1fffffff;
-    else if (sizeof(T) == 2)
-        addr &= 0x1ffffffe;
-    else if (sizeof(T) == 4)
-        addr &= 0x1ffffffc;
-
-    if (addr < 0x200000 * 4) {
+    if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         if (cpu->cop0.status.isolateCache) return;
-        return write_fast<T>(ram, addr & 0x1fffff, data);
+        return write_fast<T>(ram, (addr - RAM_BASE) & (RAM_SIZE - 1), data);
     }
-    if (addr >= 0x1f000000 && addr < 0x1f000000 + EXPANSION_SIZE) {
-        return write_fast<T>(expansion, addr - 0x1f000000, data);
+    if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
+        return write_fast<T>(expansion, addr - EXPANSION_BASE, data);
     }
-    if (addr >= 0x1f800000 && addr < 0x1f800400) {
-        return write_fast<T>(scratchpad, addr - 0x1f800000, data);
-    }
-
-    // IO Ports
-    if (addr >= 0x1f801000 && addr <= 0x1f803000) {
-        addr -= 0x1f801000;
-
-        WRITE_IO(0x00, 0x24, memoryControl);
-        WRITE_IO(0x40, 0x50, controller);
-        WRITE_IO(0x50, 0x60, serial);
-        WRITE_IO(0x60, 0x64, memoryControl);
-        WRITE_IO(0x70, 0x78, interrupt);
-        WRITE_IO(0x80, 0x100, dma);
-        WRITE_IO(0x100, 0x110, timer0);
-        WRITE_IO(0x110, 0x120, timer1);
-        WRITE_IO(0x120, 0x130, timer2);
-        WRITE_IO(0x800, 0x804, cdrom);
-        WRITE_IO32(0x810, 0x0818, gpu);
-        WRITE_IO32(0x820, 0x828, mdec);
-        WRITE_IO(0xC00, 0x1000, spu);
-        WRITE_IO(0x1000, 0x1043, expansion2);
-        printf("W Unhandled IO at 0x%08x: 0x%02x\n", addr, data);
+    if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
+        return write_fast<T>(scratchpad, addr - SCRATCHPAD_BASE, data);
     }
 
-    // Cache control
-    if (address >= 0xfffe0130 && address < 0xfffe0134) {
-        //        printf("W Unhandled memory control\n");
+    WRITE_IO(0x1f801000, 0x1f801024, memoryControl);
+    WRITE_IO(0x1f801040, 0x1f801050, controller);
+    WRITE_IO(0x1f801050, 0x1f801060, serial);
+    WRITE_IO(0x1f801060, 0x1f801064, memoryControl);
+    WRITE_IO(0x1f801070, 0x1f801078, interrupt);
+    WRITE_IO(0x1f801080, 0x1f801100, dma);
+    WRITE_IO(0x1f801100, 0x1f801110, timer0);
+    WRITE_IO(0x1f801110, 0x1f801120, timer1);
+    WRITE_IO(0x1f801120, 0x1f801130, timer2);
+    WRITE_IO(0x1f801800, 0x1f801804, cdrom);
+    WRITE_IO32(0x1f801810, 0x1f801818, gpu);
+    WRITE_IO32(0x1f801820, 0x1f801828, mdec);
+    WRITE_IO(0x1f801C00, 0x1f802000, spu);
+    WRITE_IO(0x1f802000, 0x1f802043, expansion2);
+    WRITE_IO32(0xfffe0130, 0xfffe0134, memoryControl);
+
+    if (in_range<0xfffe0130, 4>(address)) {
+        write_io<T>(memoryControl, 0xfffe0130, data);
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data);
         return;
     }
 

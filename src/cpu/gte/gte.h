@@ -131,7 +131,6 @@ struct GTE {
     int32_t A1(int64_t value, bool sf = false);
     int32_t A2(int64_t value, bool sf = false);
     int32_t A3(int64_t value, bool sf = false);
-    int32_t F(int64_t value);
 
     int64_t setMac(int mac, int64_t value);
     void setIr(int i, int64_t value, bool lm = false);

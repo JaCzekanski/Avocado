@@ -4,10 +4,12 @@
 #include "device/cdrom.h"
 #include "device/controller.h"
 #include "device/dma.h"
-#include "device/dummy.h"
+#include "device/expansion2.h"
 #include "device/gpu/gpu.h"
 #include "device/interrupt.h"
 #include "device/mdec.h"
+#include "device/memory_control.h"
+#include "device/serial.h"
 #include "device/spu.h"
 #include "device/timer.h"
 #include "utils/macros.h"
@@ -58,10 +60,17 @@ struct System {
         run      // normal state
     };
 
+    static const int BIOS_BASE = 0x1fc00000;
+    static const int RAM_BASE = 0x00000000;
+    static const int SCRATCHPAD_BASE = 0x1f800000;
+    static const int EXPANSION_BASE = 0x1f000000;
+    static const int IO_BASE = 0x1f801000;
+
     static const int BIOS_SIZE = 512 * 1024;
     static const int RAM_SIZE = 2 * 1024 * 1024;
     static const int SCRATCHPAD_SIZE = 1024;
     static const int EXPANSION_SIZE = 1 * 1024 * 1024;
+    static const int IO_SIZE = 0x2000;
     State state = State::stop;
 
     uint8_t bios[BIOS_SIZE];
@@ -73,20 +82,20 @@ struct System {
 
     // Devices
     std::unique_ptr<mips::CPU> cpu;
-    std::unique_ptr<Interrupt> interrupt;
-    std::unique_ptr<device::controller::Controller> controller;
-    std::unique_ptr<device::cdrom::CDROM> cdrom;
-    std::unique_ptr<device::dma::DMA> dma;
-    std::unique_ptr<SPU> spu;
 
-    std::unique_ptr<device::Dummy> memoryControl;
-    std::unique_ptr<device::Dummy> serial;
+    std::unique_ptr<device::cdrom::CDROM> cdrom;
+    std::unique_ptr<device::controller::Controller> controller;
+    std::unique_ptr<device::dma::DMA> dma;
+    std::unique_ptr<Expansion2> expansion2;
     std::unique_ptr<GPU> gpu;
+    std::unique_ptr<Interrupt> interrupt;
+    std::unique_ptr<MDEC> mdec;
+    std::unique_ptr<MemoryControl> memoryControl;
+    std::unique_ptr<SPU> spu;
+    std::unique_ptr<Serial> serial;
     std::unique_ptr<Timer<0>> timer0;
     std::unique_ptr<Timer<1>> timer1;
     std::unique_ptr<Timer<2>> timer2;
-    std::unique_ptr<MDEC> mdec;
-    std::unique_ptr<device::Dummy> expansion2;
 
     template <typename T>
     INLINE T readMemory(uint32_t address);
