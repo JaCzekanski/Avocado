@@ -65,7 +65,6 @@ uint32_t GTE::read(uint8_t n) {
             ret = ((uint16_t)s[1].y << 16) | (uint16_t)s[1].x;
             break;
         case 14:
-            break;
         case 15:
             ret = ((uint16_t)s[2].y << 16) | (uint16_t)s[2].x;
             break;
@@ -108,7 +107,6 @@ uint32_t GTE::read(uint8_t n) {
             ret = mac[3];
             break;
         case 28:
-            break;
         case 29:
             irgb = clip(ir[1] / 0x80, 0x1f, 0x00);
             irgb |= clip(ir[2] / 0x80, 0x1f, 0x00) << 5;

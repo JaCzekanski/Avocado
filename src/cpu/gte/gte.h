@@ -37,7 +37,6 @@ struct GTE {
     bool sf;
     bool lm;
 
-    uint32_t read_(uint8_t n);
     uint32_t read(uint8_t n);
     void write(uint8_t n, uint32_t d);
 
@@ -77,7 +76,6 @@ struct GTE {
     int countLeadingZeroes(uint32_t n);
     size_t countLeadingZeroes16(uint16_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
-    uint32_t clipUnsigned(uint32_t value, uint32_t max, uint32_t min, uint32_t flags = 0);
     void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
     int32_t A1(int64_t value, bool sf = false);
     int32_t A2(int64_t value, bool sf = false);
