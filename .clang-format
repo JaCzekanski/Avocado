@@ -7,3 +7,4 @@ PointerAlignment: Left
 AlignTrailingComments: true
 BreakBeforeBinaryOperators: All 
 AlignOperands: true
+AllowShortCaseLabelsOnASingleLine: true

@@ -1,4 +1,5 @@
 #pragma once
+#include <utils/logic.h>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -7,6 +8,56 @@
 #include "math.h"
 
 struct GTE {
+    union Flag {
+        enum {
+            IR0_SATURATED = 1 << 12,
+            SY2_SATURATED = 1 << 13,
+            SX2_SATURATED = 1 << 14,
+            MAC0_OVERFLOW_NEGATIVE = 1 << 15,
+            MAC0_OVERFLOW_POSITIVE = 1 << 16,
+            DIVIDE_OVERFLOW = 1 << 17,
+            SZ3_OTZ_SATURATED = 1 << 18,
+            COLOR_B_SATURATED = 1 << 19,
+            COLOR_G_SATURATED = 1 << 20,
+            COLOR_R_SATURATED = 1 << 21,
+            IR3_SATURATED = 1 << 22,
+            IR2_SATURATED = 1 << 23,
+            IR1_SATURATED = 1 << 24,
+            MAC3_OVERFLOW_NEGATIVE = 1 << 25,
+            MAC2_OVERFLOW_NEGATIVE = 1 << 26,
+            MAC1_OVERFLOW_NEGATIVE = 1 << 27,
+            MAC3_OVERFLOW_POSITIVE = 1 << 28,
+            MAC2_OVERFLOW_POSITIVE = 1 << 29,
+            MAC1_OVERFLOW_POSITIVE = 1 << 30,
+            FLAG = 1 << 31
+        };
+        struct {
+            uint32_t : 12;  // Not used (0)
+            uint32_t ir0_saturated : 1;
+            uint32_t sy2_saturated : 1;
+            uint32_t sx2_saturated : 1;
+            uint32_t mac0_overflow_negative : 1;
+            uint32_t mac0_overflow_positive : 1;
+            uint32_t divide_overflow : 1;
+            uint32_t sz3_otz_saturated : 1;
+            uint32_t color_b_saturated : 1;
+            uint32_t color_g_saturated : 1;
+            uint32_t color_r_saturated : 1;
+            uint32_t ir3_saturated : 1;
+            uint32_t ir2_saturated : 1;
+            uint32_t ir1_saturated : 1;
+            uint32_t mac3_overflow_negative : 1;
+            uint32_t mac2_overflow_negative : 1;
+            uint32_t mac1_overflow_negative : 1;
+            uint32_t mac3_overflow_positive : 1;
+            uint32_t mac2_overflow_positive : 1;
+            uint32_t mac1_overflow_positive : 1;
+            uint32_t flag : 1;  // 30..23 + 18..13 bits ORed
+        };
+        uint32_t reg = 0;
+
+        void calculate() { flag = or_range<30, 23>(reg) | or_range<18, 13>(reg); }
+    };
     gte::Vector<int16_t> v[3];
     Reg32 rgbc;
     uint16_t otz = 0;
@@ -31,7 +82,7 @@ struct GTE {
     int32_t dqb = 0;
     int16_t zsf3 = 0;
     int16_t zsf4 = 0;
-    uint32_t flag = 0;
+    Flag flag;
 
     // Temporary, used in commands
     bool sf;
