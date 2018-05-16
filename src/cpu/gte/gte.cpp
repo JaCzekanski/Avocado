@@ -18,164 +18,223 @@ bool orRange(uint32_t v) {
 }
 
 uint32_t GTE::read(uint8_t n) {
-    uint32_t res = read_(n);
-
-    log.push_back({GTE_ENTRY::MODE::read, n, res});
-
-    return res;
-}
-
-uint32_t GTE::read_(uint8_t n) {
+    uint32_t ret = 0;
     switch (n) {
         // Data
         case 0:
-            return ((uint16_t)v[0].y << 16) | (uint16_t)v[0].x;
+            ret = ((uint16_t)v[0].y << 16) | (uint16_t)v[0].x;
+            break;
         case 1:
-            return (int32_t)v[0].z;
+            ret = (int32_t)v[0].z;
+            break;
         case 2:
-            return ((uint16_t)v[1].y << 16) | (uint16_t)v[1].x;
+            ret = ((uint16_t)v[1].y << 16) | (uint16_t)v[1].x;
+            break;
         case 3:
-            return (int32_t)v[1].z;
+            ret = (int32_t)v[1].z;
+            break;
         case 4:
-            return ((uint16_t)v[2].y << 16) | (uint16_t)v[2].x;
+            ret = ((uint16_t)v[2].y << 16) | (uint16_t)v[2].x;
+            break;
         case 5:
-            return (int32_t)v[2].z;
+            ret = (int32_t)v[2].z;
+            break;
         case 6:
-            return rgbc._reg;
+            ret = rgbc._reg;
+            break;
         case 7:
-            return otz;
+            ret = otz;
+            break;
 
         case 8:
-            return (int32_t)ir[0];
+            ret = (int32_t)ir[0];
+            break;
         case 9:
-            return (int32_t)ir[1];
+            ret = (int32_t)ir[1];
+            break;
         case 10:
-            return (int32_t)ir[2];
+            ret = (int32_t)ir[2];
+            break;
         case 11:
-            return (int32_t)ir[3];
+            ret = (int32_t)ir[3];
+            break;
         case 12:
-            return ((uint16_t)s[0].y << 16) | (uint16_t)s[0].x;
+            ret = ((uint16_t)s[0].y << 16) | (uint16_t)s[0].x;
+            break;
         case 13:
-            return ((uint16_t)s[1].y << 16) | (uint16_t)s[1].x;
+            ret = ((uint16_t)s[1].y << 16) | (uint16_t)s[1].x;
+            break;
         case 14:
+            break;
         case 15:
-            return ((uint16_t)s[2].y << 16) | (uint16_t)s[2].x;
+            ret = ((uint16_t)s[2].y << 16) | (uint16_t)s[2].x;
+            break;
 
         case 16:
-            return (uint16_t)s[0].z;
+            ret = (uint16_t)s[0].z;
+            break;
         case 17:
-            return (uint16_t)s[1].z;
+            ret = (uint16_t)s[1].z;
+            break;
         case 18:
-            return (uint16_t)s[2].z;
+            ret = (uint16_t)s[2].z;
+            break;
         case 19:
-            return (uint16_t)s[3].z;
+            ret = (uint16_t)s[3].z;
+            break;
         case 20:
-            return rgb[0]._reg;
+            ret = rgb[0]._reg;
+            break;
         case 21:
-            return rgb[1]._reg;
+            ret = rgb[1]._reg;
+            break;
         case 22:
-            return rgb[2]._reg;
+            ret = rgb[2]._reg;
+            break;
         case 23:
-            return res1;
+            ret = res1;
+            break;
 
         case 24:
-            return mac[0];
+            ret = mac[0];
+            break;
         case 25:
-            return mac[1];
+            ret = mac[1];
+            break;
         case 26:
-            return mac[2];
+            ret = mac[2];
+            break;
         case 27:
-            return mac[3];
+            ret = mac[3];
+            break;
         case 28:
+            break;
         case 29:
             irgb = clip(ir[1] / 0x80, 0x1f, 0x00);
             irgb |= clip(ir[2] / 0x80, 0x1f, 0x00) << 5;
             irgb |= clip(ir[3] / 0x80, 0x1f, 0x00) << 10;
-            return irgb;
+            ret = irgb;
+            break;
         case 30:
-            return lzcs;
+            ret = lzcs;
+            break;
         case 31:
-            return lzcr;
+            ret = lzcr;
+            break;
 
-        // Control
         case 32:
-            return ((uint16_t)rt.v12 << 16) | (uint16_t)rt.v11;
+            ret = ((uint16_t)rt.v12 << 16) | (uint16_t)rt.v11;
+            break;
         case 33:
-            return ((uint16_t)rt.v21 << 16) | (uint16_t)rt.v13;
+            ret = ((uint16_t)rt.v21 << 16) | (uint16_t)rt.v13;
+            break;
         case 34:
-            return ((uint16_t)rt.v23 << 16) | (uint16_t)rt.v22;
+            ret = ((uint16_t)rt.v23 << 16) | (uint16_t)rt.v22;
+            break;
         case 35:
-            return ((uint16_t)rt.v32 << 16) | (uint16_t)rt.v31;
+            ret = ((uint16_t)rt.v32 << 16) | (uint16_t)rt.v31;
+            break;
         case 36:
-            return (int32_t)rt.v33;
+            ret = (int32_t)rt.v33;
+            break;
         case 37:
-            return tr.x;
+            ret = tr.x;
+            break;
         case 38:
-            return tr.y;
+            ret = tr.y;
+            break;
         case 39:
-            return tr.z;
+            ret = tr.z;
+            break;
 
         case 40:
-            return ((uint16_t)l.v12 << 16) | (uint16_t)l.v11;
+            ret = ((uint16_t)l.v12 << 16) | (uint16_t)l.v11;
+            break;
         case 41:
-            return ((uint16_t)l.v21 << 16) | (uint16_t)l.v13;
+            ret = ((uint16_t)l.v21 << 16) | (uint16_t)l.v13;
+            break;
         case 42:
-            return ((uint16_t)l.v23 << 16) | (uint16_t)l.v22;
+            ret = ((uint16_t)l.v23 << 16) | (uint16_t)l.v22;
+            break;
         case 43:
-            return ((uint16_t)l.v32 << 16) | (uint16_t)l.v31;
+            ret = ((uint16_t)l.v32 << 16) | (uint16_t)l.v31;
+            break;
         case 44:
-            return (int32_t)l.v33;
+            ret = (int32_t)l.v33;
+            break;
         case 45:
-            return bk.r;
+            ret = bk.r;
+            break;
         case 46:
-            return bk.g;
+            ret = bk.g;
+            break;
         case 47:
-            return bk.b;
+            ret = bk.b;
+            break;
 
         case 48:
-            return ((uint16_t)lr.v12 << 16) | (uint16_t)lr.v11;
+            ret = ((uint16_t)lr.v12 << 16) | (uint16_t)lr.v11;
+            break;
         case 49:
-            return ((uint16_t)lr.v21 << 16) | (uint16_t)lr.v13;
+            ret = ((uint16_t)lr.v21 << 16) | (uint16_t)lr.v13;
+            break;
         case 50:
-            return ((uint16_t)lr.v23 << 16) | (uint16_t)lr.v22;
+            ret = ((uint16_t)lr.v23 << 16) | (uint16_t)lr.v22;
+            break;
         case 51:
-            return ((uint16_t)lr.v32 << 16) | (uint16_t)lr.v31;
+            ret = ((uint16_t)lr.v32 << 16) | (uint16_t)lr.v31;
+            break;
         case 52:
-            return (int32_t)lr.v33;
+            ret = (int32_t)lr.v33;
+            break;
         case 53:
-            return fc.r;
+            ret = fc.r;
+            break;
         case 54:
-            return fc.g;
+            ret = fc.g;
+            break;
         case 55:
-            return fc.b;
+            ret = fc.b;
+            break;
 
         case 56:
-            return of[0];
+            ret = of[0];
+            break;
         case 57:
-            return of[1];
+            ret = of[1];
+            break;
         case 58:
             // gte_bug: H is sign extended on read
-            return (int32_t)(int16_t)h;
+            ret = (int32_t)(int16_t)h;
+            break;
         case 59:
-            return (int32_t)dqa;
+            ret = (int32_t)dqa;
+            break;
         case 60:
-            return dqb;
+            ret = dqb;
+            break;
         case 61:
             // gte_bug?: sign extended
-            return (int32_t)(int16_t)zsf3;
+            ret = (int32_t)(int16_t)zsf3;
+            break;
         case 62:
             // gte_bug?: sign extended
-            return (int32_t)(int16_t)zsf4;
+            ret = (int32_t)(int16_t)zsf4;
+            break;
         case 63: {
             bool errorFlag = orRange<30, 23>(flag) | orRange<18, 13>(flag);
-
             flag &= ~(1 << 31);
 
-            return (errorFlag << 31) | flag;
+            ret = (errorFlag << 31) | flag;
+            break;
         }
         default:
-            return 0;
+            ret = 0;
+            break;
     }
+
+    log.push_back({GTE_ENTRY::MODE::read, n, ret});
+    return ret;
 }
 
 void GTE::write(uint8_t n, uint32_t d) {
