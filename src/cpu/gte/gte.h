@@ -96,8 +96,8 @@ struct GTE {
     void nccs(bool sf, bool lm, int n = 0);
     void ncdt(bool sf, bool lm);
     void ncct(bool sf, bool lm);
-    void dcpt(bool sf, bool lm);
-    void dcps(bool sf, bool lm);
+    void dpct(bool sf, bool lm);
+    void dpcs(bool sf, bool lm, bool useRGB0 = false);
     void dcpl(bool sf, bool lm);
     void intpl(bool sf, bool lm);
     uint32_t divide(uint16_t h, uint16_t sz3);
@@ -128,14 +128,11 @@ struct GTE {
     size_t countLeadingZeroes16(uint16_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
     void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
-    int32_t A1(int64_t value, bool sf = false);
-    int32_t A2(int64_t value, bool sf = false);
-    int32_t A3(int64_t value, bool sf = false);
 
     int64_t setMac(int mac, int64_t value);
     void setIr(int i, int64_t value, bool lm = false);
     void setMacAndIr(int i, int64_t value, bool lm = false);
-    void setOtz(int32_t value);
+    void setOtz(int64_t value);
     void pushScreenXY(int32_t x, int32_t y);
     void pushScreenZ(int32_t z);
     void pushColor(uint32_t r, uint32_t g, uint32_t b);

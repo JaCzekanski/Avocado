@@ -69,3 +69,4 @@ config.json
 /*.json
 
 src/version.h
+out.txt

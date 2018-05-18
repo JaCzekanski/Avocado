@@ -3,6 +3,7 @@
 uint32_t GTE::read(uint8_t n) {
     uint32_t ret = [this](uint8_t n) -> uint32_t {
         switch (n) {
+            case 0: return ((uint16_t)v[0].y << 16) | (uint16_t)v[0].x;
             case 1: return (int32_t)v[0].z;
             case 2: return ((uint16_t)v[1].y << 16) | (uint16_t)v[1].x;
             case 3: return (int32_t)v[1].z;
@@ -246,13 +247,13 @@ bool GTE::command(gte::Command& cmd) {
         case 0x01: rtps(0); return true;
         case 0x06: nclip(); return true;
         case 0x0c: op(cmd.sf, cmd.lm); return true;
-        case 0x10: dcps(cmd.sf, cmd.lm); return true;
+        case 0x10: dpcs(cmd.sf, cmd.lm); return true;
         case 0x11: intpl(cmd.sf, cmd.lm); return true;
         case 0x12: mvmva(cmd.sf, cmd.lm, cmd.mvmvaMultiplyMatrix, cmd.mvmvaMultiplyVector, cmd.mvmvaTranslationVector); return true;
         case 0x13: ncds(cmd.sf, cmd.lm); return true;
         case 0x16: ncdt(cmd.sf, cmd.lm); return true;
         case 0x1b: nccs(cmd.sf, cmd.lm); return true;
-        case 0x2a: dcpt(cmd.sf, cmd.lm); return true;
+        case 0x2a: dpct(cmd.sf, cmd.lm); return true;
         case 0x28: sqr(); return true;
         case 0x29: dcpl(cmd.sf, cmd.lm); return true;
         case 0x2d: avsz3(); return true;
