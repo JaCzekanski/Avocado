@@ -5,8 +5,9 @@
 void printHelp() {
     printf(R"(
 usage: avocado_autotest logfile.log
-  --show-input - print input data on failed assertion
-  --help       - print help
+  --ignore-flag - ignore reg[63] differences
+  --show-input  - print input data on failed assertion
+  --help        - print help
 )");
 }
 
@@ -37,8 +38,13 @@ int main(int argc, char** argv) {
 
     std::string logfile;
     bool showInput = false;
+    bool ignoreFlag = false;
 
     for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "--ignore-flag") == 0) {
+            ignoreFlag = true;
+            continue;
+        }
         if (strcmp(argv[i], "--show-input") == 0) {
             showInput = true;
             continue;
@@ -90,12 +96,13 @@ int main(int argc, char** argv) {
                 continue;
             }
 
+            assertionsFailed++;
             if (!testFailed) {
+                if (expected.reg == 63 && ignoreFlag) continue;
+
                 testFailed = true;
                 printInfo(testCase, testNumber);
             }
-
-            assertionsFailed++;
             printf("  r[%2d]:  0x%08x  -  0x%08x\n", expected.reg, data, expected.data);
         }
 
