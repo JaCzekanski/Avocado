@@ -49,8 +49,8 @@ gte::Command parseCommandLine(const std::string& line) {
     cmd.cmd = std::stoi(matches[1], nullptr, 16);
     cmd.sf = std::stoi(matches[2], nullptr, 10) == 1;
     cmd.lm = std::stoi(matches[3], nullptr, 10) == 1;
-    cmd.mvmvaMultiplyVector = std::stoi(matches[4], nullptr, 10);
-    cmd.mvmvaTranslationVector = std::stoi(matches[5], nullptr, 10);
+    cmd.mvmvaTranslationVector = std::stoi(matches[4], nullptr, 10);
+    cmd.mvmvaMultiplyVector = std::stoi(matches[5], nullptr, 10);
     cmd.mvmvaMultiplyMatrix = std::stoi(matches[6], nullptr, 10);
 
     return cmd;
