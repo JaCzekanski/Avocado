@@ -1,9 +1,9 @@
 #include "gui.h"
 #include <imgui.h>
+#include "config.h"
 #include "cpu/gte/gte.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
-#include "config.h"
 #include "version.h"
 
 void openFileWindow();
@@ -98,6 +98,7 @@ void renderImgui(System* sys) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {
+                if (ImGui::MenuItem("Graphics", nullptr)) showGraphicsOptionsWindow = true;
                 if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
                 if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
                 ImGui::EndMenu();
@@ -125,6 +126,7 @@ void renderImgui(System* sys) {
         if (showCdromWindow) cdromWindow(sys);
 
         // Options
+        if (showGraphicsOptionsWindow) graphicsOptionsWindow();
         if (showBiosWindow) biosSelectionWindow();
         if (showControllerSetupWindow) controllerSetupWindow();
 

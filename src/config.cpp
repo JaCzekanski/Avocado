@@ -24,8 +24,14 @@ const json defaultConfig = {
                 {"select",  "Right Shift"},
                 {"start",   "Return"},
         }},
+        {"options", {
+            {"graphics", {
+                {"filtering", false}
+            }}
+        }},
         {"debug", {
             {"log", {
+                { "system",1u },
                 { "bios",  0u },
                 { "cdrom", 0u }
             }}
@@ -48,8 +54,8 @@ json fixObject(json oldconfig, json newconfig) {
 
         // Repair these with invalid types
         if (newField.value().type() != oldField.value().type()) {
-            printf("[CONFIG]: Invalid type of field \"%s\" (%s), changing to %s\n", newField.key().c_str(),
-                   newField.value().type_name(), oldField.value().type_name());
+            printf("[CONFIG]: Invalid type of field \"%s\" (%s), changing to %s\n", newField.key().c_str(), newField.value().type_name(),
+                   oldField.value().type_name());
             newconfig[oldField.key()] = oldField.value();
             continue;
         }

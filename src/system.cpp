@@ -29,6 +29,7 @@ System::System() {
     timer1 = std::make_unique<Timer<1>>(this);
     timer2 = std::make_unique<Timer<2>>(this);
 
+    debugOutput = config["debug"]["log"]["system"].get<int>();
     biosLog = config["debug"]["log"]["bios"];
 }
 

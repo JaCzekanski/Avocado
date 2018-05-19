@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include "config.h"
 #include "gui.h"
+#include "renderer/opengl/opengl.h"
 #include "utils/file.h"
 
 #ifdef _WIN32
@@ -9,8 +10,20 @@
 using namespace std::experimental::filesystem::v1;
 #endif
 
+bool showGraphicsOptionsWindow = false;
 bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
+
+void graphicsOptionsWindow() {
+    bool filtering = config["options"]["graphics"]["filtering"];
+    ImGui::Begin("Graphics", &showGraphicsOptionsWindow, ImGuiWindowFlags_AlwaysAutoResize);
+
+    if (ImGui::Checkbox("Filtering", &filtering)) {
+        config["options"]["graphics"]["filtering"] = filtering;
+    }
+
+    ImGui::End();
+}
 
 void biosSelectionWindow() {
     static bool biosesFound = false;
