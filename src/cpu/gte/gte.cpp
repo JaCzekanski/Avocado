@@ -253,6 +253,8 @@ bool GTE::command(gte::Command& cmd) {
         case 0x13: ncds(cmd.sf, cmd.lm); return true;
         case 0x16: ncdt(cmd.sf, cmd.lm); return true;
         case 0x1b: nccs(cmd.sf, cmd.lm); return true;
+        case 0x1e: ncs(cmd.sf, cmd.lm, 0); return true;
+        case 0x20: nct(cmd.sf, cmd.lm); return true;
         case 0x2a: dpct(cmd.sf, cmd.lm); return true;
         case 0x28: sqr(); return true;
         case 0x29: dcpl(cmd.sf, cmd.lm); return true;

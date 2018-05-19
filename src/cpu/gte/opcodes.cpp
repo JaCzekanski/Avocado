@@ -115,6 +115,28 @@ void GTE::ncds(bool sf, bool lm, int n) {
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
+void GTE::ncs(bool sf, bool lm, int n) {
+    setMacAndIr(1, l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
+    setMacAndIr(2, l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
+    setMacAndIr(3, l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
+
+    setMac(1, ((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
+    setMac(2, ((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
+    setMac(3, ((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
+
+    setIr(1, mac[1], lm);
+    setIr(2, mac[2], lm);
+    setIr(3, mac[3], lm);
+
+    pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
+}
+
+void GTE::nct(bool sf, bool lm) {
+    ncs(sf, lm, 0);
+    ncs(sf, lm, 1);
+    ncs(sf, lm, 2);
+}
+
 void GTE::nccs(bool sf, bool lm, int n) {
     setMacAndIr(1, l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
     setMacAndIr(2, l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);

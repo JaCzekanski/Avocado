@@ -93,6 +93,8 @@ struct GTE {
 
     void nclip();
     void ncds(bool sf, bool lm, int n = 0);
+    void ncs(bool sf, bool lm, int n = 0);
+    void nct(bool sf, bool lm);
     void nccs(bool sf, bool lm, int n = 0);
     void ncdt(bool sf, bool lm);
     void ncct(bool sf, bool lm);
