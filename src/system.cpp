@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "bios/functions.h"
-#include "platform/windows/config.h"
+#include "config.h"
 #include "utils/file.h"
 #include "utils/psx_exe.h"
 

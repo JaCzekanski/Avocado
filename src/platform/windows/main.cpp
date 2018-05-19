@@ -6,8 +6,8 @@
 #include <cstdio>
 #include <nlohmann/json.hpp>
 #include <string>
+#include "config.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "platform/windows/config.h"
 #include "platform/windows/gui/gui.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/audio_cd.h"
@@ -57,24 +57,17 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
                 buttons.right = event.caxis.value > deadzone;
                 break;
 
-            case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-                buttons.l2 = event.caxis.value > 2048;
-                break;
+            case SDL_CONTROLLER_AXIS_TRIGGERLEFT: buttons.l2 = event.caxis.value > 2048; break;
 
-            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-                buttons.r2 = event.caxis.value > 2048;
-                break;
+            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: buttons.r2 = event.caxis.value > 2048; break;
 
-            default:
-                break;
+            default: break;
         }
     }
 
     if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP) {
-#define B(a, b)                                   \
-    case a:                                       \
-        b = (event.cbutton.state == SDL_PRESSED); \
-        break;
+#define B(a, b) \
+    case a: b = (event.cbutton.state == SDL_PRESSED); break;
         switch (event.cbutton.button) {
             B(SDL_CONTROLLER_BUTTON_DPAD_UP, buttons.up);
             B(SDL_CONTROLLER_BUTTON_DPAD_RIGHT, buttons.right);
@@ -89,8 +82,7 @@ device::controller::DigitalController& getButtonState(SDL_Event& event) {
             B(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, buttons.l1);
             B(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, buttons.r1);
 #undef B
-            default:
-                break;
+            default: break;
         }
     }
     return buttons;

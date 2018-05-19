@@ -1,7 +1,7 @@
 #include "cdrom.h"
 #include <cassert>
 #include <cstdio>
-#include "platform/windows/config.h"
+#include "config.h"
 #include "sound/audio_cd.h"
 #include "system.h"
 #include "utils/bcd.h"

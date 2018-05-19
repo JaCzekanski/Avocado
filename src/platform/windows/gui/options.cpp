@@ -1,8 +1,8 @@
 #include "options.h"
 #include <imgui.h>
-#include "platform/windows/config.h"
-#include "utils/file.h"
+#include "config.h"
 #include "gui.h"
+#include "utils/file.h"
 
 #ifdef _WIN32
 #include <filesystem>
@@ -58,11 +58,13 @@ void biosSelectionWindow() {
 #endif
     } else {
         ImGui::PushItemWidth(300.f);
-        ImGui::ListBox("", &selectedBios, [](void* data, int idx, const char** out_text) {
-            const std::vector<std::string>* v = (std::vector<std::string>*)data;
-            *out_text = v->at(idx).c_str();
-            return true;
-        }, (void*)&bioses, (int)bioses.size());
+        ImGui::ListBox("", &selectedBios,
+                       [](void* data, int idx, const char** out_text) {
+                           const std::vector<std::string>* v = (std::vector<std::string>*)data;
+                           *out_text = v->at(idx).c_str();
+                           return true;
+                       },
+                       (void*)&bioses, (int)bioses.size());
         ImGui::PopItemWidth();
 
         if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < (int)bioses.size()) {

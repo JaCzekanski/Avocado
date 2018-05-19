@@ -143,6 +143,10 @@ script:
 after_success:
   - ./build/Release/avocado_test --success
 
+  # TODO: download zip and run all tests
+  - wget https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/raw/d5bc41278fd198ef5e4afceb35e0587aca7f2f60/gte_valid_0xc0ffee_50.log
+  - ./build/Release/avocado_autotest gte_valid_0xc0ffee_50.log || true
+
 before_deploy:
   - mkdir artifact
 

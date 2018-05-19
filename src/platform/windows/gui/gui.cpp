@@ -3,7 +3,7 @@
 #include "cpu/gte/gte.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
-#include "platform/windows/config.h"
+#include "config.h"
 #include "version.h"
 
 void openFileWindow();

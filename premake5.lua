@@ -123,20 +123,16 @@ project "imgui"
 		"externals/imgui/imgui_draw.cpp",
 	}
 
-project "avocado"
-	uuid "c2c4899a-ddca-491f-9a66-1d33173a553e"
-	kind "ConsoleApp"
+project "common"
+	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
+	kind "StaticLib"
 	language "c++"
-	location "build/libs/avocado"
+	location "build/libs/common"
 	targetdir "build/%{cfg.buildcfg}"
-	debugdir "."
 	flags { "C++14" }
 
 	includedirs { 
 		"src", 
-		"externals/imgui",
-		"externals/glad/include",
-		"externals/SDL2/include",
 		"externals/glm",
 		"externals/json/include"
 	}
@@ -152,13 +148,38 @@ project "avocado"
 		"src/platform/**.*"
 	}
 
-	filter "action:vs*"
-		libdirs {
-			os.findlib("SDL2")
-		}
-		libdirs { 
-			"externals/SDL2/lib/x86"
-		}
+	filter "system:windows" 
+		defines "WIN32" 
+
+	filter {"action:gmake", "system:windows"}
+		defines {"_CRT_SECURE_NO_WARNINGS"}
+		
+	if _ACTION ~= nil then
+		generateVersionFile()
+	end
+
+project "avocado"
+	uuid "c2c4899a-ddca-491f-9a66-1d33173a553e"
+	kind "ConsoleApp"
+	language "c++"
+	location "build/libs/avocado"
+	targetdir "build/%{cfg.buildcfg}"
+	debugdir "."
+	flags { "C++14" }
+	dependson { "common" }
+
+	includedirs { 
+		"src", 
+		"externals/imgui",
+		"externals/glad/include",
+		"externals/SDL2/include",
+		"externals/glm",
+		"externals/json/include"
+	}
+
+	links {
+		"common"
+	}
 
 	filter "system:windows" 
 		defines "WIN32" 
@@ -167,20 +188,14 @@ project "avocado"
 			"src/renderer/opengl/**.*",
 			"src/platform/windows/**.*"
 		}
+		libdirs {
+			"externals/SDL2/lib/x86"
+		}
 		links { 
 			"SDL2",
 			"glad",
 			"imgui",
 			"OpenGL32"
-		}
-
-	filter {"action:gmake", "system:windows"}
-		defines {"_CRT_SECURE_NO_WARNINGS"}
-		libdirs { 
-			"C:/sdk/SDL2-2.0.5/lib/x86"
-		}
-		includedirs {
-			"C:/sdk/SDL2-2.0.5/include"
 		}
 		
 	filter {"system:linux", "options:headless"}
@@ -217,11 +232,6 @@ project "avocado"
 		buildoptions {"`sdl2-config --cflags`"}
 		linkoptions {"`sdl2-config --libs`"}
 
-	if _ACTION ~= nil then
-		generateVersionFile()
-	end
-	
-
 project "avocado_test"
 	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
 	kind "ConsoleApp"
@@ -230,7 +240,7 @@ project "avocado_test"
 	targetdir "build/%{cfg.buildcfg}"
 	debugdir "."
 	flags { "C++14" }
-	dependson { "avocado" }
+	dependson { "common" }
 
 	includedirs { 
 		"src", 
@@ -243,10 +253,40 @@ project "avocado_test"
 	}
 
 	files { 
-		"tests/*.h",
-		"tests/*.cpp"
+		"src/platform/null/**.*",
+		"tests/unit/**.h",
+		"tests/unit/**.cpp"
 	}
 
 	links {
-		"avocado"
+		"common"
+	}
+
+project "avocado_autotest"
+	uuid "fcc880bc-c6fe-4b2b-80dc-d247345a1274"
+	kind "ConsoleApp"
+	language "c++"
+	location "build/libs/avocado_autotest"
+	targetdir "build/%{cfg.buildcfg}"
+	debugdir "."
+	flags { "C++14" }
+	dependson { "common" }
+
+	includedirs { 
+		"src", 
+		"externals/imgui",
+		"externals/glad/include",
+		"externals/SDL2/include",
+		"externals/glm",
+		"externals/json/src"
+	}
+
+	files { 
+		"src/platform/null/**.*",
+		"tests/auto/**.h",
+		"tests/auto/**.cpp"
+	}
+
+	links {
+		"common"
 	}

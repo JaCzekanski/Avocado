@@ -1,8 +1,6 @@
 #include "gpu.h"
-#include <imgui.h>
 #include <cassert>
 #include <cstdio>
-#include <glm/glm.hpp>
 #include "render.h"
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",

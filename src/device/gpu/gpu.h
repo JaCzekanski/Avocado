@@ -1,5 +1,5 @@
 #pragma once
-#include <glm/vec2.hpp>
+#include <glm/glm.hpp>
 #include <vector>
 #include "psx_color.h"
 #include "registers.h"
@@ -133,16 +133,11 @@ struct TextureInfo {
     int getBitcount() const {
         int depth = (texpage & 0x1800000) >> 23;
         switch (depth) {
-            case 0:
-                return 4;
-            case 1:
-                return 8;
-            case 2:
-                return 16;
-            case 3:
-                return 16;
-            default:
-                return 0;
+            case 0: return 4;
+            case 1: return 8;
+            case 2: return 16;
+            case 3: return 16;
+            default: return 0;
         }
     }
 
