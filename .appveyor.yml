@@ -19,9 +19,9 @@ before_build:
   # SDL
   - cd externals
   - rmdir /Q /S SDL2
-  - ps: Start-FileDownload 'https://www.libsdl.org/release/SDL2-devel-2.0.5-VC.zip' 'SDL.zip'
+  - ps: Start-FileDownload 'https://www.libsdl.org/release/SDL2-devel-2.0.8-VC.zip' 'SDL.zip'
   - 7z x SDL.zip 
-  - ren SDL2-2.0.5 SDL2
+  - ren SDL2-2.0.8 SDL2
   - cd ..
   
   # generate solution
