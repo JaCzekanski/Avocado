@@ -31,6 +31,23 @@ void GPU::reset() {
     gp0_e6._reg = 0;
 }
 
+namespace {
+/**
+ * Sign extend 10bit value to 16bit.
+ * THPS games does not use upper bits resulting in invalid coords.
+ */
+int16_t extend10bit(int16_t t) {
+    t &= 0x7ff;
+
+    bool sign = (t & (1 << 10)) != 0;
+    if (sign) {
+        t |= 0xF800;
+    }
+
+    return t;
+}
+};  // namespace
+
 void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
     int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
 
@@ -45,13 +62,25 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     Vertex v[3];
     for (int i : {0, 1, 2}) {
-        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+        v[i] = {{extend10bit(x[i]), extend10bit(y[i])},
+                {c[i].r, c[i].g, c[i].b},
+                {t.uv[i].x, t.uv[i].y},
+                bitcount,
+                {clutX, clutY},
+                {baseX, baseY},
+                flags};
     }
     drawTriangle(this, v);
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
-            v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+            v[i - 1] = {{extend10bit(x[i]), extend10bit(y[i])},
+                        {c[i].r, c[i].g, c[i].b},
+                        {t.uv[i].x, t.uv[i].y},
+                        bitcount,
+                        {clutX, clutY},
+                        {baseX, baseY},
+                        flags};
         }
         drawTriangle(this, v);
     }
