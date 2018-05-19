@@ -83,7 +83,9 @@ void GTE::setOtz(int64_t value) {
 #define G (rgbc.read(1) << 4)
 #define B (rgbc.read(2) << 4)
 
-void GTE::nclip() { setMac(0, s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y); }
+void GTE::nclip() {
+    setMac(0, (int64_t)s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y);
+}
 
 void GTE::ncds(bool sf, bool lm, int n) {
     setMacAndIr(1, l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
