@@ -96,6 +96,8 @@ struct GTE {
     void ncs(bool sf, bool lm, int n = 0);
     void nct(bool sf, bool lm);
     void nccs(bool sf, bool lm, int n = 0);
+    void cc(bool sf, bool lm);
+    void cdp(bool sf, bool lm);
     void ncdt(bool sf, bool lm);
     void ncct(bool sf, bool lm);
     void dpct(bool sf, bool lm);
@@ -104,7 +106,7 @@ struct GTE {
     void intpl(bool sf, bool lm);
     uint32_t divide(uint16_t h, uint16_t sz3);
     uint32_t divideUNR(uint32_t a, uint32_t b);
-    void rtps(int n);
+    void rtps(int n = 0);
     void rtpt();
     void avsz3();
     void avsz4();

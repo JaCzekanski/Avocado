@@ -244,15 +244,17 @@ bool GTE::command(gte::Command& cmd) {
     this->lm = cmd.lm;
 
     switch (cmd.cmd) {
-        case 0x01: rtps(0); return true;
+        case 0x01: rtps(); return true;
         case 0x06: nclip(); return true;
         case 0x0c: op(cmd.sf, cmd.lm); return true;
         case 0x10: dpcs(cmd.sf, cmd.lm); return true;
         case 0x11: intpl(cmd.sf, cmd.lm); return true;
         case 0x12: mvmva(cmd.sf, cmd.lm, cmd.mvmvaMultiplyMatrix, cmd.mvmvaMultiplyVector, cmd.mvmvaTranslationVector); return true;
         case 0x13: ncds(cmd.sf, cmd.lm); return true;
+        case 0x14: cdp(cmd.sf, cmd.lm); return true;
         case 0x16: ncdt(cmd.sf, cmd.lm); return true;
         case 0x1b: nccs(cmd.sf, cmd.lm); return true;
+        case 0x1c: cc(cmd.sf, cmd.lm); return true;
         case 0x1e: ncs(cmd.sf, cmd.lm, 0); return true;
         case 0x20: nct(cmd.sf, cmd.lm); return true;
         case 0x2a: dpct(cmd.sf, cmd.lm); return true;
