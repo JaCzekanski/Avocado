@@ -11,6 +11,7 @@ extern bool showVramWindow;
 extern bool showDisassemblyWindow;
 extern bool showBreakpointsWindow;
 extern bool showWatchWindow;
+extern bool showKernelWindow;
 
 struct Watch {
     uint32_t address;
@@ -614,4 +615,95 @@ void watchWindow(System *sys) {
 void ramWindow(System *sys) {
     static MemoryEditor editor;
     editor.DrawWindow("Ram", sys->ram, System::RAM_SIZE);
+}
+
+void kernelWindow(System *sys) {
+    ImGui::Begin("Kernel", &showKernelWindow, ImVec2(300, 200));
+
+    if (ImGui::CollapsingHeader("EvCB")) {
+        const auto mapClass = [](uint32_t clazz) -> const char * {
+            switch (clazz) {
+                case 0xF0000001: return "VBLANK";
+                case 0xF0000002: return "GPU";
+                case 0xF0000003: return "CDROM";
+                case 0xF0000004: return "DMA";
+                case 0xF0000005: return "Timer0";
+                case 0xF0000006: return "Timer1/2";
+                case 0xF0000007: return "N/A";
+                case 0xF0000008: return "Controller";
+                case 0xF0000009: return "SPU";
+                case 0xF000000A: return "PIO";
+                case 0xF000000B: return "SIO";
+                case 0xF0000010: return "Exception";
+                case 0xF0000011: return "Memory card (BIOS)";
+                case 0xF2000000: return "Root counter 0";
+                case 0xF2000001: return "Root counter 1";
+                case 0xF2000002: return "Root counter 2";
+                case 0xF2000003: return "Root counter 3";
+                case 0xF4000001: return "Memory card (BIOS)";
+                case 0xF4000002: return "libmath (BIOS)";
+                default: return "Other";
+            }
+        };
+
+        const auto mapStatus = [](uint32_t status) -> const char * {
+            switch (status) {
+                case 0x1000: return "Disabled";
+                case 0x2000: return "Enabled/busy";
+                case 0x4000: return "Enabled/ready";
+                default: return "???";
+            }
+        };
+
+        const auto mapSpec = [](uint32_t spec) -> const char * {
+            switch (spec) {
+                case 0x0001: return "counter becomes zero";
+                case 0x0002: return "interrupted";
+                case 0x0004: return "end of i/o";
+                case 0x0008: return "file was closed";
+                case 0x0010: return "command acknowledged";
+                case 0x0020: return "command completed";
+                case 0x0040: return "data ready";
+                case 0x0080: return "data end";
+                case 0x0100: return "time out";
+                case 0x0200: return "unknown command";
+                case 0x0400: return "end of read buffer";
+                case 0x0800: return "end of write buffer";
+                case 0x1000: return "general interrupt";
+                case 0x2000: return "new device";
+                case 0x4000: return "system call instruction";
+                case 0x8000: return "error happened";
+                case 0x8001: return "previous write error happened";
+                case 0x0301: return "domain error in libmath";
+                case 0x0302: return "range error in libmath";
+                default: return "???";
+            }
+        };
+
+        uint32_t size = 0x1c;
+        uint32_t addr = sys->readMemory32(0x120);
+        uint32_t count = sys->readMemory32(0x120 + 4) / size;
+
+        ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
+
+        for (int i = 0; i < count; i++) {
+            uint32_t clazz = sys->readMemory32(addr + i * size + 0);
+            uint32_t status = sys->readMemory32(addr + i * size + 4);
+            uint32_t spec = sys->readMemory32(addr + i * size + 8);
+            uint32_t mode = sys->readMemory32(addr + i * size + 12);
+            uint32_t ptr = sys->readMemory32(addr + i * size + 16);
+
+            if (status == 0) continue;
+
+            ImGui::Text("Event  %d", i);
+            ImGui::Text("Class  0x%08x (%s)", clazz, mapClass(clazz));
+            ImGui::Text("Status 0x%08x (%s)", status, mapStatus(status));
+            ImGui::Text("Spec   0x%08x (%s)", spec, mapSpec(spec));
+            ImGui::Text("Mode   0x%08x", mode);
+            ImGui::Text("Ptr    0x%08x", ptr);
+            ImGui::Separator();
+        }
+    }
+
+    ImGui::End();
 }

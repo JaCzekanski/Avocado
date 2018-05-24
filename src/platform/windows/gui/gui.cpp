@@ -19,6 +19,7 @@ void breakpointsWindow(System* sys);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
 void cdromWindow(System* sys);
+void kernelWindow(System* sys);
 
 bool showGui = true;
 
@@ -41,6 +42,7 @@ bool showDisassemblyWindow = false;
 bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
+bool showKernelWindow = false;
 bool showCdromWindow = false;
 
 bool showAboutWindow = false;
@@ -98,6 +100,7 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
                 ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
                 ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
+                ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {
@@ -127,6 +130,7 @@ void renderImgui(System* sys) {
         if (showBreakpointsWindow) breakpointsWindow(sys);
         if (showWatchWindow) watchWindow(sys);
         if (showCdromWindow) cdromWindow(sys);
+        if (showKernelWindow) kernelWindow(sys);
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
