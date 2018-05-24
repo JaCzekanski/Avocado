@@ -5,6 +5,7 @@
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
 #include "version.h"
+#include "debug/kernel/kernel.h"
 
 void openFileWindow();
 
@@ -19,7 +20,6 @@ void breakpointsWindow(System* sys);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
 void cdromWindow(System* sys);
-void kernelWindow(System* sys);
 
 bool showGui = true;
 
@@ -42,7 +42,6 @@ bool showDisassemblyWindow = false;
 bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
-bool showKernelWindow = false;
 bool showCdromWindow = false;
 
 bool showAboutWindow = false;
