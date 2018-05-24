@@ -26,7 +26,8 @@ const json defaultConfig = {
         }},
         {"options", {
             {"graphics", {
-                {"filtering", false}
+                {"filtering", false},
+                {"widescreen", false}
             }}
         }},
         {"debug", {

@@ -9,8 +9,12 @@ class OpenGL {
     static const int resWidth = 640;
     static const int resHeight = 480;
 
+    const float RATIO_4_3 = 4.f / 3.f;
+    const float RATIO_16_9 = 16.f / 9.f;
+
     int width = resWidth;
     int height = resHeight;
+    float aspect = RATIO_4_3;
 
     bool init();
     bool setup();

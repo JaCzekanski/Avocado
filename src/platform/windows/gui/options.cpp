@@ -16,10 +16,14 @@ bool showControllerSetupWindow = false;
 
 void graphicsOptionsWindow() {
     bool filtering = config["options"]["graphics"]["filtering"];
+    bool widescreen = config["options"]["graphics"]["widescreen"];
     ImGui::Begin("Graphics", &showGraphicsOptionsWindow, ImGuiWindowFlags_AlwaysAutoResize);
 
     if (ImGui::Checkbox("Filtering", &filtering)) {
         config["options"]["graphics"]["filtering"] = filtering;
+    }
+    if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
+        config["options"]["graphics"]["widescreen"] = widescreen;
     }
 
     ImGui::End();

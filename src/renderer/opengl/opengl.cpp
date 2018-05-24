@@ -105,20 +105,35 @@ void OpenGL::renderSecondStage() {
 }
 
 void OpenGL::render(GPU *gpu) {
-    // Update screen position
+    // Viewport settings
+    aspect = config["options"]["graphics"]["widescreen"] ? RATIO_16_9 : RATIO_4_3;
 
-    int screenWidth = width;
-    int screenHeight = height;
+    int x = 0;
+    int y = 0;
+    int w = width;
+    int h = height;
 
     std::vector<BlitStruct> bb;
     if (viewFullVram) {
-        screenWidth = 1024;
-        screenHeight = 512;
-        bb = makeBlitBuf(0, 0, screenWidth, screenHeight);
+        w = 1024;
+        h = 512;
+        bb = makeBlitBuf(0, 0, w, h);
+        glViewport(0, 0, w, h);
     } else {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
+
+        if (width > height * aspect) {
+            // Fit vertical
+            w = height * aspect;
+            x = (width - w) / 2;
+        } else {
+            // Fit horizontal
+            h = width * (1.0 / aspect);
+            y = (height - h) / 2;
+        }
     }
+
     glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, bb.size() * sizeof(BlitStruct), bb.data());
 
@@ -131,6 +146,8 @@ void OpenGL::render(GPU *gpu) {
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glViewport(0, 0, screenWidth, screenHeight);
+    glViewport(x, y, w, h);
     renderSecondStage();
+
+    glViewport(0, 0, width, height);
 }
