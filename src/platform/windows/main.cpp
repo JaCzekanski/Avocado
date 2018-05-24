@@ -215,7 +215,8 @@ void hardReset() {
 }
 
 // Warning: this method might have 1 or more miliseconds of inaccuracy.
-void limitFramerate(SDL_Window* window, bool framelimiter) {
+void limitFramerate(SDL_Window* window, bool framelimiter, bool ntsc) {
+    static double timeToSkip = 0;
     static double counterFrequency = SDL_GetPerformanceFrequency();
     static double startTime = SDL_GetPerformanceCounter() / counterFrequency;
     static double fps;
@@ -225,12 +226,21 @@ void limitFramerate(SDL_Window* window, bool framelimiter) {
     double currentTime = SDL_GetPerformanceCounter() / counterFrequency;
     double deltaTime = currentTime - startTime;
 
-    if (framelimiter) {
-        while (deltaTime < 1.0 / 60.0) {  // calculate real difference
-            SDL_Delay(1);
+    double frameTime = ntsc ? (1.0 / 60.0) : (1.0 / 50.0);
 
-            currentTime = SDL_GetPerformanceCounter() / counterFrequency;
-            deltaTime = currentTime - startTime;
+    if (framelimiter) {
+        // If frame was shorter than frameTime - spin
+        if (deltaTime < frameTime - timeToSkip) {
+            while (deltaTime < frameTime - timeToSkip) {  // calculate real difference
+                SDL_Delay(1);
+
+                currentTime = SDL_GetPerformanceCounter() / counterFrequency;
+                deltaTime = currentTime - startTime;
+            }
+            timeToSkip -= (frameTime - deltaTime);
+            if (timeToSkip < 0.0) timeToSkip = 0.0;
+        } else {  // Else - accumulate
+            timeToSkip += deltaTime - frameTime;
         }
     }
 
@@ -404,7 +414,7 @@ int main(int argc, char** argv) {
 
         SDL_GL_SwapWindow(window);
 
-        limitFramerate(window, frameLimitEnabled);
+        limitFramerate(window, frameLimitEnabled, sys->gpu->isNtsc());
     }
     saveConfigFile(CONFIG_NAME);
 

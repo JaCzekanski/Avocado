@@ -44,9 +44,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
 #define BRANCH_TYPE string_format("%s, %d", R(i.rs), i.offset)
 
     switch (i.op) {
-        case 0:
-            ins = mapSpecialInstruction(i);
-            break;
+        case 0: ins = mapSpecialInstruction(i); break;
 
         case 1:
             switch (i.rt & 0x11) {
@@ -55,9 +53,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
                 O(16, "bltzal", BRANCH_TYPE);
                 O(17, "bgezal", BRANCH_TYPE);
 
-                default:
-                    ins.mnemonic = string_format("0x%08x", i.opcode);
-                    break;
+                default: ins.mnemonic = string_format("0x%08x", i.opcode); break;
             }
             break;
 
@@ -75,7 +71,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
             O(12, "andi", ITYPE);
             O(13, "ori", ITYPE);
             O(14, "xori", ITYPE);
-            O(15, "lui", ITYPE);
+            O(15, "lui", string_format("%s, 0x%hx", R(i.rt), i.offset));
 
             O(16, "cop0", "");
             O(17, "cop1", "");
@@ -99,9 +95,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
             O(50, "lwc2", "");
             O(58, "swc2", "");
 
-        default:
-            ins.mnemonic = string_format("0x%08x", i.opcode);
-            break;
+        default: ins.mnemonic = string_format("0x%08x", i.opcode); break;
     }
     return ins;
 }
@@ -153,9 +147,7 @@ Instruction mapSpecialInstruction(mips::Opcode& i) {
             O(42, "slt", ATYPE);
             O(43, "sltu", ATYPE);
 
-        default:
-            ins.mnemonic = string_format("SPECIAL 0x%02x", i.fun);
-            break;
+        default: ins.mnemonic = string_format("SPECIAL 0x%02x", i.fun); break;
     }
     return ins;
 }

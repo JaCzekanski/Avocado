@@ -585,3 +585,5 @@ bool GPU::emulateGpuCycles(int cycles) {
     }
     return false;
 }
+
+bool GPU::isNtsc() { return gp1_08.videoMode == GP1_08::VideoMode::ntsc; }

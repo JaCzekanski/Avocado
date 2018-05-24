@@ -16,7 +16,7 @@
 struct SDL_Window;
 typedef union SDL_Event SDL_Event;
 
-IMGUI_API bool ImGui_ImplSdlGL3_Init(SDL_Window* window);
+IMGUI_API bool ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version = nullptr);
 IMGUI_API void ImGui_ImplSdlGL3_Shutdown();
 IMGUI_API void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window);
 IMGUI_API void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data);

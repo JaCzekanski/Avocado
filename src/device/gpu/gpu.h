@@ -246,6 +246,8 @@ struct GPU {
 
     bool emulateGpuCycles(int cycles);
 
+    bool isNtsc();
+
     std::vector<uint16_t> vram;
     std::vector<uint16_t> prevVram;
 

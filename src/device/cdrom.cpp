@@ -361,20 +361,30 @@ void CDROM::cmdTest() {
     if (opcode == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
     {
         CDROM_interrupt.push_back(3);
-        writeResponse(0x97);
-        writeResponse(0x01);
-        writeResponse(0x10);
-        writeResponse(0xc2);
+        writeResponse(0x94);
+        writeResponse(0x09);
+        writeResponse(0x19);
+        writeResponse(0xc0);
     } else if (opcode == 0x03) {  // Force motor off, used in swap
         stat.motor = 0;
         CDROM_interrupt.push_back(3);
         writeResponse(stat._reg);
     } else {
         printf("Unimplemented test CDROM opcode (0x%x)!\n", opcode);
+        CDROM_interrupt.push_back(5);
     }
 }
 
 void CDROM::cmdGetId() {
+    // Shell open
+    if (stat.getShell()) {
+        CDROM_interrupt.push_back(5);
+        writeResponse(0x11);
+        writeResponse(0x80);
+        return;
+    }
+
+    // Comment to make NO$PSX bios works
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -498,6 +508,9 @@ void CDROM::handleCommand(uint8_t cmd) {
         cmdUnlock();
     else {
         printf("Unimplemented cmd 0x%x!\n", cmd);
+        CDROM_interrupt.push_back(5);
+        writeResponse(0x11);
+        writeResponse(0x40);
     }
     CDROM_params.clear();
     status.parameterFifoEmpty = 1;
