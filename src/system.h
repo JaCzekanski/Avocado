@@ -130,6 +130,7 @@ struct System {
         uint32_t size;
         uint32_t addr;
         uint32_t data;
+        uint32_t pc;
     };
 
     std::vector<IO_LOG_ENTRY> ioLogList;

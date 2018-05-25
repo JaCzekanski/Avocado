@@ -104,17 +104,17 @@ INLINE bool in_range(const uint32_t addr) {
 }
 
 #ifdef ENABLE_IO_LOG
-#define LOG_IO(mode, size, addr, data) ioLogList.push_back({(mode), (size), (addr), (data)})
+#define LOG_IO(mode, size, addr, data, pc) ioLogList.push_back({(mode), (size), (addr), (data), (pc)})
 #else
-#define LOG_IO(mode, size, addr, data)
+#define LOG_IO(mode, size, addr, data, pc)
 #endif
 
-#define READ_IO(begin, end, periph)                                     \
-    if (addr >= (begin) && addr < (end)) {                              \
-        auto data = read_io<T>((periph), addr - (begin));               \
-                                                                        \
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data); \
-        return data;                                                    \
+#define READ_IO(begin, end, periph)                                              \
+    if (addr >= (begin) && addr < (end)) {                                       \
+        auto data = read_io<T>((periph), addr - (begin));                        \
+                                                                                 \
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC); \
+        return data;                                                             \
     }
 
 #define READ_IO32(begin, end, periph)                                                                          \
@@ -126,16 +126,16 @@ INLINE bool in_range(const uint32_t addr) {
             printf("R Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
         }                                                                                                      \
                                                                                                                \
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data);                                        \
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);                               \
         return data;                                                                                           \
     }
 
-#define WRITE_IO(begin, end, periph)                                     \
-    if (addr >= (begin) && addr < (end)) {                               \
-        write_io<T>((periph), addr - (begin), data);                     \
-                                                                         \
-        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data); \
-        return;                                                          \
+#define WRITE_IO(begin, end, periph)                                              \
+    if (addr >= (begin) && addr < (end)) {                                        \
+        write_io<T>((periph), addr - (begin), data);                              \
+                                                                                  \
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC); \
+        return;                                                                   \
     }
 
 #define WRITE_IO32(begin, end, periph)                                                                         \
@@ -146,7 +146,7 @@ INLINE bool in_range(const uint32_t addr) {
             printf("W Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
         }                                                                                                      \
                                                                                                                \
-        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data);                                       \
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);                              \
         return;                                                                                                \
     }
 
@@ -186,7 +186,7 @@ INLINE T System::readMemory(uint32_t address) {
 
     if (in_range<0xfffe0130, 4>(address)) {
         auto data = read_io<T>(memoryControl, address);
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data);
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);
         return data;
     }
 
@@ -228,7 +228,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
 
     if (in_range<0xfffe0130, 4>(address)) {
         write_io<T>(memoryControl, 0xfffe0130, data);
-        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data);
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);
         return;
     }
 
@@ -319,7 +319,7 @@ void System::emulateFrame() {
         timer2->step(systemCycles);
 
         static int wtf = 0;
-        if (++wtf % 200 == 0) interrupt->trigger(interrupt::TIMER2);
+        //        if (++wtf % 200 == 0) interrupt->trigger(interrupt::TIMER2);
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {
