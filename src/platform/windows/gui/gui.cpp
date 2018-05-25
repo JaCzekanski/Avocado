@@ -2,10 +2,11 @@
 #include <imgui.h>
 #include "config.h"
 #include "cpu/gte/gte.h"
+#include "debug/kernel/kernel.h"
+#include "debug/gpu/gpu.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
 #include "version.h"
-#include "debug/kernel/kernel.h"
 
 void openFileWindow();
 
@@ -100,6 +101,7 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
                 ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
                 ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
+                ImGui::MenuItem("GPU", nullptr, &showGpuWindow);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {
@@ -130,6 +132,7 @@ void renderImgui(System* sys) {
         if (showWatchWindow) watchWindow(sys);
         if (showCdromWindow) cdromWindow(sys);
         if (showKernelWindow) kernelWindow(sys);
+        if (showGpuWindow) gpuWindow(sys);
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();

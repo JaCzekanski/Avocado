@@ -337,10 +337,11 @@ void ioLogWindow(System *sys) {
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto ioEntry = sys->ioLogList.at(i);
-            ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s", ioEntry.mode == System::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W', ioEntry.size,
-                        ioEntry.addr, ioEntry.size / 4, ioEntry.data,
+            char mode = ioEntry.mode == System::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W';
+            ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s                  (pc: 0x%08x)", mode, ioEntry.size, ioEntry.addr, ioEntry.size / 4,
+                        ioEntry.data,
                         // padding
-                        8 - ioEntry.size / 4, "", mapIo(ioEntry.addr));
+                        8 - ioEntry.size / 4, "", mapIo(ioEntry.addr), ioEntry.pc);
         }
     }
     ImGui::PopStyleVar();
