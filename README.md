@@ -56,6 +56,7 @@ Requirements (Windows):
 
 ```
 > git clone https://github.com/JaCzekanski/Avocado.git
+> cd avocado
 > git submodule update --init --recursive
 > premake5 vs2017
 
