@@ -12,8 +12,8 @@ void Timer<which>::step(int cycles) {
 
     if (which == 0) {
         if (mode.clockSource0 == CounterMode::ClockSource0::dotClock) {
-            current._reg += cnt;
-            cnt = 0;
+            current._reg += cnt / 6;
+            cnt %= 6;
         } else {  // System Clock
             current._reg += cnt / 3;
             cnt %= 3;

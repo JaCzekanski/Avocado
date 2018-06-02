@@ -48,6 +48,7 @@ end
 
 workspace "Avocado"    
 	configurations { "Debug", "Release", "FastDebug" }
+    startproject "avocado"
 
 newoption {
 	trigger = "disable-load-delay-slots",
