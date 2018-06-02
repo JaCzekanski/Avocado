@@ -1,8 +1,5 @@
 #include "cpu.h"
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include "bios/functions.h"
 #include "cpu/instructions.h"
 #include "system.h"

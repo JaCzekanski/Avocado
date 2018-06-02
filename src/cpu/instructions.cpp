@@ -7,7 +7,7 @@ using namespace mips;
 namespace instructions {
 
 // clang-format off
-PrimaryInstruction OpcodeTable[64] = {
+std::array<PrimaryInstruction, 64> OpcodeTable = {{
     {0, special},
     {1, branch},
     {2, op_j},
@@ -83,10 +83,10 @@ PrimaryInstruction OpcodeTable[64] = {
 #else
     {63, invalid}
 #endif
-};
+}};
 
-PrimaryInstruction SpecialTable[64] = {
-    // opcodes encoded with "function" field, when opcode == 0
+// opcodes encoded with "function" field, when opcode == 0
+std::array<PrimaryInstruction, 64> SpecialTable = {{
     {0, op_sll},
     {1, invalid},
     {2, op_srl},
@@ -158,7 +158,7 @@ PrimaryInstruction SpecialTable[64] = {
     {61, invalid},
     {62, invalid},
     {63, invalid},
-};
+}};
 // clang-format on
 
 void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
@@ -451,8 +451,7 @@ void branch(CPU *cpu, Opcode i) {
             }
             break;
 
-        default:
-            invalid(cpu, i);
+        default: invalid(cpu, i);
     }
 }
 
@@ -566,53 +565,23 @@ void op_cop0(CPU *cpu, Opcode i) {
             // Move from co-processor zero
             // MFC0 rd, <nn>
             switch (i.rd) {
-                case 3:
-                    cpu->reg[i.rt] = cpu->cop0.bpc;
-                    break;
-
-                case 7:
-                    cpu->reg[i.rt] = cpu->cop0.dcic;
-                    break;
-
-                case 8:
-                    cpu->reg[i.rt] = cpu->cop0.badVaddr;
-                    break;
-
-                case 12:
-                    cpu->reg[i.rt] = cpu->cop0.status._reg;
-                    break;
-
-                case 13:
-                    cpu->reg[i.rt] = cpu->cop0.cause._reg;
-                    break;
-
-                case 14:
-                    cpu->reg[i.rt] = cpu->cop0.epc;
-                    break;
-
-                case 15:
-                    cpu->reg[i.rt] = cpu->cop0.revId;
-                    break;
-
-                default:
-                    cpu->reg[i.rt] = 0;
-                    break;
+                case 3: cpu->reg[i.rt] = cpu->cop0.bpc; break;
+                case 7: cpu->reg[i.rt] = cpu->cop0.dcic; break;
+                case 8: cpu->reg[i.rt] = cpu->cop0.badVaddr; break;
+                case 12: cpu->reg[i.rt] = cpu->cop0.status._reg; break;
+                case 13: cpu->reg[i.rt] = cpu->cop0.cause._reg; break;
+                case 14: cpu->reg[i.rt] = cpu->cop0.epc; break;
+                case 15: cpu->reg[i.rt] = cpu->cop0.revId; break;
+                default: cpu->reg[i.rt] = 0; break;
             }
-
             break;
 
         case 4:
             // Move to co-processor zero
             // MTC0 rs, <nn>
             switch (i.rd) {
-                case 3:
-                    cpu->cop0.bpc = cpu->reg[i.rt];
-                    break;
-
-                case 7:
-                    cpu->cop0.dcic = cpu->reg[i.rt];
-                    break;
-
+                case 3: cpu->cop0.bpc = cpu->reg[i.rt]; break;
+                case 7: cpu->cop0.dcic = cpu->reg[i.rt]; break;
                 case 12:
                     if (cpu->reg[i.rt] & (1 << 17)) {
                         // printf("Panic, SwC not handled\n");
@@ -620,15 +589,11 @@ void op_cop0(CPU *cpu, Opcode i) {
                     }
                     cpu->cop0.status._reg = cpu->reg[i.rt];
                     break;
-
                 case 13:
                     cpu->cop0.cause._reg &= ~0x300;
                     cpu->cop0.cause._reg |= (cpu->reg[i.rt] & 0x300);
                     break;
-
-                default:
-                    cpu->reg[i.rt] = 0;
-                    break;
+                default: cpu->reg[i.rt] = 0; break;
             }
             break;
 
@@ -642,8 +607,7 @@ void op_cop0(CPU *cpu, Opcode i) {
             cpu->cop0.status.previousMode = cpu->cop0.status.oldMode;
             break;
 
-        default:
-            invalid(cpu, i);
+        default: invalid(cpu, i);
     }
 }
 
@@ -714,18 +678,10 @@ void op_lwl(CPU *cpu, Opcode i) {
 
     uint32_t result = 0;
     switch (addr % 4) {
-        case 0:
-            result = (reg & 0x00ffffff) | (mem << 24);
-            break;
-        case 1:
-            result = (reg & 0x0000ffff) | (mem << 16);
-            break;
-        case 2:
-            result = (reg & 0x000000ff) | (mem << 8);
-            break;
-        case 3:
-            result = (reg & 0x00000000) | (mem);
-            break;
+        case 0: result = (reg & 0x00ffffff) | (mem << 24); break;
+        case 1: result = (reg & 0x0000ffff) | (mem << 16); break;
+        case 2: result = (reg & 0x000000ff) | (mem << 8); break;
+        case 3: result = (reg & 0x00000000) | (mem); break;
     }
     cpu->loadDelaySlot(i.rt, result);
 }
@@ -777,18 +733,10 @@ void op_lwr(CPU *cpu, Opcode i) {
 
     uint32_t result = 0;
     switch (addr % 4) {
-        case 0:
-            result = (reg & 0x00000000) | (mem);
-            break;
-        case 1:
-            result = (reg & 0xff000000) | (mem >> 8);
-            break;
-        case 2:
-            result = (reg & 0xffff0000) | (mem >> 16);
-            break;
-        case 3:
-            result = (reg & 0xffffff00) | (mem >> 24);
-            break;
+        case 0: result = (reg & 0x00000000) | (mem); break;
+        case 1: result = (reg & 0xff000000) | (mem >> 8); break;
+        case 2: result = (reg & 0xffff0000) | (mem >> 16); break;
+        case 3: result = (reg & 0xffffff00) | (mem >> 24); break;
     }
     cpu->loadDelaySlot(i.rt, result);
 }
@@ -821,18 +769,10 @@ void op_swl(CPU *cpu, Opcode i) {
 
     uint32_t result = 0;
     switch (addr % 4) {
-        case 0:
-            result = (mem & 0xffffff00) | (reg >> 24);
-            break;
-        case 1:
-            result = (mem & 0xffff0000) | (reg >> 16);
-            break;
-        case 2:
-            result = (mem & 0xff000000) | (reg >> 8);
-            break;
-        case 3:
-            result = (mem & 0x00000000) | (reg);
-            break;
+        case 0: result = (mem & 0xffffff00) | (reg >> 24); break;
+        case 1: result = (mem & 0xffff0000) | (reg >> 16); break;
+        case 2: result = (mem & 0xff000000) | (reg >> 8); break;
+        case 3: result = (mem & 0x00000000) | (reg); break;
     }
     cpu->sys->writeMemory32(addr & 0xfffffffc, result);
 }
@@ -858,18 +798,10 @@ void op_swr(CPU *cpu, Opcode i) {
 
     uint32_t result = 0;
     switch (addr % 4) {
-        case 0:
-            result = (reg) | (mem & 0x00000000);
-            break;
-        case 1:
-            result = (reg << 8) | (mem & 0x000000ff);
-            break;
-        case 2:
-            result = (reg << 16) | (mem & 0x0000ffff);
-            break;
-        case 3:
-            result = (reg << 24) | (mem & 0x00ffffff);
-            break;
+        case 0: result = (reg) | (mem & 0x00000000); break;
+        case 1: result = (reg << 8) | (mem & 0x000000ff); break;
+        case 2: result = (reg << 16) | (mem & 0x0000ffff); break;
+        case 3: result = (reg << 24) | (mem & 0x00ffffff); break;
     }
     cpu->sys->writeMemory32(addr & 0xfffffffc, result);
 }

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include "cpu/cop0.h"
 #include "cpu/gte/gte.h"
+#include <array>
 
 struct System;
 
@@ -50,12 +51,12 @@ struct CPU {
     uint32_t PC;
     uint32_t jumpPC;
     bool shouldJump;
-    uint32_t reg[REGISTER_COUNT];
+    std::array<uint32_t, REGISTER_COUNT> reg;
     COP0 cop0;
     GTE gte;
     uint32_t hi, lo;
     bool exception;
-    LoadSlot slots[2];
+    std::array<LoadSlot, 2> slots;
     System* sys;
 
     CPU(System* sys);

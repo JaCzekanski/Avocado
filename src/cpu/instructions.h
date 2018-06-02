@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <array>
 #include "cpu.h"
 #include "opcode.h"
 
@@ -82,5 +83,5 @@ void op_lwc2(CPU* cpu, Opcode i);
 void op_swc2(CPU* cpu, Opcode i);
 void op_breakpoint(CPU* cpu, Opcode i);
 
-extern PrimaryInstruction OpcodeTable[64];
+extern std::array<PrimaryInstruction, 64> OpcodeTable;
 }  // namespace instructions
