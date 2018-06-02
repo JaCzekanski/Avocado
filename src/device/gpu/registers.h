@@ -121,3 +121,11 @@ union GP1_08 {
         return 480;
     }
 };
+
+template <typename T>
+struct Rect {
+    T left = 0;
+    T top = 0;
+    T right = 0;
+    T bottom = 0;
+};

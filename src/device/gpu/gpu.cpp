@@ -1,7 +1,8 @@
-#include "gpu.h"
 #include <cassert>
 #include <cstdio>
+#include "gpu.h"
 #include "render.h"
+#include "platform/windows/gui/debug/gpu/gpu.h"
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
@@ -21,32 +22,13 @@ void GPU::reset() {
     gp0_e1._reg = 0;
     gp0_e2._reg = 0;
 
-    drawingAreaLeft = 0;
-    drawingAreaTop = 0;
-    drawingAreaRight = 0;
-    drawingAreaBottom = 0;
+    drawingArea = Rect<int16_t>();
+
     drawingOffsetX = 0;
     drawingOffsetY = 0;
 
     gp0_e6._reg = 0;
 }
-
-namespace {
-/**
- * Sign extend 10bit value to 16bit.
- * THPS games does not use upper bits resulting in invalid coords.
- */
-int16_t extend10bit(int16_t t) {
-    t &= 0x7ff;
-
-    bool sign = (t & (1 << 10)) != 0;
-    if (sign) {
-        t |= 0xF800;
-    }
-
-    return t;
-}
-};  // namespace
 
 void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
     int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
@@ -62,7 +44,7 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     Vertex v[3];
     for (int i : {0, 1, 2}) {
-        v[i] = {{extend10bit(x[i]), extend10bit(y[i])},
+        v[i] = {{extend_sign<10>(x[i]), extend_sign<10>(y[i])},
                 {c[i].r, c[i].g, c[i].b},
                 {t.uv[i].x, t.uv[i].y},
                 bitcount,
@@ -74,7 +56,7 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     if (isFourVertex) {
         for (int i : {1, 2, 3}) {
-            v[i - 1] = {{extend10bit(x[i]), extend10bit(y[i])},
+            v[i - 1] = {{extend_sign<10>(x[i]), extend_sign<10>(y[i])},
                         {c[i].r, c[i].g, c[i].b},
                         {t.uv[i].x, t.uv[i].y},
                         bitcount,
@@ -433,16 +415,16 @@ void GPU::writeGP0(uint32_t data) {
             gp0_e2._reg = arguments[0];
         } else if (command == 0xe3) {
             // Drawing area top left
-            drawingAreaLeft = arguments[0] & 0x3ff;
-            drawingAreaTop = (arguments[0] & 0xffc00) >> 10;
+            drawingArea.left = arguments[0] & 0x3ff;
+            drawingArea.top = (arguments[0] & 0xffc00) >> 10;
         } else if (command == 0xe4) {
             // Drawing area bottom right
-            drawingAreaRight = arguments[0] & 0x3ff;
-            drawingAreaBottom = (arguments[0] & 0xffc00) >> 10;
+            drawingArea.right = arguments[0] & 0x3ff;
+            drawingArea.bottom = (arguments[0] & 0xffc00) >> 10;
         } else if (command == 0xe5) {
             // Drawing offset
-            drawingOffsetX = ((int16_t)((arguments[0] & 0x7ff) << 5)) >> 5;
-            drawingOffsetY = ((int16_t)(((arguments[0] & 0x3FF800) >> 11) << 5)) >> 5;
+            drawingOffsetX = extend_sign<11>(arguments[0] & 0x7ff);
+            drawingOffsetY = extend_sign<11>((arguments[0] >> 11) & 0x7ff);
         } else if (command == 0xe6) {
             // Mask bit setting
             gp0_e6._reg = arguments[0];
@@ -536,9 +518,9 @@ void GPU::writeGP1(uint32_t data) {
         if (argument == 2) {
             GPUREAD = gp0_e2._reg;
         } else if (argument == 3) {
-            GPUREAD = (drawingAreaTop << 10) | drawingAreaLeft;
+            GPUREAD = (drawingArea.top << 10) | drawingArea.left;
         } else if (argument == 4) {
-            GPUREAD = (drawingAreaBottom << 10) | drawingAreaRight;
+            GPUREAD = (drawingArea.bottom << 10) | drawingArea.right;
         } else if (argument == 5) {
             GPUREAD = (drawingOffsetY << 11) | drawingOffsetX;
         } else if (argument == 7) {

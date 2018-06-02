@@ -172,12 +172,8 @@ struct GPU {
     GP0_E2 gp0_e2;
 
     // GP0(0xe3)
-    int16_t drawingAreaLeft = 0;
-    int16_t drawingAreaTop = 0;
-
     // GP0(0xe4)
-    int16_t drawingAreaRight = 0;
-    int16_t drawingAreaBottom = 0;
+    Rect<int16_t> drawingArea;
 
     // GP0(0xe5)
     int16_t drawingOffsetX = 0;
