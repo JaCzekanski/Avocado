@@ -1,8 +1,8 @@
+#include "gpu.h"
 #include <cassert>
 #include <cstdio>
-#include "gpu.h"
-#include "render.h"
 #include "platform/windows/gui/debug/gpu/gpu.h"
+#include "render.h"
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
@@ -30,8 +30,13 @@ void GPU::reset() {
     gp0_e6._reg = 0;
 }
 
-void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex, bool textured, int flags) {
+void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isQuad, bool textured, int flags) {
     int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
+
+    for (int i = 0; i < (isQuad ? 4 : 3); i++) {
+        x[i] = extend_sign<10>(x[i]) + drawingOffsetX;
+        y[i] = extend_sign<10>(y[i]) + drawingOffsetY;
+    }
 
     if (textured) {
         clutX = t.getClutX();
@@ -44,25 +49,13 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     Vertex v[3];
     for (int i : {0, 1, 2}) {
-        v[i] = {{extend_sign<10>(x[i]), extend_sign<10>(y[i])},
-                {c[i].r, c[i].g, c[i].b},
-                {t.uv[i].x, t.uv[i].y},
-                bitcount,
-                {clutX, clutY},
-                {baseX, baseY},
-                flags};
+        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
     }
     drawTriangle(this, v);
 
-    if (isFourVertex) {
+    if (isQuad) {
         for (int i : {1, 2, 3}) {
-            v[i - 1] = {{extend_sign<10>(x[i]), extend_sign<10>(y[i])},
-                        {c[i].r, c[i].g, c[i].b},
-                        {t.uv[i].x, t.uv[i].y},
-                        bitcount,
-                        {clutX, clutY},
-                        {baseX, baseY},
-                        flags};
+            v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
         }
         drawTriangle(this, v);
     }

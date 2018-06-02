@@ -39,12 +39,82 @@ INLINE int fast_round(float n) {
     return i + r * 2;
 }
 
-void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int bits,
-              int flags) {
-    for (int i = 0; i < 3; i++) {
-        pos[i].x += gpu->drawingOffsetX;
-        pos[i].y += gpu->drawingOffsetY;
+INLINE glm::ivec2 calculateTexel(GPU* gpu, glm::vec3 s, glm::ivec2 tex[3]) {
+    glm::ivec2 texel = glm::ivec2(fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
+                                  fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y));
+
+    // Texture masking
+    // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
+    texel.x = (texel.x & ~(gpu->gp0_e2.textureWindowMaskX * 8)) | ((gpu->gp0_e2.textureWindowOffsetX & gpu->gp0_e2.textureWindowMaskX) * 8);
+    texel.y = (texel.y & ~(gpu->gp0_e2.textureWindowMaskY * 8)) | ((gpu->gp0_e2.textureWindowOffsetY & gpu->gp0_e2.textureWindowMaskY) * 8);
+
+    return texel;
+}
+
+INLINE PSXColor doShading(glm::vec3 s, glm::ivec2 p, glm::vec3* color, int flags) {
+    glm::vec3 outColor(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,  //
+                       s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,  //
+                       s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+
+    // TODO: THPS2 fading screen doesn't look as it should
+    if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
+        outColor += ditherTable[p.y % 4][p.x % 4] / 255.f;
+        outColor = glm::clamp(outColor, 0.f, 1.f);
     }
+
+    return to15bit((uint8_t)(255 * outColor.r), (uint8_t)(255 * outColor.g), (uint8_t)(255 * outColor.b));
+}
+
+template <ColorDepth bits>
+INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm::ivec2* tex, glm::ivec2 texPage, glm::ivec2 clut,
+                      int flags) {
+    glm::ivec2 texel = calculateTexel(gpu, s, tex);
+
+    PSXColor c;
+    switch (bits) {
+        case ColorDepth::NONE: c = doShading(s, p, color, flags); break;
+        case ColorDepth::BIT_4: c = tex4bit(gpu, texel, texPage, clut); break;
+        case ColorDepth::BIT_8: c = tex8bit(gpu, texel, texPage, clut); break;
+        case ColorDepth::BIT_16: c = tex16bit(gpu, texel, texPage); break;
+    }
+
+    if ((bits != ColorDepth::NONE || (flags & Vertex::SemiTransparency)) && c.raw == 0x0000) return;
+
+    // If texture blending is enabled
+    if (bits != ColorDepth::NONE && !(flags & Vertex::RawTexture)) {
+        glm::vec3 brightness;
+
+        if (flags & Vertex::GouroudShading) {
+            brightness = glm::vec3(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,  //
+                                   s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,  //
+                                   s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+        } else {  // Flat shading
+            brightness = glm::vec3(color[0]);
+        }
+
+        c = c * (brightness * 2.f);
+    }
+
+    // TODO: Mask support
+
+    if ((flags & Vertex::SemiTransparency) && c.k) {
+        using Transparency = GP0_E1::SemiTransparency;
+
+        PSXColor bg = VRAM[p.y][p.x];
+        Transparency transparency = (Transparency)((flags & 0xA0) >> 6);
+        switch (transparency) {
+            case Transparency::Bby2plusFby2: c = bg / 2.f + c / 2.f; break;
+            case Transparency::BplusF: c = bg + c; break;
+            case Transparency::BminusF: c = bg - c; break;
+            case Transparency::BplusFby4: c = bg + c / 4.f; break;
+        }
+    }
+
+    VRAM[p.y][p.x] = c.raw;
+}
+
+template <ColorDepth bits>
+void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int flags) {
     // clang-format off
     glm::ivec2 min = glm::ivec2(
         gpu->minDrawingX(std::min({ pos[0].x, pos[1].x, pos[2].x })),
@@ -81,91 +151,9 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
         for (p.x = min.x; p.x < max.x; p.x++) {
             if ((is.x | is.y | is.z) >= 0) {
                 glm::vec3 s = glm::vec3(is) / (float)area;
-
-                PSXColor c;
-                if (bits == 0) {
-                    // clang-format off
-                    glm::vec3 calculatedColor = glm::vec3(
-                        s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
-                        s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
-                        s.x * color[0].b + s.y * color[1].b + s.z * color[2].b
-                    );
-                    // clang-format on
-
-                    // TODO: THPS2 fading screen doesn't look as it should
-                    if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-                        calculatedColor += ditherTable[p.y % 4][p.x % 4] / 255.f;
-                        calculatedColor = glm::clamp(calculatedColor, 0.f, 1.f);
-                    }
-                    c.raw = to15bit((uint8_t)(255 * calculatedColor.r), (uint8_t)(255 * calculatedColor.g),
-                                    (uint8_t)(255 * calculatedColor.b));
-                } else {
-                    // clang-format off
-                    glm::ivec2 calculatedTexel = glm::ivec2(
-                        fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
-                        fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y)
-                    );
-
-                    // Texture masking
-                    // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
-                    calculatedTexel.x = (calculatedTexel.x & ~(gpu->gp0_e2.textureWindowMaskX * 8)) | ((gpu->gp0_e2.textureWindowOffsetX &gpu->gp0_e2.textureWindowMaskX) * 8);
-                    calculatedTexel.y = (calculatedTexel.y & ~(gpu->gp0_e2.textureWindowMaskY * 8)) | ((gpu->gp0_e2.textureWindowOffsetY &gpu->gp0_e2.textureWindowMaskY) * 8);
-
-                    // clang-format on
-                    if (bits == 4) {
-                        c = tex4bit(gpu, calculatedTexel, texPage, clut);
-                    } else if (bits == 8) {
-                        c = tex8bit(gpu, calculatedTexel, texPage, clut);
-                    } else if (bits == 16) {
-                        c = VRAM[texPage.y + calculatedTexel.y][texPage.x + calculatedTexel.x];
-                        // TODO: In PSOne BIOS colors are swapped (r == b, g == g, b == r, k == k)
-                    }
-                }
-
-                if ((bits != 0 || (flags & Vertex::SemiTransparency)) && c.raw == 0x0000) goto skip_pixel;
-
-                // If texture blending is enabled
-                if (bits != 0 && !(flags & Vertex::RawTexture)) {
-                    glm::vec3 brightness;
-
-                    if (flags & Vertex::GouroudShading) {
-                        brightness = glm::vec3(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,
-                                               s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,
-                                               s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
-                    } else {  // Flat shading
-                        brightness = glm::vec3(color[0]);
-                    }
-
-                    c = c * (brightness * 2.f);
-                }
-
-                // TODO: Mask support
-
-                if ((flags & Vertex::SemiTransparency) && c.k) {
-                    using Transparency = GP0_E1::SemiTransparency;
-
-                    PSXColor bg = VRAM[p.y][p.x];
-                    Transparency transparency = (Transparency)((flags & 0xA0) >> 6);
-                    switch (transparency) {
-                        case Transparency::Bby2plusFby2:
-                            c = bg / 2.f + c / 2.f;
-                            break;
-                        case Transparency::BplusF:
-                            c = bg + c;
-                            break;
-                        case Transparency::BminusF:
-                            c = bg - c;
-                            break;
-                        case Transparency::BplusFby4:
-                            c = bg + c / 4.f;
-                            break;
-                    }
-                }
-
-                VRAM[p.y][p.x] = c.raw;
+                plotPixel<bits>(gpu, p, s, color, tex, texPage, clut, flags);
             }
 
-        skip_pixel:
             is.x += A12;
             is.y += A20;
             is.z += A01;
@@ -202,5 +190,8 @@ void drawTriangle(GPU* gpu, Vertex v[3]) {
     bits = v[0].bitcount;
     flags = v[0].flags;
 
-    triangle(gpu, pos, color, texcoord, texpage, clut, bits, flags);
+    if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags);
+    if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags);
+    if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags);
+    if (bits == 16) triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags);
 }

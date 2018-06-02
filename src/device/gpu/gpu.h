@@ -218,7 +218,7 @@ struct GPU {
     void cmdVramToCpu(uint8_t command, uint32_t arguments[]);
     void cmdVramToVram(uint8_t command, uint32_t arguments[]);
 
-    void drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isFourVertex = false, bool textured = false, int flags = 0);
+    void drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isQuad = false, bool textured = false, int flags = 0);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
