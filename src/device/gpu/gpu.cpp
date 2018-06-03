@@ -1,7 +1,7 @@
 #include "gpu.h"
 #include <cassert>
 #include <cstdio>
-#include "platform/windows/gui/debug/gpu/gpu.h"
+#include "utils/logic.h"
 #include "render.h"
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",

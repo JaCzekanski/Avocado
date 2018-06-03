@@ -123,7 +123,7 @@ install:
   - make install
 
   - cd $BASE
-  - export PREMAKE_VERSION=5.0.0-alpha11
+  - export PREMAKE_VERSION=5.0.0-alpha12
   # Download and build premake5 from source
   # new versions have problems with build on travis-ci enviroment
   - wget https://github.com/premake/premake-core/releases/download/v`echo $PREMAKE_VERSION`/premake-`echo $PREMAKE_VERSION`-src.zip -O premake.zip
@@ -139,13 +139,14 @@ before_script:
 
 script:
   - make config=release -j3
+  - ccache -s # For travis debugging
 
 after_success:
-  - ./build/Release/avocado_test --success
+  - ./build/release/avocado_test --success
 
   # TODO: download zip and run all tests
   - wget https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/raw/d5bc41278fd198ef5e4afceb35e0587aca7f2f60/gte_valid_0xc0ffee_50.log
-  - ./build/Release/avocado_autotest gte_valid_0xc0ffee_50.log || true
+  - ./build/release/avocado_autotest gte_valid_0xc0ffee_50.log || true
 
 before_deploy:
   - mkdir artifact

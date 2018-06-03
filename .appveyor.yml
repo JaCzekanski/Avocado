@@ -1,44 +1,56 @@
 version: '{branch}-{build}'
 
+clone_depth: 1
 os:
   - Visual Studio 2017
 
 environment:
+  PREMAKE_VERSION: 5.0.0-alpha12
+  SDL_VERSION: 2.0.8
   matrix:
  # - TOOLSET: vs2013
   - TOOLSET: vs2015
+    platform: Win32
   - TOOLSET: vs2017
+    platform: Win32
+  - TOOLSET: vs2017
+    platform: x64
 
 before_build:
   - git submodule update --init --recursive
 
   # premake
-  - ps: Start-FileDownload 'https://github.com/premake/premake-core/releases/download/v5.0.0-alpha11/premake-5.0.0-alpha11-windows.zip' 'premake.zip'
+  - ps: Start-FileDownload "https://github.com/premake/premake-core/releases/download/v$($env:PREMAKE_VERSION)/premake-$($env:PREMAKE_VERSION)-windows.zip" "premake.zip"
   - 7z x premake.zip
 
   # SDL
   - cd externals
   - rmdir /Q /S SDL2
-  - ps: Start-FileDownload 'https://www.libsdl.org/release/SDL2-devel-2.0.8-VC.zip' 'SDL.zip'
+  - ps: Start-FileDownload "https://www.libsdl.org/release/SDL2-devel-$($env:SDL_VERSION)-VC.zip" "SDL.zip"
   - 7z x SDL.zip 
-  - ren SDL2-2.0.8 SDL2
+  - ren SDL2-%SDL_VERSION% SDL2
   - cd ..
   
   # generate solution
   - premake5.exe %TOOLSET%
 
 configuration:
-  - Release
+  - release
 
 build:
   project: avocado.sln
 
 after_build:
+  # Premake renames x86 to Win32 - undo that
+  - ps: if ($env:platform -eq "Win32") { $env:platform = "x86" } 
+
   - mkdir artifact
 
   # copy avocado.exe, SDL2.dll and data directory
-  - ps: Copy-Item build\${env:CONFIGURATION}\avocado.exe artifact\avocado.exe
-  - ps: Copy-Item externals\SDL2\lib\x86\SDL2.dll artifact\SDL2.dll
+  - ps: $TARGETDIR = "build\$($env:CONFIGURATION)"
+  - ps: if ($env:platform -ne "x86") { $TARGETDIR += $env.platform }
+  - ps: Copy-Item $TARGETDIR\avocado.exe artifact\avocado.exe
+  - ps: Copy-Item externals\SDL2\lib\$env:platform\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
 
   # remove .gitignore and asm directory

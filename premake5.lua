@@ -45,10 +45,11 @@ function getOutput(command)
 	return output
 end
 
-
 workspace "Avocado"    
-	configurations { "Debug", "Release", "FastDebug" }
+	configurations { "debug", "release", "fast_debug" }
+	platforms {"x86", "x64"}
     startproject "avocado"
+    defaultplatform "x86"
 
 newoption {
 	trigger = "disable-load-delay-slots",
@@ -70,6 +71,24 @@ newoption {
 }
 filter "options:enable-io-log"
 	defines "ENABLE_IO_LOG"
+
+
+filter {}
+	language "c++"
+	cppdialect "C++14"
+
+filter "platforms:x86"
+	architecture "x32"
+
+filter "platforms:x64"
+	architecture "x64"
+	vectorextensions "AVX"
+
+filter {"kind:*App"}
+	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
+
+filter {"kind:*App", "platforms:x86"}
+	targetdir "build/%{cfg.buildcfg}"
 
 
 filter "configurations:Debug"
@@ -113,7 +132,6 @@ project "glad"
 project "imgui"
 	uuid "a8f18b69-f15a-4804-80f7-e8f80ab91369"
 	kind "StaticLib"
-	language "c++"
 	location "build/libs/imgui"
 	includedirs { 
 		"externals/imgui",
@@ -127,10 +145,7 @@ project "imgui"
 project "common"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
 	kind "StaticLib"
-	language "c++"
 	location "build/libs/common"
-	targetdir "build/%{cfg.buildcfg}"
-	flags { "C++14" }
 
 	includedirs { 
 		"src", 
@@ -162,11 +177,8 @@ project "common"
 project "avocado"
 	uuid "c2c4899a-ddca-491f-9a66-1d33173a553e"
 	kind "ConsoleApp"
-	language "c++"
 	location "build/libs/avocado"
-	targetdir "build/%{cfg.buildcfg}"
 	debugdir "."
-	flags { "C++14" }
 	dependson { "common" }
 
 	includedirs { 
@@ -189,16 +201,18 @@ project "avocado"
 			"src/renderer/opengl/**.*",
 			"src/platform/windows/**.*"
 		}
-		libdirs {
-			"externals/SDL2/lib/x86"
-		}
 		links { 
 			"SDL2",
 			"glad",
 			"imgui",
 			"OpenGL32"
 		}
+		filter "platforms:x86"
+			libdirs "externals/SDL2/lib/x86"
 		
+		filter "platforms:x64"
+			libdirs "externals/SDL2/lib/x64"
+
 	filter {"system:linux", "options:headless"}
 		files { 
 			"src/platform/headless/**.cpp",
@@ -236,11 +250,8 @@ project "avocado"
 project "avocado_test"
 	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
 	kind "ConsoleApp"
-	language "c++"
 	location "build/libs/avocado_test"
-	targetdir "build/%{cfg.buildcfg}"
 	debugdir "."
-	flags { "C++14" }
 	dependson { "common" }
 
 	includedirs { 
@@ -266,11 +277,8 @@ project "avocado_test"
 project "avocado_autotest"
 	uuid "fcc880bc-c6fe-4b2b-80dc-d247345a1274"
 	kind "ConsoleApp"
-	language "c++"
 	location "build/libs/avocado_autotest"
-	targetdir "build/%{cfg.buildcfg}"
 	debugdir "."
-	flags { "C++14" }
 	dependson { "common" }
 
 	includedirs { 
