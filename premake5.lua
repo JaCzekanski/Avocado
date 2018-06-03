@@ -105,9 +105,15 @@ filter "configurations:FastDebug"
     optimize "Speed"
     editandcontinue "On"
 
-filter "action:vs*"
+filter {"action:vs*"}
     flags { "MultiProcessorCompile" }
 	defines "_CRT_SECURE_NO_WARNINGS"
+
+filter {"action:vs*", "configurations:Release"}
+    flags {
+		"LinkTimeOptimization",
+		"StaticRuntime"
+	}
 
 filter "action:gmake"
 	buildoptions { 

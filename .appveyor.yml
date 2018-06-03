@@ -48,7 +48,7 @@ after_build:
 
   # copy avocado.exe, SDL2.dll and data directory
   - ps: $TARGETDIR = "build\$($env:CONFIGURATION)"
-  - ps: if ($env:platform -ne "x86") { $TARGETDIR += $env.platform }
+  - ps: if ($env:platform -ne "x86") { $TARGETDIR = $TARGETDIR + "_" + $env.platform }
   - ps: Copy-Item $TARGETDIR\avocado.exe artifact\avocado.exe
   - ps: Copy-Item externals\SDL2\lib\$env:platform\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
