@@ -254,16 +254,14 @@ void op_jr(CPU *cpu, Opcode i) {
 // Jump Register
 // JALR
 void op_jalr(CPU *cpu, Opcode i) {
-    // cpu->loadDelaySlot(i.rd, cpu->PC + 8);
     uint32_t addr = cpu->reg[i.rs];
+    cpu->reg[i.rd] = cpu->PC + 8;
     if (addr & 3) {
-        // TODO: not working correctly
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
     cpu->shouldJump = true;
     cpu->jumpPC = addr;
-    cpu->reg[i.rd] = cpu->PC + 8;
 }
 
 // Syscall
@@ -429,27 +427,29 @@ void branch(CPU *cpu, Opcode i) {
             }
             break;
 
-        case 16:
+        case 16: {
             // Branch On Less Than Zero And Link
             // bltzal rs, offset
+            bool condition = (int32_t)cpu->reg[i.rs] < 0;
             cpu->reg[31] = cpu->PC + 8;
-            // cpu->loadDelaySlot(31, cpu->PC + 8);
-            if ((int32_t)cpu->reg[i.rs] < 0) {
+            if (condition) {
                 cpu->shouldJump = true;
                 cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
             }
             break;
+        }
 
-        case 17:
+        case 17: {
             // Branch On Greater Than Or Equal To Zero And Link
             // BGEZAL rs, offset
+            bool condition = (int32_t)cpu->reg[i.rs] >= 0;
             cpu->reg[31] = cpu->PC + 8;
-            // cpu->loadDelaySlot(31, cpu->PC + 8);
-            if ((int32_t)cpu->reg[i.rs] >= 0) {
+            if (condition) {
                 cpu->shouldJump = true;
                 cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
             }
             break;
+        }
 
         default: invalid(cpu, i);
     }
