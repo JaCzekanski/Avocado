@@ -16,8 +16,13 @@ function generateVersionFile()
 		versionString = string.format("v%s", version)
 	end
 
+	versionString = versionString .. " \" BUILD_ARCH \""
+
 	f = io.open('src/version.h', 'w')
 	f:write('#pragma once\n')
+	f:write(string.format('#ifndef BUILD_ARCH\n'))
+	f:write(string.format('    #define BUILD_ARCH "UNKNOWN-ARCH"\n'))
+	f:write(string.format('#endif\n'))
 	f:write(string.format('#define BUILD_VERSION "%s"\n', version))
 	f:write(string.format('#define BUILD_BRANCH "%s"\n', branch))
 	f:write(string.format('#define BUILD_COMMIT "%s"\n', commit))
@@ -76,6 +81,7 @@ filter "options:enable-io-log"
 filter {}
 	language "c++"
 	cppdialect "C++14"
+	defines { 'BUILD_ARCH="%{cfg.platform}"' }
 
 filter "platforms:x86"
 	architecture "x32"
