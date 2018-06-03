@@ -47,9 +47,9 @@ after_build:
   - mkdir artifact
 
   # copy avocado.exe, SDL2.dll and data directory
-  - ps: $TARGETDIR = "build\$($env:CONFIGURATION)"
-  - ps: if ($env:platform -ne "x86") { $TARGETDIR = $TARGETDIR + "_" + $env.platform }
-  - ps: Copy-Item $TARGETDIR\avocado.exe artifact\avocado.exe
+  - ps: $env:TARGETDIR = "build\$($env:CONFIGURATION)"
+  - ps: if ($env:platform -ne "x86") { $env:TARGETDIR = $env:TARGETDIR + "_" + $env:platform }
+  - ps: Copy-Item $env:TARGETDIR\avocado.exe artifact\avocado.exe
   - ps: Copy-Item externals\SDL2\lib\$env:platform\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
 
@@ -61,10 +61,10 @@ after_build:
   - 7z a avocado.zip %APPVEYOR_BUILD_FOLDER%\artifact\.
 
 test_script:
-  - .\build\Release\avocado_test.exe --success -r junit > test-result.xml  || ver > nul
+  - .\%TARGETDIR%\avocado_test.exe --success -r junit > test-result.xml  || ver > nul
 
   - ps: Start-FileDownload 'https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/raw/d5bc41278fd198ef5e4afceb35e0587aca7f2f60/gte_valid_0xc0ffee_50.log'
-  - .\build\Release\avocado_autotest gte_valid_0xc0ffee_50.log   || ver > nul
+  - .\%TARGETDIR%\avocado_autotest.exe gte_valid_0xc0ffee_50.log   || ver > nul
 
 after_test:
   - ps: (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test-result.xml))

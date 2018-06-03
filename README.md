@@ -12,8 +12,10 @@ If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitt
 Build   | Status | Download
 --------|--------|---------
 Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
-AppVeyor (Windows) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017)
+AppVeyor (Windows x86) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x86 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3DWin32)
+AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x64 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3Dx64)
 
+*Note: x64 build requires [AVX compatible processor](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#CPUs_with_AVX)*
 
 Despite this emulator being in early development, some 3D games can run. [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability)
 
