@@ -141,7 +141,7 @@ struct TextureInfo {
         }
     }
 
-    bool isTransparent() const { return (texpage & 0x600000) >> 21; }
+    GP0_E1::SemiTransparency semiTransparencyBlending() const { return (GP0_E1::SemiTransparency)((texpage & 0x600000) >> 21); }
 };
 
 struct GPU {

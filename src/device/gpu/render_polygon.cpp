@@ -97,11 +97,11 @@ INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm
 
     // TODO: Mask support
 
-    if ((flags & Vertex::SemiTransparency) && c.k) {
+    if ((flags & Vertex::SemiTransparency) && ((bits != ColorDepth::NONE && c.k) || (bits == ColorDepth::NONE))) {
         using Transparency = GP0_E1::SemiTransparency;
 
         PSXColor bg = VRAM[p.y][p.x];
-        Transparency transparency = (Transparency)((flags & 0xA0) >> 6);
+        Transparency transparency = (Transparency)((flags & 0x60) >> 5);
         switch (transparency) {
             case Transparency::Bby2plusFby2: c = bg / 2.f + c / 2.f; break;
             case Transparency::BplusF: c = bg + c; break;

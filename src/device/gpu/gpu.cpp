@@ -44,7 +44,7 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
         baseX = t.getBaseX();
         baseY = t.getBaseY();
         bitcount = t.getBitcount();
-        flags |= (t.isTransparent()) << 6;
+        flags |= ((int)t.semiTransparencyBlending()) << 5;
     }
 
     Vertex v[3];

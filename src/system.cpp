@@ -319,7 +319,7 @@ void System::emulateFrame() {
         timer2->step(systemCycles);
 
         static int wtf = 0;
-        //        if (++wtf % 200 == 0) interrupt->trigger(interrupt::TIMER2);
+        if (++wtf % 200 == 0) interrupt->trigger(interrupt::TIMER2);
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {
