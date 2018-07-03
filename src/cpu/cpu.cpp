@@ -105,7 +105,7 @@ bool CPU::executeInstructions(int count) {
 }
 
 void CPU::checkForInterrupts() {
-    if ((cop0.cause.interruptPending & 4) && cop0.status.interruptEnable && (cop0.status.interruptMask & 4)) {
+    if ((cop0.cause.interruptPending & cop0.status.interruptMask) && cop0.status.interruptEnable) {
         instructions::exception(this, COP0::CAUSE::Exception::interrupt);
     }
 }

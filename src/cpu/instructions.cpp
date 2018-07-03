@@ -27,9 +27,9 @@ std::array<PrimaryInstruction, 64> OpcodeTable = {{
     {15, op_lui},
 
     {16, op_cop0},
-    {17, notImplemented},
+    {17, invalid_cop},
     {18, op_cop2},
-    {19, notImplemented},
+    {19, invalid_cop},
     {20, invalid},
     {21, invalid},
     {22, invalid},
@@ -62,19 +62,19 @@ std::array<PrimaryInstruction, 64> OpcodeTable = {{
     {46, op_swr},
     {47, invalid},
 
-    {48, notImplemented},
-    {49, notImplemented},
+    {48, invalid_cop},
+    {49, invalid_cop},
     {50, op_lwc2},
-    {51, notImplemented},
+    {51, invalid_cop},
     {52, invalid},
     {53, invalid},
     {54, invalid},
     {55, invalid},
 
-    {56, notImplemented},
-    {57, notImplemented},
+    {56, invalid_cop},
+    {57, invalid_cop},
     {58, op_swc2},
-    {59, notImplemented},
+    {59, invalid_cop},
     {60, invalid},
     {61, invalid},
     {62, invalid},
@@ -806,6 +806,12 @@ void op_swc2(CPU *cpu, Opcode i) {
     assert(i.rt < 64);
     auto gteRead = cpu->gte.read(i.rt);
     cpu->sys->writeMemory32(addr, gteRead);
+}
+
+// Invalid coprocessor stub
+void invalid_cop(CPU *cpu, Opcode i) {
+    uint32_t addr = cpu->reg[i.rs] + i.offset;
+    exception(cpu, COP0::CAUSE::Exception::busErrorData);
 }
 
 // BREAKPOINT
