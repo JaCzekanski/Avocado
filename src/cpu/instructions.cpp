@@ -407,51 +407,34 @@ void op_sltu(CPU *cpu, Opcode i) {
         cpu->reg[i.rd] = 0;
 }
 
+/**
+ *  These 4 branch instructions are encoded in weird way.
+ *  Bit0 decides if register comparison should be
+ *  0: less then zero
+ *  1: greater than or equal to zero
+ *
+ *  When bits4:1 are equal to 0x10 (and only then!) then return address is saved.
+ */
 void branch(CPU *cpu, Opcode i) {
-    switch (i.rt & 0x11) {
-        case 0:
-            // Branch On Less Than Zero
-            // BLTZ rs, offset
-            if ((int32_t)cpu->reg[i.rs] < 0) {
-                cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
-            }
-            break;
+    bool greaterAndEqual = i.rt & 0x01;
+    bool link = (i.rt & 0x1e) == 0x10;
+    bool condition;
 
-        case 1:
-            // Branch On Greater Than Or Equal To Zero
-            // BGEZ rs, offset
-            if ((int32_t)cpu->reg[i.rs] >= 0) {
-                cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
-            }
-            break;
+    if (!greaterAndEqual) {
+        // Branch On Less Than Zero (And Link)
+        // BLTZ rs, offset / BLTZAL rs, offset
+        condition = (int32_t)cpu->reg[i.rs] < 0;
+    } else {
+        // Branch On Greater Than Or Equal To Zero (And Link)
+        // BGEZ rs, offset / BGEZAL rs, offset
+        condition = (int32_t)cpu->reg[i.rs] >= 0;
+    }
 
-        case 16: {
-            // Branch On Less Than Zero And Link
-            // bltzal rs, offset
-            bool condition = (int32_t)cpu->reg[i.rs] < 0;
-            cpu->reg[31] = cpu->PC + 8;
-            if (condition) {
-                cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
-            }
-            break;
-        }
+    if (link) cpu->reg[31] = cpu->PC + 8;
 
-        case 17: {
-            // Branch On Greater Than Or Equal To Zero And Link
-            // BGEZAL rs, offset
-            bool condition = (int32_t)cpu->reg[i.rs] >= 0;
-            cpu->reg[31] = cpu->PC + 8;
-            if (condition) {
-                cpu->shouldJump = true;
-                cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
-            }
-            break;
-        }
-
-        default: invalid(cpu, i);
+    if (condition) {
+        cpu->shouldJump = true;
+        cpu->jumpPC = (int32_t)(cpu->PC + 4) + (i.offset * 4);
     }
 }
 
