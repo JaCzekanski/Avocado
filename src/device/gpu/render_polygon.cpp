@@ -43,6 +43,10 @@ INLINE glm::ivec2 calculateTexel(GPU* gpu, glm::vec3 s, glm::ivec2 tex[3]) {
     glm::ivec2 texel = glm::ivec2(fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
                                   fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y));
 
+    // Texture is repeated outside of 256x256 window
+    texel.x %= 256;
+    texel.y %= 256;
+
     // Texture masking
     // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
     texel.x = (texel.x & ~(gpu->gp0_e2.textureWindowMaskX * 8)) | ((gpu->gp0_e2.textureWindowOffsetX & gpu->gp0_e2.textureWindowMaskX) * 8);
