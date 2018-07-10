@@ -1,7 +1,3 @@
-#include <algorithm>
-#include <cassert>
-#include <cmath>
-#include <cstdio>
 #include "gte.h"
 
 // TODO: out 16 bit
@@ -17,254 +13,246 @@ int32_t GTE::clip(int32_t value, int32_t max, int32_t min, uint32_t flags) {
     return value;
 }
 
-void GTE::check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags) {
-    if (value > 0x7FFFFFFFFFFLL) flag.reg |= overflowBits;
-    if (value < -0x80000000000LL) flag.reg |= underflowFlags;
+template <int bit_size>
+void GTE::checkOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags) {
+    if (value >= (1LL << bit_size)) flag.reg |= overflowBits;
+    if (value < -(1LL << bit_size)) flag.reg |= underflowFlags;
 }
 
-int64_t GTE::setMac(int i, int64_t value) {
-    assert(i >= 0 && i <= 3);
-    uint32_t overflowBits = 0;
-    uint32_t underflowBits = 0;
+template <int i>
+int64_t GTE::setMac(int64_t value) {
+    static_assert(i >= 0 && i <= 3, "Invalid mac for GTE::setMac");
 
     if (i == 0) {
-        overflowBits = Flag::MAC0_OVERFLOW_POSITIVE;
-        underflowBits = Flag::MAC0_OVERFLOW_NEGATIVE;
-
-        if (value > 0x7fffffffLL) flag.reg |= overflowBits;
-        if (value < -0x80000000LL) flag.reg |= underflowBits;
-
-        mac[0] = (int32_t)value;
-        return value;
+        checkOverflow<31>(value, Flag::MAC0_OVERFLOW_POSITIVE, Flag::MAC0_OVERFLOW_NEGATIVE);
     } else if (i == 1) {
-        overflowBits = Flag::MAC1_OVERFLOW_POSITIVE;
-        underflowBits = Flag::MAC1_OVERFLOW_NEGATIVE;
+        checkOverflow<43>(value, Flag::MAC1_OVERFLOW_POSITIVE, Flag::MAC1_OVERFLOW_NEGATIVE);
     } else if (i == 2) {
-        overflowBits = Flag::MAC2_OVERFLOW_POSITIVE;
-        underflowBits = Flag::MAC2_OVERFLOW_NEGATIVE;
+        checkOverflow<43>(value, Flag::MAC2_OVERFLOW_POSITIVE, Flag::MAC2_OVERFLOW_NEGATIVE);
     } else if (i == 3) {
-        overflowBits = Flag::MAC3_OVERFLOW_POSITIVE;
-        underflowBits = Flag::MAC3_OVERFLOW_NEGATIVE;
+        checkOverflow<43>(value, Flag::MAC3_OVERFLOW_POSITIVE, Flag::MAC3_OVERFLOW_NEGATIVE);
     }
 
-    check43bitsOverflow(value, overflowBits, underflowBits);
+    if (this->sf && i != 0) value >>= 12;
 
-    if (sf) value >>= 12;
     mac[i] = (int32_t)value;
     return value;
 }
 
-// clang-format off
-void GTE::setIr(int i, int64_t value, bool lm) {
-    if (i == 0) {
-        value >>= 12;
-        ir[0] = clip(value, 0x1000, 0x0000, Flag::IR0_SATURATED);
-        return;
-    }
+template <>
+void GTE::setIr<0>(int64_t value, bool lm) {
+    ir[0] = clip(value >> 12, 0x1000, 0x0000, Flag::IR0_SATURATED);
+}
+
+template <int i>
+void GTE::setIr(int64_t value, bool lm) {
+    static_assert(i > 0 && i <= 3, "Invalid ir for GTE::setIr");
 
     uint32_t saturatedBits = 0;
-    if      (i == 1) saturatedBits = Flag::IR1_SATURATED;
-    else if (i == 2) saturatedBits = Flag::IR2_SATURATED;
-    else if (i == 3) saturatedBits = Flag::IR3_SATURATED;
+    if (i == 1) {
+        saturatedBits = Flag::IR1_SATURATED;
+    } else if (i == 2) {
+        saturatedBits = Flag::IR2_SATURATED;
+    } else if (i == 3) {
+        saturatedBits = Flag::IR3_SATURATED;
+    }
 
-    if (lm) ir[i] = clip(value, 0x7fff, 0x0000, saturatedBits);
-    else    ir[i] = clip(value, 0x7fff, -0x8000, saturatedBits);
+    ir[i] = clip(value, 0x7fff, lm ? 0 : -0x8000, saturatedBits);
 }
-// clang-format on
 
-void GTE::setMacAndIr(int i, int64_t value, bool lm) { setIr(i, setMac(i, value), lm); }
-
-void GTE::setOtz(int64_t value) {
-    value >>= 12;
-    otz = clip(value, 0xffff, 0x0000, Flag::SZ3_OTZ_SATURATED);
+template <int i>
+void GTE::setMacAndIr(int64_t value, bool lm) {
+    setIr<i>(setMac<i>(value), lm);
 }
+
+void GTE::setOtz(int64_t value) { otz = clip(value >> 12, 0xffff, 0x0000, Flag::SZ3_OTZ_SATURATED); }
 
 #define R (rgbc.read(0) << 4)
 #define G (rgbc.read(1) << 4)
 #define B (rgbc.read(2) << 4)
 
 void GTE::nclip() {
-    setMac(0, (int64_t)s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y);
+    setMac<0>((int64_t)s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y);
 }
 
-void GTE::ncds(bool sf, bool lm, int n) {
-    setMacAndIr(1, l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
-    setMacAndIr(2, l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
-    setMacAndIr(3, l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
+void GTE::ncds(int n) {
+    setMacAndIr<1>((int64_t)l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
+    setMacAndIr<2>((int64_t)l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
+    setMacAndIr<3>((int64_t)l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
 
-    setMac(1, ((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
-    setMac(2, ((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
-    setMac(3, ((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
+    setMac<1>(((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
+    setMac<2>(((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
+    setMac<3>(((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
 
     // TODO: Find better way to prevent overriding ir regs
-    setIr(1, mac[1], lm);
-    setIr(2, mac[2], lm);
-    setIr(3, mac[3], lm);
+    setIr<1>(mac[1], lm);
+    setIr<2>(mac[2], lm);
+    setIr<3>(mac[3], lm);
 
     int16_t prevIr[4];
     prevIr[1] = ir[1];
     prevIr[2] = ir[2];
     prevIr[3] = ir[3];
 
-    setMacAndIr(1, ((int64_t)fc.r << 12) - (R * ir[1]));
-    setMacAndIr(2, ((int64_t)fc.g << 12) - (G * ir[2]));
-    setMacAndIr(3, ((int64_t)fc.b << 12) - (B * ir[3]));
+    setMacAndIr<1>(((int64_t)fc.r << 12) - (R * ir[1]));
+    setMacAndIr<2>(((int64_t)fc.g << 12) - (G * ir[2]));
+    setMacAndIr<3>(((int64_t)fc.b << 12) - (B * ir[3]));
 
-    setMacAndIr(1, (R * prevIr[1]) + ir[0] * ir[1], lm);
-    setMacAndIr(2, (G * prevIr[2]) + ir[0] * ir[2], lm);
-    setMacAndIr(3, (B * prevIr[3]) + ir[0] * ir[3], lm);
-
-    pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
-}
-
-void GTE::ncs(bool sf, bool lm, int n) {
-    setMacAndIr(1, l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
-    setMacAndIr(2, l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
-    setMacAndIr(3, l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
-
-    setMac(1, ((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
-    setMac(2, ((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
-    setMac(3, ((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
-
-    setIr(1, mac[1], lm);
-    setIr(2, mac[2], lm);
-    setIr(3, mac[3], lm);
+    setMacAndIr<1>((R * prevIr[1]) + ir[0] * ir[1], lm);
+    setMacAndIr<2>((G * prevIr[2]) + ir[0] * ir[2], lm);
+    setMacAndIr<3>((B * prevIr[3]) + ir[0] * ir[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
-void GTE::nct(bool sf, bool lm) {
-    ncs(sf, lm, 0);
-    ncs(sf, lm, 1);
-    ncs(sf, lm, 2);
-}
+void GTE::ncs(int n) {
+    setMacAndIr<1>((int64_t)l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
+    setMacAndIr<2>((int64_t)l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
+    setMacAndIr<3>((int64_t)l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
 
-void GTE::nccs(bool sf, bool lm, int n) {
-    setMacAndIr(1, l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
-    setMacAndIr(2, l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
-    setMacAndIr(3, l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
+    setMac<1>(((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
+    setMac<2>(((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
+    setMac<3>(((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
 
-    setMac(1, ((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
-    setMac(2, ((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
-    setMac(3, ((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
-
-    setIr(1, mac[1], lm);
-    setIr(2, mac[2], lm);
-    setIr(3, mac[3], lm);
-
-    setMacAndIr(1, R * ir[1], lm);
-    setMacAndIr(2, G * ir[2], lm);
-    setMacAndIr(3, B * ir[3], lm);
+    setIr<1>(mac[1], lm);
+    setIr<2>(mac[2], lm);
+    setIr<3>(mac[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
-void GTE::cc(bool sf, bool lm) {
-    setMac(1, ((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
-    setMac(2, ((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
-    setMac(3, ((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
+void GTE::nct() {
+    ncs(0);
+    ncs(1);
+    ncs(2);
+}
 
-    setIr(1, mac[1], lm);
-    setIr(2, mac[2], lm);
-    setIr(3, mac[3], lm);
+void GTE::nccs(int n) {
+    setMacAndIr<1>((int64_t)l.v11 * v[n].x + l.v12 * v[n].y + l.v13 * v[n].z, lm);
+    setMacAndIr<2>((int64_t)l.v21 * v[n].x + l.v22 * v[n].y + l.v23 * v[n].z, lm);
+    setMacAndIr<3>((int64_t)l.v31 * v[n].x + l.v32 * v[n].y + l.v33 * v[n].z, lm);
 
-    setMacAndIr(1, R * ir[1], lm);
-    setMacAndIr(2, G * ir[2], lm);
-    setMacAndIr(3, B * ir[3], lm);
+    setMac<1>(((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
+    setMac<2>(((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
+    setMac<3>(((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
+
+    setIr<1>(mac[1], lm);
+    setIr<2>(mac[2], lm);
+    setIr<3>(mac[3], lm);
+
+    setMacAndIr<1>(R * ir[1], lm);
+    setMacAndIr<2>(G * ir[2], lm);
+    setMacAndIr<3>(B * ir[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
-void GTE::cdp(bool sf, bool lm) {
-    setMac(1, ((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
-    setMac(2, ((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
-    setMac(3, ((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
+void GTE::cc() {
+    setMac<1>(((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
+    setMac<2>(((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
+    setMac<3>(((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
 
-    setIr(1, mac[1], lm);
-    setIr(2, mac[2], lm);
-    setIr(3, mac[3], lm);
+    setIr<1>(mac[1], lm);
+    setIr<2>(mac[2], lm);
+    setIr<3>(mac[3], lm);
+
+    setMacAndIr<1>(R * ir[1], lm);
+    setMacAndIr<2>(G * ir[2], lm);
+    setMacAndIr<3>(B * ir[3], lm);
+
+    pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
+}
+
+void GTE::cdp() {
+    setMac<1>(((int64_t)bk.r << 12) + lr.v11 * ir[1] + lr.v12 * ir[2] + lr.v13 * ir[3]);
+    setMac<2>(((int64_t)bk.g << 12) + lr.v21 * ir[1] + lr.v22 * ir[2] + lr.v23 * ir[3]);
+    setMac<3>(((int64_t)bk.b << 12) + lr.v31 * ir[1] + lr.v32 * ir[2] + lr.v33 * ir[3]);
+
+    setIr<1>(mac[1], lm);
+    setIr<2>(mac[2], lm);
+    setIr<3>(mac[3], lm);
 
     int16_t prevIr[4];
     prevIr[1] = ir[1];
     prevIr[2] = ir[2];
     prevIr[3] = ir[3];
 
-    setMacAndIr(1, ((int64_t)fc.r << 12) - (R * ir[1]));
-    setMacAndIr(2, ((int64_t)fc.g << 12) - (G * ir[2]));
-    setMacAndIr(3, ((int64_t)fc.b << 12) - (B * ir[3]));
+    setMacAndIr<1>(((int64_t)fc.r << 12) - (R * ir[1]));
+    setMacAndIr<2>(((int64_t)fc.g << 12) - (G * ir[2]));
+    setMacAndIr<3>(((int64_t)fc.b << 12) - (B * ir[3]));
 
-    setMacAndIr(1, (R * prevIr[1]) + ir[0] * ir[1], lm);
-    setMacAndIr(2, (G * prevIr[2]) + ir[0] * ir[2], lm);
-    setMacAndIr(3, (B * prevIr[3]) + ir[0] * ir[3], lm);
+    setMacAndIr<1>((R * prevIr[1]) + ir[0] * ir[1], lm);
+    setMacAndIr<2>((G * prevIr[2]) + ir[0] * ir[2], lm);
+    setMacAndIr<3>((B * prevIr[3]) + ir[0] * ir[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
-void GTE::ncdt(bool sf, bool lm) {
-    ncds(sf, lm, 0);
-    ncds(sf, lm, 1);
-    ncds(sf, lm, 2);
+void GTE::ncdt() {
+    ncds(0);
+    ncds(1);
+    ncds(2);
 }
 
-void GTE::ncct(bool sf, bool lm) {
-    nccs(sf, lm, 0);
-    nccs(sf, lm, 1);
-    nccs(sf, lm, 2);
+void GTE::ncct() {
+    nccs(0);
+    nccs(1);
+    nccs(2);
 }
 
-void GTE::dpct(bool sf, bool lm) {
-    dpcs(sf, lm, true);
-    dpcs(sf, lm, true);
-    dpcs(sf, lm, true);
+void GTE::dpct() {
+    dpcs(true);
+    dpcs(true);
+    dpcs(true);
 }
 
-void GTE::dpcs(bool sf, bool lm, bool useRGB0) {
+void GTE::dpcs(bool useRGB0) {
     // TODO: Change to Color struct
     int16_t r = useRGB0 ? rgb[0].read(0) << 4 : R;
     int16_t g = useRGB0 ? rgb[0].read(1) << 4 : G;
     int16_t b = useRGB0 ? rgb[0].read(2) << 4 : B;
 
-    setMacAndIr(1, ((int64_t)fc.r << 12) - (r << 12));
-    setMacAndIr(2, ((int64_t)fc.g << 12) - (g << 12));
-    setMacAndIr(3, ((int64_t)fc.b << 12) - (b << 12));
+    setMacAndIr<1>(((int64_t)fc.r << 12) - (r << 12));
+    setMacAndIr<2>(((int64_t)fc.g << 12) - (g << 12));
+    setMacAndIr<3>(((int64_t)fc.b << 12) - (b << 12));
 
-    setMacAndIr(1, ((int64_t)r << 12) + ir[0] * ir[1], lm);
-    setMacAndIr(2, ((int64_t)g << 12) + ir[0] * ir[2], lm);
-    setMacAndIr(3, ((int64_t)b << 12) + ir[0] * ir[3], lm);
+    setMacAndIr<1>(((int64_t)r << 12) + ir[0] * ir[1], lm);
+    setMacAndIr<2>(((int64_t)g << 12) + ir[0] * ir[2], lm);
+    setMacAndIr<3>(((int64_t)b << 12) + ir[0] * ir[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
-void GTE::dcpl(bool sf, bool lm) {
+void GTE::dcpl() {
     int16_t prevIr[4];
     prevIr[1] = ir[1];
     prevIr[2] = ir[2];
     prevIr[3] = ir[3];
 
-    setMacAndIr(1, ((int64_t)fc.r << 12) - R * prevIr[1]);
-    setMacAndIr(2, ((int64_t)fc.g << 12) - G * prevIr[2]);
-    setMacAndIr(3, ((int64_t)fc.b << 12) - B * prevIr[3]);
+    setMacAndIr<1>(((int64_t)fc.r << 12) - R * prevIr[1]);
+    setMacAndIr<2>(((int64_t)fc.g << 12) - G * prevIr[2]);
+    setMacAndIr<3>(((int64_t)fc.b << 12) - B * prevIr[3]);
 
-    setMacAndIr(1, R * prevIr[1] + ir[0] * ir[1], lm);
-    setMacAndIr(2, G * prevIr[2] + ir[0] * ir[2], lm);
-    setMacAndIr(3, B * prevIr[3] + ir[0] * ir[3], lm);
+    setMacAndIr<1>(R * prevIr[1] + ir[0] * ir[1], lm);
+    setMacAndIr<2>(G * prevIr[2] + ir[0] * ir[2], lm);
+    setMacAndIr<3>(B * prevIr[3] + ir[0] * ir[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
-void GTE::intpl(bool sf, bool lm) {
+void GTE::intpl() {
     int16_t prevIr[4];
     prevIr[1] = ir[1];
     prevIr[2] = ir[2];
     prevIr[3] = ir[3];
 
-    setMacAndIr(1, ((int64_t)fc.r << 12) - (prevIr[1] << 12));
-    setMacAndIr(2, ((int64_t)fc.g << 12) - (prevIr[2] << 12));
-    setMacAndIr(3, ((int64_t)fc.b << 12) - (prevIr[3] << 12));
+    setMacAndIr<1>(((int64_t)fc.r << 12) - (prevIr[1] << 12));
+    setMacAndIr<2>(((int64_t)fc.g << 12) - (prevIr[2] << 12));
+    setMacAndIr<3>(((int64_t)fc.b << 12) - (prevIr[3] << 12));
 
-    setMacAndIr(1, (prevIr[1] << 12) + ir[0] * ir[1], lm);
-    setMacAndIr(2, (prevIr[2] << 12) + ir[0] * ir[2], lm);
-    setMacAndIr(3, (prevIr[3] << 12) + ir[0] * ir[3], lm);
+    setMacAndIr<1>((prevIr[1] << 12) + ir[0] * ir[1], lm);
+    setMacAndIr<2>((prevIr[2] << 12) + ir[0] * ir[2], lm);
+    setMacAndIr<3>((prevIr[3] << 12) + ir[0] * ir[3], lm);
 
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
@@ -383,10 +371,10 @@ void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
  * translate it (TR) and apply perspective transformation.
  */
 void GTE::rtps(int n) {
-    setMacAndIr(1, (int64_t)tr.x * 0x1000 + rt.v11 * v[n].x + rt.v12 * v[n].y + rt.v13 * v[n].z, lm);
-    setMacAndIr(2, (int64_t)tr.y * 0x1000 + rt.v21 * v[n].x + rt.v22 * v[n].y + rt.v23 * v[n].z, lm);
+    setMacAndIr<1>((int64_t)tr.x * 0x1000 + rt.v11 * v[n].x + rt.v12 * v[n].y + rt.v13 * v[n].z, lm);
+    setMacAndIr<2>((int64_t)tr.y * 0x1000 + rt.v21 * v[n].x + rt.v22 * v[n].y + rt.v23 * v[n].z, lm);
     int64_t mac3 = (int64_t)tr.z * 0x1000 + rt.v31 * v[n].x + rt.v32 * v[n].y + rt.v33 * v[n].z;
-    setMacAndIr(3, mac3, lm);
+    setMacAndIr<3>(mac3, lm);
 
     // From Nocash docs:
     // When using RTP with sf=0, then the IR3 saturation flag (FLAG.22) gets set
@@ -399,11 +387,11 @@ void GTE::rtps(int n) {
     pushScreenZ(mac3 >> 12);
     int64_t h_s3z = divideUNR(h, s[3].z);
 
-    int32_t x = setMac(0, h_s3z * ir[1] + of[0]) >> 16;
-    int32_t y = setMac(0, h_s3z * ir[2] + of[1]) >> 16;
+    int32_t x = setMac<0>(h_s3z * ir[1] + of[0]) >> 16;
+    int32_t y = setMac<0>(h_s3z * ir[2] + of[1]) >> 16;
     pushScreenXY(x, y);
 
-    setMacAndIr(0, h_s3z * dqa + dqb, lm);
+    setMacAndIr<0>(h_s3z * dqa + dqb, lm);
 }
 
 /**
@@ -418,14 +406,14 @@ void GTE::rtpt() {
 /**
  * Calculate average of 3 z values
  */
-void GTE::avsz3() { setOtz(setMac(0, (int64_t)zsf3 * (s[1].z + s[2].z + s[3].z))); }
+void GTE::avsz3() { setOtz(setMac<0>((int64_t)zsf3 * (s[1].z + s[2].z + s[3].z))); }
 
 /**
  * Calculate average of 4 z values
  */
-void GTE::avsz4() { setOtz(setMac(0, (int64_t)zsf4 * (s[0].z + s[1].z + s[2].z + s[3].z))); }
+void GTE::avsz4() { setOtz(setMac<0>((int64_t)zsf4 * (s[0].z + s[1].z + s[2].z + s[3].z))); }
 
-void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
+void GTE::mvmva(int mx, int vx, int tx) {
     gte::Matrix Mx;
     if (mx == 0) {
         Mx = rt;
@@ -467,20 +455,20 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
         Tx.x = Tx.y = Tx.z = 0;
     }
 
-    setMacAndIr(1, (int64_t)Tx.x * 0x1000 + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, lm);
-    setMacAndIr(2, (int64_t)Tx.y * 0x1000 + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, lm);
-    setMacAndIr(3, (int64_t)Tx.z * 0x1000 + Mx.v31 * V.x + Mx.v32 * V.y + Mx.v33 * V.z, lm);
+    setMacAndIr<1>((int64_t)Tx.x * 0x1000 + Mx.v11 * V.x + Mx.v12 * V.y + Mx.v13 * V.z, lm);
+    setMacAndIr<2>((int64_t)Tx.y * 0x1000 + Mx.v21 * V.x + Mx.v22 * V.y + Mx.v23 * V.z, lm);
+    setMacAndIr<3>((int64_t)Tx.z * 0x1000 + Mx.v31 * V.x + Mx.v32 * V.y + Mx.v33 * V.z, lm);
 
     if (tx == 2) {
         // Flag is calculated from first part (Tx << 12) + (Mx * Vx)
         // but result is only second part of expression (Mx * Vy + Mx * Vz)
-        setMacAndIr(1, (int64_t)Tx.x * 0x1000 + Mx.v11);
-        setMacAndIr(2, (int64_t)Tx.y * 0x1000 + Mx.v21);
-        setMacAndIr(3, (int64_t)Tx.z * 0x1000 + Mx.v31);
+        setMacAndIr<1>((int64_t)Tx.x * 0x1000 + Mx.v11);
+        setMacAndIr<2>((int64_t)Tx.y * 0x1000 + Mx.v21);
+        setMacAndIr<3>((int64_t)Tx.z * 0x1000 + Mx.v31);
 
-        setMacAndIr(1, Mx.v12 * V.y + Mx.v13 * V.z, lm);
-        setMacAndIr(2, Mx.v22 * V.y + Mx.v23 * V.z, lm);
-        setMacAndIr(3, Mx.v32 * V.y + Mx.v33 * V.z, lm);
+        setMacAndIr<1>(Mx.v12 * V.y + Mx.v13 * V.z, lm);
+        setMacAndIr<2>(Mx.v22 * V.y + Mx.v23 * V.z, lm);
+        setMacAndIr<3>(Mx.v32 * V.y + Mx.v33 * V.z, lm);
     }
 }
 
@@ -490,10 +478,10 @@ void GTE::mvmva(bool sf, bool lm, int mx, int vx, int tx) {
  *
  * Result is also saved as 24bit color
  */
-void GTE::gpf(bool lm) {
-    setMacAndIr(1, ir[0] * ir[1], lm);
-    setMacAndIr(2, ir[0] * ir[2], lm);
-    setMacAndIr(3, ir[0] * ir[3], lm);
+void GTE::gpf() {
+    setMacAndIr<1>(ir[0] * ir[1], lm);
+    setMacAndIr<2>(ir[0] * ir[2], lm);
+    setMacAndIr<3>(ir[0] * ir[3], lm);
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
@@ -501,10 +489,10 @@ void GTE::gpf(bool lm) {
  * Same as gpf, but add mac[i]
  * Multiply vector (ir[1..3]) by scalar(ir[0]) and add mac[1..3]
  */
-void GTE::gpl(bool sf, bool lm) {
-    setMacAndIr(1, ((int64_t)mac[1] << (sf * 12)) + ir[0] * ir[1], lm);
-    setMacAndIr(2, ((int64_t)mac[2] << (sf * 12)) + ir[0] * ir[2], lm);
-    setMacAndIr(3, ((int64_t)mac[3] << (sf * 12)) + ir[0] * ir[3], lm);
+void GTE::gpl() {
+    setMacAndIr<1>(((int64_t)mac[1] << (sf * 12)) + ir[0] * ir[1], lm);
+    setMacAndIr<2>(((int64_t)mac[2] << (sf * 12)) + ir[0] * ir[2], lm);
+    setMacAndIr<3>(((int64_t)mac[3] << (sf * 12)) + ir[0] * ir[3], lm);
     pushColor(mac[1] >> 4, mac[2] >> 4, mac[3] >> 4);
 }
 
@@ -513,17 +501,17 @@ void GTE::gpl(bool sf, bool lm) {
  * lm is ignored, as result cannot be negative
  */
 void GTE::sqr() {
-    setMacAndIr(1, ir[1] * ir[1]);
-    setMacAndIr(2, ir[2] * ir[2]);
-    setMacAndIr(3, ir[3] * ir[3]);
+    setMacAndIr<1>(ir[1] * ir[1]);
+    setMacAndIr<2>(ir[2] * ir[2]);
+    setMacAndIr<3>(ir[3] * ir[3]);
 }
 
-void GTE::op(bool sf, bool lm) {
-    setMac(1, rt.v22 * ir[3] - rt.v33 * ir[2]);
-    setMac(2, rt.v33 * ir[1] - rt.v11 * ir[3]);
-    setMac(3, rt.v11 * ir[2] - rt.v22 * ir[1]);
+void GTE::op() {
+    setMac<1>(rt.v22 * ir[3] - rt.v33 * ir[2]);
+    setMac<2>(rt.v33 * ir[1] - rt.v11 * ir[3]);
+    setMac<3>(rt.v11 * ir[2] - rt.v22 * ir[1]);
 
-    setIr(1, mac[1], lm);
-    setIr(2, mac[2], lm);
-    setIr(3, mac[3], lm);
+    setIr<1>(mac[1], lm);
+    setIr<2>(mac[2], lm);
+    setIr<3>(mac[3], lm);
 }

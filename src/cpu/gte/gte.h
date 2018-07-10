@@ -92,29 +92,29 @@ struct GTE {
     void write(uint8_t n, uint32_t d);
 
     void nclip();
-    void ncds(bool sf, bool lm, int n = 0);
-    void ncs(bool sf, bool lm, int n = 0);
-    void nct(bool sf, bool lm);
-    void nccs(bool sf, bool lm, int n = 0);
-    void cc(bool sf, bool lm);
-    void cdp(bool sf, bool lm);
-    void ncdt(bool sf, bool lm);
-    void ncct(bool sf, bool lm);
-    void dpct(bool sf, bool lm);
-    void dpcs(bool sf, bool lm, bool useRGB0 = false);
-    void dcpl(bool sf, bool lm);
-    void intpl(bool sf, bool lm);
+    void ncds(int n = 0);
+    void ncs(int n = 0);
+    void nct();
+    void nccs(int n = 0);
+    void cc();
+    void cdp();
+    void ncdt();
+    void ncct();
+    void dpct();
+    void dpcs(bool useRGB0 = false);
+    void dcpl();
+    void intpl();
     uint32_t divide(uint16_t h, uint16_t sz3);
     uint32_t divideUNR(uint32_t a, uint32_t b);
     void rtps(int n = 0);
     void rtpt();
     void avsz3();
     void avsz4();
-    void mvmva(bool sf, bool lm, int mx, int vx, int tx);
-    void gpf(bool lm);
-    void gpl(bool sf, bool lm);
+    void mvmva(int mx, int vx, int tx);
+    void gpf();
+    void gpl();
     void sqr();
-    void op(bool sf, bool lm);
+    void op();
 
     bool command(gte::Command &cmd);
 
@@ -131,11 +131,19 @@ struct GTE {
     int countLeadingZeroes(uint32_t n);
     size_t countLeadingZeroes16(uint16_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
-    void check43bitsOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
 
-    int64_t setMac(int mac, int64_t value);
-    void setIr(int i, int64_t value, bool lm = false);
-    void setMacAndIr(int i, int64_t value, bool lm = false);
+    template <int bit_size>
+    void checkOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
+
+    template <int i>
+    int64_t setMac(int64_t value);
+
+    template <int i>
+    void setIr(int64_t value, bool lm = false);
+
+    template <int i>
+    void setMacAndIr(int64_t value, bool lm = false);
+
     void setOtz(int64_t value);
     void pushScreenXY(int32_t x, int32_t y);
     void pushScreenZ(int32_t z);

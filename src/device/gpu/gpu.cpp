@@ -270,7 +270,9 @@ void GPU::cmdVramToCpu(uint8_t command, uint32_t arguments[]) {
 
 void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
     if ((arguments[0] & 0x00ffffff) != 0) {
-        printf("cpuVramToVram: Suspicious arg0: 0x%x\n", arguments[0]);
+        printf("cpuVramToVram: Suspicious arg0: 0x%x, breaking!!!\n", arguments[0]);
+        cmd = Command::None;
+        return;
     }
     int srcX = MaskCopy::startX(arguments[1] & 0xffff);
     int srcY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
@@ -370,6 +372,9 @@ void GPU::writeGP0(uint32_t data) {
 
         if (command == 0x00) {
             // NOP
+            if (arguments[0] != 0x000000) {
+                printf("GPU GP0(0) nop: non-zero argument (0x%06x)\n", arguments[0]);
+            }
         } else if (command == 0x01) {
             // Clear Cache
         } else if (command == 0x02) {
