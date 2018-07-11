@@ -84,10 +84,6 @@ struct GTE {
     int16_t zsf4 = 0;
     Flag flag;
 
-    // Temporary, used in commands
-    bool sf;
-    bool lm;
-
     uint32_t read(uint8_t n);
     void write(uint8_t n, uint32_t d);
 
@@ -128,6 +124,13 @@ struct GTE {
     std::vector<GTE_ENTRY> log;
 
    private:
+    // Temporary, used in commands
+    bool sf;
+    bool lm;
+
+    void multiplyVectors(gte::Vector<int16_t> v1, gte::Vector<int16_t> v2, gte::Vector<int16_t> tr = gte::Vector<int16_t>(0));
+    gte::Vector<int64_t> multiplyMatrixByVector(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr = gte::Vector<int32_t>(0));
+
     int countLeadingZeroes(uint32_t n);
     size_t countLeadingZeroes16(uint16_t n);
     int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
@@ -147,5 +150,6 @@ struct GTE {
     void setOtz(int64_t value);
     void pushScreenXY(int32_t x, int32_t y);
     void pushScreenZ(int32_t z);
+    void pushColor();
     void pushColor(uint32_t r, uint32_t g, uint32_t b);
 };

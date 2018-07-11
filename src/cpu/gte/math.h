@@ -29,6 +29,10 @@ struct Vector {
     union {
         Z z, b;
     };
+
+    Vector() = default;
+    Vector(X x) : x(x), y(x), z(x) {}
+    Vector(X x, Y y, Z z) : x(x), y(y), z(z) {}
 };
 
 struct Color {
