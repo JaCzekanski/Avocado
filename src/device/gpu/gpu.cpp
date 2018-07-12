@@ -1,8 +1,8 @@
 #include "gpu.h"
 #include <cassert>
 #include <cstdio>
-#include "utils/logic.h"
 #include "render.h"
+#include "utils/logic.h"
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
@@ -34,8 +34,8 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
     int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
 
     for (int i = 0; i < (isQuad ? 4 : 3); i++) {
-        x[i] = extend_sign<10>(x[i]) + drawingOffsetX;
-        y[i] = extend_sign<10>(y[i]) + drawingOffsetY;
+        x[i] += drawingOffsetX;
+        y[i] += drawingOffsetY;
     }
 
     if (textured) {
@@ -93,8 +93,8 @@ void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
     RGB c[4] = {};
     TextureInfo tex;
     for (int i = 0; i < arg.getVertexCount(); i++) {
-        x[i] = arguments[ptr] & 0xffff;
-        y[i] = (arguments[ptr++] & 0xffff0000) >> 16;
+        x[i] = extend_sign<10>(arguments[ptr] & 0xffff);
+        y[i] = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
 
         if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i].raw = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
@@ -126,8 +126,8 @@ void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
     for (int i = 0; i < lineCount; i++) {
         if (arguments[ptr] == 0x50005000 || arguments[ptr] == 0x55555555) break;
         if (i == 0) {
-            x[0] = (arguments[ptr] & 0xffff);
-            y[0] = (arguments[ptr++] & 0xffff0000) >> 16;
+            x[0] = extend_sign<10>(arguments[ptr] & 0xffff);
+            y[0] = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
             c[0].raw = (arguments[0] & 0xffffff);
         } else {
             x[0] = x[1];
@@ -157,12 +157,12 @@ void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
     int16_t h = arg.getSize();
 
     if (arg.size == 0) {
-        w = (int32_t)(int16_t)(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
-        h = (int32_t)(int16_t)((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
+        w = extend_sign<10>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
+        h = extend_sign<10>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
     }
 
-    int16_t x = arguments[1] & 0xffff;
-    int16_t y = (arguments[1] & 0xffff0000) >> 16;
+    int16_t x = extend_sign<10>(arguments[1] & 0xffff);
+    int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
 
     int16_t _x[4];
     int16_t _y[4];
