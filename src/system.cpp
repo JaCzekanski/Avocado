@@ -15,6 +15,7 @@ System::System() {
 
     cpu = std::make_unique<mips::CPU>(this);
     gpu = std::make_unique<GPU>();
+    spu = std::make_unique<SPU>();
 
     cdrom = std::make_unique<device::cdrom::CDROM>(this);
     controller = std::make_unique<device::controller::Controller>(this);
@@ -24,7 +25,6 @@ System::System() {
     mdec = std::make_unique<MDEC>();
     memoryControl = std::make_unique<MemoryControl>();
     serial = std::make_unique<Serial>();
-    spu = std::make_unique<SPU>();
     timer0 = std::make_unique<Timer<0>>(this);
     timer1 = std::make_unique<Timer<1>>(this);
     timer2 = std::make_unique<Timer<2>>(this);
@@ -320,9 +320,18 @@ void System::emulateFrame() {
         timer1->step(systemCycles);
         timer2->step(systemCycles);
 
-        spu->step();
+        static float spuWtf = 0;
+        spuWtf += (float)systemCycles / (float)0x300;
+        if (spuWtf >= 1.f) {
+            spu->step();
+            spuWtf -= 1.0f;
+        }
 
-        audioBuf.insert(audioBuf.end(), spu->audioBuffer.begin(), spu->audioBuffer.end());
+        if (spu->bufferReady) {
+            spu->bufferReady = false;
+            audioBuf.insert(audioBuf.end(), spu->audioBuffer.begin(), spu->audioBuffer.end());
+        }
+
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {

@@ -21,7 +21,7 @@ void spuWindow(SPU *spu) {
     }
     ImGui::Begin("SPU", &showSpuWindow);
 
-    ImGui::Columns(7, nullptr, false);
+    ImGui::Columns(8, nullptr, false);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
@@ -31,7 +31,10 @@ void spuWindow(SPU *spu) {
     ImGui::Text("Flags");
     ImGui::NextColumn();
 
-    ImGui::Text("Volume");
+    ImGui::Text("VolL");
+    ImGui::NextColumn();
+
+    ImGui::Text("VolR");
     ImGui::NextColumn();
 
     ImGui::Text("Sample rate");
@@ -52,7 +55,7 @@ void spuWindow(SPU *spu) {
     for (int i = 0; i < SPU::VOICE_COUNT; i++) {
         auto &v = spu->voices[i];
 
-        if (v.volume._reg == 0)
+        if (v.volumeLeft._reg == 0 && v.volumeRight._reg == 0)
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.4f, 0.4f, 1.f));
         else
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -64,7 +67,9 @@ void spuWindow(SPU *spu) {
         ImGui::Text("%c", keyOn ? 'P' : ' ');
         ImGui::NextColumn();
 
-        ImGui::Text("%08x", v.volume._reg);
+        ImGui::Text("%04x", v.volumeLeft._reg);
+        ImGui::NextColumn();
+        ImGui::Text("%04x", v.volumeRight._reg);
         ImGui::NextColumn();
         ImGui::Text("%04x", v.sampleRate._reg);
         ImGui::NextColumn();

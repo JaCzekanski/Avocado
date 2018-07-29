@@ -1,27 +1,44 @@
 #include "spu.h"
 #include <cstring>
-#include "system.h"
 #include "sound/adpcm.h"
+#include "system.h"
 
 SPU::SPU() {
     memset(ram, 0, RAM_SIZE);
     audioBuffer.resize(AUDIO_BUFFER_SIZE);
+    audioBufferPos = 0;
 }
 
 void SPU::step() {
-    for (auto& b : audioBuffer) b = 0;
+    if (audioBufferPos == 0) {
+        for (auto& b : audioBuffer) b = 0;
+    }
 
+    float sampleLeft = 0;
+    float sampleRight = 0;
+    int voicesPlayed = 0;
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
 
         if (!voice.playing) continue;
+        voicesPlayed++;
 
         auto pcm = ADPCM::decode(&ram[voice.currentAddress._reg * 8], 1);
 
         // Modify volume
 
-        for (int i = 0; i < pcm.size(); i++) {
-            audioBuffer[i] += pcm[i];
+        sampleLeft += (float)pcm[(int)voice.subAddress] * voice.getLeftVolume();
+        sampleRight += (float)pcm[(int)voice.subAddress] * voice.getRightVolume();
+
+        int prevAddr = voice.subAddress;
+        voice.subAddress += (float)std::min((uint16_t)0x1000, voice.sampleRate._reg) / 4096.f;
+
+        if ((int)prevAddr == (int)voice.subAddress) continue;
+
+        if (voice.subAddress >= 28) {
+            voice.subAddress -= 28;
+            voice.currentAddress._reg += 2;
+            continue;
         }
 
         uint8_t flag = ram[voice.currentAddress._reg * 8 + 1];
@@ -30,11 +47,24 @@ void SPU::step() {
             voice.repeatAddress._reg = voice.currentAddress._reg;
         }
 
-        voice.currentAddress._reg += 2;
-
         if (flag & 1) {  // Loop end
             voice.currentAddress._reg = voice.repeatAddress._reg;
+            voice.playing = false;
         }
+    }
+
+    if (voicesPlayed > 0) {
+        audioBuffer[audioBufferPos] = (sampleLeft / (float)voicesPlayed);
+        audioBuffer[audioBufferPos + 1] = (sampleRight / (float)voicesPlayed);
+    } else {
+        audioBuffer[audioBufferPos] = 0;
+        audioBuffer[audioBufferPos + 1] = 0;
+    }
+
+    audioBufferPos += 2;
+    if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
+        audioBufferPos = 0;
+        bufferReady = true;
     }
 }
 
@@ -44,35 +74,28 @@ uint8_t SPU::readVoice(uint32_t address) const {
 
     switch (reg) {
         case 0:
-        case 1:
+        case 1: return voices[voice].volumeLeft.read(reg);
         case 2:
-        case 3:
-            return voices[voice].volume.read(reg);
+        case 3: return voices[voice].volumeRight.read(reg - 2);
 
         case 4:
-        case 5:
-            return voices[voice].sampleRate.read(reg - 4);
+        case 5: return voices[voice].sampleRate.read(reg - 4);
 
         case 6:
-        case 7:
-            return voices[voice].startAddress.read(reg - 6);
+        case 7: return voices[voice].startAddress.read(reg - 6);
 
         case 8:
         case 9:
         case 10:
-        case 11:
-            return voices[voice].ADSR.read(reg - 8);
+        case 11: return voices[voice].ADSR.read(reg - 8);
 
         case 12:
-        case 13:
-            return voices[voice].ADSRVolume.read(reg - 12);
+        case 13: return voices[voice].ADSRVolume.read(reg - 12);
 
         case 14:
-        case 15:
-            return voices[voice].repeatAddress.read(reg - 14);
+        case 15: return voices[voice].repeatAddress.read(reg - 14);
 
-        default:
-            return 0;
+        default: return 0;
     }
 }
 
@@ -82,41 +105,32 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 
     switch (reg) {
         case 0:
-        case 1:
+        case 1: voices[voice].volumeLeft.write(reg, data); return;
+
         case 2:
-        case 3:
-            voices[voice].volume.write(reg, data);
-            return;
+        case 3: voices[voice].volumeRight.write(reg - 2, data); return;
 
         case 4:
-        case 5:
-            voices[voice].sampleRate.write(reg - 4, data);
-            return;
+        case 5: voices[voice].sampleRate.write(reg - 4, data); return;
 
         case 6:
         case 7:
+            voices[voice].subAddress = 0.f;
             voices[voice].startAddress.write(reg - 6, data);
             return;
 
         case 8:
         case 9:
         case 10:
-        case 11:
-            voices[voice].ADSR.write(reg - 8, data);
-            return;
+        case 11: voices[voice].ADSR.write(reg - 8, data); return;
 
         case 12:
-        case 13:
-            voices[voice].ADSRVolume.write(reg - 12, data);
-            return;
+        case 13: voices[voice].ADSRVolume.write(reg - 12, data); return;
 
         case 14:
-        case 15:
-            voices[voice].repeatAddress.write(reg - 14, data);
-            return;
+        case 15: voices[voice].repeatAddress.write(reg - 14, data); return;
 
-        default:
-            return;
+        default: return;
     }
 }
 

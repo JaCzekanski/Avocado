@@ -17,6 +17,7 @@
 #include "utils/file.h"
 #include "utils/string.h"
 #include "version.h"
+#include "sound/sound.h"
 #include "bios/exe_bootstrap.h"
 
 #undef main
@@ -24,11 +25,8 @@
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
-<<<<<<< HEAD
 std::unique_ptr<System> sys;
-=======
 std::vector<int16_t> audioBuf;
->>>>>>> spu: handle voiceOn (no ADSR)
 
 device::controller::DigitalController& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
@@ -330,6 +328,8 @@ int main(int argc, char** argv) {
     ImGui::StyleColorsDark();
 
     SDL_GL_SetSwapInterval(0);
+
+    Sound::play();
 
     vramTextureId = opengl.getVramTextureId();
     if (!isEmulatorConfigured())

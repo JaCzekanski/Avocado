@@ -20,7 +20,7 @@ void Sound::init(AudioCallback callback) {
     desired.freq = 44100;
     desired.format = AUDIO_S16;
     desired.channels = 2;
-    desired.samples = utils::Track::SECTOR_SIZE;
+    desired.samples = 26 * 2 * 100;
     desired.callback = audioCallback;
 
     _callback = callback;
