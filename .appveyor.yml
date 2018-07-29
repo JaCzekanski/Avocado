@@ -69,16 +69,13 @@ test_script:
 after_test:
   - ps: (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test-result.xml))
 
+on_success:
+  - ps: Invoke-RestMethod https://raw.githubusercontent.com/k3rn31p4nic/appveyor-discord-webhook/master/send.ps1 -o send.ps1
+  - ps: ./send.ps1 success $env:WEBHOOK_URL
+on_failure:
+  - ps: Invoke-RestMethod https://raw.githubusercontent.com/k3rn31p4nic/appveyor-discord-webhook/master/send.ps1 -o send.ps1
+  - ps: ./send.ps1 failure $env:WEBHOOK_URL
 
 artifacts:
   - path: avocado.zip
     name: avocado
-
-notifications:
-  - provider: Slack
-    auth_token:
-      secure: Ddw4RMRt4P33Jc3mL0u+ye+H8AWr3ugbLomWMv3HvXzUqeqUc1KrTa9oa51cwsSyxAg+zLJs+5aq+UFpKgAP/oUO6o/SbRlFWfnLDYn0f1g=
-    on_build_success: true
-    on_build_failure: true
-    on_build_status_changed: true
-    channel: '#build'

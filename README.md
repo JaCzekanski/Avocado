@@ -5,7 +5,7 @@ A Modern Playstation 1 emulator.
     <img src="docs/boot.png" height="200">
 </p>
 
-If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitter.com/JaCzekanski)) or create an [Issue](https://github.com/JaCzekanski/Avocado/issues). There is also [Slack channel](https://publicslack.com/slacks/avocado-emu/invites/new).
+If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitter.com/JaCzekanski)) or create an [Issue](https://github.com/JaCzekanski/Avocado/issues). There is also [Discord server](https://discord.gg/ATEJApR).
 
 ## Status
 
