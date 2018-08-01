@@ -1,36 +1,49 @@
 #include "spu.h"
 #include <cstring>
+#include <array>
 #include "sound/adpcm.h"
 #include "system.h"
 
 SPU::SPU() {
     memset(ram, 0, RAM_SIZE);
-    audioBuffer.resize(AUDIO_BUFFER_SIZE);
     audioBufferPos = 0;
 }
 
-void SPU::step() {
-    if (audioBufferPos == 0) {
-        for (auto& b : audioBuffer) b = 0;
-    }
+// Convert normalized float to int16_T
+int16_t floatToInt(float val) {
+    if (val > 0) return val * static_cast<int16_t>(INT16_MAX);
+    else return -val * static_cast<int16_t>(INT16_MIN);
+}
 
-    float sampleLeft = 0;
-    float sampleRight = 0;
-    int voicesPlayed = 0;
+// Convert int16_t to normalized float
+float intToFloat(int16_t val) {
+    if (val > 0) return static_cast<float>(val) / static_cast<float>(INT16_MAX);
+    else return -static_cast<float>(val) / static_cast<float>(INT16_MIN);
+}
+
+float clamp(float val, float min, float max) {
+    if (val > max) return max;
+    if (val < min) return min;
+    return val;
+}
+
+void SPU::step() {
+    float sumLeft = 0;
+    float sumRight = 0;
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
 
         if (!voice.playing) continue;
-        voicesPlayed++;
 
         if (voice.decodedSamples.empty()) {
             voice.decodedSamples = ADPCM::decode(&ram[voice.currentAddress._reg * 8], voice.prevSample);
         }
 
         // Modify volume
+        float sample = intToFloat(voice.decodedSamples[(int)voice.subAddress]);
 
-        sampleLeft += (float)voice.decodedSamples[(int)voice.subAddress] * voice.getLeftVolume();
-        sampleRight += (float)voice.decodedSamples[(int)voice.subAddress] * voice.getRightVolume();
+        sumLeft += sample * voice.volume.getLeft();
+        sumRight += sample * voice.volume.getRight();
 
         int prevAddr = voice.subAddress;
         voice.subAddress += (float)std::min((uint16_t)0x1000, voice.sampleRate._reg) / 4096.f;
@@ -57,13 +70,11 @@ void SPU::step() {
         }
     }
 
-    if (voicesPlayed > 0) {
-        audioBuffer[audioBufferPos] = (sampleLeft / (float)voicesPlayed);
-        audioBuffer[audioBufferPos + 1] = (sampleRight / (float)voicesPlayed);
-    } else {
-        audioBuffer[audioBufferPos] = 0;
-        audioBuffer[audioBufferPos + 1] = 0;
-    }
+    sumLeft *= mainVolume.getLeft();
+    sumRight *= mainVolume.getRight();
+    
+    audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));
+    audioBuffer[audioBufferPos + 1] = floatToInt(clamp(sumRight, -1.f, 1.f));
 
     audioBufferPos += 2;
     if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
@@ -78,9 +89,9 @@ uint8_t SPU::readVoice(uint32_t address) const {
 
     switch (reg) {
         case 0:
-        case 1: return voices[voice].volumeLeft.read(reg);
+        case 1:
         case 2:
-        case 3: return voices[voice].volumeRight.read(reg - 2);
+        case 3: return voices[voice].volume.read(reg);
 
         case 4:
         case 5: return voices[voice].sampleRate.read(reg - 4);
@@ -109,10 +120,9 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 
     switch (reg) {
         case 0:
-        case 1: voices[voice].volumeLeft.write(reg, data); return;
-
+        case 1: 
         case 2:
-        case 3: voices[voice].volumeRight.write(reg - 2, data); return;
+        case 3: voices[voice].volume.write(reg, data); return;
 
         case 4:
         case 5: voices[voice].sampleRate.write(reg - 4, data); return;

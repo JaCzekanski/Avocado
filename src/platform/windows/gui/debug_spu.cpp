@@ -19,80 +19,76 @@ void spuWindow(SPU *spu) {
     if (!showSpuWindow) {
         return;
     }
+    static bool convertSamplerate = true;
+
+    const int COL_NUM = 8;
+    float columnsWidth[COL_NUM] = {0};
+    
+    auto column = [&](const std::string& str){
+        static int n = 0;
+        ImVec2 size = ImGui::CalcTextSize(str.c_str());
+        size.x += 20.f;
+        if (size.x > columnsWidth[n]) columnsWidth[n] = size.x;
+        ImGui::Text(str.c_str());
+        ImGui::NextColumn();
+        if (++n >= COL_NUM) n = 0;
+    };
+
     ImGui::Begin("SPU", &showSpuWindow);
 
     ImGui::Columns(8, nullptr, false);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-    ImGui::Text("");
-    ImGui::NextColumn();
-
-    ImGui::Text("Flags");
-    ImGui::NextColumn();
-
-    ImGui::Text("VolL");
-    ImGui::NextColumn();
-
-    ImGui::Text("VolR");
-    ImGui::NextColumn();
-
-    ImGui::Text("Sample rate");
-    ImGui::NextColumn();
-
-    ImGui::Text("Start addr");
-    ImGui::NextColumn();
-
-    ImGui::Text("ADSR");
-    ImGui::NextColumn();
-
-    //    ImGui::Text("ADSRVolume");
-    //    ImGui::NextColumn();
-
-    ImGui::Text("Repeat addr");
-    ImGui::NextColumn();
-
+    column("");
+    column("Flags");
+    column("VolL");
+    column("VolR");
+    column("Sample rate");
+    column("Start addr");
+    column("Repeat addr");
+    column("ADSR");
     for (int i = 0; i < SPU::VOICE_COUNT; i++) {
         auto &v = spu->voices[i];
 
-        if (v.volumeLeft._reg == 0 && v.volumeRight._reg == 0)
+        if (v.volume.left == 0 && v.volume.right == 0)
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.4f, 0.4f, 1.f));
         else
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
 
-        ImGui::Text("%d", i + 1);
-        ImGui::NextColumn();
-
+        column(string_format("%d", i + 1));
         bool keyOn = v.playing;
-        ImGui::Text("%c", keyOn ? 'P' : ' ');
-        ImGui::NextColumn();
+        column(string_format("%c", keyOn ? 'P' : ' '));
+        column(string_format("%04x", v.volume.left));
+        column(string_format("%04x", v.volume.right));
 
-        ImGui::Text("%04x", v.volumeLeft._reg);
-        ImGui::NextColumn();
-        ImGui::Text("%04x", v.volumeRight._reg);
-        ImGui::NextColumn();
-        ImGui::Text("%04x", v.sampleRate._reg);
-        ImGui::NextColumn();
-        ImGui::Text("%04x", v.startAddress._reg);
-        ImGui::NextColumn();
-        ImGui::Text("%08x", v.ADSR._reg);
-        ImGui::NextColumn();
-        //        ImGui::Text("%04x", v.ADSRVolume._reg);
-        //        ImGui::NextColumn();
-        ImGui::Text("%04x", v.repeatAddress._reg);
-        ImGui::NextColumn();
-
+        if (convertSamplerate) {
+            column(string_format("%5d Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
+        } else {
+            column(string_format("%04x", v.sampleRate._reg));
+        }
+        column(string_format("%04x", v.startAddress._reg));
+        column(string_format("%04x", v.repeatAddress._reg));
+        column(string_format("%08x", v.ADSR._reg));
+        
         ImGui::PopStyleColor();
+    }
+
+    for (int c = 0; c<COL_NUM; c++) {
+        ImGui::SetColumnWidth(c, columnsWidth[c]);
     }
 
     ImGui::Columns(1);
     ImGui::Separator();
 
-    ImGui::Text("Main volume: %08x", spu->mainVolume._reg);
-    ImGui::Text("CD   volume: %08x", spu->cdVolume._reg);
-    ImGui::Text("Ext  volume: %08x", spu->extVolume._reg);
+    ImGui::Text("Main   volume: %08x", spu->mainVolume._reg);
+    ImGui::Text("CD     volume: %08x", spu->cdVolume._reg);
+    ImGui::Text("Ext    volume: %08x", spu->extVolume._reg);
+    ImGui::Text("Reverb volume: %08x", spu->reverbVolume._reg);
     ImGui::Text("Control:     %04x     %-10s   %-4s   %-8s   %-3s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
                 spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "");
+
+    ImGui::Checkbox("Convert sample rate", &convertSamplerate);
 
     ImGui::PopStyleVar();
 

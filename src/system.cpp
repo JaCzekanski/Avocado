@@ -321,7 +321,7 @@ void System::emulateFrame() {
         timer2->step(systemCycles);
 
         static float spuWtf = 0;
-        spuWtf += (float)systemCycles / 2 / (float)0x300;
+        spuWtf += (float)systemCycles / 1.5 / (float)0x300;
         if (spuWtf >= 1.f) {
             spu->step();
             spuWtf -= 1.0f;
@@ -329,7 +329,8 @@ void System::emulateFrame() {
 
         if (spu->bufferReady) {
             spu->bufferReady = false;
-            audioBuf.insert(audioBuf.end(), spu->audioBuffer.begin(), spu->audioBuffer.end());
+            // audioBuf.insert(audioBuf.end(), spu->audioBuffer.begin(), spu->audioBuffer.end());
+            fwrite(spu->audioBuffer.data(), sizeof(int16_t), spu->audioBuffer.size(), stderr);
         }
 
         controller->step();

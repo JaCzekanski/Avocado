@@ -1,13 +1,43 @@
 #pragma once
 #include <deque>
 #include <vector>
+#include <array>
 #include "device.h"
 #include "utils/string.h"
 
 struct SPU {
+    union Volume {
+        struct {
+            uint16_t left;
+            uint16_t right;
+        };
+        uint32_t _reg;  
+        uint8_t _byte[4];
+
+        Volume() : left(0), right(0) {}
+
+        void write(int n, uint8_t v) {
+            if (n >= 4) return;
+            _byte[n] = v;
+        }
+
+        uint8_t read(int n) const {
+            if (n >= 4) return 0;
+            return _byte[n];
+        }
+
+        float getLeft() {
+            if (left & 0x8000) return 1.f;  // TODO: Implement ADSR
+            return ((int16_t)(left << 1) / (float)0x7fff);
+        }
+
+        float getRight() {
+            if (right & 0x8000) return 1.f;  // TODO: Implement ADSR
+            return ((int16_t)(right << 1) / (float)0x7fff);
+        }
+    };
     struct Voice {
-        Reg16 volumeLeft;
-        Reg16 volumeRight;
+        Volume volume;
         Reg16 sampleRate;
         Reg16 startAddress;
         Reg32 ADSR;
@@ -23,8 +53,7 @@ struct SPU {
         std::vector<int16_t> decodedSamples;
 
         Voice() {
-            volumeLeft._reg = 0;
-            volumeRight._reg = 0;
+            volume._reg = 0;
             sampleRate._reg = 0;
             startAddress._reg = 0;
             ADSR._reg = 0;
@@ -35,16 +64,6 @@ struct SPU {
             playing = false;
 
             prevSample[0] = prevSample[1] = 0;
-        }
-
-        float getLeftVolume() {
-            if (volumeLeft._reg & 0x8000) return 1.f;  // TODO: Implement ADSR
-            return 0.f + ((int16_t)(volumeLeft._reg << 1) / (float)0x7fff);
-        }
-
-        float getRightVolume() {
-            if (volumeRight._reg & 0x8000) return 1.f;  // TODO: Implement ADSR
-            return 0.f + ((int16_t)(volumeRight._reg << 1) / (float)0x7fff);
         }
     };
 
@@ -83,16 +102,16 @@ struct SPU {
     static const uint32_t BASE_ADDRESS = 0x1f801c00;
     static const int VOICE_COUNT = 24;
     static const int RAM_SIZE = 1024 * 512;
-    static const size_t AUDIO_BUFFER_SIZE = 28 * 2;
+    static const size_t AUDIO_BUFFER_SIZE = 28 * 2 * 100;
 
     bool bufferReady = false;
 
     Voice voices[VOICE_COUNT];
 
-    Reg32 mainVolume;
-    Reg32 cdVolume;
-    Reg32 extVolume;
-    Reg32 reverbVolume;
+    Volume mainVolume;
+    Volume cdVolume;
+    Volume extVolume;
+    Volume reverbVolume;
 
     Reg32 voiceChannelReverbMode;
 
@@ -105,8 +124,8 @@ struct SPU {
 
     uint8_t ram[RAM_SIZE];
 
-    int audioBufferPos;
-    std::vector<int32_t> audioBuffer;
+    size_t audioBufferPos;
+    std::array<int16_t, AUDIO_BUFFER_SIZE> audioBuffer;
 
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);

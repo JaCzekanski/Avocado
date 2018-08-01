@@ -366,28 +366,15 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_d) sys->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) sys->interrupt->trigger(interrupt::SPU);
                 if (event.key.keysym.sym == SDLK_a) {
-                    auto spu = getFileContents("spu.bin");
-                    if (spu.empty()) {
-                        printf("No spu.bin found.\n");
-                    } else {
-                        printf("save audio buf\n");
-                        //                        printf("Decoding ADPCM in spu.bin");
-                        //                        auto adpcm = std::vector<uint8_t>(spu.begin() + 0x1000, spu.begin() + 512 * 1024 -
-                        //                        0x1000);
-
-                        //                        auto pcm = ADPCM::decode(adpcm);
-                        //
-                        {
-                            FILE* f = fopen("audio.bin", "wb");
-                            if (f) {
-                                for (int i = 0; i < audioBuf.size(); i++) {
-                                    fputc(audioBuf[i] & 0xff, f);
-                                    fputc((audioBuf[i] >> 8) & 0xff, f);
-                                }
-
-                                fclose(f);
-                            }
+                    printf("save audio buf\n");
+                    FILE* f = fopen("audio.bin", "wb");
+                    if (f) {
+                        for (int i = 0; i < audioBuf.size(); i++) {
+                            fputc(audioBuf[i] & 0xff, f);
+                            fputc((audioBuf[i] >> 8) & 0xff, f);
                         }
+
+                        fclose(f);
                     }
                 }
                 if (event.key.keysym.sym == SDLK_r) {
