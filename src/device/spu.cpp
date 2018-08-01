@@ -23,12 +23,14 @@ void SPU::step() {
         if (!voice.playing) continue;
         voicesPlayed++;
 
-        auto pcm = ADPCM::decode(&ram[voice.currentAddress._reg * 8], 1);
+        if (voice.decodedSamples.empty()) {
+            voice.decodedSamples = ADPCM::decode(&ram[voice.currentAddress._reg * 8], voice.prevSample);
+        }
 
         // Modify volume
 
-        sampleLeft += (float)pcm[(int)voice.subAddress] * voice.getLeftVolume();
-        sampleRight += (float)pcm[(int)voice.subAddress] * voice.getRightVolume();
+        sampleLeft += (float)voice.decodedSamples[(int)voice.subAddress] * voice.getLeftVolume();
+        sampleRight += (float)voice.decodedSamples[(int)voice.subAddress] * voice.getRightVolume();
 
         int prevAddr = voice.subAddress;
         voice.subAddress += (float)std::min((uint16_t)0x1000, voice.sampleRate._reg) / 4096.f;
@@ -38,6 +40,8 @@ void SPU::step() {
         if (voice.subAddress >= 28) {
             voice.subAddress -= 28;
             voice.currentAddress._reg += 2;
+
+            voice.decodedSamples.clear();
             continue;
         }
 
@@ -175,7 +179,7 @@ uint8_t SPU::read(uint32_t address) {
         return SPUSTAT.read(address - 0x1f801dae);
     }
 
-    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
+    //    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
 
     return 0;
 }
@@ -272,7 +276,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         return;
     }
 
-    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+    //    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
 void SPU::dumpRam() {

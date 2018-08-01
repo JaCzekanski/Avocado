@@ -299,7 +299,7 @@ void System::singleStep() {
 }
 
 void System::emulateFrame() {
-    extern std::vector<int16_t> audioBuf;
+    extern std::deque<int16_t> audioBuf;
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();
 #endif
@@ -321,7 +321,7 @@ void System::emulateFrame() {
         timer2->step(systemCycles);
 
         static float spuWtf = 0;
-        spuWtf += (float)systemCycles / (float)0x300;
+        spuWtf += (float)systemCycles / 2 / (float)0x300;
         if (spuWtf >= 1.f) {
             spu->step();
             spuWtf -= 1.0f;

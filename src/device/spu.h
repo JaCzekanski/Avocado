@@ -18,6 +18,10 @@ struct SPU {
         float subAddress;
         bool playing;
 
+        // ADPCM decoding
+        int32_t prevSample[2];
+        std::vector<int16_t> decodedSamples;
+
         Voice() {
             volumeLeft._reg = 0;
             volumeRight._reg = 0;
@@ -29,6 +33,8 @@ struct SPU {
             currentAddress._reg = 0;
             subAddress = 0;
             playing = false;
+
+            prevSample[0] = prevSample[1] = 0;
         }
 
         float getLeftVolume() {

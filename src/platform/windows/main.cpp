@@ -12,6 +12,7 @@
 #include "renderer/opengl/opengl.h"
 #include "sound/adpcm.h"
 #include "sound/audio_cd.h"
+#include "sound/sound.h"
 #include "system.h"
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
@@ -329,7 +330,7 @@ int main(int argc, char** argv) {
 
     SDL_GL_SetSwapInterval(0);
 
-    Sound::play();
+    //    Sound::play();
 
     vramTextureId = opengl.getVramTextureId();
     if (!isEmulatorConfigured())
