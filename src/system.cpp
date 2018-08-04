@@ -15,7 +15,7 @@ System::System() {
 
     cpu = std::make_unique<mips::CPU>(this);
     gpu = std::make_unique<GPU>();
-    spu = std::make_unique<SPU>();
+    spu = std::make_unique<SPU>(this);
 
     cdrom = std::make_unique<device::cdrom::CDROM>(this);
     controller = std::make_unique<device::controller::Controller>(this);

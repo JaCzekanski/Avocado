@@ -12,16 +12,16 @@ void renderSamples(SPU *spu) {
         samples.push_back((float)s / (float)0x7fff);
     }
 
-    ImGui::PlotLines("Preview", samples.data(), samples.size(), 0, 0, -1.0f, 1.0f, ImVec2(0, 80));
+    ImGui::PlotLines("Preview", samples.data(), samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
 }
 
 void spuWindow(SPU *spu) {
     if (!showSpuWindow) {
         return;
     }
-    static bool convertSamplerate = true;
+    static bool parseValues = true;
 
-    const int COL_NUM = 8;
+    const int COL_NUM = 9;
     float columnsWidth[COL_NUM] = {0};
     
     auto column = [&](const std::string& str){
@@ -34,20 +34,31 @@ void spuWindow(SPU *spu) {
         if (++n >= COL_NUM) n = 0;
     };
 
+    auto mapState = [](SPU::Voice::State state) -> std::string {
+        switch(state) {
+            case SPU::Voice::State::Attack:  return "A   ";
+            case SPU::Voice::State::Decay:   return " D  ";
+            case SPU::Voice::State::Sustain: return "  S ";
+            case SPU::Voice::State::Release: return "   R";
+            case SPU::Voice::State::Off:     return "";
+        }
+    };
+
     ImGui::Begin("SPU", &showSpuWindow);
 
-    ImGui::Columns(8, nullptr, false);
+    ImGui::Columns(COL_NUM, nullptr, false);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     column("");
-    column("Flags");
+    column("State");
     column("VolL");
     column("VolR");
     column("Sample rate");
     column("Start addr");
     column("Repeat addr");
     column("ADSR");
+    column("Flags");
     for (int i = 0; i < SPU::VOICE_COUNT; i++) {
         auto &v = spu->voices[i];
 
@@ -57,12 +68,17 @@ void spuWindow(SPU *spu) {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
 
         column(string_format("%d", i + 1));
-        bool keyOn = v.playing;
-        column(string_format("%c", keyOn ? 'P' : ' '));
-        column(string_format("%04x", v.volume.left));
-        column(string_format("%04x", v.volume.right));
 
-        if (convertSamplerate) {
+        column(mapState(v.state));
+        if (parseValues) {
+            column(string_format("%.0f", v.volume.getLeft()*100.f));
+            column(string_format("%.0f", v.volume.getRight()*100.f));
+        } else {
+            column(string_format("%04x", v.volume.left));
+            column(string_format("%04x", v.volume.right));
+        }
+
+        if (parseValues) {
             column(string_format("%5d Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
         } else {
             column(string_format("%04x", v.sampleRate._reg));
@@ -70,6 +86,11 @@ void spuWindow(SPU *spu) {
         column(string_format("%04x", v.startAddress._reg));
         column(string_format("%04x", v.repeatAddress._reg));
         column(string_format("%08x", v.ADSR._reg));
+        column(string_format("%s %s", 
+            spu->voiceChannelReverbMode.getBit(i)?"Reverb":"",
+            v.mode == SPU::Voice::Mode::Noise?"Noise":"",
+            v.pitchModulation ? "PitchModulation" : ""
+        ));
         
         ImGui::PopStyleColor();
     }
@@ -88,7 +109,9 @@ void spuWindow(SPU *spu) {
     ImGui::Text("Control:     %04x     %-10s   %-4s   %-8s   %-3s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
                 spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "");
 
-    ImGui::Checkbox("Convert sample rate", &convertSamplerate);
+    ImGui::Text("IRQ Address: %08x", spu->irqAddress._reg*8);
+
+    ImGui::Checkbox("Parse values", &parseValues);
 
     ImGui::PopStyleVar();
 

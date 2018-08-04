@@ -5,7 +5,29 @@
 #include "device.h"
 #include "utils/string.h"
 
+struct System;
+
 struct SPU {
+    union ADSR {
+        struct {
+
+        };
+        uint32_t _reg;  
+        uint8_t _byte[4];
+
+        ADSR() : _reg(0) {}
+
+        void write(int n, uint8_t v) {
+            if (n >= 4) return;
+            _byte[n] = v;
+        }
+
+        uint8_t read(int n) const {
+            if (n >= 4) return 0;
+            return _byte[n];
+        }
+    };
+
     union Volume {
         struct {
             uint16_t left;
@@ -37,6 +59,12 @@ struct SPU {
         }
     };
     struct Voice {
+        enum class State{
+            Attack, Decay, Sustain, Release, Off
+        };
+        enum class Mode{
+            ADSR, Noise
+        };
         Volume volume;
         Reg16 sampleRate;
         Reg16 startAddress;
@@ -46,7 +74,11 @@ struct SPU {
 
         Reg16 currentAddress;
         float subAddress;
-        bool playing;
+        State state;
+        Mode mode;
+        bool pitchModulation;
+
+        bool loopEnd;
 
         // ADPCM decoding
         int32_t prevSample[2];
@@ -61,7 +93,10 @@ struct SPU {
             repeatAddress._reg = 0;
             currentAddress._reg = 0;
             subAddress = 0;
-            playing = false;
+            state = State::Off;
+            loopEnd = false;
+            mode = Mode::ADSR;
+            pitchModulation = false;
 
             prevSample[0] = prevSample[1] = 0;
         }
@@ -102,7 +137,7 @@ struct SPU {
     static const uint32_t BASE_ADDRESS = 0x1f801c00;
     static const int VOICE_COUNT = 24;
     static const int RAM_SIZE = 1024 * 512;
-    static const size_t AUDIO_BUFFER_SIZE = 28 * 2 * 100;
+    static const size_t AUDIO_BUFFER_SIZE = 28 * 2 * 10;
 
     bool bufferReady = false;
 
@@ -113,6 +148,7 @@ struct SPU {
     Volume extVolume;
     Volume reverbVolume;
 
+    Reg32 pitchModulationEnable;
     Reg32 voiceChannelReverbMode;
 
     Reg16 irqAddress;
@@ -127,12 +163,14 @@ struct SPU {
     size_t audioBufferPos;
     std::array<int16_t, AUDIO_BUFFER_SIZE> audioBuffer;
 
+    System* sys;
+
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);
     void voiceKeyOn(int i);
     void voiceKeyOff(int i);
 
-    SPU();
+    SPU(System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
