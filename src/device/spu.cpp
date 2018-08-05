@@ -1,6 +1,6 @@
 #include "spu.h"
-#include <cstring>
 #include <array>
+#include <cstring>
 #include "sound/adpcm.h"
 #include "system.h"
 
@@ -11,14 +11,18 @@ SPU::SPU(System* sys) : sys(sys) {
 
 // Convert normalized float to int16_T
 int16_t floatToInt(float val) {
-    if (val > 0) return val * static_cast<int16_t>(INT16_MAX);
-    else return -val * static_cast<int16_t>(INT16_MIN);
+    if (val > 0)
+        return val * static_cast<int16_t>(INT16_MAX);
+    else
+        return -val * static_cast<int16_t>(INT16_MIN);
 }
 
 // Convert int16_t to normalized float
 float intToFloat(int16_t val) {
-    if (val > 0) return static_cast<float>(val) / static_cast<float>(INT16_MAX);
-    else return -static_cast<float>(val) / static_cast<float>(INT16_MIN);
+    if (val > 0)
+        return static_cast<float>(val) / static_cast<float>(INT16_MAX);
+    else
+        return -static_cast<float>(val) / static_cast<float>(INT16_MIN);
 }
 
 float clamp(float val, float min, float max) {
@@ -38,7 +42,7 @@ void SPU::step() {
         if (voice.decodedSamples.empty()) {
             auto readAddress = voice.currentAddress._reg * 8;
             if (control.irqEnable && readAddress == irqAddress._reg * 8) {
-                SPUSTAT._reg |= 1<<6;
+                SPUSTAT._reg |= 1 << 6;
                 sys->interrupt->trigger(interrupt::SPU);
             }
             voice.decodedSamples = ADPCM::decode(&ram[readAddress], voice.prevSample);
@@ -78,7 +82,7 @@ void SPU::step() {
 
     sumLeft *= mainVolume.getLeft();
     sumRight *= mainVolume.getRight();
-    
+
     audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));
     audioBuffer[audioBufferPos + 1] = floatToInt(clamp(sumRight, -1.f, 1.f));
 
@@ -93,7 +97,7 @@ void SPU::step() {
 
         if (++cnt == 0x200) {
             cnt = 0;
-            SPUSTAT._reg |= 1<<6;
+            SPUSTAT._reg |= 1 << 6;
             sys->interrupt->trigger(interrupt::SPU);
         }
     }
@@ -136,13 +140,14 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 
     switch (reg) {
         case 0:
-        case 1: 
+        case 1:
         case 2:
-        case 3: voices[voice].volume.write(reg, data); 
-        if (reg == 3 && voices[voice].volume._reg & 0x80000000) {
-            printf("[SPU][WARN] Volume Sweep enabled for voice %d\n", voice);
-        }
-        return;
+        case 3:
+            voices[voice].volume.write(reg, data);
+            if (reg == 3 && voices[voice].volume._reg & 0x80000000) {
+                printf("[SPU][WARN] Volume Sweep enabled for voice %d\n", voice);
+            }
+            return;
 
         case 4:
         case 5: voices[voice].sampleRate.write(reg - 4, data); return;
@@ -211,8 +216,15 @@ uint8_t SPU::read(uint32_t address) {
         return status._byte[address - 0x1f801d9c];
     }
 
-    if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb 
-        return voiceChannelReverbMode.read(address - 0x1f801d98);
+    if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb
+        static Reg32 reverb;
+        if (address == 0x1f801d98) {
+            for (int v = 0; v < VOICE_COUNT; v++) {
+                reverb.setBit(v, voices[v].reverb);
+            }
+        }
+
+        return reverb.read(address - 0x1f801d98);
     }
 
     if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
@@ -288,17 +300,29 @@ void SPU::write(uint32_t address, uint8_t data) {
     if (address >= 0x1F801D94 && address <= 0x1F801D97) {  // Voice noise mode
         static Reg32 noiseEnabled;
         noiseEnabled.write(address - 0x1F801D94, data);
-        
-        if ( address == 0x1F801D97) {
+
+        if (address == 0x1F801D97) {
             for (int v = 0; v < VOICE_COUNT; v++) {
-                voices[v].mode = noiseEnabled.getBit(v)?Voice::Mode::Noise : Voice::Mode::ADSR;
+                voices[v].mode = noiseEnabled.getBit(v) ? Voice::Mode::Noise : Voice::Mode::ADSR;
             }
         }
         return;
     }
 
-    if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb 
-        voiceChannelReverbMode.write(address - 0x1f801d98, data);
+    if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb
+        static Reg32 reverb;
+        reverb.write(address - 0x1f801d98, data);
+
+        if (address == 0x1f801d9b) {
+            for (int v = 0; v < VOICE_COUNT; v++) {
+                voices[v].reverb = reverb.getBit(v);
+            }
+        }
+        return;
+    }
+
+    if (address >= 0x1F801DA2 && address <= 0x1F801DA3) {  // Reverb Work area start
+        reverbBase.write(address - 0x1F801DA2, data);
         return;
     }
 
@@ -311,8 +335,8 @@ void SPU::write(uint32_t address, uint8_t data) {
         dataAddress.write(address - 0x1f801da6, data);
         currentDataAddress = dataAddress._reg * 8;
 
-            SPUSTAT._reg |= 1<<6;
-            sys->interrupt->trigger(interrupt::SPU);
+        SPUSTAT._reg |= 1 << 6;
+        sys->interrupt->trigger(interrupt::SPU);
         return;
     }
 
@@ -325,7 +349,7 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        SPUSTAT._reg &= ~(1<<6); // Ack IRQ flag
+        SPUSTAT._reg &= ~(1 << 6);                         // Ack IRQ flag
         control._byte[address - 0x1f801daa] = data;
         return;
     }
@@ -347,6 +371,13 @@ void SPU::write(uint32_t address, uint8_t data) {
 
     if (address >= 0x1F801DB4 && address <= 0x1F801DB7) {  // External input Volume L/R
         extVolume.write(address - 0x1F801DB4, data);
+        return;
+    }
+
+    if (address >= 0x1F801DC0 && address <= 0x1F801DFF) {  // Reverb registers
+        auto reg = address - 0x1F801DC0 / 2;
+        auto byte = address - 0x1F801DC0 % 2;
+        reverbRegisters[reg].write(byte, data);
         return;
     }
 

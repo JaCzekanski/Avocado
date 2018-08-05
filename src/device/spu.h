@@ -1,7 +1,7 @@
 #pragma once
+#include <array>
 #include <deque>
 #include <vector>
-#include <array>
 #include "device.h"
 #include "utils/string.h"
 
@@ -10,9 +10,30 @@ struct System;
 struct SPU {
     union ADSR {
         struct {
+            uint32_t sustainLevel : 4;
 
+            // No decay step, always -8
+            uint32_t decayShift : 4;
+            // No decay direction, always decrease
+            // No decay mode, always Exponential
+
+            uint32_t attackStep : 2;
+            uint32_t attackShift : 5;
+            // No attack direction, always increase
+            uint32_t attackMode : 1;
+
+            // No release step, always -8
+            uint32_t releaseShift : 5;
+            // No release direction, always decrease
+            uint32_t releaseMode : 1;
+
+            uint32_t sustainStep : 2;
+            uint32_t sustainShift : 5;
+            uint32_t : 1;
+            uint32_t sustainDirection : 1;  // 0 - increase, 1 - decrease
+            uint32_t sustainMode : 1;       // 0 - linear, 1 - exponential
         };
-        uint32_t _reg;  
+        uint32_t _reg;
         uint8_t _byte[4];
 
         ADSR() : _reg(0) {}
@@ -33,7 +54,7 @@ struct SPU {
             uint16_t left;
             uint16_t right;
         };
-        uint32_t _reg;  
+        uint32_t _reg;
         uint8_t _byte[4];
 
         Volume() : left(0), right(0) {}
@@ -59,16 +80,12 @@ struct SPU {
         }
     };
     struct Voice {
-        enum class State{
-            Attack, Decay, Sustain, Release, Off
-        };
-        enum class Mode{
-            ADSR, Noise
-        };
+        enum class State { Attack, Decay, Sustain, Release, Off };
+        enum class Mode { ADSR, Noise };
         Volume volume;
         Reg16 sampleRate;
         Reg16 startAddress;
-        Reg32 ADSR;
+        ADSR ADSR;
         Reg16 ADSRVolume;
         Reg16 repeatAddress;
 
@@ -77,6 +94,7 @@ struct SPU {
         State state;
         Mode mode;
         bool pitchModulation;
+        bool reverb;
 
         bool loopEnd;
 
@@ -97,6 +115,7 @@ struct SPU {
             loopEnd = false;
             mode = Mode::ADSR;
             pitchModulation = false;
+            reverb = false;
 
             prevSample[0] = prevSample[1] = 0;
         }
@@ -148,9 +167,6 @@ struct SPU {
     Volume extVolume;
     Volume reverbVolume;
 
-    Reg32 pitchModulationEnable;
-    Reg32 voiceChannelReverbMode;
-
     Reg16 irqAddress;
     Reg16 dataAddress;
     uint32_t currentDataAddress;
@@ -159,6 +175,9 @@ struct SPU {
     Reg16 SPUSTAT;
 
     uint8_t ram[RAM_SIZE];
+
+    Reg16 reverbBase;
+    Reg16 reverbRegisters[32];
 
     size_t audioBufferPos;
     std::array<int16_t, AUDIO_BUFFER_SIZE> audioBuffer;
