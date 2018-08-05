@@ -1,12 +1,13 @@
 #include <imgui.h>
 #include <vector>
-#include "device/spu.h"
+#include "device/spu/spu.h"
 #include "gui.h"
 #include "utils/string.h"
 
+using namespace spu;
 extern bool showSpuWindow;
 
-void channelsInfo(SPU* spu, bool parseValues) {
+void channelsInfo(spu::SPU* spu, bool parseValues) {
     const int COL_NUM = 9;
     float columnsWidth[COL_NUM] = {0};
 
@@ -20,17 +21,17 @@ void channelsInfo(SPU* spu, bool parseValues) {
         if (++n >= COL_NUM) n = 0;
     };
 
-    auto mapState = [](SPU::Voice::State state) -> std::string {
+    auto mapState = [](Voice::State state) -> std::string {
         switch (state) {
-            case SPU::Voice::State::Attack: return "A   ";
-            case SPU::Voice::State::Decay: return " D  ";
-            case SPU::Voice::State::Sustain: return "  S ";
-            case SPU::Voice::State::Release: return "   R";
-            case SPU::Voice::State::Off: return "";
+            case Voice::State::Attack: return "A   ";
+            case Voice::State::Decay: return " D  ";
+            case Voice::State::Sustain: return "  S ";
+            case Voice::State::Release: return "   R";
+            case Voice::State::Off: return "";
         }
     };
 
-    auto adsrInfo = [](SPU::ADSR adsr) -> std::string {
+    auto adsrInfo = [](ADSR adsr) -> std::string {
         std::string s;
         s += "Attack:\n";
         s += string_format("Step:      +%d\n", adsr.attackStep + 4);
@@ -106,7 +107,7 @@ void channelsInfo(SPU* spu, bool parseValues) {
             ImGui::EndTooltip();
         }
 
-        column(string_format("%s %s", v.reverb ? "Reverb" : "", v.mode == SPU::Voice::Mode::Noise ? "Noise" : "",
+        column(string_format("%s %s", v.reverb ? "Reverb" : "", v.mode == Voice::Mode::Noise ? "Noise" : "",
                              v.pitchModulation ? "PitchModulation" : ""));
 
         ImGui::PopStyleColor();
@@ -121,7 +122,7 @@ void channelsInfo(SPU* spu, bool parseValues) {
     ImGui::TreePop();
 }
 
-void reverbInfo(SPU* spu) {
+void reverbInfo(spu::SPU* spu) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("Base: 0x%08x", spu->reverbBase._reg * 8);
 
@@ -143,21 +144,24 @@ void reverbInfo(SPU* spu) {
     ImGui::TreePop();
 }
 
-void registersInfo(SPU* spu) {
+void registersInfo(spu::SPU* spu) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("Main   volume: %08x", spu->mainVolume._reg);
     ImGui::Text("CD     volume: %08x", spu->cdVolume._reg);
     ImGui::Text("Ext    volume: %08x", spu->extVolume._reg);
     ImGui::Text("Reverb volume: %08x", spu->reverbVolume._reg);
-    ImGui::Text("Control:     %04x     %-10s   %-4s   %-8s   %-3s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
+    ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
                 spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "");
+
+    ImGui::Text("Status:  0x%0x04  %-3s",  spu->SPUSTAT._reg,
+        (spu->SPUSTAT._reg & (1<<6))?"IRQ":"");
 
     ImGui::Text("IRQ Address: 0x%08x", spu->irqAddress._reg * 8);
     ImGui::PopStyleVar();
     ImGui::TreePop();
 }
 
-void renderSamples(SPU* spu) {
+void renderSamples(spu::SPU* spu) {
     std::vector<float> samples;
     for (auto s : spu->audioBuffer) {
         samples.push_back((float)s / (float)0x7fff);
@@ -166,7 +170,7 @@ void renderSamples(SPU* spu) {
     ImGui::PlotLines("Preview", samples.data(), samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
 }
 
-void spuWindow(SPU* spu) {
+void spuWindow(spu::SPU* spu) {
     if (!showSpuWindow) {
         return;
     }

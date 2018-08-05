@@ -1,12 +1,13 @@
 #pragma once
 #include "dmaChannel.h"
-#include "spu.h"
+#include "system.h"
+#include "spu/spu.h"
 
 namespace device {
 namespace dma {
 namespace dmaChannel {
 class DMA4Channel : public DMAChannel {
-    SPU *spu = nullptr;
+    spu::SPU *spu = nullptr;
 
     uint32_t readDevice() override { return 0; }
     void writeDevice(uint32_t data) override {
@@ -17,7 +18,7 @@ class DMA4Channel : public DMAChannel {
     }
 
    public:
-    DMA4Channel(int channel, System *sys, SPU *spu) : DMAChannel(channel, sys), spu(spu) {}
+    DMA4Channel(int channel, System *sys, spu::SPU *spu) : DMAChannel(channel, sys), spu(spu) {}
 };
 }  // namespace dmaChannel
 }  // namespace dma

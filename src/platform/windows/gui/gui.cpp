@@ -21,7 +21,7 @@ void breakpointsWindow(System* sys);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
 void cdromWindow(System* sys);
-void spuWindow(SPU* spu);
+void spuWindow(spu::SPU* spu);
 
 bool showGui = true;
 

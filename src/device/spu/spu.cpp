@@ -1,11 +1,13 @@
 #include "spu.h"
 #include <array>
-#include <cstring>
+#include <vector>
 #include "sound/adpcm.h"
 #include "system.h"
 
+using namespace spu;
+
 SPU::SPU(System* sys) : sys(sys) {
-    memset(ram, 0, RAM_SIZE);
+    ram.fill(0);
     audioBufferPos = 0;
 }
 
@@ -234,7 +236,6 @@ uint8_t SPU::read(uint32_t address) {
     if (address >= 0x1f801dae && address <= 0x1f801daf) {  // SPUSTAT
         SPUSTAT._reg &= 0x0FC0;
         SPUSTAT._reg |= (control._reg & 0x3F);
-        // printf("SPUSTAT READ 0x%04x\n", SPUSTAT._reg);
         return SPUSTAT.read(address - 0x1f801dae);
     }
 
@@ -335,7 +336,6 @@ void SPU::write(uint32_t address, uint8_t data) {
         dataAddress.write(address - 0x1f801da6, data);
         currentDataAddress = dataAddress._reg * 8;
 
-        SPUSTAT._reg |= 1 << 6;
         sys->interrupt->trigger(interrupt::SPU);
         return;
     }
@@ -349,7 +349,7 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        SPUSTAT._reg &= ~(1 << 6);                         // Ack IRQ flag
+        SPUSTAT._reg &= ~(1<<6);
         control._byte[address - 0x1f801daa] = data;
         return;
     }
@@ -386,6 +386,6 @@ void SPU::write(uint32_t address, uint8_t data) {
 
 void SPU::dumpRam() {
     std::vector<uint8_t> ram;
-    ram.assign(this->ram, this->ram + RAM_SIZE - 1);
+    ram.assign(this->ram.begin(), this->ram.end());
     putFileContents("spu.bin", ram);
 }

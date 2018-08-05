@@ -5,7 +5,10 @@
 #include "sound/audio_cd.h"
 #include "system.h"
 #include "utils/bcd.h"
+#include "utils/string.h"
+#include "device/dma3Channel.h"
 
+// TODO: CDROM shouldn't know about DMA channels
 #define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())
 
 namespace device {

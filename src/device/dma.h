@@ -1,10 +1,6 @@
 #pragma once
 #include <memory>
-#include "device.h"
-#include "dma2Channel.h"
-#include "dma3Channel.h"
-#include "dma4Channel.h"
-#include "dma6Channel.h"
+#include "device/device.h"
 #include "dmaChannel.h"
 #include "gpu/gpu.h"
 

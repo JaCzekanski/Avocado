@@ -1,5 +1,9 @@
 #include "dma.h"
 #include <cstdio>
+#include "dma2Channel.h"
+#include "dma3Channel.h"
+#include "dma4Channel.h"
+#include "dma6Channel.h"
 #include "system.h"
 
 namespace device {

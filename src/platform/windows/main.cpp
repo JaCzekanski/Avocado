@@ -207,6 +207,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
 
     if (cue != nullptr) {
         sys->cdrom->cue = *cue;
+        // TODO: Remove dynamic casts
         bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())->load(cue->tracks[0].filename);
         sys->cdrom->setShell(!success);
         printf("File %s loaded\n", filenameExt.c_str());
