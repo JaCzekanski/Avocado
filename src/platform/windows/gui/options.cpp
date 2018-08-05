@@ -105,7 +105,7 @@ void button(std::string button) {
 
     std::string key = config["controller"][button];
 
-    ImGui::Text(button.c_str());
+    ImGui::TextUnformatted(button.c_str());
     ImGui::NextColumn();
     if (ImGui::Button(key.c_str(), ImVec2(100.f, 0.f))) {
         currentButton = button;

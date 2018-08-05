@@ -17,15 +17,6 @@ void audioCallback(uint8_t* raw_stream, int len) {
     AudioCD::currentPosition = AudioCD::currentPosition + Position(0, 0, 4);
     uint8_t* samples = (uint8_t*)bytes.data();
 
-    for (int i = 0; i < len; i += 2) {
-        if (audioBuf.empty()) break;
-        auto sample = audioBuf.front();
-        audioBuf.pop_front();
-
-        raw_stream[i] = sample;
-        raw_stream[i + 1] = sample >> 8;
-    }
-    printf("Audio: consumed %d bytes\n", len);
 }
 }  // namespace
 

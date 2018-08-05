@@ -33,7 +33,7 @@ void cdromWindow(System* sys) {
                 auto track = cue.tracks[i];
 
                 bool nodeOpened
-                    = ImGui::TreeNode((void*)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-8s  %-9d  %-5s  %s", i, POSITION(track.pregap),
+                    = ImGui::TreeNode((void*)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-8s  %-9zu  %-5s  %s", i, POSITION(track.pregap),
                                       POSITION(track.pause), POSITION(track.start), POSITION(track.end), track.offsetInFile,
                                       track.type == utils::Track::Type::DATA ? "DATA" : "AUDIO", track.filename.c_str());
 

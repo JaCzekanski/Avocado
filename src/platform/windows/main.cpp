@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
                     printf("save audio buf\n");
                     FILE* f = fopen("audio.bin", "wb");
                     if (f) {
-                        for (int i = 0; i < audioBuf.size(); i++) {
+                        for (size_t i = 0; i < audioBuf.size(); i++) {
                             fputc(audioBuf[i] & 0xff, f);
                             fputc((audioBuf[i] >> 8) & 0xff, f);
                         }

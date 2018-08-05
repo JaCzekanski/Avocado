@@ -22,7 +22,7 @@ void parse(System* sys) {
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
 
-    for (int i = 0; i < count; i++) {
+    for (auto i = 0u; i < count; i++) {
         uint32_t ptr = sys->readMemory32(addr + i * size + 0);
         ImGui::Text("Process  %d", i);
         ImGui::Text("ptr      0x%08x", ptr);
@@ -44,9 +44,8 @@ void parse(System* sys) {
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
 
-    for (int i = 0; i < count; i++) {
+    for (auto i = 0u; i < count; i++) {
         uint32_t status = sys->readMemory32(addr + i * size + 0);
-        uint32_t not_used = sys->readMemory32(addr + i * size + 4);
         uint32_t r[32];
         for (int j = 0; j < 32; j++) {
             r[j] = sys->readMemory32(addr + i * size + 8 + j * 4);
@@ -153,7 +152,7 @@ void parse(System* sys) {
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
 
-    for (int i = 0; i < count; i++) {
+    for (auto i = 0u; i < count; i++) {
         uint32_t clazz = sys->readMemory32(addr + i * size + 0);
         uint32_t status = sys->readMemory32(addr + i * size + 4);
         uint32_t spec = sys->readMemory32(addr + i * size + 8);

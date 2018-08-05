@@ -42,7 +42,6 @@ class DigitalController {
 };
 
 class Controller {
-    const int baseAddress = 0x1f801040;
     System* sys;
     DigitalController state;
 

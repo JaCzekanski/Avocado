@@ -807,7 +807,6 @@ void op_swc2(CPU *cpu, Opcode i) {
 
 // Invalid coprocessor stub
 void invalid_cop(CPU *cpu, Opcode i) {
-    uint32_t addr = cpu->reg[i.rs] + i.offset;
     exception(cpu, COP0::CAUSE::Exception::busErrorData);
 }
 
