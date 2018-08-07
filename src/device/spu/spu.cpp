@@ -39,7 +39,7 @@ void SPU::step() {
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
 
-        if (voice.state == Voice::State::Off || voice.state == Voice::State::Release) continue;
+        if (voice.state == Voice::State::Off ) continue;
 
         if (voice.decodedSamples.empty()) {
             auto readAddress = voice.currentAddress._reg * 8;
@@ -53,19 +53,121 @@ void SPU::step() {
         // Modify volume
         float sample = intToFloat(voice.decodedSamples[(int)voice.subAddress]);
 
+        if (voice.adsrWaitCycles > 0) {
+            voice.adsrWaitCycles--;
+        }
+
+        if (voice.state == Voice::State::Attack) {
+            auto adsr = voice.ADSR;
+            auto cycles = 1 << std::max(0, adsr.attackShift - 11);
+            auto step = (4+adsr.attackStep) << std::max(0, 11-adsr.attackShift);
+
+            // 1 - exponential
+            // Direction - always increase
+            if (adsr.attackMode == 1 && 1 && voice.ADSRVolume._reg > 0x6000) {
+                cycles *= 4;
+            }
+            if (adsr.attackMode == 1 && 0) {
+                step = step * static_cast<float>(voice.ADSRVolume._reg)/0x8000;
+            }
+
+            // Wait cycles
+            if (voice.adsrWaitCycles == 0) {
+                voice.adsrWaitCycles = cycles;
+                voice.ADSRVolume._reg = std::min(0x7fff,(int32_t)voice.ADSRVolume._reg + step);
+
+                if (voice.ADSRVolume._reg == 0x7fff) {
+                    voice.state = Voice::State::Decay;
+                    voice.adsrWaitCycles = 0;
+                }
+            }
+        }
+        if (voice.state == Voice::State::Decay) {
+            auto adsr = voice.ADSR;
+            auto cycles = 1 << std::max(0, adsr.decayShift - 11);
+            auto step = (-8) << std::max(0, 11-adsr.decayShift);
+
+            // 1 - always exponential
+            // Direction - always decrease
+                step = (float)step * static_cast<float>(voice.ADSRVolume._reg)/static_cast<float>(0x8000);
+
+
+            // Wait cycles
+            if (voice.adsrWaitCycles == 0) {
+                voice.adsrWaitCycles = cycles;
+                voice.ADSRVolume._reg = std::min(0x7fff,(int32_t)voice.ADSRVolume._reg + step);
+
+                if (voice.ADSRVolume._reg <= ((voice.ADSR.sustainLevel+1) * 0x800)) {
+                    voice.state = Voice::State::Sustain;
+                    voice.adsrWaitCycles = 0;
+                }
+            }
+        }
+        if (voice.state == Voice::State::Sustain) {
+            auto adsr = voice.ADSR;
+            auto cycles = 1 << std::max(0, adsr.sustainShift - 11);
+            int step;
+            if (adsr.sustainDirection == 1) { // decrease
+                step = (-5 - adsr.sustainStep) << std::max(0, 11-adsr.sustainShift);
+            }  else { // increase
+                step = (4 + adsr.sustainStep) << std::max(0, 11-adsr.sustainShift);
+            }
+
+            // 1 - exponential
+            // 0 - increase, 1 - decrease
+            if (adsr.sustainMode == 1 && adsr.sustainDirection == 0 && voice.ADSRVolume._reg > 0x6000) {
+                cycles *= 4;
+            }
+            if (adsr.sustainMode == 1 && adsr.sustainDirection == 1) {
+                step = (float)step * static_cast<float>(voice.ADSRVolume._reg)/static_cast<float>(0x8000);
+            }
+
+            // Wait cycles
+            if (voice.adsrWaitCycles == 0) {
+                voice.adsrWaitCycles = cycles;
+                voice.ADSRVolume._reg = std::min(0x7fff,(int32_t)voice.ADSRVolume._reg + step);
+            }
+        }
+        if (voice.state == Voice::State::Release) {
+            auto adsr = voice.ADSR;
+            auto cycles = 1 << std::max(0, adsr.releaseShift - 11);
+            auto step = (-8) << std::max(0, 11-adsr.releaseShift);
+
+            // 1 - exponential
+            // 0 - increase, 1 - decrease
+            if (adsr.releaseMode == 1) {
+                step = (float)step * static_cast<float>(voice.ADSRVolume._reg)/static_cast<float>(0x8000);
+            }
+
+            // Wait cycles
+            if (voice.adsrWaitCycles == 0) {
+                voice.adsrWaitCycles = cycles;
+                voice.ADSRVolume._reg = std::min(0x7fff,(int32_t)voice.ADSRVolume._reg + step);
+                if ((int16_t)voice.ADSRVolume._reg <= 0) {
+                    voice.state = Voice::State::Off;
+                }
+            }
+        }
+
+        sample *= intToFloat(voice.ADSRVolume._reg);
+
         sumLeft += sample * voice.volume.getLeft();
         sumRight += sample * voice.volume.getRight();
 
         int prevAddr = voice.subAddress;
-        voice.subAddress += (float)std::min((uint16_t)0x1000, voice.sampleRate._reg) / 4096.f;
+        voice.subAddress += (float)std::min((uint16_t)0x4000, voice.sampleRate._reg) / 4096.f;
 
         if ((int)prevAddr == (int)voice.subAddress) continue;
 
         if (voice.subAddress >= 28) {
             voice.subAddress -= 28;
             voice.currentAddress._reg += 2;
-
             voice.decodedSamples.clear();
+
+            if (voice.loadRepeatAddress) {
+                voice.loadRepeatAddress = false;
+                voice.currentAddress._reg = voice.repeatAddress._reg;
+            }
             continue;
         }
 
@@ -75,9 +177,15 @@ void SPU::step() {
             voice.repeatAddress._reg = voice.currentAddress._reg;
         }
 
+
         if (flag & 1) {  // Loop end
-            voice.currentAddress._reg = voice.repeatAddress._reg;
             voice.loopEnd = true;
+            voice.loadRepeatAddress = true;
+
+            if (!(flag & 2)) {  // Loop repeat
+                voice.ADSRVolume._reg = 0;
+                voice.state = Voice::State::Release;
+            }
             // TODO: address should be copied after playing this block
         }
     }
@@ -97,7 +205,7 @@ void SPU::step() {
     if (control.irqEnable && irqAddress._reg < 0x200) {
         static int cnt = 0;
 
-        if (++cnt == 0x200) {
+        if (++cnt == 0x100) {
             cnt = 0;
             SPUSTAT._reg |= 1 << 6;
             sys->interrupt->trigger(interrupt::SPU);
@@ -127,7 +235,8 @@ uint8_t SPU::readVoice(uint32_t address) const {
         case 11: return voices[voice].ADSR.read(reg - 8);
 
         case 12:
-        case 13: return voices[voice].ADSRVolume.read(reg - 12);
+        case 13:
+        return 0;//voices[voice].ADSRVolume.read(reg - 12);
 
         case 14:
         case 15: return voices[voice].repeatAddress.read(reg - 14);
@@ -183,12 +292,15 @@ void SPU::voiceKeyOn(int i) {
     voice.currentAddress._reg = voice.startAddress._reg;
     voice.state = Voice::State::Attack;
     voice.loopEnd = false;
+    voice.loadRepeatAddress = false;
+    voice.adsrWaitCycles = 0;
 }
 
 void SPU::voiceKeyOff(int i) {
     Voice& voice = voices[i];
 
     voice.state = Voice::State::Release;
+    voice.adsrWaitCycles = 0;
 }
 
 uint8_t SPU::read(uint32_t address) {
@@ -375,8 +487,8 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1F801DC0 && address <= 0x1F801DFF) {  // Reverb registers
-        auto reg = address - 0x1F801DC0 / 2;
-        auto byte = address - 0x1F801DC0 % 2;
+        auto reg = (address - 0x1F801DC0) / 2;
+        auto byte = (address - 0x1F801DC0) % 2;
         reverbRegisters[reg].write(byte, data);
         return;
     }

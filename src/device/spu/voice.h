@@ -22,7 +22,9 @@ namespace spu {
         bool pitchModulation;
         bool reverb;
 
+        int adsrWaitCycles;
         bool loopEnd;
+        bool loadRepeatAddress;
 
         // ADPCM decoding
         int32_t prevSample[2];
@@ -42,6 +44,8 @@ namespace spu {
             mode = Mode::ADSR;
             pitchModulation = false;
             reverb = false;
+            adsrWaitCycles = 0;
+            loadRepeatAddress = false;
 
             prevSample[0] = prevSample[1] = 0;
         }

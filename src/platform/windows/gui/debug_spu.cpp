@@ -8,7 +8,7 @@ using namespace spu;
 extern bool showSpuWindow;
 
 void channelsInfo(spu::SPU* spu, bool parseValues) {
-    const int COL_NUM = 9;
+    const int COL_NUM = 10;
     float columnsWidth[COL_NUM] = {0};
 
     auto column = [&](const std::string& str) {
@@ -68,6 +68,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     column("State");
     column("VolL");
     column("VolR");
+    column("ADSR Vol");
     column("Sample rate");
     column("Start addr");
     column("Repeat addr");
@@ -92,6 +93,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             column(string_format("%04x", v.volume.left));
             column(string_format("%04x", v.volume.right));
         }
+            column(string_format("%04x", v.ADSRVolume._reg));
 
         if (parseValues) {
             column(string_format("%5d Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
@@ -156,7 +158,7 @@ void registersInfo(spu::SPU* spu) {
     ImGui::Text("Status:  0x%0x04  %-3s",  spu->SPUSTAT._reg,
         (spu->SPUSTAT._reg & (1<<6))?"IRQ":"");
 
-    ImGui::Text("IRQ Address: 0x%08x", spu->irqAddress._reg * 8);
+    ImGui::Text("IRQ Address: 0x%08x", spu->irqAddress._reg);
     ImGui::PopStyleVar();
     ImGui::TreePop();
 }
