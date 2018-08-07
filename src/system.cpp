@@ -362,11 +362,13 @@ void System::softReset() {
     state = State::run;
 }
 
+
+
 bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
-    PsxExe exe;
     if (_exe.empty()) return false;
     assert(_exe.size() >= 0x800);
 
+    PsxExe exe;
     memcpy(&exe, _exe.data(), sizeof(exe));
 
     if (exe.t_size > _exe.size() - 0x800) {

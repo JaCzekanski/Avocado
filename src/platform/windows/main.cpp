@@ -17,6 +17,7 @@
 #include "utils/cue/cueParser.h"
 #include "utils/file.h"
 #include "utils/string.h"
+#include "utils/psf.h"
 #include "version.h"
 #include "sound/sound.h"
 #include "bios/exe_bootstrap.h"
@@ -161,6 +162,11 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
 
     if (filenameExt == "makefile.mak") {
         loadAssetsFromMakefile(sys, getPath(path), getFileContentsAsString(path));
+        return;
+    }
+
+    if (ext == "psf" || ext == "minipsf" || ext=="psflib") {
+        loadPsf(sys.get(), path);
         return;
     }
 

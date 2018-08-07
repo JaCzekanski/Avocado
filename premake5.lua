@@ -134,6 +134,18 @@ project "glad"
 		"externals/glad/src/*.c",
 	}
 
+project "miniz"
+	uuid "4D28CBE8-3092-4400-B67B-FD51FCAFBD34"
+	kind "StaticLib"
+	language "c"
+	location "build/libs/miniz"
+	includedirs { 
+		"externals/miniz"
+	}
+	files { 
+		"externals/miniz/*.c",
+	}
+
 project "imgui"
 	uuid "a8f18b69-f15a-4804-80f7-e8f80ab91369"
 	kind "StaticLib"
@@ -152,10 +164,15 @@ project "common"
 	kind "StaticLib"
 	location "build/libs/common"
 
+	dependson {
+		"miniz"
+	}
+
 	includedirs { 
 		"src", 
 		"externals/glm",
-		"externals/json/include"
+		"externals/json/include",
+		"externals/miniz"
 	}
 
 	files { 
@@ -167,6 +184,10 @@ project "common"
 		"src/imgui/**.*",
 		"src/renderer/**.*",
 		"src/platform/**.*"
+	}
+
+	links {
+		"miniz"
 	}
 
 	filter "system:windows" 
@@ -196,7 +217,8 @@ project "avocado"
 	}
 
 	links {
-		"common"
+		"common",
+		"miniz"
 	}
 
 	filter "system:windows" 
