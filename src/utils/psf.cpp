@@ -1,20 +1,55 @@
 #include "psf.h"
-#include "miniz.h"
 #include <cstring>
 #include <sstream>
+#include "miniz.h"
+#include "utils/psx_exe.h"
 
+namespace {
 uint32_t read_u32(const std::vector<uint8_t>& vec, size_t offset) {
-    if (offset+4 > vec.size()) return 0;
+    if (offset + 4 > vec.size()) return 0;
 
     uint32_t ret = 0;
     ret |= vec[offset];
-    ret |= vec[offset+1] << 8;
-    ret |= vec[offset+2] << 16;
-    ret |= vec[offset+3] << 24;
+    ret |= vec[offset + 1] << 8;
+    ret |= vec[offset + 2] << 16;
+    ret |= vec[offset + 3] << 24;
     return ret;
 }
 
-bool loadPsf(System* sys, const std::string& path) {
+bool loadExe(System* sys, const std::vector<uint8_t>& _exe, PsfType type) {
+    if (_exe.empty()) return false;
+    assert(_exe.size() >= 0x800);
+
+    PsxExe exe;
+    memcpy(&exe, _exe.data(), sizeof(exe));
+
+    if (exe.t_size > _exe.size() - 0x800) {
+        printf("Invalid exe t_size: 0x%08x\n", exe.t_size);
+        return false;
+    }
+
+    for (size_t i = 0; i < exe.t_size; i++) {
+        sys->writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
+    }
+
+    if (type == PsfType::Main || type == PsfType::MainLib) {
+        for (int i = 0; i < 32; i++) sys->cpu->reg[i] = 0;
+        sys->cpu->PC = exe.pc0;
+        sys->cpu->reg[28] = exe.gp0;
+        sys->cpu->reg[29] = exe.s_addr;
+        if (sys->cpu->reg[29] == 0) sys->cpu->reg[29] = 0x801ffff0;
+
+        sys->cpu->exception = false;
+        sys->cpu->shouldJump = false;
+        sys->cpu->jumpPC = 0;
+    }
+
+    return true;
+}
+}  // namespace
+
+bool loadPsf(System* sys, const std::string& path, PsfType type) {
+    printf("Loading %s\n", path.c_str());
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
@@ -37,13 +72,15 @@ bool loadPsf(System* sys, const std::string& path) {
     auto compressedSize = read_u32(file, 8);
 
     std::vector<uint8_t> exe;
-    size_t exeSize = 2*1024*1024;
-    exe.resize(exeSize);
-    
-    mz_uncompress(exe.data(), &exeSize, file.data()+16, compressedSize);
-
+    size_t exeSize = 2 * 1024 * 1024;
     exe.resize(exeSize);
 
+    mz_uncompress(exe.data(), &exeSize, file.data() + 16, compressedSize);
+
+    exe.resize(exeSize);
+    loadExe(sys, exe, type);
+
+    bool libsLoaded = false;
     auto tagOffset = 16 + compressedSize;
     if (file.size() < tagOffset + 5 || memcmp("[TAG]", file.data() + tagOffset, 5) != 0) {
         return true;
@@ -56,16 +93,31 @@ bool loadPsf(System* sys, const std::string& path) {
 
         std::string line;
         while (std::getline(stream, line)) {
-            if (line.rfind("_lib", 0) == 0) {
-                // Load libs
+            if (line.rfind("_lib=", 0) == 0) {
+                std::string libFile = line.substr(line.find("=") + 1);
+                std::string libPath = getPath(path) + libFile;
+
+                loadPsf(sys, libPath, PsfType::MainLib);
+                libsLoaded = true;
+                continue;
             }
-            
+            if (line.rfind("_lib", 0) == 0) {
+                std::string libFile = line.substr(line.find("=") + 1);
+                std::string libPath = getPath(path) + libFile;
+
+                loadPsf(sys, libPath, PsfType::SecondaryLib);
+                libsLoaded = true;
+                continue;
+            }
+            if (type != PsfType::Main) break;
+
             printf("[PSF]%s\n", line.c_str());
         }
     }
 
-putFileContents("dump.exe" ,exe);
-    sys->loadExeFile(exe);
+    if (libsLoaded && (type == PsfType::Main || type == PsfType::SecondaryLib)) {
+        loadExe(sys, exe, PsfType::SecondaryLib);
+    }
 
     return true;
 }
