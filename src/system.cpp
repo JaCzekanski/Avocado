@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sound/sound.h>
 #include "bios/functions.h"
 #include "config.h"
 #include "utils/file.h"
@@ -299,7 +300,6 @@ void System::singleStep() {
 }
 
 void System::emulateFrame() {
-    extern std::deque<int16_t> audioBuf;
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();
 #endif
@@ -320,17 +320,17 @@ void System::emulateFrame() {
         timer1->step(systemCycles);
         timer2->step(systemCycles);
 
-        static float spuWtf = 0;
-        spuWtf += (float)systemCycles / 1.5 / (float)0x300;
-        if (spuWtf >= 1.f) {
+        static float spuCounter = 0;
+        // TODO: Yey, magic numbers!
+        spuCounter += (float)systemCycles / 1.575 / (float)0x300;
+        if (spuCounter >= 1.f) {
             spu->step();
-            spuWtf -= 1.0f;
+            spuCounter -= 1.0f;
         }
 
         if (spu->bufferReady) {
             spu->bufferReady = false;
-            // audioBuf.insert(audioBuf.end(), spu->audioBuffer.begin(), spu->audioBuffer.end());
-            fwrite(spu->audioBuffer.data(), sizeof(int16_t), spu->audioBuffer.size(), stderr);
+            Sound::appendBuffer(spu->audioBuffer.begin(), spu->audioBuffer.end());
         }
 
         controller->step();
@@ -361,8 +361,6 @@ void System::softReset() {
     cpu->shouldJump = false;
     state = State::run;
 }
-
-
 
 bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     if (_exe.empty()) return false;

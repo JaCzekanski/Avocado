@@ -11,7 +11,6 @@
 #include "platform/windows/gui/gui.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/adpcm.h"
-#include "sound/audio_cd.h"
 #include "sound/sound.h"
 #include "system.h"
 #include "utils/cue/cueParser.h"
@@ -20,6 +19,7 @@
 #include "utils/psf.h"
 #include "version.h"
 #include "sound/sound.h"
+#include "device/dma3Channel.h"
 #include "bios/exe_bootstrap.h"
 
 #undef main
@@ -28,7 +28,6 @@ const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
 
 std::unique_ptr<System> sys;
-std::vector<int16_t> audioBuf;
 
 device::controller::DigitalController& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
@@ -138,19 +137,13 @@ void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& bas
     }
 }
 
-void loadExe(const std::string& path) {
+void bootstrap() {
     sys = std::make_unique<System>();
     sys->loadBios(config["bios"]);
     sys->loadExpansion(exe_bootstrap);
 
     // Execute BIOS till breakpoint hit (shell is about to be executed)
     while (sys->state == System::State::run) sys->emulateFrame();
-
-    // Replace shell with .exe contents
-    sys->loadExeFile(getFileContents(path));
-
-    // Resume execution
-    sys->state = System::State::run;
 }
 
 void loadFile(std::unique_ptr<System>& sys, std::string path) {
@@ -165,13 +158,20 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         return;
     }
 
-    if (ext == "psf" || ext == "minipsf" || ext=="psflib") {
+    if (ext == "psf" || ext == "minipsf") {
+        bootstrap();
         loadPsf(sys.get(), path);
+        sys->state = System::State::run;
         return;
     }
 
     if (ext == "exe" || ext == "psexe") {
-        loadExe(path);
+        bootstrap();
+        // Replace shell with .exe contents
+        sys->loadExeFile(getFileContents(path));
+
+        // Resume execution
+        sys->state = System::State::run;
         return;
     }
 
@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    AudioCD::init();
+    Sound::init();
 
     hardReset();
 
@@ -337,7 +337,7 @@ int main(int argc, char** argv) {
 
     SDL_GL_SetSwapInterval(0);
 
-    //    Sound::play();
+    Sound::play();
 
     vramTextureId = opengl.getVramTextureId();
     if (!isEmulatorConfigured())
@@ -372,18 +372,6 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_2) sys->interrupt->trigger(interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_d) sys->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) sys->interrupt->trigger(interrupt::SPU);
-                if (event.key.keysym.sym == SDLK_a) {
-                    printf("save audio buf\n");
-                    FILE* f = fopen("audio.bin", "wb");
-                    if (f) {
-                        for (size_t i = 0; i < audioBuf.size(); i++) {
-                            fputc(audioBuf[i] & 0xff, f);
-                            fputc((audioBuf[i] >> 8) & 0xff, f);
-                        }
-
-                        fclose(f);
-                    }
-                }
                 if (event.key.keysym.sym == SDLK_r) {
                     sys->dumpRam();
                     sys->spu->dumpRam();
@@ -459,7 +447,7 @@ int main(int argc, char** argv) {
     }
     saveConfigFile(CONFIG_NAME);
 
-    AudioCD::close();
+    Sound::close();
     ImGui_ImplSdlGL3_Shutdown();
     ImGui::DestroyContext();
     SDL_GL_DeleteContext(glContext);

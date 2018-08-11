@@ -1,29 +1,37 @@
 #include "sound/sound.h"
 #include <SDL.h>
-#include "utils/cue/track.h"
+
+namespace Sound {
+std::deque<uint16_t> buffer;
+std::mutex audioMutex;
+};
 
 namespace {
 SDL_AudioDeviceID dev = 0;
-Sound::AudioCallback _callback = nullptr;
 
 void audioCallback(void* userdata, Uint8* raw_stream, int len) {
-    for (int i = 0; i < len; i++) {
-        raw_stream[i] = 0;
-    }
+    for (int i = 0; i<len; i++) raw_stream[i] = 0;
 
-    if (_callback != nullptr) _callback(raw_stream, len);
+    std::unique_lock<std::mutex> lock(Sound::audioMutex);
+    int bufSize = Sound::buffer.size();
+    for (int i = 0; i<len; i+=2) {
+        if (i/2 >= bufSize) break;
+
+        int16_t sample = Sound::buffer.front();
+        Sound::buffer.pop_front();
+        raw_stream[i] = sample & 0xff;
+        raw_stream[i+1] = (sample>>8) & 0xff;
+    }
 }
 }  // namespace
 
-void Sound::init(AudioCallback callback) {
+void Sound::init() {
     SDL_AudioSpec desired = {}, obtained;
     desired.freq = 44100;
     desired.format = AUDIO_S16;
     desired.channels = 2;
-    desired.samples = 1024;
+    desired.samples = 512;
     desired.callback = audioCallback;
-
-    _callback = callback;
 
     dev = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, 0);
 

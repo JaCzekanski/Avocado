@@ -1,11 +1,21 @@
 #pragma once
 #include <cstdint>
+#include <iterator>
+#include <deque>
+#include <mutex>
 
 namespace Sound {
-typedef void (*AudioCallback)(uint8_t *stream, int len);
+extern std::deque<uint16_t> buffer;
+extern std::mutex audioMutex;
 
-void init(AudioCallback callback);
+void init();
 void play();
 void stop();
 void close();
+
+template<typename Iterator>
+void appendBuffer( const Iterator& start, const Iterator& end ) {
+    std::unique_lock<std::mutex> lock(audioMutex);
+    buffer.insert(buffer.end(), start, end);
+}
 };  // namespace Sound

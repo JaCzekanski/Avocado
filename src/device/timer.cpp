@@ -20,8 +20,8 @@ void Timer<which>::step(int cycles) {
             tval += cnt / 6;
             cnt %= 6;
         } else {  // System Clock
-            tval += cnt / 3;
-            cnt %= 3;
+            tval += cnt / 1.5f;
+            cnt %= (int)1.5f;
         }
     } else if (which == 1) {
         auto clock = static_cast<CounterMode::ClockSource1>(mode.clockSource & 1);
@@ -31,25 +31,25 @@ void Timer<which>::step(int cycles) {
             tval += cnt / 3413;
             cnt %= 3413;
         } else {  // System Clock
-            tval += cnt / 3;
-            cnt %= 3;
+            tval += cnt / 1.5f;
+            cnt %= (int)1.5f;
         }
     } else if (which == 2) {
         auto clock = static_cast<CounterMode::ClockSource2>((mode.clockSource>>1) & 1);
         using modes = CounterMode::ClockSource2;
 
         if (clock == modes::systemClock_8) {
-            tval += cnt / (8 * 3);
-            cnt %= 8 * 3;
+            tval += cnt / (8 * 1.5f);
+            cnt %= (int)(8 * 1.5f);
         } else {  // System Clock
-            tval += cnt / 3;
-            cnt %= 3;
+            tval += cnt * 1.5f;
+            cnt %= (int)1.5f;
         }
     }
 
     bool possibleIrq = false;
 
-    if (tval >= target._reg && target._reg != 0) {
+    if (tval >= target._reg) {
         mode.reachedTarget = true;
         if (mode.resetToZero == CounterMode::ResetToZero::whenTarget) tval = 0;
         if (mode.irqWhenTarget) possibleIrq = true;

@@ -2,7 +2,6 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
-#include "sound/audio_cd.h"
 #include "system.h"
 #include "utils/bcd.h"
 #include "utils/string.h"
@@ -36,7 +35,7 @@ void CDROM::step() {
     if (mode.cddaReport && stat.play && reportcnt++ == 4000) {
         reportcnt = 0;
         // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-        auto pos = AudioCD::currentPosition;
+        auto pos = utils::Position(0,2,0);
 
         int track = 0;
         for (int i = 0; i < cue.getTrackCount(); i++) {
@@ -178,7 +177,7 @@ void CDROM::cmdPlay() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
-    AudioCD::play(cue, pos);
+    // AudioCD::play(cue, pos);
 
     if (verbose) printf("CDROM: cmdPlay (pos: %s)\n", pos.toString().c_str());
 }
@@ -215,7 +214,7 @@ void CDROM::cmdStop() {
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 
-    AudioCD::stop();
+    // AudioCD::stop();
 
     if (verbose) printf("CDROM: cmdStop\n");
 }
@@ -230,7 +229,7 @@ void CDROM::cmdPause() {
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 
-    AudioCD::stop();
+    // AudioCD::stop();
 
     if (verbose) printf("CDROM: cmdPause\n");
 }
@@ -343,7 +342,7 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    auto pos = AudioCD::currentPosition;
+    auto pos = utils::Position(0,2,0);
 
     int track = 0;
     for (int i = 0; i < cue.getTrackCount(); i++) {

@@ -12,7 +12,7 @@ struct SPU {
     static const uint32_t BASE_ADDRESS = 0x1f801c00;
     static const int VOICE_COUNT = 24;
     static const int RAM_SIZE = 1024 * 512;
-    static const size_t AUDIO_BUFFER_SIZE = 28 * 2 * 10;
+    static const size_t AUDIO_BUFFER_SIZE = 28 * 2 * 4;
 
     std::array<Voice, VOICE_COUNT> voices;
 
