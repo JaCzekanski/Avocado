@@ -63,7 +63,7 @@ void renderImgui(System* sys) {
             }
             if (ImGui::BeginMenu("Emulation")) {
                 if (ImGui::MenuItem("Soft reset", "F2")) sys->softReset();
-                if (ImGui::MenuItem("Hard reset")) doHardReset = true;
+                if (ImGui::MenuItem("Hard reset", "Shift+F2")) doHardReset = true;
 
                 const char* shellStatus = sys->cdrom->getShell() ? "Shell opened" : "Shell closed";
                 if (ImGui::MenuItem(shellStatus, "F3")) {

@@ -336,8 +336,7 @@ void System::softReset() {
     state = State::run;
 }
 
-bool System::loadExeFile(std::string exePath) {
-    auto _exe = getFileContents(exePath);
+bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     PsxExe exe;
     if (_exe.empty()) return false;
     assert(_exe.size() >= 0x800);
@@ -384,10 +383,9 @@ bool System::loadBios(std::string path) {
     return true;
 }
 
-bool System::loadExpansion(std::string path) {
+bool System::loadExpansion(const std::vector<uint8_t>& _exp) {
     const char* licenseString = "Licensed by Sony Computer Entertainment Inc";
 
-    auto _exp = getFileContents(path);
     if (_exp.empty()) {
         return false;
     }
@@ -395,7 +393,7 @@ bool System::loadExpansion(std::string path) {
     assert(_exp.size() <= EXPANSION_SIZE);
 
     if (memcmp(_exp.data() + 4, licenseString, strlen(licenseString)) != 0) {
-        printf("[WARNING]: Loaded expansion (%s) have invalid header, are you using correct file?\n", getFilenameExt(path).c_str());
+        printf("[WARNING]: Loaded expansion have invalid header, are you using correct file?\n");
     }
 
     copy(_exp.begin(), _exp.end(), expansion);

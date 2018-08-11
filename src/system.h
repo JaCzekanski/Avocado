@@ -119,8 +119,8 @@ struct System {
     int biosLog = 0;
     bool printStackTrace = false;
     bool loadBios(std::string name);
-    bool loadExpansion(std::string name);
-    bool loadExeFile(std::string exePath);
+    bool loadExpansion(const std::vector<uint8_t>& _exe);
+    bool loadExeFile(const std::vector<uint8_t>& _exe);
     void dumpRam();
 
 #ifdef ENABLE_IO_LOG

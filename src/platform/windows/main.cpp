@@ -16,11 +16,14 @@
 #include "utils/file.h"
 #include "utils/string.h"
 #include "version.h"
+#include "bios/exe_bootstrap.h"
 
 #undef main
 
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
+
+std::unique_ptr<System> sys;
 
 device::controller::DigitalController& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
@@ -124,10 +127,25 @@ void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& bas
                 continue;
             }
 
-            for (int i = 0; i < data.size(); i++) sys->writeMemory8(addr + i, data[i]);
+            for (size_t i = 0; i < data.size(); i++) sys->writeMemory8(addr + i, data[i]);
             printf("ok\n");
         }
     }
+}
+
+void loadExe(const std::string& path) {
+    sys = std::make_unique<System>();
+    sys->loadBios(config["bios"]);
+    sys->loadExpansion(exe_bootstrap);
+
+    // Execute BIOS till breakpoint hit (shell is about to be executed)
+    while (sys->state == System::State::run) sys->emulateFrame();
+
+    // Replace shell with .exe contents
+    sys->loadExeFile(getFileContents(path));
+
+    // Resume execution
+    sys->state = System::State::run;
 }
 
 void loadFile(std::unique_ptr<System>& sys, std::string path) {
@@ -143,8 +161,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     }
 
     if (ext == "exe" || ext == "psexe") {
-        sys->loadExeFile(path);
-        printf("Loading .exe is currently not supported.\n");
+        loadExe(path);
         return;
     }
 
@@ -192,8 +209,6 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     }
 }
 
-std::unique_ptr<System> sys;
-
 void hardReset() {
     sys = std::make_unique<System>();
 
@@ -203,7 +218,7 @@ void hardReset() {
     }
 
     std::string extension = config["extension"];
-    if (!extension.empty() && sys->loadExpansion(extension)) {
+    if (!extension.empty() && sys->loadExpansion(getFileContents(extension))) {
         printf("[INFO] Using extension %s\n", getFilenameExt(extension).c_str());
     }
 
@@ -350,7 +365,8 @@ int main(int argc, char** argv) {
                 }
                 if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_F2) {
-                    sys->softReset();
+                    if (event.key.keysym.mod & KMOD_SHIFT) hardReset();
+                    else sys->softReset();
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
                     printf("Shell toggle\n");

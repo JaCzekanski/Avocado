@@ -54,13 +54,11 @@ bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
 
-#ifdef ENABLE_BREAKPOINTS
         if (cop0.dcic & (1 << 24) && PC == cop0.bpc) {
             cop0.dcic &= ~(1 << 24);  // disable breakpoint
-            state = State::pause;
+            sys->state = System::State::pause;
             return false;
         }
-#endif
         if (!breakpoints.empty()) {
             auto bp = breakpoints.find(PC);
             if (bp != breakpoints.end() && bp->second.enabled) {

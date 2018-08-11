@@ -64,13 +64,6 @@ filter "not options:disable-load-delay-slots"
 	defines "ENABLE_LOAD_DELAY_SLOTS"
 
 newoption {
-	trigger = "enable-breakpoints",
-	description = "Enable breakpoints (used in autotests)",
-}
-filter "options:enable-breakpoints"
-	defines "ENABLE_BREAKPOINTS"
-
-newoption {
 	trigger = "enable-io-log",
 	description = "Enable IO access log",
 }

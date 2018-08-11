@@ -213,10 +213,7 @@ void special(CPU *cpu, Opcode i) {
 // Shift Word Left Logical
 // SLL rd, rt, a
 void op_sll(CPU *cpu, Opcode i) {
-    if (i.rt == 0 && i.rd == 0 && i.sh == 0) {
-    } else {
-        cpu->reg[i.rd] = cpu->reg[i.rt] << i.sh;
-    }
+    cpu->reg[i.rd] = cpu->reg[i.rt] << i.sh;
 }
 
 // Shift Word Right Logical
