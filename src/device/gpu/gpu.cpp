@@ -536,11 +536,6 @@ void GPU::writeGP1(uint32_t data) {
 }
 
 bool GPU::emulateGpuCycles(int cycles) {
-    const int LINE_VBLANK_START_NTSC = 243;
-    const int LINES_TOTAL_NTSC = 263;
-    static int gpuLine = 0;
-    static int gpuDot = 0;
-
     gpuDot += cycles;
 
     int newLines = gpuDot / 3413;

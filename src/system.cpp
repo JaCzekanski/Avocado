@@ -317,15 +317,25 @@ void System::emulateFrame() {
         timer0->step(systemCycles);
         timer1->step(systemCycles);
         timer2->step(systemCycles);
-
-        static int wtf = 0;
-        if (++wtf % 200 == 0) interrupt->trigger(interrupt::TIMER2);
         controller->step();
 
         if (gpu->emulateGpuCycles(systemCycles)) {
             interrupt->trigger(interrupt::VBLANK);
             return;  // frame emulated
         }
+
+        if (gpu->gpuLine >= LINE_VBLANK_START_NTSC) {
+            if (timer1->mode.syncEnabled) {
+                auto mode1 = static_cast<timer::CounterMode::SyncMode1>(timer1->mode.syncMode);
+                using modes = timer::CounterMode::SyncMode1;
+                if (mode1 == modes::resetAtVblank || mode1 == modes::resetAtVblankAndPauseOutside) {
+                    timer1->current._reg = 0;
+                } else if (mode1 == modes::pauseUntilVblankAndFreerun) {
+                    timer1->paused = false;
+                }
+            }
+        }
+        // Handle Timer1 - Reset on VBlank
     }
 }
 

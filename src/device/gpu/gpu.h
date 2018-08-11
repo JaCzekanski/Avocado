@@ -11,6 +11,9 @@ extern const char* CommandStr[];
 const int VRAM_WIDTH = 1024;
 const int VRAM_HEIGHT = 512;
 
+const int LINE_VBLANK_START_NTSC = 243;
+const int LINES_TOTAL_NTSC = 263;
+
 #define VRAM ((uint16_t(*)[VRAM_WIDTH])vram.data())
 
 union PolygonArgs {
@@ -167,6 +170,9 @@ struct GPU {
     uint32_t arguments[33];
     int currentArgument = 0;
     int argumentCount = 0;
+
+    int gpuLine = 0;
+    int gpuDot = 0;
 
     GP0_E1 gp0_e1;
     GP0_E2 gp0_e2;

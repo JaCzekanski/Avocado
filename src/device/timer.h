@@ -5,75 +5,56 @@
 
 namespace timer {
 union CounterMode {
-    enum class SynchronizationEnable { freeRun = 0, synchronize = 1 };
-    enum class SynchronizationMode0 {
-        pauseCounterDuringHblanks = 0,
-        resetCounterAtHblanks = 1,
-        resetCounterAtHblanksAndPauseOutside = 2,
-        pauseUntilHblanksOnceAndFreerun = 3
+    enum class SyncMode0 : uint16_t {
+        pauseDuringHblank = 0,
+        resetAtHblank = 1,
+        resetAtHblankAndPauseOutside = 2,
+        pauseUntilHblankAndFreerun = 3
     };
-    enum class SynchronizationMode1 {
-        pauseCounterDuringVblanks = 0,
-        resetCounterAtVblanks = 1,
-        resetCounterAtVblanksAndPauseOutside = 2,
-        pauseUntilVblanksOnceAndFreerun = 3
+    enum class SyncMode1 : uint16_t {
+        pauseDuringVblank = 0,
+        resetAtVblank = 1,
+        resetAtVblankAndPauseOutside = 2,
+        pauseUntilVblankAndFreerun = 3
     };
-    enum class SynchronizationMode2 {
-        stopCounterAtCurrentValue = 0,  // Stop counter at current value (no h/v-blank start)
-        freeRun = 1,
-        stopCounterAtCurrentValue_ = 2,
-        freeRun_ = 3
-    };
+    enum class SyncMode2 : uint16_t { stopCounter = 0, freeRun = 1, stopCounter_ = 2, freeRun_ = 3 };
 
-    enum class ResetToZero : uint32_t { whenFFFF = 0, whenTarget = 1 };
-    enum class IrqRepeatMode : uint32_t { oneShot = 0, repeatedly = 1 };
-    enum class IrqPulseMode : uint32_t {
-        shortPulse = 0,  // Short Bit10 = 0 pulse
-        toggle = 1       // Toggle Bit10 on/off
-    };
-    enum class ClockSource0 : uint32_t { systemClock = 0, dotClock = 1 };
-    enum class ClockSource1 : uint32_t { systemClock = 0, hblank = 1 };
-    enum class ClockSource2 : uint32_t { systemClock = 0, systemClock_8 = 1 };
+    enum class ResetToZero : uint16_t { whenFFFF = 0, whenTarget = 1 };
+    enum class IrqRepeatMode : uint16_t { oneShot = 0, repeatedly = 1 };
+    enum class IrqPulseMode : uint16_t { shortPulse = 0, toggle = 1 };
+    enum class ClockSource0 : uint16_t { systemClock = 0, dotClock = 1 };
+    enum class ClockSource1 : uint16_t { systemClock = 0, hblank = 1 };
+    enum class ClockSource2 : uint16_t { systemClock = 0, systemClock_8 = 1 };
 
     struct {
-        SynchronizationEnable synchronizationEnable : 1;
-        union {
-            SynchronizationMode0 synchronizationMode0 : 2;
-            SynchronizationMode1 synchronizationMode1 : 2;
-            SynchronizationMode2 synchronizationMode2 : 2;
-        } synchronizationMode;
-
+        uint16_t syncEnabled : 1;
+        uint16_t syncMode : 2;
         ResetToZero resetToZero : 1;
-        uint32_t irqWhenTarget : 1;
-        uint32_t irqWhenFFFF : 1;
+
+        uint16_t irqWhenTarget : 1;
+        uint16_t irqWhenFFFF : 1;
         IrqRepeatMode irqRepeatMode : 1;
         IrqPulseMode irqPulseMode : 1;
 
         // For all timer different clock sources are available
-        union {
-            ClockSource0 clockSource0 : 1;
-            ClockSource1 clockSource1 : 1;
-        };
-        ClockSource2 clockSource2 : 1;
+        uint16_t clockSource : 2;
+        uint16_t interruptRequest : 1;  // R
+        uint16_t reachedTarget : 1;     // R
+        uint16_t reachedFFFF : 1;       // R
 
-        Bit interruptRequest : 1;  // R
-        Bit reachedTarget : 1;     // R
-        Bit reachedFFFF : 1;       // R
-
-        uint32_t : 2;
-        uint32_t : 16;
+        uint16_t : 3;
     };
 
-    uint32_t _reg;
-    uint8_t _byte[4];
+    uint16_t _reg;
+    uint8_t _byte[2];
 
-    CounterMode() : _reg(0) {}
+    CounterMode() : _reg(0) { interruptRequest = 1; }
     void write(int n, uint8_t v) {
-        if (n >= 4) return;
+        if (n >= 2) return;
         _byte[n] = v;
     }
     uint8_t read(int n) const {
-        if (n >= 4) return 0;
+        if (n >= 2) return 0;
         return _byte[n];
     }
 };
@@ -84,16 +65,19 @@ class Timer {
     const int baseAddress = 0x1f801100;
 
    public:
-    Reg32 current;
+    Reg16 current;
     timer::CounterMode mode;
     Reg16 target;
 
+    bool paused = false;
+
    private:
-    int cnt = 0;
-    bool irqOccured = false;
+    uint32_t cnt = 0;
+    bool oneShotIrqOccured = false;
 
     System* sys;
 
+    void checkIrq();
     interrupt::IrqNumber mapIrqNumber() const {
         if (which == 0) return interrupt::TIMER0;
         if (which == 1) return interrupt::TIMER1;

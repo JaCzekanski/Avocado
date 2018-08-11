@@ -70,10 +70,10 @@ void replayCommands(GPU *gpu, int to) {
     gpu->gpuLogEnabled = true;
 }
 
-void dumpRegister(const char *name, uint32_t *reg) {
+void dumpRegister(const char *name, uint16_t reg) {
     ImGui::BulletText("%s", name);
     ImGui::NextColumn();
-    ImGui::InputInt("", (int *)reg, 1, 100, ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::Text("0x%04x", reg);
     ImGui::NextColumn();
 }
 
@@ -300,25 +300,25 @@ void ioWindow(System *sys) {
     ImGui::Text("Timer 0");
 
     ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", (uint32_t *)&sys->timer0->current);
-    dumpRegister("target", (uint32_t *)&sys->timer0->target);
-    dumpRegister("mode", (uint32_t *)&sys->timer0->mode);
+    dumpRegister("current", sys->timer0->current._reg);
+    dumpRegister("target", sys->timer0->target._reg);
+    dumpRegister("mode", sys->timer0->mode._reg);
 
     ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 1");
 
     ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", (uint32_t *)&sys->timer1->current);
-    dumpRegister("target", (uint32_t *)&sys->timer1->target);
-    dumpRegister("mode", (uint32_t *)&sys->timer1->mode);
+    dumpRegister("current", sys->timer1->current._reg);
+    dumpRegister("target", sys->timer1->target._reg);
+    dumpRegister("mode", sys->timer1->mode._reg);
 
     ImGui::Columns(1, nullptr, false);
     ImGui::Text("Timer 2");
 
     ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", (uint32_t *)&sys->timer2->current);
-    dumpRegister("target", (uint32_t *)&sys->timer2->target);
-    dumpRegister("mode", (uint32_t *)&sys->timer2->mode);
+    dumpRegister("current", sys->timer2->current._reg);
+    dumpRegister("target", sys->timer2->target._reg);
+    dumpRegister("mode", sys->timer2->mode._reg);
 
     ImGui::End();
 }

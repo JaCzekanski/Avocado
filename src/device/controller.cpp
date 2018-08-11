@@ -43,21 +43,13 @@ uint8_t DigitalController::handle(uint8_t byte) {
             state = 0;
             return 0xff;
 
-        case 2:
-            state++;
-            return 0x5a;
+        case 2: state++; return 0x5a;
 
-        case 3:
-            state++;
-            return ~_byte[0];
+        case 3: state++; return ~_byte[0];
 
-        case 4:
-            state = 0;
-            return ~_byte[1];
+        case 4: state = 0; return ~_byte[1];
 
-        default:
-            state = 0;
-            return 0xff;
+        default: state = 0; return 0xff;
     }
 }
 
@@ -71,7 +63,7 @@ void Controller::handleByte(uint8_t byte) {
         rxData = state.handle(byte);
         ack = state.getAck();
         if (state.getAck()) {
-            irqTimer = 3;
+            irqTimer = 5;
         }
     } else {
         // Port 2
