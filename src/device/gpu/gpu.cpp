@@ -504,7 +504,7 @@ void GPU::writeGP1(uint32_t data) {
         displayRangeX2 = argument >> 12;
     } else if (command == 0x07) {  // Vertical display range
         displayRangeY1 = argument & 0x3ff;
-        displayRangeX2 = argument >> 10;
+        displayRangeY2 = argument >> 10;
     } else if (command == 0x08) {  // Display mode
         gp1_08._reg = argument;
     } else if (command == 0x09) {  // Allow texture disable

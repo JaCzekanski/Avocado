@@ -119,6 +119,9 @@ void OpenGL::render(GPU *gpu) {
         h = 512;
         bb = makeBlitBuf(0, 0, w, h);
         glViewport(0, 0, w, h);
+
+        glUniform2f(blitShader->getUniform("displayStart"), 0.f, 0.f);
+        glUniform2f(blitShader->getUniform("displayEnd"), 1024.f, 512.f);
     } else {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
@@ -132,6 +135,10 @@ void OpenGL::render(GPU *gpu) {
             h = width * (1.0 / aspect);
             y = (height - h) / 2;
         }
+
+        float y2 = gpu->displayRangeY2 - gpu->displayRangeY1;
+        if (gpu->gp1_08.getVerticalResoulution() == 480) y2 *= 2;
+        glUniform2f(blitShader->getUniform("displayEnd"), gpu->displayRangeX1, gpu->displayAreaStartY + y2);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
