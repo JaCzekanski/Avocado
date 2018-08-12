@@ -34,7 +34,7 @@ void SPU::step() {
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
 
-        if (voice.state == Voice::State::Off ) continue;
+        if (voice.state == Voice::State::Off) continue;
 
         if (voice.decodedSamples.empty()) {
             auto readAddress = voice.currentAddress._reg * 8;
@@ -46,7 +46,7 @@ void SPU::step() {
         }
 
         voice.processEnvelope();
-        
+
         float sample = intToFloat(voice.decodedSamples[(int)voice.subAddress]);
         sample *= intToFloat(voice.ADSRVolume._reg);
 
@@ -82,9 +82,8 @@ void SPU::step() {
 
             if (!(flag & 2)) {  // Loop repeat
                 voice.ADSRVolume._reg = 0;
-                voice.state = Voice::State::Release;
+                voiceKeyOff(v);
             }
-            // TODO: address should be copied after playing this block
         }
     }
 
@@ -133,8 +132,7 @@ uint8_t SPU::readVoice(uint32_t address) const {
         case 11: return voices[voice].ADSR.read(reg - 8);
 
         case 12:
-        case 13:
-        return 0;//voices[voice].ADSRVolume.read(reg - 12);
+        case 13: return voices[voice].ADSRVolume.read(reg - 12);
 
         case 14:
         case 15: return voices[voice].repeatAddress.read(reg - 14);
@@ -208,18 +206,53 @@ uint8_t SPU::read(uint32_t address) {
         return readVoice(address - 0x1f801c00);
     }
 
+    if (address >= 0x1f801d80 && address <= 0x1f801d83) {  // Main Volume L/R
+        return mainVolume.read(address - 0x1f801d80);
+    }
+
     if (address >= 0x1f801da6 && address <= 0x1f801da7) {  // Data address
         return dataAddress.read(address - 0x1f801da6);
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        // printf("SPUCNT READ 0x%04x\n", SPUCNT._reg);
         return control._byte[address - 0x1f801daa];
+    }
+
+    if (address >= 0x1f801db0 && address <= 0x1f801db3) {  // CD Volume L/R
+        return cdVolume.read(address - 0x1f801db0);
+    }
+
+    if (address >= 0x1F801DB4 && address <= 0x1F801DB7) {  // External input Volume L/R
+        return extVolume.read(address - 0x1F801DB4);
+    }
+
+    if (address >= 0x1F801D88 && address <= 0x1F801D8b) {  // Voice Key On
+        // Shouldn't be read, but some games do, just return last value
+        return _keyOn.read(address - 0x1F801D88);
+    }
+
+    if (address >= 0x1F801D8c && address <= 0x1F801D8f) {  // Voice Key Off
+        // Shouldn't be read, but some games do
+        return _keyOff.read(address - 0x1F801D8c);
+    }
+
+    if (address >= 0x1F801D90 && address <= 0x1F801D93) {  // Pitch modulation enable flags
+        static Reg32 pitchModulation;
+
+        if (address == 0x1F801D90) {
+            pitchModulation._reg = 0;
+            for (int v = 1; v < VOICE_COUNT; v++) {
+                pitchModulation.setBit(v, voices[v].pitchModulation);
+            }
+        }
+
+        return pitchModulation.read(address - 0x1F801D90);
     }
 
     if (address >= 0x1f801d9c && address <= 0x1f801d9f) {  // Voice ON/OFF status (ENDX)
         static Reg32 status;
         if (address == 0x1f801d9c) {
+            status._reg = 0;
             for (int v = 0; v < VOICE_COUNT; v++) {
                 status.setBit(v, voices[v].loopEnd);
             }
@@ -228,9 +261,23 @@ uint8_t SPU::read(uint32_t address) {
         return status._byte[address - 0x1f801d9c];
     }
 
+    if (address >= 0x1F801D94 && address <= 0x1F801D97) {  // Voice noise mode
+        static Reg32 noiseEnabled;
+
+        if (address == 0x1F801D94) {
+            noiseEnabled._reg = 0;
+            for (int v = 0; v < VOICE_COUNT; v++) {
+                noiseEnabled.setBit(v, voices[v].mode == Voice::Mode::Noise);
+            }
+        }
+
+        return noiseEnabled.read(address - 0x1F801D94);
+    }
+
     if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb
         static Reg32 reverb;
         if (address == 0x1f801d98) {
+            reverb._reg = 0;
             for (int v = 0; v < VOICE_COUNT; v++) {
                 reverb.setBit(v, voices[v].reverb);
             }
@@ -238,6 +285,11 @@ uint8_t SPU::read(uint32_t address) {
 
         return reverb.read(address - 0x1f801d98);
     }
+
+    // if (address >= 0x1F801DA2 && address <= 0x1F801DA3) {  // Reverb Work area start
+    //     // TODO: Breaks Doom if returning correct value, why ?
+    //     return reverbBase.read(address - 0x1F801DA2);
+    // }
 
     if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
         return dataTransferControl._byte[address - 0x1f801dac];
@@ -249,7 +301,18 @@ uint8_t SPU::read(uint32_t address) {
         return SPUSTAT.read(address - 0x1f801dae);
     }
 
-    //    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
+    if (address >= 0x1f801db8 && address <= 0x1f801dbb) {  // Current Main Volume L/R ?? (used by MGS)
+        return mainVolume.read(address - 0x1f801db8);
+    }
+
+    if (address >= 0x1f801e00 && address < 0x1f801e00 + 4 * VOICE_COUNT) {  // Internal Voice volume (used by MGS)
+        // TODO: Not sure if it is channel volume or processed sample volume
+        int voice = (address - 0x1f801e00) / 4;
+        int byte = (address - 0x1f801e00) % 4;
+        return voices[voice].volume.read(byte);
+    }
+
+    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
 
     return 0;
 }
@@ -273,24 +336,20 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801d88 && address <= 0x1f801d8b) {  // Voices Key On
-        static Reg32 keyOn;
-
-        keyOn.write(address - 0x1f801d88, data);
+        _keyOn.write(address - 0x1f801d88, data);
         if (address == 0x1f801d8b) {
             for (int i = 0; i < VOICE_COUNT; i++) {
-                if (keyOn.getBit(i)) voiceKeyOn(i);
+                if (_keyOn.getBit(i)) voiceKeyOn(i);
             }
         }
         return;
     }
 
     if (address >= 0x1f801d8c && address <= 0x1f801d8f) {  // Voices Key Off
-        static Reg32 keyOff;
-
-        keyOff.write(address - 0x1f801d8c, data);
-        if (address == 0x1f801d8c) {
+        _keyOff.write(address - 0x1f801d8c, data);
+        if (address == 0x1f801d8f) {
             for (int i = 0; i < VOICE_COUNT; i++) {
-                if (keyOff.getBit(i)) voiceKeyOff(i);
+                if (_keyOff.getBit(i)) voiceKeyOff(i);
             }
         }
         return;
@@ -301,7 +360,10 @@ void SPU::write(uint32_t address, uint8_t data) {
 
         pitchModulation.write(address - 0x1F801D90, data);
         if (address == 0x1F801D93) {
-            for (int v = 0; v < VOICE_COUNT; v++) {
+            if (pitchModulation._reg != 0) {
+                printf("[SPU] Game uses pitch modulation, sound might be invalid\n");
+            }
+            for (int v = 1; v < VOICE_COUNT; v++) {
                 voices[v].pitchModulation = pitchModulation.getBit(v);
             }
         }
@@ -313,6 +375,9 @@ void SPU::write(uint32_t address, uint8_t data) {
         noiseEnabled.write(address - 0x1F801D94, data);
 
         if (address == 0x1F801D97) {
+            if (noiseEnabled._reg != 0) {
+                printf("[SPU] Game uses noise channels, sound might be invalid\n");
+            }
             for (int v = 0; v < VOICE_COUNT; v++) {
                 voices[v].mode = noiseEnabled.getBit(v) ? Voice::Mode::Noise : Voice::Mode::ADSR;
             }
@@ -329,6 +394,11 @@ void SPU::write(uint32_t address, uint8_t data) {
                 voices[v].reverb = reverb.getBit(v);
             }
         }
+        return;
+    }
+
+    if (address >= 0x1f801d9c && address <= 0x1f801d9f) {  // Voice ON/OFF status (ENDX)
+        // Writes to this address should be ignored
         return;
     }
 
@@ -359,18 +429,13 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        SPUSTAT._reg &= ~(1<<6);
+        SPUSTAT._reg &= ~(1 << 6);
         control._byte[address - 0x1f801daa] = data;
         return;
     }
 
     if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
         dataTransferControl._byte[address - 0x1f801dac] = data;
-        return;
-    }
-
-    if (address >= 0x1f801dae && address <= 0x1f801daf) {  // SPUSTAT
-        // SPUSTAT.write(address - 0x1f801dae, data);
         return;
     }
 
@@ -391,7 +456,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         return;
     }
 
-    //    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
 void SPU::dumpRam() {

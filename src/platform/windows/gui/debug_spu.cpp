@@ -33,30 +33,29 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
 
     auto adsrInfo = [](ADSR adsr) -> std::string {
         std::string s;
-        s += "Attack:\n";
-        s += string_format("Step:      +%d\n", adsr.attackStep + 4);
-        s += string_format("Shift:     %d\n", adsr.attackShift);
-        s += string_format("Direction: %s\n", "Increase");
-        s += string_format("Mode:      %s\n\n", adsr.attackMode ? "Exponential" : "Linear");
 
-        s += "Decay:\n";
-        s += string_format("Step:      -8\n");
-        s += string_format("Shift:     %d\n", adsr.decayShift);
-        s += string_format("Direction: %s\n", "Decrease");
-        s += string_format("Mode:      %s\n\n", "Exponential");
+        for (int i = 0; i < 4; i++) {
+            Envelope e;
+            if (i == 0) {
+                e = adsr.attack();
+                s += "Attack:\n";
+            } else if (i == 1) {
+                e = adsr.decay();
+                s += "Decay:\n";
+            } else if (i == 2) {
+                e = adsr.sustain();
+                s += "Sustain:\n";
+            } else if (i == 3) {
+                e = adsr.release();
+                s += "Release:\n";
+            }
 
-        s += "Sustain:\n";
-        s += string_format("Step:      %c%d\n", adsr.sustainDirection ? '-' : '+', adsr.sustainStep);  // TOOD: off by one
-        s += string_format("Shift:     %d\n", adsr.sustainStep);
-        s += string_format("Direction: %s\n", adsr.sustainDirection ? "Decrease" : "Increase");
-        s += string_format("Mode:      %s\n", adsr.sustainMode ? "Exponential" : "Linear");
-        s += string_format("Level:     %d\n\n", adsr.sustainLevel);
-
-        s += "Release:\n";
-        s += string_format("Step:      -8\n");
-        s += string_format("Shift:     %d\n", adsr.releaseShift);
-        s += string_format("Direction: %s\n", "Decrease");
-        s += string_format("Mode:      %s\n\n", adsr.releaseMode ? "Exponential" : "Linear");
+            s += string_format("Step:      %d\n", e.getStep());
+            s += string_format("Shift:     %d\n", e.shift);
+            s += string_format("Direction: %s\n", e.direction == Envelope::Direction::Decrease ? "Decrease" : "Increase");
+            s += string_format("Mode:      %s\n", e.mode == Envelope::Mode::Exponential ? "Exponential" : "Linear");
+            s += string_format("Level:     %d\n\n", e.level);
+        }
 
         return s;
     };
@@ -77,7 +76,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     for (int i = 0; i < SPU::VOICE_COUNT; i++) {
         auto& v = spu->voices[i];
 
-        if (v.volume.left == 0 && v.volume.right == 0) {
+        if (v.state == Voice::State::Off) {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.4f, 0.4f, 1.f));
         } else {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -95,7 +94,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             column(string_format("%04x", v.volume.right));
             column(string_format("%04x", v.ADSRVolume._reg));
         }
-        
+
         if (parseValues) {
             column(string_format("%5d Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
         } else {
@@ -110,7 +109,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             ImGui::EndTooltip();
         }
 
-        column(string_format("%s %s", v.reverb ? "Reverb" : "", v.mode == Voice::Mode::Noise ? "Noise" : "",
+        column(string_format("%s %s %s", v.reverb ? "Reverb" : "", v.mode == Voice::Mode::Noise ? "Noise" : "",
                              v.pitchModulation ? "PitchModulation" : ""));
 
         ImGui::PopStyleColor();
@@ -156,8 +155,7 @@ void registersInfo(spu::SPU* spu) {
     ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
                 spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "");
 
-    ImGui::Text("Status:  0x%0x04  %-3s",  spu->SPUSTAT._reg,
-        (spu->SPUSTAT._reg & (1<<6))?"IRQ":"");
+    ImGui::Text("Status:  0x%0x04  %-3s", spu->SPUSTAT._reg, (spu->SPUSTAT._reg & (1 << 6)) ? "IRQ" : "");
 
     ImGui::Text("IRQ Address: 0x%08x", spu->irqAddress._reg);
     ImGui::PopStyleVar();

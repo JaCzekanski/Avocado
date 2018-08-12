@@ -8,7 +8,6 @@ struct System;
 
 namespace spu {
 struct SPU {
-
     static const uint32_t BASE_ADDRESS = 0x1f801c00;
     static const int VOICE_COUNT = 24;
     static const int RAM_SIZE = 1024 * 512;
@@ -27,6 +26,9 @@ struct SPU {
     DataTransferControl dataTransferControl;
     Control control;
     Reg16 SPUSTAT;
+
+    Reg32 _keyOn;
+    Reg32 _keyOff;
 
     std::array<uint8_t, RAM_SIZE> ram;
 
@@ -51,4 +53,4 @@ struct SPU {
 
     void dumpRam();
 };
-}
+}  // namespace spu
