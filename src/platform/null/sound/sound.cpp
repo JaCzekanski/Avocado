@@ -1,6 +1,11 @@
 #include "sound/sound.h"
 
-void Sound::init(AudioCallback callback) {}
+namespace Sound {
+std::deque<uint16_t> buffer;
+std::mutex audioMutex;
+}  // namespace Sound
+
+void Sound::init() {}
 
 void Sound::play() {}
 

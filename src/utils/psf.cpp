@@ -72,7 +72,7 @@ bool loadPsf(System* sys, const std::string& path, PsfType type) {
     auto compressedSize = read_u32(file, 8);
 
     std::vector<uint8_t> exe;
-    size_t exeSize = 2 * 1024 * 1024;
+    mz_ulong exeSize = 2 * 1024 * 1024;
     exe.resize(exeSize);
 
     mz_uncompress(exe.data(), &exeSize, file.data() + 16, compressedSize);
@@ -111,7 +111,12 @@ bool loadPsf(System* sys, const std::string& path, PsfType type) {
             }
             if (type != PsfType::Main) break;
 
-            printf("[PSF]%s\n", line.c_str());
+            auto pos = line.find("=");
+            if (pos == std::string::npos) continue;
+
+            auto key = line.substr(0, pos);
+            auto value = line.substr(pos+1);
+            printf("%s: %s\n", key.c_str(), value.c_str());
         }
     }
 

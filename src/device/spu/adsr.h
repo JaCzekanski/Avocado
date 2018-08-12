@@ -2,6 +2,26 @@
 #include "device/device.h"
 
 namespace spu {
+    struct Envelope {
+        enum class Direction {
+            Increase = 0, Decrease = 1
+        };
+        enum class Mode {
+            Linear = 0, Exponential = 1
+        };
+
+        int level;
+        int step; // 0..3
+        int shift;
+        Direction direction;
+        Mode mode;
+
+        int getStep() {
+            if (direction == Direction::Increase) return 4 + step;
+            else return -step - 5;
+        }
+    };
+
     union ADSR {
         struct {
             uint32_t sustainLevel : 4;
@@ -41,5 +61,46 @@ namespace spu {
             if (n >= 4) return 0;
             return _byte[n];
         }
+
+        Envelope attack() {
+            Envelope e;
+            e.level = 0x7fff;
+            e.step = attackStep;
+            e.shift = attackShift;
+            e.direction = Envelope::Direction::Increase;
+            e.mode = static_cast<Envelope::Mode>(attackMode);
+            return e;
+        }
+
+        Envelope decay() {
+            Envelope e;
+            e.level = (sustainLevel+1) * 0x800;
+            e.step = 3; // -8
+            e.shift = decayShift;
+            e.direction = Envelope::Direction::Decrease;
+            e.mode = Envelope::Mode::Exponential;
+            return e;
+        }
+
+        Envelope sustain() {
+            Envelope e;
+            e.level = -1; // sustain phase never ends
+            e.step = sustainStep;
+            e.shift = sustainShift;
+            e.direction = static_cast<Envelope::Direction>(sustainDirection);
+            e.mode = static_cast<Envelope::Mode>(sustainMode);
+            return e;
+        }
+
+        Envelope release() {
+            Envelope e;
+            e.level = 0;
+            e.step = 3; // -8
+            e.shift = releaseShift;
+            e.direction = Envelope::Direction::Decrease;
+            e.mode = static_cast<Envelope::Mode>(releaseMode);
+            return e;
+        }
+
     };
 }

@@ -89,12 +89,13 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
         if (parseValues) {
             column(string_format("%.0f", v.volume.getLeft() * 100.f));
             column(string_format("%.0f", v.volume.getRight() * 100.f));
+            column(string_format("%.0f", (v.ADSRVolume._reg / static_cast<float>(0x7fff)) * 100.f));
         } else {
             column(string_format("%04x", v.volume.left));
             column(string_format("%04x", v.volume.right));
-        }
             column(string_format("%04x", v.ADSRVolume._reg));
-
+        }
+        
         if (parseValues) {
             column(string_format("%5d Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
         } else {

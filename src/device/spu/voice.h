@@ -3,6 +3,7 @@
 #include "device/device.h"
 #include "adsr.h"
 #include "regs.h"
+#include "utils/math.h"
 
 namespace spu {
     struct Voice {
@@ -48,6 +49,59 @@ namespace spu {
             loadRepeatAddress = false;
 
             prevSample[0] = prevSample[1] = 0;
+        }
+
+        Envelope getCurrentPhase() {
+            if (state == State::Attack) return ADSR.attack();
+            else if (state == State::Decay) return ADSR.decay();
+            else if (state == State::Sustain) return ADSR.sustain();
+            else return ADSR.release();
+        }
+
+        State nextState(State current) {
+            switch (current) {
+                case State::Attack: return State::Decay;
+                case State::Decay: return State::Sustain;
+                case State::Sustain: return State::Release;
+                case State::Release: return State::Off;
+                default: return State::Off;
+            }
+        }
+
+        void processEnvelope() {
+            using Mode = Envelope::Mode;
+            using Dir = Envelope::Direction;
+            if (state == State::Off) return;
+
+            Envelope e = getCurrentPhase();
+
+            if (adsrWaitCycles > 0) adsrWaitCycles--;
+
+            auto cycles = 1 << std::max(0, e.shift - 11);
+            int step = e.getStep() << std::max(0, 11 - e.shift);
+
+            if (e.mode == Mode::Exponential) {
+                if (e.direction == Dir::Increase && ADSRVolume._reg > 0x6000) {
+                    cycles *= 4;
+                }
+                if (e.direction == Dir::Decrease) {
+                    step = static_cast<float>(step) * static_cast<float>(ADSRVolume._reg) / static_cast<float>(0x8000);
+                }
+            }
+
+            // Wait cycles
+            if (adsrWaitCycles == 0) {
+                adsrWaitCycles = cycles;
+                ADSRVolume._reg = clamp(static_cast<int32_t>(ADSRVolume._reg) + step, 0, 0x7fff);
+
+                if (e.level != -1 &&
+                    ((e.direction == Dir::Increase && ADSRVolume._reg >= e.level) ||
+                    (e.direction == Dir::Decrease && ADSRVolume._reg <= e.level))) {
+                    
+                    state = nextState(state);
+                    adsrWaitCycles = 0;
+                }
+            }
         }
     };
 }

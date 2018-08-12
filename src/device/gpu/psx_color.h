@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "math_utils.h"
+#include "utils/math.h"
 
 union RGB {
     struct {
