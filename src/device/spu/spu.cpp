@@ -151,7 +151,7 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
         case 2:
         case 3:
             voices[voice].volume.write(reg, data);
-            if (reg == 3 && voices[voice].volume._reg & 0x80000000) {
+            if (reg == 3 && (voices[voice].volume.left & 0x8000 || voices[voice].volume.right & 0x8000)) {
                 printf("[SPU][WARN] Volume Sweep enabled for voice %d\n", voice);
             }
             return;

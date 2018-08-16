@@ -12,6 +12,7 @@ void init();
 void play();
 void stop();
 void close();
+void clearBuffer();
 
 template<typename Iterator>
 void appendBuffer( const Iterator& start, const Iterator& end ) {

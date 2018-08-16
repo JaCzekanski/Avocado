@@ -138,6 +138,7 @@ void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& bas
 }
 
 void bootstrap() {
+    Sound::clearBuffer();
     sys = std::make_unique<System>();
     sys->loadBios(config["bios"]);
     sys->loadExpansion(exe_bootstrap);

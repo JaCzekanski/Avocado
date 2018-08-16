@@ -8,7 +8,7 @@ using namespace spu;
 extern bool showSpuWindow;
 
 void channelsInfo(spu::SPU* spu, bool parseValues) {
-    const int COL_NUM = 10;
+    const int COL_NUM = 11;
     float columnsWidth[COL_NUM] = {0};
 
     auto column = [&](const std::string& str) {
@@ -69,6 +69,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     column("VolR");
     column("ADSR Vol");
     column("Sample rate");
+    column("Current addr");
     column("Start addr");
     column("Repeat addr");
     column("ADSR");
@@ -100,6 +101,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
         } else {
             column(string_format("%04x", v.sampleRate._reg));
         }
+        column(string_format("%04x", v.currentAddress._reg));
         column(string_format("%04x", v.startAddress._reg));
         column(string_format("%04x", v.repeatAddress._reg));
         column(string_format("%08x", v.ADSR._reg));
@@ -152,8 +154,12 @@ void registersInfo(spu::SPU* spu) {
     ImGui::Text("CD     volume: %08x", spu->cdVolume._reg);
     ImGui::Text("Ext    volume: %08x", spu->extVolume._reg);
     ImGui::Text("Reverb volume: %08x", spu->reverbVolume._reg);
-    ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
-                spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "");
+    ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s %s %s", spu->control._reg, 
+                spu->control.spuEnable ? "SPU enable" : "",
+                spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", 
+                spu->control.irqEnable ? "IRQ" : "",
+                spu->control.masterReverb ? "Reverb" : "",
+                spu->control.cdReverb ? "CD_Reverb" : "");
 
     ImGui::Text("Status:  0x%0x04  %-3s", spu->SPUSTAT._reg, (spu->SPUSTAT._reg & (1 << 6)) ? "IRQ" : "");
 

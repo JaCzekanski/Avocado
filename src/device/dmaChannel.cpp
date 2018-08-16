@@ -26,6 +26,8 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
     else if (address >= 0x8 && address < 0xc) {
         control._byte[address - 0x8] = data;
 
+        if (address != 0xb) return;
+
         if (control.enabled != CHCR::Enabled::start) return;
         control.startTrigger = CHCR::StartTrigger::clear;
 

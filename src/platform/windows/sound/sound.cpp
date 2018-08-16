@@ -52,3 +52,7 @@ void Sound::play() { SDL_PauseAudioDevice(dev, false); }
 void Sound::stop() { SDL_PauseAudioDevice(dev, true); }
 
 void Sound::close() { SDL_CloseAudioDevice(dev); }
+
+void Sound::clearBuffer() {
+    buffer.clear();
+}
