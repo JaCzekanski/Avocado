@@ -127,17 +127,64 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
 }
 
 void reverbInfo(spu::SPU* spu) {
+    const int width = 8;
+    const int height = 4;
+    const std::array<const char*, 32> registerDescription = {{
+        "dAPF1   - Reverb APF Offset 1",
+        "dAPF2   - Reverb APF Offset 2",
+        "vIIR    - Reverb Reflection Volume 1",
+        "vCOMB1  - Reverb Comb Volume 1",
+        "vCOMB2  - Reverb Comb Volume 2",
+        "vCOMB3  - Reverb Comb Volume 3",
+        "vCOMB4  - Reverb Comb Volume 4",
+        "vWALL   - Reverb Reflection Volume 2",
+        "vAPF1   - Reverb APF Volume 1",
+        "vAPF2   - Reverb APF Volume 2",
+        "mLSAME  - Reverb Same Side Reflection Address 1 Left",
+        "mRSAME  - Reverb Same Side Reflection Address 1 Right",
+        "mLCOMB1 - Reverb Comb Address 1 Left",
+        "mRCOMB1 - Reverb Comb Address 1 Right",
+        "mLCOMB2 - Reverb Comb Address 2 Left",
+        "mRCOMB2 - Reverb Comb Address 2 Right",
+        "dLSAME  - Reverb Same Side Reflection Address 2 Left",
+        "dRSAME  - Reverb Same Side Reflection Address 2 Right",
+        "mLDIFF  - Reverb Different Side Reflect Address 1 Left",
+        "mRDIFF  - Reverb Different Side Reflect Address 1 Right",
+        "mLCOMB3 - Reverb Comb Address 3 Left",
+        "mRCOMB3 - Reverb Comb Address 3 Right",
+        "mLCOMB4 - Reverb Comb Address 4 Left",
+        "mRCOMB4 - Reverb Comb Address 4 Right",
+        "dLDIFF  - Reverb Different Side Reflect Address 2 Left",
+        "dRDIFF  - Reverb Different Side Reflect Address 2 Right",
+        "mLAPF1  - Reverb APF Address 1 Left",
+        "mRAPF1  - Reverb APF Address 1 Right",
+        "mLAPF2  - Reverb APF Address 2 Left",
+        "mRAPF2  - Reverb APF Address 2 Right",
+        "vLIN    - Reverb Input Volume Left",
+        "vRIN    - Reverb Input Volume Right"
+    }};
+
+    ImGui::Checkbox("Force off", &spu->forceReverbOff);
+
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("Base: 0x%08x", spu->reverbBase._reg * 8);
+    ImGui::Text("Current: 0x%08x", spu->reverbCurrentAddress);
 
     ImGui::Columns(8, nullptr, false);
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 8; x++) {
-            auto str = string_format("%04x", spu->reverbRegisters[y * 8 + x]);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int i = y * width + x;
+            auto str = string_format("%04x", spu->reverbRegisters[i]);
             ImGui::TextUnformatted(str.c_str());
 
             ImVec2 size = ImGui::CalcTextSize(str.c_str());
             ImGui::SetColumnWidth(x, size.x + 8.f);
+
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted(registerDescription[i]);
+                ImGui::EndTooltip();
+            }
 
             ImGui::NextColumn();
         }

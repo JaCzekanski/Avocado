@@ -473,10 +473,6 @@ void CDROM::cmdGetId() {
         return;
     }
 
-    // Comment to make NO$PSX bios works
-    CDROM_interrupt.push_back(3);
-    writeResponse(stat._reg);
-
     // No CD
     if (cue.getTrackCount() == 0) {
         CDROM_interrupt.push_back(5);

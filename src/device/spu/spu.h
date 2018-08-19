@@ -32,8 +32,10 @@ struct SPU {
 
     std::array<uint8_t, RAM_SIZE> ram;
 
+    bool forceReverbOff = false; // Debug use
     Reg16 reverbBase;
     std::array<Reg16, 32> reverbRegisters;
+    uint32_t reverbCurrentAddress;
 
     bool bufferReady = false;
     size_t audioBufferPos;

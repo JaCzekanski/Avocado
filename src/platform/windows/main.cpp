@@ -329,6 +329,11 @@ int main(int argc, char** argv) {
 
     hardReset();
 
+    // If argument given - open that file (same as drag and drop)
+    if (argc>1) {
+        loadFile(sys, argv[1]);
+    }
+
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     SDL_GameControllerEventState(SDL_ENABLE);
 

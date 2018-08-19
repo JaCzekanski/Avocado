@@ -4,6 +4,7 @@
 #include "sound/adpcm.h"
 #include "system.h"
 #include "utils/math.h"
+#include "reverb.h"
 
 using namespace spu;
 
@@ -12,25 +13,9 @@ SPU::SPU(System* sys) : sys(sys) {
     audioBufferPos = 0;
 }
 
-// Convert normalized float to int16_T
-int16_t floatToInt(float val) {
-    if (val > 0)
-        return val * static_cast<int16_t>(INT16_MAX);
-    else
-        return -val * static_cast<int16_t>(INT16_MIN);
-}
-
-// Convert int16_t to normalized float
-float intToFloat(int16_t val) {
-    if (val > 0)
-        return static_cast<float>(val) / static_cast<float>(INT16_MAX);
-    else
-        return -static_cast<float>(val) / static_cast<float>(INT16_MIN);
-}
-
 void SPU::step() {
-    float sumLeft = 0;
-    float sumRight = 0;
+    float sumLeft = 0, sumReverbLeft = 0;
+    float sumRight = 0, sumReverbRight = 0;
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
 
@@ -52,6 +37,11 @@ void SPU::step() {
 
         sumLeft += sample * voice.volume.getLeft();
         sumRight += sample * voice.volume.getRight();
+
+        if (voice.reverb) {
+            sumReverbLeft += sample * voice.volume.getLeft();
+            sumReverbRight += sample * voice.volume.getRight();
+        }
 
         int prevAddr = voice.subAddress;
         voice.subAddress += (float)std::min((uint16_t)0x4000, voice.sampleRate._reg) / 4096.f;
@@ -89,6 +79,16 @@ void SPU::step() {
 
     sumLeft *= mainVolume.getLeft();
     sumRight *= mainVolume.getRight();
+
+    if (!forceReverbOff && control.masterReverb) {
+        static float reverbLeft = 0.f, reverbRight = 0.f;
+        static int reverbCounter = 0;
+        if (reverbCounter++ % 2 == 0) {
+            std::tie(reverbLeft, reverbRight) = doReverb(this, std::make_tuple(sumReverbLeft, sumReverbRight));
+        }
+        sumLeft += reverbLeft;
+        sumRight += reverbRight;
+    }
 
     audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));
     audioBuffer[audioBufferPos + 1] = floatToInt(clamp(sumRight, -1.f, 1.f));
@@ -286,10 +286,10 @@ uint8_t SPU::read(uint32_t address) {
         return reverb.read(address - 0x1f801d98);
     }
 
-    // if (address >= 0x1F801DA2 && address <= 0x1F801DA3) {  // Reverb Work area start
-    //     // TODO: Breaks Doom if returning correct value, why ?
-    //     return reverbBase.read(address - 0x1F801DA2);
-    // }
+    if (address >= 0x1F801DA2 && address <= 0x1F801DA3) {  // Reverb Work area start
+        // TODO: Breaks Doom if returning correct value, why ?
+        return reverbBase.read(address - 0x1F801DA2);
+    }
 
     if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
         return dataTransferControl._byte[address - 0x1f801dac];
@@ -404,6 +404,9 @@ void SPU::write(uint32_t address, uint8_t data) {
 
     if (address >= 0x1F801DA2 && address <= 0x1F801DA3) {  // Reverb Work area start
         reverbBase.write(address - 0x1F801DA2, data);
+        if (address == 0x1F801DA3) {
+            reverbCurrentAddress = reverbBase._reg * 8;
+        }
         return;
     }
 
