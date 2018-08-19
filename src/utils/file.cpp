@@ -63,22 +63,26 @@ std::vector<uint8_t> getFileContents(std::string name) {
     return contents;
 }
 
-void putFileContents(std::string name, std::vector<unsigned char> &contents) {
+bool putFileContents(std::string name, std::vector<unsigned char> &contents) {
     FILE *f = fopen(name.c_str(), "wb");
-    if (!f) return;
+    if (!f) return false;
 
     fwrite(&contents[0], 1, contents.size(), f);
 
     fclose(f);
+
+    return true;
 }
 
-void putFileContents(std::string name, std::string contents) {
+bool putFileContents(std::string name, std::string contents) {
     FILE *f = fopen(name.c_str(), "wb");
-    if (!f) return;
+    if (!f) return false;
 
     fwrite(&contents[0], 1, contents.size(), f);
 
     fclose(f);
+
+    return true;
 }
 
 std::string getFileContentsAsString(std::string name) {

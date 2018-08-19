@@ -3,67 +3,35 @@
 
 namespace device {
 namespace controller {
-void DigitalController::setByName(std::string& name, bool value) {
-#define BUTTON(x)     \
-    if (name == #x) { \
-        x = value;    \
-        return;       \
-    }
-    BUTTON(select)
-    BUTTON(start)
-    BUTTON(up)
-    BUTTON(right)
-    BUTTON(down)
-    BUTTON(left)
-    BUTTON(l2)
-    BUTTON(r2)
-    BUTTON(l1)
-    BUTTON(r1)
-    BUTTON(triangle)
-    BUTTON(circle)
-    BUTTON(cross)
-    BUTTON(square)
-#undef BUTTON
-}
-
-uint8_t DigitalController::handle(uint8_t byte) {
-    switch (state) {
-        case 0:
-            if (byte == 0x01) {
-                state++;
-                return 0xff;
-            }
-            return 0xff;
-
-        case 1:
-            if (byte == 0x42) {
-                state++;
-                return 0x41;
-            }
-            state = 0;
-            return 0xff;
-
-        case 2: state++; return 0x5a;
-
-        case 3: state++; return ~_byte[0];
-
-        case 4: state = 0; return ~_byte[1];
-
-        default: state = 0; return 0xff;
-    }
-}
-
-bool DigitalController::getAck() { return state != 0; }
 
 void Controller::handleByte(uint8_t byte) {
     rxPending = true;
 
     if ((control._reg & (1 << 13)) == 0) {
         // Port 1
-        rxData = state.handle(byte);
-        ack = state.getAck();
-        if (state.getAck()) {
-            irqTimer = 5;
+        if (deviceSelected == DeviceSelected::None) {
+            if (byte == 0x01) {
+                deviceSelected = DeviceSelected::Controller;
+            } else if (byte == 0x81) {
+                deviceSelected = DeviceSelected::MemoryCard;
+            }
+        }
+
+        if (deviceSelected == DeviceSelected::Controller) {
+            rxData = controller.handle(byte);
+            ack = controller.getAck();
+            if (ack) {
+                irqTimer = 5;
+            }
+            if (controller.state == 0) deviceSelected = DeviceSelected::None;
+        }
+        if (deviceSelected == DeviceSelected::MemoryCard) {
+            rxData = card.handle(byte);
+            ack = card.getAck();
+            if (ack) {
+                irqTimer = 3;
+            }
+            if (card.state == 0) deviceSelected = DeviceSelected::None;
         }
     } else {
         // Port 2
@@ -81,6 +49,7 @@ void Controller::step() {
     if (irqTimer > 0) {
         if (--irqTimer == 0) {
             irq = true;
+            ack = false;
         }
     }
     if (irq) {
@@ -111,7 +80,7 @@ uint8_t Controller::read(uint32_t address) {
     return 0xff;
 }
 
-void Controller::write(uint32_t address, uint8_t data) {
+void Controller::write(uint32_t address, uint8_t data) {    
     if (address == 0) {
         handleByte(data);
     } else if (address >= 8 && address < 10) {
@@ -121,6 +90,15 @@ void Controller::write(uint32_t address, uint8_t data) {
 
         if (address == 10 && (data & 0x10)) {
             irq = false;
+        }
+        if (address == 11) {
+            if (!(control._reg & 2)) {
+                // Reset periperals
+                deviceSelected = DeviceSelected::None;
+                controller.resetState();
+                card.resetState();
+            }
+
         }
     } else if (address >= 14 && address < 16) {
         baud._byte[address - 14] = data;

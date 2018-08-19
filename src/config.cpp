@@ -8,35 +8,40 @@ const json defaultConfig = {
 	{"bios", ""}, 
 	{"extension", ""}, 
 	{"iso", ""},
-        {"controller", {
-                {"up",      "Up"},
-                {"right",   "Right"},
-                {"down",    "Down"},
-                {"left",    "Left"},
-                {"triangle","Keypad 8"},
-                {"circle",  "Keypad 6"},
-                {"cross",   "Keypad 2"},
-                {"square",  "Keypad 4"},
-                {"l1",      "Keypad 7"},
-                {"r1",      "Keypad 9"},
-                {"l2",      "Keypad /"},
-                {"r2",      "Keypad *"},
-                {"select",  "Right Shift"},
-                {"start",   "Return"},
-        }},
-        {"options", {
-            {"graphics", {
-                {"filtering", false},
-                {"widescreen", false}
-            }}
-        }},
-        {"debug", {
-            {"log", {
-                { "system",1u },
-                { "bios",  0u },
-                { "cdrom", 0u }
-            }}
+    {"controller", {
+            {"up",      "Up"},
+            {"right",   "Right"},
+            {"down",    "Down"},
+            {"left",    "Left"},
+            {"triangle","Keypad 8"},
+            {"circle",  "Keypad 6"},
+            {"cross",   "Keypad 2"},
+            {"square",  "Keypad 4"},
+            {"l1",      "Keypad 7"},
+            {"r1",      "Keypad 9"},
+            {"l2",      "Keypad /"},
+            {"r2",      "Keypad *"},
+            {"select",  "Right Shift"},
+            {"start",   "Return"},
+    }},
+    {"options", {
+        {"graphics", {
+            {"filtering", false},
+            {"widescreen", false}
         }}
+    }},
+    {"debug", {
+        {"log", {
+            { "system",1u },
+            { "bios",  0u },
+            { "cdrom", 0u },
+            { "memoryCard", 1u }
+        }}
+    }},
+    {"memoryCard", {
+        {"1", "data/memory/card1.mcr"},
+        {"2", nullptr}
+    }}
 };
 // clang-format on
 

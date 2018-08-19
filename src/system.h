@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "cpu/cpu.h"
 #include "device/cdrom.h"
-#include "device/controller.h"
+#include "device/controller/controller.h"
 #include "device/dma.h"
 #include "device/expansion2.h"
 #include "device/gpu/gpu.h"

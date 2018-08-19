@@ -4,7 +4,6 @@
 #include <SDL.h>
 #include <algorithm>
 #include <cstdio>
-#include <nlohmann/json.hpp>
 #include <string>
 #include "config.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
@@ -21,6 +20,7 @@
 #include "sound/sound.h"
 #include "device/dma3Channel.h"
 #include "bios/exe_bootstrap.h"
+#include "device/controller/peripherals/digital_controller.h"
 
 #undef main
 
@@ -29,9 +29,9 @@ const int GPU_CLOCK_NTSC = 53690000;
 
 std::unique_ptr<System> sys;
 
-device::controller::DigitalController& getButtonState(SDL_Event& event) {
+peripherals::DigitalController::ButtonState& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
-    static device::controller::DigitalController buttons;
+    static peripherals::DigitalController::ButtonState buttons;
     if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
         for (auto it = config["controller"].begin(); it != config["controller"].end(); ++it) {
             auto button = it.key();
@@ -221,6 +221,26 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     }
 }
 
+void saveMemoryCards(bool force = false) {
+    if (!force && !sys->controller->card.dirty) return;
+
+    std::string pathCard1 = config["memoryCard"]["1"];
+    if (pathCard1.empty()) {
+        printf("[INFO] No memory card 1 path in config, skipping save\n");
+        return;
+    }
+
+    auto& data = sys->controller->card.data;
+    auto output = std::vector<uint8_t>(data.begin(), data.end());
+
+    if (!putFileContents(pathCard1, output)) {    
+        printf("[INFO] Unable to save memory card 1 to %s\n", getFilenameExt(pathCard1).c_str());
+        return;
+    } 
+
+    printf("[INFO] Saved memory card 1 to %s\n", getFilenameExt(pathCard1).c_str());
+}
+
 void hardReset() {
     sys = std::make_unique<System>();
 
@@ -238,6 +258,15 @@ void hardReset() {
     if (!iso.empty()) {
         loadFile(sys, iso);
         printf("Using iso %s\n", iso.c_str());
+    }
+
+    std::string pathCard1 = config["memoryCard"]["1"];
+    if (!pathCard1.empty()) {
+        auto card1 = getFileContents(pathCard1);
+        if (!card1.empty()) {
+            std::copy_n(std::make_move_iterator(card1.begin()), card1.size(), sys->controller->card.data.begin());
+            printf("[INFO] Loaded memory card 1 from %s\n", getFilenameExt(pathCard1).c_str());
+        }
     }
 }
 
@@ -451,6 +480,7 @@ int main(int argc, char** argv) {
 
         limitFramerate(window, frameLimitEnabled, sys->gpu->isNtsc());
     }
+    saveMemoryCards(true);
     saveConfigFile(CONFIG_NAME);
 
     Sound::close();
