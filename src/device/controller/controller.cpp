@@ -19,6 +19,7 @@ void Controller::handleByte(uint8_t byte) {
 
         if (deviceSelected == DeviceSelected::Controller) {
             rxData = controller.handle(byte);
+            // printf("[CONTROLLER] Out: 0x%02x  in: 0x%02x\n", byte, rxData);
             ack = controller.getAck();
             if (ack) {
                 irqTimer = 5;

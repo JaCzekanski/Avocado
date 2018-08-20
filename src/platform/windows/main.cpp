@@ -33,7 +33,7 @@ peripherals::DigitalController::ButtonState& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
     static peripherals::DigitalController::ButtonState buttons;
     if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-        for (auto it = config["controller"].begin(); it != config["controller"].end(); ++it) {
+        for (auto it = config["controller"]["1"]["keys"].begin(); it != config["controller"]["1"]["keys"].end(); ++it) {
             auto button = it.key();
             auto keyName = it.value().get<std::string>();
             auto keyCode = SDL_GetKeyFromName(keyName.c_str());

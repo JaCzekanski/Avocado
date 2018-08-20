@@ -4,6 +4,7 @@
 #include "gui.h"
 #include "renderer/opengl/opengl.h"
 #include "utils/file.h"
+#include "utils/string.h"
 
 #ifdef _WIN32
 #include <filesystem>
@@ -95,15 +96,17 @@ void biosSelectionWindow() {
     ImGui::End();
 }
 
-void button(std::string button) {
+void button(int controller, std::string button) {
     static std::string currentButton = "";
+    if (controller < 1 || controller > 4) return;
+    std::string ctrl = std::to_string(controller);
 
     if (button == currentButton && lastPressedKey != 0) {
-        config["controller"][button] = SDL_GetKeyName(lastPressedKey);
+        config["controller"][ctrl]["keys"][button] = SDL_GetKeyName(lastPressedKey);
         lastPressedKey = 0;
     }
 
-    std::string key = config["controller"][button];
+    std::string key = config["controller"][ctrl]["keys"][button];
 
     ImGui::TextUnformatted(button.c_str());
     ImGui::NextColumn();
@@ -116,38 +119,80 @@ void button(std::string button) {
 }
 
 void controllerSetupWindow() {
-    ImGui::Begin("Controller", &showControllerSetupWindow, ImGuiWindowFlags_AlwaysAutoResize);
+    const char* TYPE_NONE = "None";
+    const char* TYPE_DIGITAL = "Digital";
+    const char* TYPE_ANALOG = "Analog";
+    const char* TYPE_MOUSE = "Mouse";
+    const std::array<const char*, 4> types = {{
+        TYPE_NONE, TYPE_DIGITAL, TYPE_ANALOG, TYPE_MOUSE
+    }};
+
+    const auto find = [&](std::string selectedType) -> int {
+        std::transform(selectedType.begin(), selectedType.end(), selectedType.begin(), tolower);
+
+        for (size_t i = 0; i<types.size(); i++) {
+            std::string type = types[i];
+            std::transform(type.begin(), type.end(), type.begin(), tolower);
+
+            if (type == selectedType) return i;
+        }
+        return 0;
+    };
 
     if (ImGui::BeginPopupModal("Waiting for key...", &waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Press any key (ESC to cancel).");
         ImGui::EndPopup();
     }
 
-    ImGui::Text("Controller 1 key mapping");
+    ImGui::Begin("Controller", &showControllerSetupWindow);
 
-    ImGui::Columns(2, nullptr, false);
-    button("up");
-    button("down");
-    button("left");
-    button("right");
+    for (int i = 1; i<=2; i++) {
+        int flags = ImGuiTreeNodeFlags_CollapsingHeader;
+        if (i == 1) flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    button("triangle");
-    button("cross");
-    button("square");
-    button("circle");
+        if (ImGui::TreeNodeEx(string_format("Controller %d", i).c_str(), flags)) {
+            int currentType = find(config["controller"][std::to_string(i)]["type"]);
 
-    button("l1");
-    button("r1");
-    button("l2");
-    button("r2");
+            ImGui::Text("Type");
+            ImGui::SameLine();
+            if (ImGui::Combo("##type", &currentType, types.data(), types.size())) {
+                std::string type = types[currentType];
+                std::transform(type.begin(), type.end(), type.begin(), tolower);
 
-    button("select");
-    button("start");
+                config["controller"][std::to_string(i)]["type"] = type;
+            }
 
-    ImGui::Columns(1);
+            if (types[currentType] == TYPE_DIGITAL || types[currentType] == TYPE_ANALOG)  {
+                if (types[currentType] == TYPE_ANALOG) {
+                    ImGui::Text("Note: use game controller with analog sticks");
+                }
+                ImGui::Columns(2, nullptr, false);
+                button(i, "up");
+                button(i, "down");
+                button(i, "left");
+                button(i, "right");
 
-    if (ImGui::Button("Default")) {
-        config["controller"] = defaultConfig["controller"];
+                button(i, "triangle");
+                button(i, "cross");
+                button(i, "square");
+                button(i, "circle");
+        
+                button(i, "l1");
+                button(i, "r1");
+                button(i, "l2");
+                button(i, "r2");
+        
+                button(i, "select");
+                button(i, "start");
+
+                ImGui::Columns(1);
+
+                if (ImGui::Button("Restore defaults")) {
+                    config["controller"][std::to_string(i)]["keys"] = defaultConfig["controller"][std::to_string(i)]["keys"];
+                }
+            }
+            ImGui::TreePop();
+        }
     }
 
     ImGui::End();

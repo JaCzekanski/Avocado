@@ -159,8 +159,6 @@ uint8_t MemoryCard::handleId(uint8_t byte) {
     return 0xff;
 }
 
-bool MemoryCard::getAck() { return state != 0; }
-
 void MemoryCard::resetState() {
     state = 0;
     command = Command::None;

@@ -9,20 +9,44 @@ const json defaultConfig = {
 	{"extension", ""}, 
 	{"iso", ""},
     {"controller", {
-            {"up",      "Up"},
-            {"right",   "Right"},
-            {"down",    "Down"},
-            {"left",    "Left"},
-            {"triangle","Keypad 8"},
-            {"circle",  "Keypad 6"},
-            {"cross",   "Keypad 2"},
-            {"square",  "Keypad 4"},
-            {"l1",      "Keypad 7"},
-            {"r1",      "Keypad 9"},
-            {"l2",      "Keypad /"},
-            {"r2",      "Keypad *"},
-            {"select",  "Right Shift"},
-            {"start",   "Return"},
+        {"1", {
+            {"type", "Analog"},
+            {"keys", {
+                {"up",      "Up"},
+                {"right",   "Right"},
+                {"down",    "Down"},
+                {"left",    "Left"},
+                {"triangle","Keypad 8"},
+                {"circle",  "Keypad 6"},
+                {"cross",   "Keypad 2"},
+                {"square",  "Keypad 4"},
+                {"l1",      "Keypad 7"},
+                {"r1",      "Keypad 9"},
+                {"l2",      "Keypad /"},
+                {"r2",      "Keypad *"},
+                {"select",  "Right Shift"},
+                {"start",   "Return"},
+            }}
+        }},
+        {"2", {
+            {"type", "None"},
+            {"keys", {
+                {"up",      ""},
+                {"right",   ""},
+                {"down",    ""},
+                {"left",    ""},
+                {"triangle",""},
+                {"circle",  ""},
+                {"cross",   ""},
+                {"square",  ""},
+                {"l1",      ""},
+                {"r1",      ""},
+                {"l2",      ""},
+                {"r2",      ""},
+                {"select",  ""},
+                {"start",   ""},
+            }}
+        }}
     }},
     {"options", {
         {"graphics", {
@@ -35,7 +59,8 @@ const json defaultConfig = {
             { "system",1u },
             { "bios",  0u },
             { "cdrom", 0u },
-            { "memoryCard", 1u }
+            { "memoryCard", 1u },
+            { "controller", 1u }
         }}
     }},
     {"memoryCard", {

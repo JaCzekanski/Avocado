@@ -1,9 +1,9 @@
 #pragma once
 #include <array>
-#include "device/device.h"
+#include "abstract_device.h"
 
 namespace peripherals {
-struct MemoryCard {
+struct MemoryCard : public AbstractDevice {
     enum class Command { Read, Write, ID, None };
     enum class WriteStatus : uint8_t {
         Good = 'G', 
@@ -25,7 +25,6 @@ struct MemoryCard {
 
     int verbose = 0;
 
-    int state = 0;
     Command command = Command::None;
 
     Flag flag;
@@ -37,12 +36,11 @@ struct MemoryCard {
 
     std::array<uint8_t, 128 * 1024> data;
 
-    uint8_t handle(uint8_t byte);
+    uint8_t handle(uint8_t byte) override;
     uint8_t handleRead(uint8_t byte);
     uint8_t handleWrite(uint8_t byte);
     uint8_t handleId(uint8_t byte);
-    bool getAck();
-    void resetState();
+    void resetState() override;
     MemoryCard();
 };
 }  // namespace peripherals
