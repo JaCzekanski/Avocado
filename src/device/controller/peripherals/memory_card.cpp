@@ -3,7 +3,7 @@
 
 namespace peripherals {
 
-MemoryCard::MemoryCard() {
+MemoryCard::MemoryCard() : AbstractDevice(Type::MemoryCard) {
     verbose = config["debug"]["log"]["memoryCard"];
 }
 

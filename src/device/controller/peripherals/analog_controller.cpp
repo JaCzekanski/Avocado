@@ -2,11 +2,13 @@
 #include "config.h"
 
 namespace peripherals {
-AnalogController::AnalogController() : buttons(0) { verbose = config["debug"]["log"]["controller"]; }
+AnalogController::AnalogController() : AbstractDevice(Type::Analog), buttons(0) { 
+    verbose = config["debug"]["log"]["controller"]; 
+}
 
 uint8_t AnalogController::handle(uint8_t byte) {
     if (state == 0) command = Command::None;
-    // if (verbose) printf("[CONTROLLER] state %d, input 0x%02x\n", state, byte);
+    if (verbose) printf("[CONTROLLER] state %d, input 0x%02x\n", state, byte);
 
     if (command == Command::Read && !analogEnabled) return handleRead(byte);
     if (command == Command::Read && analogEnabled) return handleReadAnalog(byte);
@@ -29,7 +31,7 @@ uint8_t AnalogController::handle(uint8_t byte) {
         case 1: {
             uint8_t ret = analogEnabled ? 0x73 : 0x41;
             if (configurationMode) ret = 0xf3;
-            if (byte == 'B') {
+            if (byte == 'B') { // Read buttons
                 command = Command::Read;
                 state++;
                 return ret;

@@ -17,7 +17,7 @@ struct AnalogController : public AbstractDevice {
     Stick left, right;
     Command command = Command::None;
     bool analogEnabled = false;
-    bool ledEnabled = true;
+    bool ledEnabled = false;
     bool configurationMode = false;
 
     uint8_t handle(uint8_t byte) override;

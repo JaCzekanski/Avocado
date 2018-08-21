@@ -1,4 +1,9 @@
 #include "controller.h"
+#include "config.h"
+#include "peripherals/analog_controller.h"
+#include "peripherals/digital_controller.h"
+#include "peripherals/mouse.h"
+#include "peripherals/none.h"
 #include "system.h"
 
 namespace device {
@@ -18,13 +23,13 @@ void Controller::handleByte(uint8_t byte) {
         }
 
         if (deviceSelected == DeviceSelected::Controller) {
-            rxData = controller.handle(byte);
+            rxData = controller->handle(byte);
             // printf("[CONTROLLER] Out: 0x%02x  in: 0x%02x\n", byte, rxData);
-            ack = controller.getAck();
+            ack = controller->getAck();
             if (ack) {
                 irqTimer = 5;
             }
-            if (controller.state == 0) deviceSelected = DeviceSelected::None;
+            if (controller->state == 0) deviceSelected = DeviceSelected::None;
         }
         if (deviceSelected == DeviceSelected::MemoryCard) {
             rxData = card.handle(byte);
@@ -44,7 +49,30 @@ void Controller::handleByte(uint8_t byte) {
     }
 }
 
-Controller::Controller(System* sys) : sys(sys) {}
+Controller::Controller(System* sys) : sys(sys) { 
+    configObserver.registerCallback(Event::Controller, [&](){
+        reload();
+    });
+
+    reload(); 
+}
+
+Controller::~Controller() { 
+    configObserver.unregisterCallback(Event::Controller);
+}
+
+void Controller::reload() {
+    std::string type = config["controller"]["1"]["type"];
+    if (type == ControllerType::DIGITAL) {
+        controller = std::make_unique<peripherals::DigitalController>();
+    } else if (type == ControllerType::ANALOG) {
+        controller = std::make_unique<peripherals::AnalogController>();
+    } else if (type == ControllerType::MOUSE) {
+        controller = std::make_unique<peripherals::Mouse>();
+    } else {
+        controller = std::make_unique<peripherals::None>();
+    }
+}
 
 void Controller::step() {
     if (irqTimer > 0) {
@@ -81,7 +109,7 @@ uint8_t Controller::read(uint32_t address) {
     return 0xff;
 }
 
-void Controller::write(uint32_t address, uint8_t data) {    
+void Controller::write(uint32_t address, uint8_t data) {
     if (address == 0) {
         handleByte(data);
     } else if (address >= 8 && address < 10) {
@@ -96,10 +124,9 @@ void Controller::write(uint32_t address, uint8_t data) {
             if (!(control._reg & 2)) {
                 // Reset periperals
                 deviceSelected = DeviceSelected::None;
-                controller.resetState();
+                controller->resetState();
                 card.resetState();
             }
-
         }
     } else if (address >= 14 && address < 16) {
         baud._byte[address - 14] = data;

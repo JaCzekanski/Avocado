@@ -21,13 +21,13 @@
 #include "device/dma3Channel.h"
 #include "bios/exe_bootstrap.h"
 #include "device/controller/peripherals/digital_controller.h"
+#include "device/controller/peripherals/analog_controller.h"
+#include "device/controller/peripherals/mouse.h"
 
 #undef main
 
 const int CPU_CLOCK = 33868500;
 const int GPU_CLOCK_NTSC = 53690000;
-
-std::unique_ptr<System> sys;
 
 peripherals::DigitalController::ButtonState& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
@@ -96,6 +96,7 @@ peripherals::DigitalController::ButtonState& getButtonState(SDL_Event& event) {
 }
 
 bool running = true;
+bool mouseLocked = false;
 
 void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& basePath, const std::string& content) {
     auto datDirRegex = std::regex("DATDIR=(.*)");
@@ -137,7 +138,7 @@ void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& bas
     }
 }
 
-void bootstrap() {
+void bootstrap(std::unique_ptr<System>& sys) {
     Sound::clearBuffer();
     sys = std::make_unique<System>();
     sys->loadBios(config["bios"]);
@@ -160,14 +161,14 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     }
 
     if (ext == "psf" || ext == "minipsf") {
-        bootstrap();
+        bootstrap(sys);
         loadPsf(sys.get(), path);
         sys->state = System::State::run;
         return;
     }
 
     if (ext == "exe" || ext == "psexe") {
-        bootstrap();
+        bootstrap(sys);
         // Replace shell with .exe contents
         sys->loadExeFile(getFileContents(path));
 
@@ -221,7 +222,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     }
 }
 
-void saveMemoryCards(bool force = false) {
+void saveMemoryCards(std::unique_ptr<System>& sys, bool force = false) {
     if (!force && !sys->controller->card.dirty) return;
 
     std::string pathCard1 = config["memoryCard"]["1"];
@@ -241,8 +242,8 @@ void saveMemoryCards(bool force = false) {
     printf("[INFO] Saved memory card 1 to %s\n", getFilenameExt(pathCard1).c_str());
 }
 
-void hardReset() {
-    sys = std::make_unique<System>();
+std::unique_ptr<System> hardReset() {
+    auto sys = std::make_unique<System>();
 
     std::string bios = config["bios"];
     if (!bios.empty() && sys->loadBios(bios)) {
@@ -268,10 +269,11 @@ void hardReset() {
             printf("[INFO] Loaded memory card 1 from %s\n", getFilenameExt(pathCard1).c_str());
         }
     }
+    return sys;
 }
 
 // Warning: this method might have 1 or more miliseconds of inaccuracy.
-void limitFramerate(SDL_Window* window, bool framelimiter, bool ntsc) {
+void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool framelimiter, bool ntsc) {
     static double timeToSkip = 0;
     static double counterFrequency = SDL_GetPerformanceFrequency();
     static double startTime = SDL_GetPerformanceCounter() / counterFrequency;
@@ -318,11 +320,15 @@ void limitFramerate(SDL_Window* window, bool framelimiter, bool ntsc) {
 
         std::string title = string_format("Avocado %s | %s | FPS: %.0f (%0.2f ms) %s", BUILD_STRING, gameName.c_str(), fps,
                                           (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
+        if (mouseLocked) {
+            title = "Press ESC to unlock mouse | " + title;
+        }
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
 
 int main(int argc, char** argv) {
+
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
@@ -356,7 +362,7 @@ int main(int argc, char** argv) {
 
     Sound::init();
 
-    hardReset();
+    std::unique_ptr<System> sys = hardReset();
 
     // If argument given - open that file (same as drag and drop)
     if (argc>1) {
@@ -390,6 +396,12 @@ int main(int argc, char** argv) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
+
+        if (sys->controller->controller->type == peripherals::Type::Mouse) {
+            auto mouse = (peripherals::Mouse*)sys->controller->controller.get();
+            mouse->x = mouse->y = 0;
+        }
+
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
@@ -397,13 +409,42 @@ int main(int argc, char** argv) {
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
             }
+            if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) {
+                bool pressed = event.type == SDL_MOUSEBUTTONDOWN;
+                if (mouseLocked && sys->controller->controller->type == peripherals::Type::Mouse) {
+                    auto mouse = (peripherals::Mouse*)sys->controller->controller.get();
+                    if (event.button.button == SDL_BUTTON_LEFT) mouse->left = pressed;
+                    if (event.button.button == SDL_BUTTON_RIGHT) mouse->right = pressed;
+                    continue;
+                }
+
+                if (pressed && event.button.button == SDL_BUTTON_LEFT && event.button.clicks == 2) {
+                    mouseLocked = true;
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                }
+            }
+            if (event.type ==  SDL_MOUSEMOTION) {
+                if (mouseLocked && sys->controller->controller->type == peripherals::Type::Mouse) {
+                    auto mouse = (peripherals::Mouse*)sys->controller->controller.get();
+                    mouse->x = clamp((int)mouse->x + event.motion.xrel, INT8_MIN, INT8_MAX);
+                    mouse->y = clamp((int)mouse->y + event.motion.yrel, INT8_MIN, INT8_MAX);
+                    continue;
+                } 
+            }
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (waitingForKeyPress) {
                     waitingForKeyPress = false;
                     if (event.key.keysym.sym != SDLK_ESCAPE) lastPressedKey = event.key.keysym.sym;
                     continue;
                 }
-                if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    if (mouseLocked) {
+                        mouseLocked = false;
+                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                    } else {
+                        running = false;
+                    }
+                }
                 if (event.key.keysym.sym == SDLK_2) sys->interrupt->trigger(interrupt::TIMER2);
                 if (event.key.keysym.sym == SDLK_d) sys->interrupt->trigger(interrupt::DMA);
                 if (event.key.keysym.sym == SDLK_s) sys->interrupt->trigger(interrupt::SPU);
@@ -413,7 +454,7 @@ int main(int argc, char** argv) {
                 }
                 if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_F2) {
-                    if (event.key.keysym.mod & KMOD_SHIFT) hardReset();
+                    if (event.key.keysym.mod & KMOD_SHIFT) {sys = hardReset();}
                     else sys->softReset();
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
@@ -447,7 +488,15 @@ int main(int argc, char** argv) {
                 opengl.width = event.window.data1;
                 opengl.height = event.window.data2;
             }
-            sys->controller->setState(getButtonState(event));
+
+            if (sys->controller->controller->type == peripherals::Type::Digital) {
+                auto controller = (peripherals::DigitalController*)sys->controller->controller.get();
+                controller->buttons = getButtonState(event);
+            } 
+            if (sys->controller->controller->type == peripherals::Type::Analog) {
+                auto controller = (peripherals::AnalogController*)sys->controller->controller.get();
+                controller->buttons = getButtonState(event);
+            }
             ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
@@ -461,7 +510,7 @@ int main(int argc, char** argv) {
 
         if (doHardReset) {
             doHardReset = false;
-            hardReset();
+            sys = hardReset();
         }
 
         if (sys->state == System::State::run) {
@@ -478,9 +527,9 @@ int main(int argc, char** argv) {
 
         SDL_GL_SwapWindow(window);
 
-        limitFramerate(window, frameLimitEnabled, sys->gpu->isNtsc());
+        limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc());
     }
-    saveMemoryCards(true);
+    saveMemoryCards(sys, true);
     saveConfigFile(CONFIG_NAME);
 
     Sound::close();

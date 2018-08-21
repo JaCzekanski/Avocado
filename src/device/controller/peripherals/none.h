@@ -4,11 +4,8 @@
 #include "device/device.h"
 
 namespace peripherals {
-struct Mouse : public AbstractDevice {
-    bool left = false, right = false;
-    int8_t x = 0, y = 0;
-
+struct None : public AbstractDevice {
     uint8_t handle(uint8_t byte) override;
-    Mouse();
+    None();
 };
 };  // namespace peripherals

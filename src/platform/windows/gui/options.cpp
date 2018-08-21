@@ -119,21 +119,16 @@ void button(int controller, std::string button) {
 }
 
 void controllerSetupWindow() {
-    const char* TYPE_NONE = "None";
-    const char* TYPE_DIGITAL = "Digital";
-    const char* TYPE_ANALOG = "Analog";
-    const char* TYPE_MOUSE = "Mouse";
     const std::array<const char*, 4> types = {{
-        TYPE_NONE, TYPE_DIGITAL, TYPE_ANALOG, TYPE_MOUSE
+        ControllerType::NONE.c_str(), 
+        ControllerType::DIGITAL.c_str(), 
+        ControllerType::ANALOG.c_str(), 
+        ControllerType::MOUSE.c_str()
     }};
 
     const auto find = [&](std::string selectedType) -> int {
-        std::transform(selectedType.begin(), selectedType.end(), selectedType.begin(), tolower);
-
         for (size_t i = 0; i<types.size(); i++) {
             std::string type = types[i];
-            std::transform(type.begin(), type.end(), type.begin(), tolower);
-
             if (type == selectedType) return i;
         }
         return 0;
@@ -156,14 +151,12 @@ void controllerSetupWindow() {
             ImGui::Text("Type");
             ImGui::SameLine();
             if (ImGui::Combo("##type", &currentType, types.data(), types.size())) {
-                std::string type = types[currentType];
-                std::transform(type.begin(), type.end(), type.begin(), tolower);
-
-                config["controller"][std::to_string(i)]["type"] = type;
+                config["controller"][std::to_string(i)]["type"] = types[currentType];
+                configObserver.notify(Event::Controller);
             }
 
-            if (types[currentType] == TYPE_DIGITAL || types[currentType] == TYPE_ANALOG)  {
-                if (types[currentType] == TYPE_ANALOG) {
+            if (types[currentType] == ControllerType::DIGITAL || types[currentType] == ControllerType::ANALOG)  {
+                if (types[currentType] == ControllerType::ANALOG) {
                     ImGui::Text("Note: use game controller with analog sticks");
                 }
                 ImGui::Columns(2, nullptr, false);

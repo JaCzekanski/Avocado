@@ -25,12 +25,10 @@ void DigitalController::ButtonState::setByName(const std::string& name, bool val
 #undef BUTTON
 }
 
-DigitalController::DigitalController() : buttons(0) {
-    verbose = config["debug"]["log"]["controller"];
+DigitalController::DigitalController() : AbstractDevice(Type::Digital), buttons(0) {
 }
 
 uint8_t DigitalController::handle(uint8_t byte) {
-    if (verbose) printf("[CONTROLLER] state %d, input 0x%02x\n", state, byte);
     switch (state) {
         case 0:
             if (byte == 0x01) {
@@ -48,11 +46,8 @@ uint8_t DigitalController::handle(uint8_t byte) {
             return 0xff;
 
         case 2: state++; return 0x5a;
-
         case 3: state++; return ~buttons._byte[0];
-
         case 4: state = 0; return ~buttons._byte[1];
-
         default: state = 0; return 0xff;
     }
 }

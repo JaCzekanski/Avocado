@@ -10,7 +10,7 @@ const json defaultConfig = {
 	{"iso", ""},
     {"controller", {
         {"1", {
-            {"type", "Analog"},
+            {"type", ControllerType::ANALOG},
             {"keys", {
                 {"up",      "Up"},
                 {"right",   "Right"},
@@ -29,7 +29,7 @@ const json defaultConfig = {
             }}
         }},
         {"2", {
-            {"type", "None"},
+            {"type", ControllerType::NONE},
             {"keys", {
                 {"up",      ""},
                 {"right",   ""},
@@ -69,6 +69,8 @@ const json defaultConfig = {
     }}
 };
 // clang-format on
+
+ConfigObserver configObserver;
 
 json config = defaultConfig;
 
@@ -114,3 +116,11 @@ void loadConfigFile(const char* configName) {
 }
 
 bool isEmulatorConfigured() { return !config["bios"].get<std::string>().empty(); }
+
+
+namespace ControllerType {
+    const std::string NONE = "none";
+    const std::string DIGITAL = "digital";
+    const std::string ANALOG = "analog";
+    const std::string MOUSE = "mouse";
+}

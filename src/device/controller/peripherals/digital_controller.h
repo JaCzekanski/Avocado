@@ -32,8 +32,6 @@ struct DigitalController : public AbstractDevice {
         ButtonState(uint16_t reg) : _reg(reg) {}
         ButtonState() = default;
     };
-    int verbose;
-
     ButtonState buttons;
 
     uint8_t handle(uint8_t byte) override;
