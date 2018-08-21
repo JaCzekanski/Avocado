@@ -3,6 +3,13 @@
 
 const char* CONFIG_NAME = "config.json";
 
+namespace ControllerType {
+const std::string NONE = "none";
+const std::string DIGITAL = "digital";
+const std::string ANALOG = "analog";
+const std::string MOUSE = "mouse";
+}  // namespace ControllerType
+
 // clang-format off
 const json defaultConfig = {
 	{"bios", ""}, 
@@ -25,7 +32,7 @@ const json defaultConfig = {
                 {"l2",      "Keypad /"},
                 {"r2",      "Keypad *"},
                 {"select",  "Right Shift"},
-                {"start",   "Return"},
+                {"start",   "Return"}
             }}
         }},
         {"2", {
@@ -44,7 +51,7 @@ const json defaultConfig = {
                 {"l2",      ""},
                 {"r2",      ""},
                 {"select",  ""},
-                {"start",   ""},
+                {"start",   ""}
             }}
         }}
     }},
@@ -116,11 +123,3 @@ void loadConfigFile(const char* configName) {
 }
 
 bool isEmulatorConfigured() { return !config["bios"].get<std::string>().empty(); }
-
-
-namespace ControllerType {
-    const std::string NONE = "none";
-    const std::string DIGITAL = "digital";
-    const std::string ANALOG = "analog";
-    const std::string MOUSE = "mouse";
-}

@@ -110,7 +110,7 @@ void button(int controller, std::string button) {
 
     ImGui::TextUnformatted(button.c_str());
     ImGui::NextColumn();
-    if (ImGui::Button(key.c_str(), ImVec2(100.f, 0.f))) {
+    if (ImGui::Button(key.c_str(), ImVec2(-1.f, 0.f))) {
         currentButton = button;
         waitingForKeyPress = true;
         ImGui::OpenPopup("Waiting for key...");
@@ -119,15 +119,15 @@ void button(int controller, std::string button) {
 }
 
 void controllerSetupWindow() {
-    const std::array<const char*, 4> types = {{
-        ControllerType::NONE.c_str(), 
-        ControllerType::DIGITAL.c_str(), 
-        ControllerType::ANALOG.c_str(), 
-        ControllerType::MOUSE.c_str()
-    }};
+    const int controllerCount = 2;
+    static int selectedController = 1;
+    static std::string comboString = string_format("Controller %d", selectedController);
+
+    const std::array<const char*, 4> types
+        = {{ControllerType::NONE.c_str(), ControllerType::DIGITAL.c_str(), ControllerType::ANALOG.c_str(), ControllerType::MOUSE.c_str()}};
 
     const auto find = [&](std::string selectedType) -> int {
-        for (size_t i = 0; i<types.size(); i++) {
+        for (size_t i = 0; i < types.size(); i++) {
             std::string type = types[i];
             if (type == selectedType) return i;
         }
@@ -141,52 +141,69 @@ void controllerSetupWindow() {
 
     ImGui::Begin("Controller", &showControllerSetupWindow);
 
-    for (int i = 1; i<=2; i++) {
-        int flags = ImGuiTreeNodeFlags_CollapsingHeader;
-        if (i == 1) flags |= ImGuiTreeNodeFlags_DefaultOpen;
-
-        if (ImGui::TreeNodeEx(string_format("Controller %d", i).c_str(), flags)) {
-            int currentType = find(config["controller"][std::to_string(i)]["type"]);
-
-            ImGui::Text("Type");
-            ImGui::SameLine();
-            if (ImGui::Combo("##type", &currentType, types.data(), types.size())) {
-                config["controller"][std::to_string(i)]["type"] = types[currentType];
-                configObserver.notify(Event::Controller);
+    if (ImGui::BeginCombo("##combo_controller", comboString.c_str())) {
+        for (int i = 1; i <= controllerCount; i++) {
+            bool isSelected = i == selectedController;
+            std::string label = string_format("Controller %d", i);
+            if (ImGui::Selectable(label.c_str(), isSelected)) {
+                selectedController = i;
+                comboString = label;
             }
-
-            if (types[currentType] == ControllerType::DIGITAL || types[currentType] == ControllerType::ANALOG)  {
-                if (types[currentType] == ControllerType::ANALOG) {
-                    ImGui::Text("Note: use game controller with analog sticks");
-                }
-                ImGui::Columns(2, nullptr, false);
-                button(i, "up");
-                button(i, "down");
-                button(i, "left");
-                button(i, "right");
-
-                button(i, "triangle");
-                button(i, "cross");
-                button(i, "square");
-                button(i, "circle");
-        
-                button(i, "l1");
-                button(i, "r1");
-                button(i, "l2");
-                button(i, "r2");
-        
-                button(i, "select");
-                button(i, "start");
-
-                ImGui::Columns(1);
-
-                if (ImGui::Button("Restore defaults")) {
-                    config["controller"][std::to_string(i)]["keys"] = defaultConfig["controller"][std::to_string(i)]["keys"];
-                }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
             }
-            ImGui::TreePop();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::BeginGroup();
+    ImGui::Text("Image here");
+    ImGui::EndGroup();
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
+    ImGui::Columns(2, nullptr, false);
+    ImGui::Text("Type");
+    ImGui::NextColumn();
+
+    int currentType = find(config["controller"][std::to_string(selectedController)]["type"]);
+    if (ImGui::Combo("##type", &currentType, types.data(), types.size())) {
+        config["controller"][std::to_string(selectedController)]["type"] = types[currentType];
+        configObserver.notify(Event::Controller);
+    }
+    ImGui::NextColumn();
+
+    if (types[currentType] == ControllerType::DIGITAL || types[currentType] == ControllerType::ANALOG) {
+        button(selectedController, "up");
+        button(selectedController, "down");
+        button(selectedController, "left");
+        button(selectedController, "right");
+
+        button(selectedController, "triangle");
+        button(selectedController, "cross");
+        button(selectedController, "square");
+        button(selectedController, "circle");
+
+        button(selectedController, "l1");
+        button(selectedController, "r1");
+        button(selectedController, "l2");
+        button(selectedController, "r2");
+
+        button(selectedController, "select");
+        button(selectedController, "start");
+
+        ImGui::Columns(1);
+
+        if (types[currentType] == ControllerType::ANALOG) {
+            ImGui::Text("Note: use game controller with analog sticks");
+        }
+
+        if (ImGui::Button("Restore defaults")) {
+            config["controller"][std::to_string(selectedController)]["keys"]
+                = defaultConfig["controller"][std::to_string(selectedController)]["keys"];
         }
     }
 
+    ImGui::EndGroup();
     ImGui::End();
 }

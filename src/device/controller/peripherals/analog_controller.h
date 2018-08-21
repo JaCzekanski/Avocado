@@ -6,11 +6,27 @@
 
 namespace peripherals {
 struct AnalogController : public AbstractDevice {
-    enum class Command { None, Read, Configuration, SetLed, LedStatus, UnlockRumble, Unknown_46, Unknown_47, Unknown_4c };
+    enum class Command {
+        None,
+        Read,
+        EnterConfiguration,
+        ExitConfiguration,
+        SetLed,
+        LedStatus,
+        UnlockRumble,
+        Unknown_46,
+        Unknown_47,
+        Unknown_4c
+    };
     struct Stick {
-        int8_t x;
-        int8_t y;
-        Stick() : x(0), y(0) {}
+        /**
+         * 0x00 - left/up
+         * 0x80 - center
+         * 0xff - right/down
+         */
+        uint8_t x;
+        uint8_t y;
+        Stick() : x(0x80), y(0x80) {}
     };
     int verbose;
     DigitalController::ButtonState buttons;
@@ -23,7 +39,8 @@ struct AnalogController : public AbstractDevice {
     uint8_t handle(uint8_t byte) override;
     uint8_t handleRead(uint8_t byte);
     uint8_t handleReadAnalog(uint8_t byte);
-    uint8_t handleConfiguration(uint8_t byte);
+    uint8_t handleEnterConfiguration(uint8_t byte);
+    uint8_t handleExitConfiguration(uint8_t byte);
     uint8_t handleSetLed(uint8_t byte);
     uint8_t handleLedStatus(uint8_t byte);
     uint8_t handleUnlockRumble(uint8_t byte);

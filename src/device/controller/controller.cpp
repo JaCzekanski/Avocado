@@ -12,65 +12,58 @@ namespace controller {
 void Controller::handleByte(uint8_t byte) {
     rxPending = true;
 
-    if ((control._reg & (1 << 13)) == 0) {
-        // Port 1
-        if (deviceSelected == DeviceSelected::None) {
-            if (byte == 0x01) {
-                deviceSelected = DeviceSelected::Controller;
-            } else if (byte == 0x81) {
-                deviceSelected = DeviceSelected::MemoryCard;
-            }
-        }
+    int port = ((control._reg & (1 << 13)) == 0) ? 0 : 1;
 
-        if (deviceSelected == DeviceSelected::Controller) {
-            rxData = controller->handle(byte);
-            // printf("[CONTROLLER] Out: 0x%02x  in: 0x%02x\n", byte, rxData);
-            ack = controller->getAck();
-            if (ack) {
-                irqTimer = 5;
-            }
-            if (controller->state == 0) deviceSelected = DeviceSelected::None;
+    if (deviceSelected == DeviceSelected::None) {
+        if (byte == 0x01) {
+            deviceSelected = DeviceSelected::Controller;
+        } else if (byte == 0x81) {
+            deviceSelected = DeviceSelected::MemoryCard;
         }
-        if (deviceSelected == DeviceSelected::MemoryCard) {
-            rxData = card.handle(byte);
-            ack = card.getAck();
-            if (ack) {
-                irqTimer = 3;
-            }
-            if (card.state == 0) deviceSelected = DeviceSelected::None;
+    }
+
+    if (deviceSelected == DeviceSelected::Controller) {
+        rxData = controller[port]->handle(byte);
+        // printf("[CONTROLLER] Out: 0x%02x  in: 0x%02x\n", byte, rxData);
+        ack = controller[port]->getAck();
+        if (ack) {
+            irqTimer = 5;
         }
-    } else {
-        // Port 2
-        //		rxData = state.handle(byte);
-        //		ack = state.getAck();
-        //		if (state.getAck()) {
-        //			irqTimer = 3;
-        //		}
+        if (controller[port]->state == 0) deviceSelected = DeviceSelected::None;
+    }
+    if (deviceSelected == DeviceSelected::MemoryCard) {
+        rxData = card[port].handle(byte);
+        ack = card[port].getAck();
+        if (ack) {
+            irqTimer = 3;
+        }
+        if (card[port].state == 0) deviceSelected = DeviceSelected::None;
     }
 }
 
-Controller::Controller(System* sys) : sys(sys) { 
-    configObserver.registerCallback(Event::Controller, [&](){
-        reload();
-    });
+Controller::Controller(System* sys) : sys(sys) {
+    configObserver.registerCallback(Event::Controller, [&]() { reload(); });
 
-    reload(); 
+    reload();
 }
 
-Controller::~Controller() { 
-    configObserver.unregisterCallback(Event::Controller);
-}
-
+Controller::~Controller() { configObserver.unregisterCallback(Event::Controller); }
 void Controller::reload() {
-    std::string type = config["controller"]["1"]["type"];
-    if (type == ControllerType::DIGITAL) {
-        controller = std::make_unique<peripherals::DigitalController>();
-    } else if (type == ControllerType::ANALOG) {
-        controller = std::make_unique<peripherals::AnalogController>();
-    } else if (type == ControllerType::MOUSE) {
-        controller = std::make_unique<peripherals::Mouse>();
-    } else {
-        controller = std::make_unique<peripherals::None>();
+    auto createDevice = [](int num) -> std::unique_ptr<peripherals::AbstractDevice> {
+        std::string type = config["controller"][std::to_string(num + 1)]["type"];
+        if (type == ControllerType::DIGITAL) {
+            return std::make_unique<peripherals::DigitalController>();
+        } else if (type == ControllerType::ANALOG) {
+            return std::make_unique<peripherals::AnalogController>();
+        } else if (type == ControllerType::MOUSE) {
+            return std::make_unique<peripherals::Mouse>();
+        } else {
+            return std::make_unique<peripherals::None>();
+        }
+    };
+
+    for (int i = 0; i < controller.size(); i++) {
+        controller[i] = createDevice(i);
     }
 }
 
@@ -124,8 +117,8 @@ void Controller::write(uint32_t address, uint8_t data) {
             if (!(control._reg & 2)) {
                 // Reset periperals
                 deviceSelected = DeviceSelected::None;
-                controller->resetState();
-                card.resetState();
+                for (auto& ctrl : controller) ctrl->resetState();
+                for (auto& crd : card) crd.resetState();
             }
         }
     } else if (address >= 14 && address < 16) {

@@ -41,8 +41,8 @@ class Controller {
     }
 
    public:
-    std::unique_ptr<peripherals::AbstractDevice> controller;
-    peripherals::MemoryCard card;
+    std::array<std::unique_ptr<peripherals::AbstractDevice>, 2> controller;
+    std::array<peripherals::MemoryCard, 2> card;
 
     Controller(System* sys);
     ~Controller();

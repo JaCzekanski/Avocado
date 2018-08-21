@@ -2,17 +2,16 @@
 #include "config.h"
 
 namespace peripherals {
-AnalogController::AnalogController() : AbstractDevice(Type::Analog), buttons(0) { 
-    verbose = config["debug"]["log"]["controller"]; 
-}
+AnalogController::AnalogController() : AbstractDevice(Type::Analog), buttons(0) { verbose = config["debug"]["log"]["controller"]; }
 
 uint8_t AnalogController::handle(uint8_t byte) {
     if (state == 0) command = Command::None;
-    if (verbose) printf("[CONTROLLER] state %d, input 0x%02x\n", state, byte);
+    // if (verbose) printf("[CONTROLLER] state %d, input 0x%02x\n", state, byte);
 
     if (command == Command::Read && !analogEnabled) return handleRead(byte);
     if (command == Command::Read && analogEnabled) return handleReadAnalog(byte);
-    if (command == Command::Configuration) return handleConfiguration(byte);
+    if (command == Command::EnterConfiguration) return handleEnterConfiguration(byte);
+    if (command == Command::ExitConfiguration) return handleExitConfiguration(byte);
     if (command == Command::LedStatus) return handleLedStatus(byte);
     if (command == Command::SetLed) return handleSetLed(byte);
     if (command == Command::UnlockRumble) return handleUnlockRumble(byte);
@@ -31,13 +30,16 @@ uint8_t AnalogController::handle(uint8_t byte) {
         case 1: {
             uint8_t ret = analogEnabled ? 0x73 : 0x41;
             if (configurationMode) ret = 0xf3;
-            if (byte == 'B') { // Read buttons
+            if (byte == 'B') {  // Read buttons
                 command = Command::Read;
                 state++;
                 return ret;
             }
             if (byte == 'C') {  // Configuration mode
-                command = Command::Configuration;
+                if (!configurationMode)
+                    command = Command::EnterConfiguration;
+                else
+                    command = Command::ExitConfiguration;
                 state++;
                 return ret;
             }
@@ -51,12 +53,12 @@ uint8_t AnalogController::handle(uint8_t byte) {
                 state++;
                 return ret;
             }
-            if (byte == 0x46 && configurationMode) {  
+            if (byte == 0x46 && configurationMode) {
                 command = Command::Unknown_46;
                 state++;
                 return ret;
             }
-            if (byte == 0x47 && configurationMode) {  
+            if (byte == 0x47 && configurationMode) {
                 command = Command::Unknown_47;
                 state++;
                 return ret;
@@ -66,7 +68,7 @@ uint8_t AnalogController::handle(uint8_t byte) {
                 state++;
                 return ret;
             }
-            if (byte == 0x4c && configurationMode) {  
+            if (byte == 0x4c && configurationMode) {
                 command = Command::Unknown_4c;
                 state++;
                 return ret;
@@ -102,7 +104,7 @@ uint8_t AnalogController::handleReadAnalog(uint8_t byte) {
     }
 }
 
-uint8_t AnalogController::handleConfiguration(uint8_t byte) {
+uint8_t AnalogController::handleEnterConfiguration(uint8_t byte) {
     switch (state) {
         case 2: state++; return 0x5a;
         case 3:
@@ -110,6 +112,22 @@ uint8_t AnalogController::handleConfiguration(uint8_t byte) {
             state++;
             return ~buttons._byte[0];
         case 4: state = analogEnabled ? state + 1 : 0; return ~buttons._byte[1];
+        case 5: state++; return right.x;
+        case 6: state++; return right.y;
+        case 7: state++; return left.x;
+        case 8: state = 0; return left.y;
+
+        default: return 0xff;
+    }
+}
+uint8_t AnalogController::handleExitConfiguration(uint8_t byte) {
+    switch (state) {
+        case 2: state++; return 0x5a;
+        case 3:
+            configurationMode = (byte == 1);
+            state++;
+            return 0;
+        case 4: state++; return 0;
         case 5: state++; return 0;
         case 6: state++; return 0;
         case 7: state++; return 0;
@@ -123,12 +141,16 @@ uint8_t AnalogController::handleSetLed(uint8_t byte) {
     static uint8_t param;
     switch (state) {
         case 2: state++; return 0x5a;
-        case 3: param = byte; state++; return 0;
-        case 4: 
+        case 3:
+            param = byte;
+            state++;
+            return 0;
+        case 4:
             if (param == 2) {
                 ledEnabled = (byte == 1);
             }
-            state++; return 0;
+            state++;
+            return 0;
         case 5: state++; return 0;
         case 6: state++; return 0;
         case 7: state++; return 0;
@@ -179,7 +201,7 @@ uint8_t AnalogController::handleUnlockRumble(uint8_t byte) {
         case 8:
             f = byte;
             state = 0;
-            analogEnabled = true; // TODO: Not completely valid, but should be good enough
+            analogEnabled = true;  // TODO: Not completely valid, but should be good enough
             printf("[CONTROLLER] Unlock Rumble: 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n", a, b, c, d, e, f);
             return 0;
 
@@ -191,7 +213,10 @@ uint8_t AnalogController::handleUnknown46(uint8_t byte) {
     static uint8_t param;
     switch (state) {
         case 2: state++; return 0x5a;
-        case 3: param = byte; state++; return 0;
+        case 3:
+            param = byte;
+            state++;
+            return 0;
         case 4: state++; return 0;
         case 5: state++; return 1;
         case 6: state++; return param == 1 ? 1 : 2;
@@ -220,7 +245,10 @@ uint8_t AnalogController::handleUnknown4c(uint8_t byte) {
     static uint8_t param;
     switch (state) {
         case 2: state++; return 0x5a;
-        case 3: param = byte; state++; return 0;
+        case 3:
+            param = byte;
+            state++;
+            return 0;
         case 4: state++; return 0;
         case 5: state++; return 0;
         case 6: state++; return (param == 1) ? 0x07 : 0x04;
