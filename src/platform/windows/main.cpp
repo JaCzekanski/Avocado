@@ -12,6 +12,7 @@
 #include "device/controller/peripherals/mouse.h"
 #include "device/dma3Channel.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
+#include "input/key.h"
 #include "platform/windows/gui/gui.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/adpcm.h"
@@ -24,9 +25,6 @@
 #include "version.h"
 
 #undef main
-
-const int CPU_CLOCK = 33868500;
-const int GPU_CLOCK_NTSC = 53690000;
 
 peripherals::DigitalController::ButtonState& getButtonState(SDL_Event& event) {
     static SDL_GameController* controller = nullptr;
@@ -326,6 +324,42 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
     }
 }
 
+bool captureEvent(SDL_Event& event) {
+    if (event.type == SDL_MOUSEBUTTONDOWN) {
+        waitingForKeyPress = false;
+        lastPressedKey = Key::mouseButton(event.button);
+        return true;
+    }
+
+    if (event.type == SDL_MOUSEMOTION && (std::abs(event.motion.xrel) > 10 || std::abs(event.motion.yrel) > 10)) {
+        waitingForKeyPress = false;
+        lastPressedKey = Key::mouseMove(event.motion);
+        return true;
+    }
+
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+        waitingForKeyPress = false;
+        if (event.key.keysym.sym != SDLK_ESCAPE) {
+            lastPressedKey = Key::keyboard(event.key.keysym.sym);
+        }
+        return true;
+    }
+
+    if (event.type == SDL_CONTROLLERAXISMOTION) {
+        waitingForKeyPress = false;
+        lastPressedKey = Key::controllerMove(event.caxis);
+        return true;
+    }
+
+    if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+        waitingForKeyPress = false;
+        lastPressedKey = Key::controllerButton(event.cbutton);
+        return true;
+    }
+
+    return false;
+}
+
 int main(int argc, char** argv) {
     loadConfigFile(CONFIG_NAME);
 
@@ -404,6 +438,9 @@ int main(int argc, char** argv) {
 
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
+            if (waitingForKeyPress) {
+                if (captureEvent(event)) continue;
+            }
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_WINDOWEVENT) {
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
@@ -435,11 +472,6 @@ int main(int argc, char** argv) {
                 }
             }
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-                if (waitingForKeyPress) {
-                    waitingForKeyPress = false;
-                    if (event.key.keysym.sym != SDLK_ESCAPE) lastPressedKey = event.key.keysym.sym;
-                    continue;
-                }
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     if (mouseLocked) {
                         mouseLocked = false;

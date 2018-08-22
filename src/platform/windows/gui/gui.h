@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include "platform/windows/input/key.h"
 #include "system.h"
 
 void renderImgui(System* sys);
@@ -15,4 +16,4 @@ extern bool showIo;
 extern bool exitProgram;
 extern bool doHardReset;
 extern bool waitingForKeyPress;
-extern SDL_Keycode lastPressedKey;
+extern Key lastPressedKey;

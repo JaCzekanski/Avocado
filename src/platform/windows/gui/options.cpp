@@ -101,9 +101,9 @@ void button(int controller, std::string button) {
     if (controller < 1 || controller > 4) return;
     std::string ctrl = std::to_string(controller);
 
-    if (button == currentButton && lastPressedKey != 0) {
-        config["controller"][ctrl]["keys"][button] = SDL_GetKeyName(lastPressedKey);
-        lastPressedKey = 0;
+    if (button == currentButton && lastPressedKey.type != Key::Type::None) {
+        config["controller"][ctrl]["keys"][button] = lastPressedKey.to_string();
+        lastPressedKey = Key();
     }
 
     std::string key = config["controller"][ctrl]["keys"][button];

@@ -2,10 +2,11 @@
 #include <imgui.h>
 #include "config.h"
 #include "cpu/gte/gte.h"
-#include "debug/kernel/kernel.h"
 #include "debug/gpu/gpu.h"
+#include "debug/kernel/kernel.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
+#include "platform/windows/input/key.h"
 #include "version.h"
 
 void openFileWindow();
@@ -36,7 +37,7 @@ bool showIo = false;
 bool exitProgram = false;
 bool doHardReset = false;
 bool waitingForKeyPress = false;
-SDL_Keycode lastPressedKey = 0;
+Key lastPressedKey;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
