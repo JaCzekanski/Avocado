@@ -73,7 +73,7 @@ filter "options:enable-io-log"
 
 filter {}
 	language "c++"
-	cppdialect "C++14"
+	cppdialect "C++17"
 	defines { 'BUILD_ARCH="%{cfg.platform}"' }
 
 filter "platforms:x86"
@@ -157,6 +157,7 @@ project "imgui"
 	files { 
 		"externals/imgui/imgui.cpp",
 		"externals/imgui/imgui_draw.cpp",
+		"externals/imgui/imgui_demo.cpp",
 	}
 
 project "common"
@@ -213,7 +214,8 @@ project "avocado"
 		"externals/glad/include",
 		"externals/SDL2/include",
 		"externals/glm",
-		"externals/json/include"
+		"externals/json/include",
+		"externals/stb",
 	}
 
 	links {

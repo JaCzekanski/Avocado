@@ -57,8 +57,11 @@ void aboutWindow() {
     ImGui::End();
 }
 
+extern void ImGui::ShowDemoWindow(bool* p_open);
+
 void renderImgui(System* sys) {
     if (showGui) {
+        ImGui::ShowDemoWindow(nullptr);
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;

@@ -5,6 +5,13 @@
 
 using json = nlohmann::json;
 
+namespace DefaultKeyBindings {
+json none();
+json keyboard_numpad();
+json mouse();
+json controller();
+}  // namespace DefaultKeyBindings
+
 extern const char* CONFIG_NAME;
 extern const nlohmann::json defaultConfig;
 extern nlohmann::json config;
@@ -16,8 +23,8 @@ bool isEmulatorConfigured();
 extern ConfigObserver configObserver;
 
 namespace ControllerType {
-    extern const std::string NONE;
-    extern const std::string DIGITAL;
-    extern const std::string ANALOG;
-    extern const std::string MOUSE;
-}
+extern const std::string NONE;
+extern const std::string DIGITAL;
+extern const std::string ANALOG;
+extern const std::string MOUSE;
+}  // namespace ControllerType

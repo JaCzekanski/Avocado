@@ -356,7 +356,7 @@ void vramWindow() {
     ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
     auto currentSize = ImGui::GetWindowSize();
     currentSize.y -= 32;
-    ImGui::Image(ImTextureID(vramTextureId), currentSize);
+    ImGui::Image((ImTextureID)vramTextureId, currentSize);
     ImGui::End();
 }
 

@@ -1,7 +1,9 @@
 #include "options.h"
 #include <imgui.h>
+#include <experimental/optional>
 #include "config.h"
 #include "gui.h"
+#include "images.h"
 #include "renderer/opengl/opengl.h"
 #include "utils/file.h"
 #include "utils/string.h"
@@ -96,7 +98,26 @@ void biosSelectionWindow() {
     ImGui::End();
 }
 
-void button(int controller, std::string button) {
+void drawImage(const std::experimental::optional<Image> image, float w = 0.f, float h = 0.f) {
+    if (auto img = image) {
+        ImVec2 size;
+
+        if (w != 0.f && h != 0.f) {
+            size = ImVec2(w, h);
+        } else if (w != 0.f) {
+            float aspect = static_cast<float>(img->h) / static_cast<float>(img->w);
+            size = ImVec2(w, w * aspect);
+        } else if (h != 0.f) {
+            float aspect = static_cast<float>(img->w) / static_cast<float>(img->h);
+            size = ImVec2(h * aspect, h);
+        } else {
+            size = ImVec2(img->w, img->h);
+        }
+        ImGui::Image((ImTextureID)img->id, size);
+    }
+}
+
+void button(int controller, std::string button, const char* tooltip = nullptr) {
     static std::string currentButton = "";
     if (controller < 1 || controller > 4) return;
     std::string ctrl = std::to_string(controller);
@@ -108,14 +129,39 @@ void button(int controller, std::string button) {
 
     std::string key = config["controller"][ctrl]["keys"][button];
 
-    ImGui::TextUnformatted(button.c_str());
-    ImGui::NextColumn();
-    if (ImGui::Button(key.c_str(), ImVec2(-1.f, 0.f))) {
+    const float iconSize = 20.f;
+    drawImage(getImage(button, "data/assets/buttons"), iconSize);
+    if (ImGui::IsItemHovered() && tooltip != nullptr) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(tooltip);
+        ImGui::EndTooltip();
+    }
+    ImGui::SameLine();
+
+    std::experimental::optional<Image> image = {};
+
+    if (key.rfind("keyboard") == 0) {
+        image = getImage("ic_keyboard");
+    } else if (key.rfind("mouse") == 0) {
+        image = getImage("ic_mouse");
+    } else if (key.rfind("controller") == 0) {
+        image = getImage("ic_controller");
+    }
+
+    if (auto pos = key.find("|"); pos != std::string::npos) {
+        key = key.substr(pos + 1);
+    }
+
+    if (ImGui::Button(string_format("%s##%s", key.c_str(), button.c_str()).c_str(), ImVec2(-iconSize * 2, 0.f))) {
         currentButton = button;
         waitingForKeyPress = true;
         ImGui::OpenPopup("Waiting for key...");
     }
-    ImGui::NextColumn();
+
+    if (image) {
+        ImGui::SameLine();
+        drawImage(image, iconSize);
+    }
 }
 
 void controllerSetupWindow() {
@@ -134,13 +180,11 @@ void controllerSetupWindow() {
         return 0;
     };
 
-    if (ImGui::BeginPopupModal("Waiting for key...", &waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Press any key (ESC to cancel).");
-        ImGui::EndPopup();
-    }
+    const std::array<const char*, 5> defaults = {{"Defaults ...", "Clear", "Keyboard (Numpad)", "Mouse", "Controller 1"}};
 
-    ImGui::Begin("Controller", &showControllerSetupWindow);
+    ImGui::Begin("Controller", &showControllerSetupWindow, ImVec2(500.f, 300.f), ImGuiWindowFlags_NoScrollbar);
 
+    ImGui::PushItemWidth(-1);
     if (ImGui::BeginCombo("##combo_controller", comboString.c_str())) {
         for (int i = 1; i <= controllerCount; i++) {
             bool isSelected = i == selectedController;
@@ -155,55 +199,93 @@ void controllerSetupWindow() {
         }
         ImGui::EndCombo();
     }
+    ImGui::PopItemWidth();
 
-    ImGui::BeginGroup();
-    ImGui::Text("Image here");
-    ImGui::EndGroup();
-    ImGui::SameLine();
+    int typePos = find(config["controller"][std::to_string(selectedController)]["type"]);
+    auto currentType = types[typePos];
 
+    const float leftGroupWidth = 256.f;
     ImGui::BeginGroup();
-    ImGui::Columns(2, nullptr, false);
+    ImGui::BeginChild("##controller_image", ImVec2(leftGroupWidth, -ImGui::GetFrameHeightWithSpacing()));
     ImGui::Text("Type");
-    ImGui::NextColumn();
-
-    int currentType = find(config["controller"][std::to_string(selectedController)]["type"]);
-    if (ImGui::Combo("##type", &currentType, types.data(), types.size())) {
-        config["controller"][std::to_string(selectedController)]["type"] = types[currentType];
+    ImGui::SameLine();
+    ImGui::PushItemWidth(-1);
+    if (ImGui::Combo("##type", &typePos, types.data(), types.size())) {
+        config["controller"][std::to_string(selectedController)]["type"] = types[typePos];
         configObserver.notify(Event::Controller);
     }
-    ImGui::NextColumn();
+    ImGui::PopItemWidth();
 
-    if (types[currentType] == ControllerType::DIGITAL || types[currentType] == ControllerType::ANALOG) {
-        button(selectedController, "up");
-        button(selectedController, "down");
-        button(selectedController, "left");
-        button(selectedController, "right");
+    if (currentType != ControllerType::NONE) {
+        drawImage(getImage(currentType), leftGroupWidth);
+    }
+    ImGui::EndChild();
 
-        button(selectedController, "triangle");
-        button(selectedController, "cross");
-        button(selectedController, "square");
-        button(selectedController, "circle");
-
-        button(selectedController, "l1");
-        button(selectedController, "r1");
-        button(selectedController, "l2");
-        button(selectedController, "r2");
-
-        button(selectedController, "select");
-        button(selectedController, "start");
-
-        ImGui::Columns(1);
-
-        if (types[currentType] == ControllerType::ANALOG) {
-            ImGui::Text("Note: use game controller with analog sticks");
+    if (currentType != ControllerType::NONE) {
+        ImGui::PushItemWidth(leftGroupWidth);
+        if (int pos = 0; ImGui::Combo("##defaults", &pos, defaults.data(), defaults.size())) {
+            auto& keysConfig = config["controller"][std::to_string(selectedController)]["keys"];
+            switch (pos) {
+                case 1: keysConfig = DefaultKeyBindings::none(); break;
+                case 2: keysConfig = DefaultKeyBindings::keyboard_numpad(); break;
+                case 3: keysConfig = DefaultKeyBindings::mouse(); break;
+                case 4: keysConfig = DefaultKeyBindings::controller(); break;
+            }
         }
+        ImGui::PopItemWidth();
+    }
+    ImGui::EndGroup();
 
-        if (ImGui::Button("Restore defaults")) {
-            config["controller"][std::to_string(selectedController)]["keys"]
-                = defaultConfig["controller"][std::to_string(selectedController)]["keys"];
+    ImGui::SameLine();
+
+    ImGui::BeginChild("Buttons", ImVec2(0.f, 0.f));
+    if (currentType == ControllerType::MOUSE) {
+        button(selectedController, "l_up", "Move Up");
+        button(selectedController, "l_right", "Move Right");
+        button(selectedController, "l_down", "Move Down");
+        button(selectedController, "l_left", "Move Left");
+        button(selectedController, "l1", "Left Button");
+        button(selectedController, "r1", "Right Button");
+    }
+    if (currentType == ControllerType::DIGITAL || currentType == ControllerType::ANALOG) {
+        button(selectedController, "dpad_up", "D-Pad Up");
+        button(selectedController, "dpad_down", "D-Pad Down");
+        button(selectedController, "dpad_left", "D-Pad Left");
+        button(selectedController, "dpad_right", "D-Pad Right");
+
+        button(selectedController, "triangle", "Triange");
+        button(selectedController, "cross", "Cross");
+        button(selectedController, "square", "Square");
+        button(selectedController, "circle", "Circle");
+
+        button(selectedController, "l1", "L1");
+        button(selectedController, "r1", "R1");
+        button(selectedController, "l2", "L2");
+        button(selectedController, "r2", "R2");
+
+        button(selectedController, "select", "Select");
+        button(selectedController, "start", "Start");
+
+        if (currentType == ControllerType::ANALOG) {
+            button(selectedController, "analog", "Analog mode toggle");
+            button(selectedController, "l3", "Left Stick Press");
+            button(selectedController, "l_up", "Left Stick Up");
+            button(selectedController, "l_right", "Left Stick Right");
+            button(selectedController, "l_down", "Left Stick Down");
+            button(selectedController, "l_left", "Left Stick Left");
+            button(selectedController, "r3", "Right Stick Press");
+            button(selectedController, "r_up", "Right Stick Up");
+            button(selectedController, "r_right", "Right Stick Right");
+            button(selectedController, "r_down", "Right Stick Down");
+            button(selectedController, "r_left", "Right Stick Left");
         }
     }
 
-    ImGui::EndGroup();
+    if (ImGui::BeginPopupModal("Waiting for key...", &waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Press any key (ESC to cancel).");
+        ImGui::EndPopup();
+    }
+
+    ImGui::EndChild();
     ImGui::End();
 }

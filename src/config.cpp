@@ -10,49 +10,143 @@ const std::string ANALOG = "analog";
 const std::string MOUSE = "mouse";
 }  // namespace ControllerType
 
+namespace DefaultKeyBindings {
+// clang-format off
+json none() {
+    return {
+        {"dpad_up",    ""},
+        {"dpad_right", ""},
+        {"dpad_down",  ""},
+        {"dpad_left",  ""},
+        {"triangle",   ""},
+        {"circle",     ""},
+        {"cross",      ""},
+        {"square",     ""},
+        {"l1",         ""},
+        {"r1",         ""},
+        {"l2",         ""},
+        {"r2",         ""},
+        {"l3",         ""},
+        {"r3",         ""},
+        {"select",     ""},
+        {"start",      ""},
+        {"analog",     ""},
+        {"l_up",       ""},
+        {"l_right",    ""},
+        {"l_down",     ""},
+        {"l_left",     ""},
+        {"r_up",       ""},
+        {"r_right",    ""},
+        {"r_down",     ""},
+        {"r_left",     ""},
+    };
+}
+
+json keyboard_numpad() {
+    return {
+        {"dpad_up",    "keyboard|Up"},
+        {"dpad_right", "keyboard|Right"},
+        {"dpad_down",  "keyboard|Down"},
+        {"dpad_left",  "keyboard|Left"},
+        {"triangle",   "keyboard|Keypad 8"},
+        {"circle",     "keyboard|Keypad 6"},
+        {"cross",      "keyboard|Keypad 2"},
+        {"square",     "keyboard|Keypad 4"},
+        {"l1",         "keyboard|Keypad 7"},
+        {"r1",         "keyboard|Keypad 9"},
+        {"l2",         "keyboard|Keypad /"},
+        {"r2",         "keyboard|Keypad *"},
+        {"l3",         ""},
+        {"r3",         ""},
+        {"select",     "keyboard|Right Shift"},
+        {"start",      "keyboard|Return"},
+        {"analog",     ""},
+        {"l_up",       ""},
+        {"l_right",    ""},
+        {"l_down",     ""},
+        {"l_left",     ""},
+        {"r_up",       ""},
+        {"r_right",    ""},
+        {"r_down",     ""},
+        {"r_left",     ""},
+    };
+}
+
+json controller() {
+    return {
+        {"dpad_up",    "controller1|dpup"},
+        {"dpad_right", "controller1|dpright"},
+        {"dpad_down",  "controller1|dpdown"},
+        {"dpad_left",  "controller1|dpleft"},
+        {"triangle",   "controller1|y"},
+        {"circle",     "controller1|b"},
+        {"cross",      "controller1|a"},
+        {"square",     "controller1|x"},
+        {"l1",         "controller1|leftshoulder"},
+        {"r1",         "controller1|rightshoulder"},
+        {"l2",         "controller1|lefttrigger"},
+        {"r2",         "controller1|righttrigger"},
+        {"l3",         "controller1|leftstick"},
+        {"r3",         "controller1|rightstick"},
+        {"select",     "controller1|back"},
+        {"start",      "controller1|start"},
+        {"analog",     "controller1|guide"},
+        {"l_up",       "controller1|-lefty"},
+        {"l_right",    "controller1|+leftx"},
+        {"l_down",     "controller1|+lefty"},
+        {"l_left",     "controller1|-leftx"},
+        {"r_up",       "controller1|-righty"},
+        {"r_right",    "controller1|+rightx"},
+        {"r_down",     "controller1|+righty"},
+        {"r_left",     "controller1|-rightx"},
+    };
+}
+
+json mouse() {
+    return {
+        {"dpad_up",    ""},
+        {"dpad_right", ""},
+        {"dpad_down",  ""},
+        {"dpad_left",  ""},
+        {"triangle",   ""},
+        {"circle",     ""},
+        {"cross",      ""},
+        {"square",     ""},
+        {"l1",         "left"},
+        {"r1",         "right"},
+        {"l2",         ""},
+        {"r2",         ""},
+        {"l3",         ""},
+        {"r3",         ""},
+        {"select",     ""},
+        {"start",      ""},
+        {"analog",     ""},
+        {"l_up",       "-y"},
+        {"l_right",    "+x"},
+        {"l_down",     "+y"},
+        {"l_left",     "-x"},
+        {"r_up",       ""},
+        {"r_right",    ""},
+        {"r_down",     ""},
+        {"r_left",     ""},
+    };
+}
+// clang-format on
+}  // namespace DefaultKeyBindings
+
 // clang-format off
 const json defaultConfig = {
-	{"bios", ""}, 
-	{"extension", ""}, 
+	{"bios", ""},
+	{"extension", ""},
 	{"iso", ""},
     {"controller", {
         {"1", {
             {"type", ControllerType::ANALOG},
-            {"keys", {
-                {"up",      "Up"},
-                {"right",   "Right"},
-                {"down",    "Down"},
-                {"left",    "Left"},
-                {"triangle","Keypad 8"},
-                {"circle",  "Keypad 6"},
-                {"cross",   "Keypad 2"},
-                {"square",  "Keypad 4"},
-                {"l1",      "Keypad 7"},
-                {"r1",      "Keypad 9"},
-                {"l2",      "Keypad /"},
-                {"r2",      "Keypad *"},
-                {"select",  "Right Shift"},
-                {"start",   "Return"}
-            }}
+            {"keys", DefaultKeyBindings::keyboard_numpad()}
         }},
         {"2", {
             {"type", ControllerType::NONE},
-            {"keys", {
-                {"up",      ""},
-                {"right",   ""},
-                {"down",    ""},
-                {"left",    ""},
-                {"triangle",""},
-                {"circle",  ""},
-                {"cross",   ""},
-                {"square",  ""},
-                {"l1",      ""},
-                {"r1",      ""},
-                {"l2",      ""},
-                {"r2",      ""},
-                {"select",  ""},
-                {"start",   ""}
-            }}
+            {"keys", DefaultKeyBindings::none()}
         }}
     }},
     {"options", {

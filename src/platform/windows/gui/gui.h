@@ -3,6 +3,7 @@
 #include "platform/windows/input/key.h"
 #include "system.h"
 
+void initGui();
 void renderImgui(System* sys);
 extern bool showGui;
 extern int vramTextureId;

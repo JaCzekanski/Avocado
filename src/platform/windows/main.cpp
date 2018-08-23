@@ -14,6 +14,7 @@
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "input/key.h"
 #include "platform/windows/gui/gui.h"
+#include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/adpcm.h"
 #include "sound/sound.h"
@@ -345,7 +346,7 @@ bool captureEvent(SDL_Event& event) {
         return true;
     }
 
-    if (event.type == SDL_CONTROLLERAXISMOTION) {
+    if (event.type == SDL_CONTROLLERAXISMOTION && std::abs(event.caxis.value) > 8192) {
         waitingForKeyPress = false;
         lastPressedKey = Key::controllerMove(event.caxis);
         return true;
@@ -354,6 +355,7 @@ bool captureEvent(SDL_Event& event) {
     if (event.type == SDL_CONTROLLERBUTTONDOWN) {
         waitingForKeyPress = false;
         lastPressedKey = Key::controllerButton(event.cbutton);
+        printf("Controller id: %d\n", event.cbutton.which);
         return true;
     }
 
@@ -368,6 +370,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    SDL_GameControllerAddMappingsFromFile("data/assets/gamecontrollerdb.txt");
+
     OpenGL opengl;
     if (!opengl.init()) {
         printf("Cannot initialize OpenGL\n");
@@ -375,7 +379,7 @@ int main(int argc, char** argv) {
     }
 
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
-                                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+                                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr) {
         printf("Cannot create window (%s)\n", SDL_GetError());
         return 1;
@@ -404,9 +408,21 @@ int main(int argc, char** argv) {
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     SDL_GameControllerEventState(SDL_ENABLE);
 
+    SdlInputManager inputManager;
+
     ImGui::CreateContext();
     ImGui_ImplSdlGL3_Init(window);
     ImGui::StyleColorsDark();
+
+    ImGuiIO& io = ImGui::GetIO();
+    // io.Fonts->AddFontDefault();
+    ImFontConfig config;
+    config.OversampleH = 4;
+    config.OversampleV = 4;
+    io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", 16.0f, &config);
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.GrabRounding = style.FrameRounding = 6.f;
 
     SDL_GL_SetSwapInterval(0);
 
@@ -438,6 +454,7 @@ int main(int argc, char** argv) {
 
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
+            if (inputManager.handleEvent(event)) continue;
             if (waitingForKeyPress) {
                 if (captureEvent(event)) continue;
             }
