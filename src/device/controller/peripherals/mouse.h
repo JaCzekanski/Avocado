@@ -4,11 +4,14 @@
 #include "device/device.h"
 
 namespace peripherals {
-struct Mouse : public AbstractDevice {
+class Mouse : public AbstractDevice {
+    std::string path;
     bool left = false, right = false;
     int8_t x = 0, y = 0;
 
+   public:
+    Mouse(int port);
     uint8_t handle(uint8_t byte) override;
-    Mouse();
+    void update() override;
 };
 };  // namespace peripherals

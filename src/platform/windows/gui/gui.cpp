@@ -36,8 +36,6 @@ bool singleFrame = false;
 bool showIo = false;
 bool exitProgram = false;
 bool doHardReset = false;
-bool waitingForKeyPress = false;
-Key lastPressedKey;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
@@ -61,7 +59,6 @@ extern void ImGui::ShowDemoWindow(bool* p_open);
 
 void renderImgui(System* sys) {
     if (showGui) {
-        ImGui::ShowDemoWindow(nullptr);
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;

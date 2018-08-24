@@ -42,7 +42,7 @@ class Controller {
 
    public:
     std::array<std::unique_ptr<peripherals::AbstractDevice>, 2> controller;
-    std::array<peripherals::MemoryCard, 2> card;
+    std::array<std::unique_ptr<peripherals::MemoryCard>, 2> card;
 
     Controller(System* sys);
     ~Controller();
@@ -50,6 +50,7 @@ class Controller {
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+    void update();
 };
 }  // namespace controller
 }  // namespace device

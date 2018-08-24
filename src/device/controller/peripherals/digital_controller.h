@@ -4,11 +4,12 @@
 #include "device/device.h"
 
 namespace peripherals {
-struct DigitalController : public AbstractDevice {
+class DigitalController : public AbstractDevice {
+   protected:
     union ButtonState {
         struct {
             uint16_t select : 1;
-            uint16_t l3 : 1;
+            uint16_t l3 : 1;  // L3 and R3 are not used by digital controller
             uint16_t r3 : 1;
             uint16_t start : 1;
             uint16_t up : 1;
@@ -32,9 +33,16 @@ struct DigitalController : public AbstractDevice {
         ButtonState(uint16_t reg) : _reg(reg) {}
         ButtonState() = default;
     };
-    ButtonState buttons;
 
+    ButtonState buttons;
+    std::string path;
+
+    DigitalController(Type type, int port);
+    uint8_t handleRead(uint8_t byte);
+
+   public:
+    DigitalController(int Port);
     uint8_t handle(uint8_t byte) override;
-    DigitalController();
+    void update() override;
 };
 };  // namespace peripherals

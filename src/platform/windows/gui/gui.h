@@ -15,6 +15,4 @@ extern bool showVRAM;
 extern bool singleFrame;
 extern bool showIo;
 extern bool exitProgram;
-extern bool doHardReset;
-extern bool waitingForKeyPress;
-extern Key lastPressedKey;
+extern bool doHardReset;  // TODO: Use event bus

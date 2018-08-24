@@ -5,11 +5,7 @@
 namespace peripherals {
 struct MemoryCard : public AbstractDevice {
     enum class Command { Read, Write, ID, None };
-    enum class WriteStatus : uint8_t {
-        Good = 'G', 
-        BadChecksum = 'N',
-        BadSector = 0xff
-    };
+    enum class WriteStatus : uint8_t { Good = 'G', BadChecksum = 'N', BadSector = 0xff };
     union Flag {
         struct {
             uint8_t : 2;
@@ -28,7 +24,7 @@ struct MemoryCard : public AbstractDevice {
     Command command = Command::None;
 
     Flag flag;
-    Reg16 address; // Read/Write address (in 128B blocks)
+    Reg16 address;  // Read/Write address (in 128B blocks)
     uint8_t checksum = 0;
     WriteStatus writeStatus = WriteStatus::Good;
 
@@ -36,11 +32,10 @@ struct MemoryCard : public AbstractDevice {
 
     std::array<uint8_t, 128 * 1024> data;
 
+    MemoryCard(int port);
     uint8_t handle(uint8_t byte) override;
     uint8_t handleRead(uint8_t byte);
     uint8_t handleWrite(uint8_t byte);
     uint8_t handleId(uint8_t byte);
-    void resetState() override;
-    MemoryCard();
 };
 }  // namespace peripherals

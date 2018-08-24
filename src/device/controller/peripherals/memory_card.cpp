@@ -3,11 +3,10 @@
 
 namespace peripherals {
 
-MemoryCard::MemoryCard() : AbstractDevice(Type::MemoryCard) {
-    verbose = config["debug"]["log"]["memoryCard"];
-}
+MemoryCard::MemoryCard(int port) : AbstractDevice(Type::MemoryCard, port) { verbose = config["debug"]["log"]["memoryCard"]; }
 
 uint8_t MemoryCard::handle(uint8_t byte) {
+    if (state == 0) command = Command::None;
     if (verbose >= 3) printf("[MEMCARD] state %d\n", state);
     if (command == Command::Read) return handleRead(byte);
     if (command == Command::Write) return handleWrite(byte);
@@ -131,7 +130,7 @@ uint8_t MemoryCard::handleWrite(uint8_t byte) {
 
         case 134:
             state++;
-            if (byte != checksum) { 
+            if (byte != checksum) {
                 flag.error = 1;
                 writeStatus = WriteStatus::BadChecksum;
             }
@@ -157,11 +156,6 @@ uint8_t MemoryCard::handleId(uint8_t byte) {
     if (verbose >= 1) printf("[MEMCARD] Unsupported ID command\n");
     command = Command::None;
     return 0xff;
-}
-
-void MemoryCard::resetState() {
-    state = 0;
-    command = Command::None;
 }
 
 }  // namespace peripherals

@@ -1,12 +1,13 @@
 #include "analog_controller.h"
 #include "config.h"
+#include "input/input_manager.h"
 
 namespace peripherals {
-AnalogController::AnalogController() : AbstractDevice(Type::Analog), buttons(0) { verbose = config["debug"]["log"]["controller"]; }
+AnalogController::AnalogController(int port) : DigitalController(Type::Analog, port) { verbose = config["debug"]["log"]["controller"]; }
 
 uint8_t AnalogController::handle(uint8_t byte) {
     if (state == 0) command = Command::None;
-    // if (verbose) printf("[CONTROLLER] state %d, input 0x%02x\n", state, byte);
+    if (verbose >= 2) printf("[CONTROLLER%d] state %d, input 0x%02x\n", port, state, byte);
 
     if (command == Command::Read && !analogEnabled) return handleRead(byte);
     if (command == Command::Read && analogEnabled) return handleReadAnalog(byte);
@@ -77,16 +78,6 @@ uint8_t AnalogController::handle(uint8_t byte) {
             return 0xff;
         }
         default: state = 0; return 0xff;
-    }
-}
-
-uint8_t AnalogController::handleRead(uint8_t byte) {
-    switch (state) {
-        case 2: state++; return 0x5a;
-        case 3: state++; return ~buttons._byte[0];
-        case 4: state = 0; return ~buttons._byte[1];
-
-        default: return 0xff;
     }
 }
 
@@ -202,7 +193,8 @@ uint8_t AnalogController::handleUnlockRumble(uint8_t byte) {
             f = byte;
             state = 0;
             analogEnabled = true;  // TODO: Not completely valid, but should be good enough
-            printf("[CONTROLLER] Unlock Rumble: 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n", a, b, c, d, e, f);
+            if (verbose >= 2)
+                printf("[CONTROLLER%d] Unlock Rumble: 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n", port, a, b, c, d, e, f);
             return 0;
 
         default: return 0xff;
@@ -257,6 +249,41 @@ uint8_t AnalogController::handleUnknown4c(uint8_t byte) {
 
         default: return 0xff;
     }
+}
+
+void AnalogController::update() {
+    DigitalController::update();
+    auto inputManager = InputManager::getInstance();
+    if (inputManager == nullptr) return;
+
+    static bool analogPressed = false;
+
+    if (inputManager->getDigital(path + "analog")) {
+        if (!analogPressed) {
+            analogPressed = true;
+
+            // Toggle analog mode
+            analogEnabled = !analogEnabled;
+            ledEnabled = analogEnabled;
+            resetState();
+            if (verbose >= 1) printf("[CONTROLLER%d] Analog mode %s\n", port, analogEnabled ? "enabled" : "disabled");
+        }
+    } else {
+        analogPressed = false;
+    }
+
+    if (!analogEnabled) {
+        buttons.l3 = 0;
+        buttons.r3 = 0;
+        return;
+    }
+
+    buttons.l3 = inputManager->getDigital(path + "l3");
+    buttons.r3 = inputManager->getDigital(path + "r3");
+    left.y = 0x80 + (-inputManager->getAnalog(path + "l_up").value + inputManager->getAnalog(path + "l_down").value);
+    left.x = 0x80 + (-inputManager->getAnalog(path + "l_left").value + inputManager->getAnalog(path + "l_right").value);
+    right.y = 0x80 + (-inputManager->getAnalog(path + "r_up").value + inputManager->getAnalog(path + "r_down").value);
+    right.x = 0x80 + (-inputManager->getAnalog(path + "r_left").value + inputManager->getAnalog(path + "r_right").value);
 }
 
 };  // namespace peripherals

@@ -24,7 +24,6 @@ void Controller::handleByte(uint8_t byte) {
 
     if (deviceSelected == DeviceSelected::Controller) {
         rxData = controller[port]->handle(byte);
-        // printf("[CONTROLLER] Out: 0x%02x  in: 0x%02x\n", byte, rxData);
         ack = controller[port]->getAck();
         if (ack) {
             irqTimer = 5;
@@ -32,12 +31,12 @@ void Controller::handleByte(uint8_t byte) {
         if (controller[port]->state == 0) deviceSelected = DeviceSelected::None;
     }
     if (deviceSelected == DeviceSelected::MemoryCard) {
-        rxData = card[port].handle(byte);
-        ack = card[port].getAck();
+        rxData = card[port]->handle(byte);
+        ack = card[port]->getAck();
         if (ack) {
             irqTimer = 3;
         }
-        if (card[port].state == 0) deviceSelected = DeviceSelected::None;
+        if (card[port]->state == 0) deviceSelected = DeviceSelected::None;
     }
 }
 
@@ -45,24 +44,29 @@ Controller::Controller(System* sys) : sys(sys) {
     configObserver.registerCallback(Event::Controller, [&]() { reload(); });
 
     reload();
+
+    for (size_t i = 0; i < card.size(); i++) {
+        card[i] = std::make_unique<peripherals::MemoryCard>(i + 1);
+    }
 }
 
 Controller::~Controller() { configObserver.unregisterCallback(Event::Controller); }
 void Controller::reload() {
     auto createDevice = [](int num) -> std::unique_ptr<peripherals::AbstractDevice> {
-        std::string type = config["controller"][std::to_string(num + 1)]["type"];
+        num += 1;
+        std::string type = config["controller"][std::to_string(num)]["type"];
         if (type == ControllerType::DIGITAL) {
-            return std::make_unique<peripherals::DigitalController>();
+            return std::make_unique<peripherals::DigitalController>(num);
         } else if (type == ControllerType::ANALOG) {
-            return std::make_unique<peripherals::AnalogController>();
+            return std::make_unique<peripherals::AnalogController>(num);
         } else if (type == ControllerType::MOUSE) {
-            return std::make_unique<peripherals::Mouse>();
+            return std::make_unique<peripherals::Mouse>(num);
         } else {
-            return std::make_unique<peripherals::None>();
+            return std::make_unique<peripherals::None>(num);
         }
     };
 
-    for (int i = 0; i < controller.size(); i++) {
+    for (size_t i = 0; i < controller.size(); i++) {
         controller[i] = createDevice(i);
     }
 }
@@ -118,12 +122,16 @@ void Controller::write(uint32_t address, uint8_t data) {
                 // Reset periperals
                 deviceSelected = DeviceSelected::None;
                 for (auto& ctrl : controller) ctrl->resetState();
-                for (auto& crd : card) crd.resetState();
+                for (auto& crd : card) crd->resetState();
             }
         }
     } else if (address >= 14 && address < 16) {
         baud._byte[address - 14] = data;
     }
+}
+
+void Controller::update() {
+    for (auto& ctrl : controller) ctrl->update();
 }
 }  // namespace controller
 }  // namespace device

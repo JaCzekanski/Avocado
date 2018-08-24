@@ -69,6 +69,9 @@ bool loadPsf(System* sys, const std::string& path, PsfType type) {
     }
 
     auto reservedArea = read_u32(file, 4);
+    if (reservedArea != 0) {
+        printf("[PSF] Reserved area != 0\n");
+    }
     auto compressedSize = read_u32(file, 8);
 
     std::vector<uint8_t> exe;
@@ -115,7 +118,7 @@ bool loadPsf(System* sys, const std::string& path, PsfType type) {
             if (pos == std::string::npos) continue;
 
             auto key = line.substr(0, pos);
-            auto value = line.substr(pos+1);
+            auto value = line.substr(pos + 1);
             printf("%s: %s\n", key.c_str(), value.c_str());
         }
     }

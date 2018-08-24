@@ -1,11 +1,8 @@
 #pragma once
-#include <string>
-#include "abstract_device.h"
-#include "device/device.h"
 #include "digital_controller.h"
 
 namespace peripherals {
-struct AnalogController : public AbstractDevice {
+struct AnalogController : public DigitalController {
     enum class Command {
         None,
         Read,
@@ -29,15 +26,14 @@ struct AnalogController : public AbstractDevice {
         Stick() : x(0x80), y(0x80) {}
     };
     int verbose;
-    DigitalController::ButtonState buttons;
     Stick left, right;
     Command command = Command::None;
     bool analogEnabled = false;
     bool ledEnabled = false;
     bool configurationMode = false;
 
+    AnalogController(int Port);
     uint8_t handle(uint8_t byte) override;
-    uint8_t handleRead(uint8_t byte);
     uint8_t handleReadAnalog(uint8_t byte);
     uint8_t handleEnterConfiguration(uint8_t byte);
     uint8_t handleExitConfiguration(uint8_t byte);
@@ -47,6 +43,6 @@ struct AnalogController : public AbstractDevice {
     uint8_t handleUnknown46(uint8_t byte);
     uint8_t handleUnknown47(uint8_t byte);
     uint8_t handleUnknown4c(uint8_t byte);
-    AnalogController();
+    void update() override;
 };
 };  // namespace peripherals

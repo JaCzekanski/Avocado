@@ -4,6 +4,7 @@
 #include "config.h"
 #include "gui.h"
 #include "images.h"
+#include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "utils/file.h"
 #include "utils/string.h"
@@ -118,13 +119,14 @@ void drawImage(const std::experimental::optional<Image> image, float w = 0.f, fl
 }
 
 void button(int controller, std::string button, const char* tooltip = nullptr) {
+    auto inputManager = static_cast<SdlInputManager*>(InputManager::getInstance());
     static std::string currentButton = "";
     if (controller < 1 || controller > 4) return;
     std::string ctrl = std::to_string(controller);
 
-    if (button == currentButton && lastPressedKey.type != Key::Type::None) {
-        config["controller"][ctrl]["keys"][button] = lastPressedKey.to_string();
-        lastPressedKey = Key();
+    if (button == currentButton && inputManager->lastPressedKey.type != Key::Type::None) {
+        config["controller"][ctrl]["keys"][button] = inputManager->lastPressedKey.to_string();
+        inputManager->lastPressedKey = Key();
     }
 
     std::string key = config["controller"][ctrl]["keys"][button];
@@ -139,6 +141,7 @@ void button(int controller, std::string button, const char* tooltip = nullptr) {
     ImGui::SameLine();
 
     std::experimental::optional<Image> image = {};
+    std::string deviceIndex = "";
 
     if (key.rfind("keyboard") == 0) {
         image = getImage("ic_keyboard");
@@ -146,22 +149,27 @@ void button(int controller, std::string button, const char* tooltip = nullptr) {
         image = getImage("ic_mouse");
     } else if (key.rfind("controller") == 0) {
         image = getImage("ic_controller");
+        deviceIndex = key.substr(10, key.find("|") - 10);
     }
 
     if (auto pos = key.find("|"); pos != std::string::npos) {
         key = key.substr(pos + 1);
     }
 
-    if (ImGui::Button(string_format("%s##%s", key.c_str(), button.c_str()).c_str(), ImVec2(-iconSize * 2, 0.f))) {
+    if (ImGui::Button(string_format("%s##%s", key.c_str(), button.c_str()).c_str(), ImVec2(-iconSize * 3, 0.f))) {
         currentButton = button;
-        waitingForKeyPress = true;
+        inputManager->waitingForKeyPress = true;
         ImGui::OpenPopup("Waiting for key...");
+
+        // TODO: Detect duplicates
     }
 
     if (image) {
         ImGui::SameLine();
         drawImage(image, iconSize);
     }
+    ImGui::SameLine();
+    ImGui::TextUnformatted(deviceIndex.c_str());
 }
 
 void controllerSetupWindow() {
@@ -281,7 +289,8 @@ void controllerSetupWindow() {
         }
     }
 
-    if (ImGui::BeginPopupModal("Waiting for key...", &waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
+    auto inputManager = static_cast<SdlInputManager*>(InputManager::getInstance());
+    if (ImGui::BeginPopupModal("Waiting for key...", &inputManager->waitingForKeyPress, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Press any key (ESC to cancel).");
         ImGui::EndPopup();
     }

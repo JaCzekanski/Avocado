@@ -27,74 +27,7 @@
 
 #undef main
 
-peripherals::DigitalController::ButtonState& getButtonState(SDL_Event& event) {
-    static SDL_GameController* controller = nullptr;
-    static peripherals::DigitalController::ButtonState buttons;
-    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-        for (auto it = config["controller"]["1"]["keys"].begin(); it != config["controller"]["1"]["keys"].end(); ++it) {
-            auto button = it.key();
-            auto keyName = it.value().get<std::string>();
-            auto keyCode = SDL_GetKeyFromName(keyName.c_str());
-
-            if (event.key.keysym.sym == keyCode) buttons.setByName(button, event.type == SDL_KEYDOWN);
-        }
-    }
-    if (event.type == SDL_CONTROLLERDEVICEADDED) {
-        controller = SDL_GameControllerOpen(event.cdevice.which);
-        printf("Controller %s connected\n", SDL_GameControllerName(controller));
-    }
-    if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
-        printf("Controller %s disconnected\n", SDL_GameControllerName(controller));
-        SDL_GameControllerClose(controller);
-        controller = nullptr;
-    }
-
-    if (event.type == SDL_CONTROLLERAXISMOTION) {
-        const int deadzone = 8 * 1024;
-        switch (event.caxis.axis) {
-            case SDL_CONTROLLER_AXIS_LEFTY:
-                buttons.up = event.caxis.value < -deadzone;
-                buttons.down = event.caxis.value > deadzone;
-                break;
-
-            case SDL_CONTROLLER_AXIS_LEFTX:
-                buttons.left = event.caxis.value < -deadzone;
-                buttons.right = event.caxis.value > deadzone;
-                break;
-
-            case SDL_CONTROLLER_AXIS_TRIGGERLEFT: buttons.l2 = event.caxis.value > 2048; break;
-
-            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: buttons.r2 = event.caxis.value > 2048; break;
-
-            default: break;
-        }
-    }
-
-    if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP) {
-#define B(a, b) \
-    case a: b = (event.cbutton.state == SDL_PRESSED); break;
-        switch (event.cbutton.button) {
-            B(SDL_CONTROLLER_BUTTON_DPAD_UP, buttons.up);
-            B(SDL_CONTROLLER_BUTTON_DPAD_RIGHT, buttons.right);
-            B(SDL_CONTROLLER_BUTTON_DPAD_DOWN, buttons.down);
-            B(SDL_CONTROLLER_BUTTON_DPAD_LEFT, buttons.left);
-            B(SDL_CONTROLLER_BUTTON_A, buttons.cross);
-            B(SDL_CONTROLLER_BUTTON_B, buttons.circle);
-            B(SDL_CONTROLLER_BUTTON_X, buttons.square);
-            B(SDL_CONTROLLER_BUTTON_Y, buttons.triangle);
-            B(SDL_CONTROLLER_BUTTON_BACK, buttons.select);
-            B(SDL_CONTROLLER_BUTTON_START, buttons.start);
-            B(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, buttons.l1);
-            B(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, buttons.r1);
-#undef B
-            default: break;
-        }
-    }
-    return buttons;
-}
-
 bool running = true;
-bool mouseLocked = false;
 
 void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& basePath, const std::string& content) {
     auto datDirRegex = std::regex("DATDIR=(.*)");
@@ -221,7 +154,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
 }
 
 void saveMemoryCards(std::unique_ptr<System>& sys, bool force = false) {
-    if (!force && !sys->controller->card[0].dirty) return;
+    if (!force && !sys->controller->card[0]->dirty) return;
 
     std::string pathCard1 = config["memoryCard"]["1"];
     if (pathCard1.empty()) {
@@ -229,7 +162,7 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force = false) {
         return;
     }
 
-    auto& data = sys->controller->card[0].data;
+    auto& data = sys->controller->card[0]->data;
     auto output = std::vector<uint8_t>(data.begin(), data.end());
 
     if (!putFileContents(pathCard1, output)) {
@@ -263,7 +196,7 @@ std::unique_ptr<System> hardReset() {
     if (!pathCard1.empty()) {
         auto card1 = getFileContents(pathCard1);
         if (!card1.empty()) {
-            std::copy_n(std::make_move_iterator(card1.begin()), card1.size(), sys->controller->card[0].data.begin());
+            std::copy_n(std::make_move_iterator(card1.begin()), card1.size(), sys->controller->card[0]->data.begin());
             printf("[INFO] Loaded memory card 1 from %s\n", getFilenameExt(pathCard1).c_str());
         }
     }
@@ -271,7 +204,7 @@ std::unique_ptr<System> hardReset() {
 }
 
 // Warning: this method might have 1 or more miliseconds of inaccuracy.
-void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool framelimiter, bool ntsc) {
+void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool framelimiter, bool ntsc, bool mouseLocked) {
     static double timeToSkip = 0;
     static double counterFrequency = SDL_GetPerformanceFrequency();
     static double startTime = SDL_GetPerformanceCounter() / counterFrequency;
@@ -319,47 +252,10 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
         std::string title = string_format("Avocado %s | %s | FPS: %.0f (%0.2f ms) %s", BUILD_STRING, gameName.c_str(), fps,
                                           (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
         if (mouseLocked) {
-            title = "Press ESC to unlock mouse | " + title;
+            title = "Press Alt to unlock mouse | " + title;
         }
         SDL_SetWindowTitle(window, title.c_str());
     }
-}
-
-bool captureEvent(SDL_Event& event) {
-    if (event.type == SDL_MOUSEBUTTONDOWN) {
-        waitingForKeyPress = false;
-        lastPressedKey = Key::mouseButton(event.button);
-        return true;
-    }
-
-    if (event.type == SDL_MOUSEMOTION && (std::abs(event.motion.xrel) > 10 || std::abs(event.motion.yrel) > 10)) {
-        waitingForKeyPress = false;
-        lastPressedKey = Key::mouseMove(event.motion);
-        return true;
-    }
-
-    if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-        waitingForKeyPress = false;
-        if (event.key.keysym.sym != SDLK_ESCAPE) {
-            lastPressedKey = Key::keyboard(event.key.keysym.sym);
-        }
-        return true;
-    }
-
-    if (event.type == SDL_CONTROLLERAXISMOTION && std::abs(event.caxis.value) > 8192) {
-        waitingForKeyPress = false;
-        lastPressedKey = Key::controllerMove(event.caxis);
-        return true;
-    }
-
-    if (event.type == SDL_CONTROLLERBUTTONDOWN) {
-        waitingForKeyPress = false;
-        lastPressedKey = Key::controllerButton(event.cbutton);
-        printf("Controller id: %d\n", event.cbutton.which);
-        return true;
-    }
-
-    return false;
 }
 
 int main(int argc, char** argv) {
@@ -379,7 +275,7 @@ int main(int argc, char** argv) {
     }
 
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
-                                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+                                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL /* | SDL_WINDOW_ALLOW_HIGHDPI*/);
     if (window == nullptr) {
         printf("Cannot create window (%s)\n", SDL_GetError());
         return 1;
@@ -408,7 +304,8 @@ int main(int argc, char** argv) {
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
     SDL_GameControllerEventState(SDL_ENABLE);
 
-    SdlInputManager inputManager;
+    auto inputManager = std::make_unique<SdlInputManager>();
+    InputManager::setInstance(inputManager.get());
 
     ImGui::CreateContext();
     ImGui_ImplSdlGL3_Init(window);
@@ -445,57 +342,18 @@ int main(int argc, char** argv) {
             newEvent = true;
         }
 
-        for (auto& controller : sys->controller->controller) {
-            if (controller->type == peripherals::Type::Mouse) {
-                auto mouse = (peripherals::Mouse*)controller.get();
-                mouse->x = mouse->y = 0;
-            }
-        }
-
+        inputManager->newFrame();
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;
-            if (inputManager.handleEvent(event)) continue;
-            if (waitingForKeyPress) {
-                if (captureEvent(event)) continue;
-            }
+            if (inputManager->handleEvent(event)) continue;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (event.type == SDL_WINDOWEVENT) {
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
             }
-            if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) {
-                bool pressed = event.type == SDL_MOUSEBUTTONDOWN;
-
-                for (auto& controller : sys->controller->controller) {
-                    if (mouseLocked && controller->type == peripherals::Type::Mouse) {
-                        auto mouse = (peripherals::Mouse*)controller.get();
-                        if (event.button.button == SDL_BUTTON_LEFT) mouse->left = pressed;
-                        if (event.button.button == SDL_BUTTON_RIGHT) mouse->right = pressed;
-                    }
-                }
-
-                if (pressed && event.button.button == SDL_BUTTON_LEFT && event.button.clicks == 2) {
-                    mouseLocked = true;
-                    SDL_SetRelativeMouseMode(SDL_TRUE);
-                }
-            }
-            if (event.type == SDL_MOUSEMOTION) {
-                for (auto& controller : sys->controller->controller) {
-                    if (mouseLocked && controller->type == peripherals::Type::Mouse) {
-                        auto mouse = (peripherals::Mouse*)controller.get();
-                        mouse->x = clamp((int)mouse->x + event.motion.xrel, INT8_MIN, INT8_MAX);
-                        mouse->y = clamp((int)mouse->y + event.motion.yrel, INT8_MIN, INT8_MAX);
-                    }
-                }
-            }
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    if (mouseLocked) {
-                        mouseLocked = false;
-                        SDL_SetRelativeMouseMode(SDL_FALSE);
-                    } else {
-                        running = false;
-                    }
+                    running = false;
                 }
                 if (event.key.keysym.sym == SDLK_r) {
                     sys->dumpRam();
@@ -530,12 +388,6 @@ int main(int argc, char** argv) {
                     showVRAM = !showVRAM;
                 }
                 if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = !frameLimitEnabled;
-                if (event.key.keysym.sym == SDLK_SLASH) {
-                    if (sys->controller->controller[0]->type == peripherals::Type::Analog) {
-                        auto controller = (peripherals::AnalogController*)sys->controller->controller[0].get();
-                        controller->ledEnabled = controller->analogEnabled = !controller->analogEnabled;
-                    }
-                }
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
@@ -547,14 +399,6 @@ int main(int argc, char** argv) {
                 opengl.height = event.window.data2;
             }
 
-            if (sys->controller->controller[0]->type == peripherals::Type::Digital) {
-                auto controller = (peripherals::DigitalController*)sys->controller->controller[0].get();
-                controller->buttons = getButtonState(event);
-            }
-            if (sys->controller->controller[0]->type == peripherals::Type::Analog) {
-                auto controller = (peripherals::AnalogController*)sys->controller->controller[0].get();
-                controller->buttons = getButtonState(event);
-            }
             ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
@@ -571,6 +415,8 @@ int main(int argc, char** argv) {
             sys = hardReset();
         }
 
+        sys->controller->update();
+
         if (sys->state == System::State::run) {
             sys->emulateFrame();
             if (singleFrame) {
@@ -585,7 +431,7 @@ int main(int argc, char** argv) {
 
         SDL_GL_SwapWindow(window);
 
-        limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc());
+        limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc(), inputManager->mouseLocked);
     }
     saveMemoryCards(sys, true);
     saveConfigFile(CONFIG_NAME);
@@ -593,6 +439,7 @@ int main(int argc, char** argv) {
     Sound::close();
     ImGui_ImplSdlGL3_Shutdown();
     ImGui::DestroyContext();
+    InputManager::setInstance(nullptr);
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
