@@ -83,10 +83,10 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
 
         if (waitingForKeyPress) {
             if (std::abs(mouseX) > 10) {
-                key = Key::mouseMove(clamp(mouseX, INT8_MIN, INT8_MAX), 0);
+                key = Key::mouseMove(clamp<int32_t>(mouseX, INT8_MIN, INT8_MAX), 0);
                 return handleKey(key, AnalogValue(key.mouse.value));
             } else if (std::abs(mouseY) > 10) {
-                key = Key::mouseMove(0, clamp(mouseY, INT8_MIN, INT8_MAX));
+                key = Key::mouseMove(0, clamp<int32_t>(mouseY, INT8_MIN, INT8_MAX));
                 return handleKey(key, AnalogValue(key.mouse.value));
             }
             return true;
@@ -95,10 +95,10 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
         // Mouse movement must be split into two separate events
         bool result = false;
 
-        key = Key::mouseMove(clamp(mouseX, INT8_MIN, INT8_MAX), 0);
+        key = Key::mouseMove(clamp<int32_t>(mouseX, INT8_MIN, INT8_MAX), 0);
         result |= handleKey(key, AnalogValue(key.mouse.value, true));
 
-        key = Key::mouseMove(0, clamp(mouseY, INT8_MIN, INT8_MAX));
+        key = Key::mouseMove(0, clamp<int32_t>(mouseY, INT8_MIN, INT8_MAX));
         result |= handleKey(key, AnalogValue(key.mouse.value, true));
 
         return result;

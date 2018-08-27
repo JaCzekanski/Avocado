@@ -1,6 +1,5 @@
 #include "options.h"
-#include <imgui.h>
-#include <experimental/optional>
+#include <imgui.h>s
 #include "config.h"
 #include "gui.h"
 #include "images.h"
@@ -99,7 +98,7 @@ void biosSelectionWindow() {
     ImGui::End();
 }
 
-void drawImage(const std::experimental::optional<Image> image, float w = 0.f, float h = 0.f) {
+void drawImage(const optional<Image> image, float w = 0.f, float h = 0.f) {
     if (auto img = image) {
         ImVec2 size;
 
@@ -140,7 +139,7 @@ void button(int controller, std::string button, const char* tooltip = nullptr) {
     }
     ImGui::SameLine();
 
-    std::experimental::optional<Image> image = {};
+    optional<Image> image = {};
     std::string deviceIndex = "";
 
     if (key.rfind("keyboard") == 0) {
@@ -190,7 +189,7 @@ void controllerSetupWindow() {
 
     const std::array<const char*, 5> defaults = {{"Defaults ...", "Clear", "Keyboard (Numpad)", "Mouse", "Controller 1"}};
 
-    ImGui::Begin("Controller", &showControllerSetupWindow, ImVec2(500.f, 300.f), ImGuiWindowFlags_NoScrollbar);
+    ImGui::Begin("Controller", &showControllerSetupWindow, ImVec2(500.f, 320.f), ImGuiWindowFlags_NoScrollbar);
 
     ImGui::PushItemWidth(-1);
     if (ImGui::BeginCombo("##combo_controller", comboString.c_str())) {

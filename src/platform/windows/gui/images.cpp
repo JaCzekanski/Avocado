@@ -8,9 +8,9 @@
 Image::Image(GLuint id, int w, int h) : id(id), w(w), h(h) {}
 
 namespace {
-std::unordered_map<std::string, std::experimental::optional<Image>> images;
+std::unordered_map<std::string, optional<Image>> images;
 
-std::experimental::optional<Image> loadImage(const std::string& file) {
+optional<Image> loadImage(const std::string& file) {
     int w, h, bit;
     auto data = stbi_load(file.c_str(), &w, &h, &bit, 4);
     if (data == nullptr) {
@@ -33,7 +33,7 @@ std::experimental::optional<Image> loadImage(const std::string& file) {
 
 }  // namespace
 
-std::experimental::optional<Image> getImage(const std::string& button, const std::string& path) {
+optional<Image> getImage(const std::string& button, const std::string& path) {
     auto image = images.find(path + button);
     if (image != images.end()) {
         return image->second;

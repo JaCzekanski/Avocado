@@ -9,8 +9,8 @@ environment:
   SDL_VERSION: 2.0.8
   matrix:
  # - TOOLSET: vs2013
-  - TOOLSET: vs2015
-    platform: Win32
+ # - TOOLSET: vs2015
+ #   platform: Win32
   - TOOLSET: vs2017
     platform: Win32
   - TOOLSET: vs2017
