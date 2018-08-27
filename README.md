@@ -7,6 +7,14 @@ A Modern Playstation 1 emulator.
 
 If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitter.com/JaCzekanski)) or create an [Issue](https://github.com/JaCzekanski/Avocado/issues). There is also [Discord server](https://discord.gg/ATEJApR).
 
+## Changelog
+
+*27.08.2018* - Support for digital controller, DualShock (without vibrations) and mouse. Two controllers are supported (no multitap for now)
+
+*19.08.2018* - Memory card support
+
+*11.08.2018* - Partial SPU implementation - sound working
+
 ## Status
 
 Build   | Status | Download
@@ -20,7 +28,7 @@ AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/s
 Despite this emulator being in early development, some 3D games can run. [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability)
 
 
-There is currently no SPU (**no sound** except simple in-game Audio CDs) or MDEC (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed).
+Currently there is no Audio CD or streaming XA-ADPCM support (**many games will only output sound without music**), MDEC is missing (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed).
 
 ## Running
 
@@ -42,12 +50,12 @@ To load a .cue/.bin/.img file just drag and drop it.
 - **Space** - pause/resume emulation
 - **F1** - hide GUI
 - **F2** - soft reset
+- **Shift-F2** - hard reset
 - **F7** - single frame
 - **Tab** - disable framelimiting
 - **Q** - toggle full VRAM preview
-- **R** - dump RAM and SPU RAM to file
 
-Avocado maps any Xbox360-like controller to the Playstation Controller. A keyboard can also be used (modify the keymap under Options->Controller).
+Configure controls under Options->Controller menu.
 
 ## Build
 
