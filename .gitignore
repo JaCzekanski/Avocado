@@ -46,7 +46,6 @@ install_manifest.txt
 *.make
 *.opendb
 *.db
-*.ttf
 
 
 *.sln
