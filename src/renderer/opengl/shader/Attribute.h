@@ -10,5 +10,5 @@ class Attribute {
 
     void enable();
     void disable();
-    void pointer(GLint size, GLenum type, GLsizei stride, int pointer);
+    void pointer(GLint size, GLenum type, GLsizei stride, uintptr_t pointer);
 };

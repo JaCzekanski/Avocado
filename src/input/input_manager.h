@@ -15,7 +15,7 @@ class InputManager {
     };
 
    private:
-    const int DIGITAL_THRESHOLD = UINT8_MAX / 2;
+    const int DIGITAL_THRESHOLD = UINT8_MAX / 4;
     static InputManager* _instance;
 
    protected:

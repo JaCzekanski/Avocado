@@ -119,7 +119,6 @@ filter "action:gmake"
 		"-Wall",
 		"-Wextra",
 		"-Wno-unused-parameter",
-		"-Wno-macro-redefined",
 	}
 
 project "glad"

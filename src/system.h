@@ -87,7 +87,7 @@ struct System {
     std::unique_ptr<device::controller::Controller> controller;
     std::unique_ptr<device::dma::DMA> dma;
     std::unique_ptr<Expansion2> expansion2;
-    std::unique_ptr<GPU> gpu;
+    std::unique_ptr<gpu::GPU> gpu;
     std::unique_ptr<Interrupt> interrupt;
     std::unique_ptr<MDEC> mdec;
     std::unique_ptr<MemoryControl> memoryControl;

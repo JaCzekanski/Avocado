@@ -1,5 +1,5 @@
 #include "options.h"
-#include <imgui.h>s
+#include <imgui.h>
 #include "config.h"
 #include "gui.h"
 #include "images.h"
@@ -113,7 +113,7 @@ void drawImage(const optional<Image> image, float w = 0.f, float h = 0.f) {
         } else {
             size = ImVec2(img->w, img->h);
         }
-        ImGui::Image((ImTextureID)img->id, size);
+        ImGui::Image((ImTextureID)(uintptr_t)img->id, size);
     }
 }
 

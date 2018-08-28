@@ -178,7 +178,7 @@ Key Key::controllerMove(SDL_ControllerAxisEvent axis) {
     Key key;
     key.type = Type::ControllerMove;
     key.controller.id = axis.which;
-    key.controller.dir = axis.value > 0;
+    key.controller.dir = axis.value >= 0;
     key.controller.axis = static_cast<SDL_GameControllerAxis>(axis.axis);
     key.controller.value = std::abs(axis.value);
 

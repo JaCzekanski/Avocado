@@ -1,6 +1,11 @@
 #pragma once
 #include "device/device.h"
 
+namespace gpu {
+
+// FIFO size
+const int MAX_ARGS = 32;
+
 // Draw Mode setting
 union GP0_E1 {
     enum class SemiTransparency : uint32_t {
@@ -129,3 +134,139 @@ struct Rect {
     T right = 0;
     T bottom = 0;
 };
+
+union PolygonArgs {
+    struct {
+        uint8_t isRawTexture : 1;
+        uint8_t semiTransparency : 1;
+        uint8_t isTextureMapped : 1;
+        uint8_t isQuad : 1;
+        uint8_t gouroudShading : 1;
+        uint8_t : 3;
+    };
+    uint8_t _;
+
+    PolygonArgs(uint8_t arg) : _(arg) {}
+
+    int getArgumentCount() const {
+        int size = isQuad ? 4 : 3;
+        if (isTextureMapped) size *= 2;
+        if (gouroudShading) size += (isQuad ? 4 : 3) - 1;
+
+        return size;
+    }
+
+    int getVertexCount() const { return isQuad ? 4 : 3; }
+};
+
+union LineArgs {
+    struct {
+        uint8_t : 1;
+        uint8_t semiTransparency : 1;
+        uint8_t : 1;
+        uint8_t polyLine : 1;
+        uint8_t gouroudShading : 1;
+        uint8_t : 3;
+    };
+    uint8_t _;
+
+    LineArgs(uint8_t arg) : _(arg) {}
+
+    int getArgumentCount() const {
+        if (polyLine) return MAX_ARGS - 1;
+
+        return 2 + (gouroudShading ? 1 : 0);
+    }
+};
+
+union RectangleArgs {
+    struct {
+        uint8_t isRawTexture : 1;
+        uint8_t semiTransparency : 1;
+        uint8_t isTextureMapped : 1;
+        uint8_t size : 2;
+        uint8_t : 3;
+    };
+    uint8_t _;
+
+    RectangleArgs(uint8_t arg) : _(arg) {}
+
+    int getArgumentCount() const { return (size == 0 ? 2 : 1) + (isTextureMapped ? 1 : 0); }
+
+    int getSize() const {
+        if (size == 1) return 1;
+        if (size == 2) return 8;
+        if (size == 3) return 16;
+        return 0;
+    }
+};
+
+enum class Command : int {
+    None,
+    FillRectangle,
+    Polygon,
+    Line,
+    Rectangle,
+    CopyCpuToVram1,
+    CopyCpuToVram2,
+    CopyVramToCpu,
+    CopyVramToVram,
+    Extra
+};
+
+struct Vertex {
+    enum Flags { SemiTransparency = 1 << 0, RawTexture = 1 << 1, Dithering = 1 << 2, GouroudShading = 1 << 3 };
+    int position[2];
+    int color[3];
+    int texcoord[2];
+    int bitcount;
+    int clut[2];     // clut position
+    int texpage[2];  // texture page position
+    int flags;
+    /**
+     * 0b76543210
+     *          ^
+     *          Transparency enabled (yes for tris, no for rect)
+     */
+};
+
+struct TextureInfo {
+    // t[0] ClutYyXx
+    // t[1] PageYyXx
+    // t[2] 0000YyXx
+    // t[3] 0000YyXx
+
+    uint32_t palette;
+    uint32_t texpage;
+    glm::ivec2 uv[4];
+
+    int getClutX() const { return ((palette & 0x003f0000) >> 16) * 16; }
+    int getClutY() const { return ((palette & 0x7fc00000) >> 22); }
+    int getBaseX() const {
+        return ((texpage & 0x0f0000) >> 16) * 64;  // N * 64
+    }
+    int getBaseY() const {
+        return ((texpage & 0x100000) >> 20) * 256;  // N * 256
+    }
+    int getBitcount() const {
+        int depth = (texpage & 0x1800000) >> 23;
+        switch (depth) {
+            case 0: return 4;
+            case 1: return 8;
+            case 2: return 16;
+            case 3: return 16;
+            default: return 0;
+        }
+    }
+
+    GP0_E1::SemiTransparency semiTransparencyBlending() const { return (GP0_E1::SemiTransparency)((texpage & 0x600000) >> 21); }
+};
+
+// Debug/rewind
+struct LogEntry {
+    uint8_t command;
+    Command cmd;
+    std::vector<uint32_t> args;
+};
+
+}  // namespace gpu

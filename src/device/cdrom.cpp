@@ -2,10 +2,10 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
+#include "device/dma3Channel.h"
 #include "system.h"
 #include "utils/bcd.h"
 #include "utils/string.h"
-#include "device/dma3Channel.h"
 
 // TODO: CDROM shouldn't know about DMA channels
 #define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())
@@ -35,7 +35,7 @@ void CDROM::step() {
     if (mode.cddaReport && stat.play && reportcnt++ == 4000) {
         reportcnt = 0;
         // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-        auto pos = utils::Position(0,2,0);
+        auto pos = utils::Position(0, 2, 0);
 
         int track = 0;
         for (int i = 0; i < cue.getTrackCount(); i++) {
@@ -44,8 +44,6 @@ void CDROM::step() {
                 break;
             }
         }
-
-        auto posInTrack = pos - cue.tracks[track].start;
 
         CDROM_interrupt.push_back(1);
         writeResponse(stat._reg);           // stat
@@ -342,7 +340,7 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    auto pos = utils::Position(0,2,0);
+    auto pos = utils::Position(0, 2, 0);
 
     int track = 0;
     for (int i = 0; i < cue.getTrackCount(); i++) {

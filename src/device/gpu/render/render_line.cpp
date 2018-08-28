@@ -1,10 +1,10 @@
-#include <algorithm>
 #include "render.h"
+#include <algorithm>
 
 #undef VRAM
-#define VRAM ((uint16_t(*)[VRAM_WIDTH])gpu->vram.data())
+#define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
-void drawLine(GPU* gpu, const int16_t x[2], const int16_t y[2], const RGB c[2]) {
+void Render::drawLine(gpu::GPU* gpu, const int16_t x[2], const int16_t y[2], const RGB c[2]) {
     int x0 = x[0] + gpu->drawingOffsetX;
     int y0 = y[0] + gpu->drawingOffsetY;
     int x1 = x[1] + gpu->drawingOffsetX;

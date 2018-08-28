@@ -118,9 +118,9 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         auto& gpuLog = sys->gpu->gpuLogList;
         gpuLog.clear();
         for (size_t i = 0; i < j.size(); i++) {
-            GPU::GPU_LOG_ENTRY e;
+            gpu::LogEntry e;
             e.command = j[i]["command"];
-            e.cmd = (Command)(int)j[i]["cmd"];
+            e.cmd = (gpu::Command)(int)j[i]["cmd"];
 
             for (uint32_t a : j[i]["args"]) {
                 e.args.push_back(a);

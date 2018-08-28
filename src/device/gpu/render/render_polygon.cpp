@@ -1,12 +1,15 @@
 #include <algorithm>
 #include <glm/glm.hpp>
-#include "psx_color.h"
+#include "device/gpu/psx_color.h"
 #include "render.h"
 #include "texture_utils.h"
 #include "utils/macros.h"
 
+using gpu::GPU;
+using gpu::Vertex;
+
 #undef VRAM
-#define VRAM ((uint16_t(*)[VRAM_WIDTH])gpu->vram.data())
+#define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
 // clang-format off
 int ditherTable[4][4] = {
@@ -102,10 +105,10 @@ INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm
     // TODO: Mask support
 
     if ((flags & Vertex::SemiTransparency) && ((bits != ColorDepth::NONE && c.k) || (bits == ColorDepth::NONE))) {
-        using Transparency = GP0_E1::SemiTransparency;
+        using Transparency = gpu::GP0_E1::SemiTransparency;
 
         PSXColor bg = VRAM[p.y][p.x];
-        Transparency transparency = (Transparency)((flags & 0x60) >> 5);
+        auto transparency = (Transparency)((flags & 0x60) >> 5);
         switch (transparency) {
             case Transparency::Bby2plusFby2: c = bg / 2.f + c / 2.f; break;
             case Transparency::BplusF: c = bg + c; break;
@@ -169,7 +172,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
 }
 
 // TODO: Render in batches
-void drawTriangle(GPU* gpu, Vertex v[3]) {
+void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     glm::ivec2 pos[3];
     glm::vec3 color[3];
     glm::ivec2 texcoord[3];

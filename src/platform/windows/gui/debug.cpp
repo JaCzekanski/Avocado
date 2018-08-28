@@ -44,7 +44,9 @@ const char *mapIo(uint32_t address) {
     return "";
 }
 
-void replayCommands(GPU *gpu, int to) {
+void replayCommands(gpu::GPU *gpu, int to) {
+    using gpu::Command;
+
     auto commands = gpu->gpuLogList;
     gpu->vram = gpu->prevVram;
 
@@ -226,7 +228,7 @@ void gpuLogWindow(System *sys) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto &entry = sys->gpu.get()->gpuLogList[i];
 
-            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, CommandStr[(int)entry.cmd]);
+            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, gpu::CommandStr[(int)entry.cmd]);
 
             if (ImGui::IsItemHovered()) {
                 renderTo = i;
@@ -261,14 +263,14 @@ void gpuLogWindow(System *sys) {
 
             for (size_t i = 0; i < gpuLog.size(); i++) {
                 auto e = gpuLog[i];
-                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", CommandStr[(int)e.cmd]}, {"args", e.args}});
+                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", gpu::CommandStr[(int)e.cmd]}, {"args", e.args}});
             }
 
             putFileContents(string_format("%s.json", filename), j.dump(2));
 
             // Binary vram dump
             std::vector<uint8_t> vram;
-            vram.assign(gpu->vram.data(), gpu->vram.data() + (VRAM_WIDTH * VRAM_HEIGHT));
+            vram.assign(gpu->vram.begin(), gpu->vram.end());
             putFileContents(string_format("%s.bin", filename), vram);
 
             ImGui::CloseCurrentPopup();
@@ -356,7 +358,7 @@ void vramWindow() {
     ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
     auto currentSize = ImGui::GetWindowSize();
     currentSize.y -= 32;
-    ImGui::Image((ImTextureID)vramTextureId, currentSize);
+    ImGui::Image((ImTextureID)(uintptr_t)vramTextureId, currentSize);
     ImGui::End();
 }
 

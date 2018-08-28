@@ -1,11 +1,15 @@
 #include "gpu.h"
 #include <cassert>
 #include <cstdio>
-#include "render.h"
+#include "render/render.h"
 #include "utils/logic.h"
+
+namespace gpu {
 
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
+
+GPU::GPU() { reset(); }
 
 void GPU::reset() {
     irqRequest = false;
@@ -53,17 +57,17 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
     for (int i : {0, 1, 2}) {
         v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
     }
-    drawTriangle(this, v);
+    Render::drawTriangle(this, v);
 
     if (isQuad) {
         for (int i : {1, 2, 3}) {
             v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
         }
-        drawTriangle(this, v);
+        Render::drawTriangle(this, v);
     }
 }
 
-void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
+void GPU::cmdFillRectangle(uint8_t command) {
     // I'm sorry, but it appears that C++ doesn't have local functions.
     struct mask {
         constexpr static int startX(int x) { return x & 0x3f0; }
@@ -89,7 +93,7 @@ void GPU::cmdFillRectangle(uint8_t command, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
+void GPU::cmdPolygon(PolygonArgs arg) {
     int ptr = 1;
     int16_t x[4], y[4];
     RGB c[4] = {};
@@ -119,7 +123,7 @@ void GPU::cmdPolygon(PolygonArgs arg, uint32_t arguments[]) {
 }
 
 // fixme: handle multiline with > 15 lines (arguments array hold only 31 elements)
-void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
+void GPU::cmdLine(LineArgs arg) {
     int ptr = 1;
     int16_t x[2] = {}, y[2] = {};
     RGB c[2] = {};
@@ -148,13 +152,13 @@ void GPU::cmdLine(LineArgs arg, uint32_t arguments[]) {
 
         // No transparency support
         // No Gouroud Shading
-        drawLine(this, x, y, c);
+        Render::drawLine(this, x, y, c);
     }
 
     cmd = Command::None;
 }
 
-void GPU::cmdRectangle(RectangleArgs arg, uint32_t arguments[]) {
+void GPU::cmdRectangle(RectangleArgs arg) {
     int16_t w = arg.getSize();
     int16_t h = arg.getSize();
 
@@ -223,7 +227,7 @@ struct MaskCopy {
     constexpr static int endY(int y) { return ((y - 1) & 0x1ff) + 1; }
 };
 
-void GPU::cmdCpuToVram1(uint8_t command, uint32_t arguments[]) {
+void GPU::cmdCpuToVram1(uint8_t command) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdCpuToVram1: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -238,7 +242,7 @@ void GPU::cmdCpuToVram1(uint8_t command, uint32_t arguments[]) {
     currentArgument = 0;
 }
 
-void GPU::cmdCpuToVram2(uint8_t command, uint32_t arguments[]) {
+void GPU::cmdCpuToVram2(uint8_t command) {
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
@@ -257,7 +261,7 @@ void GPU::cmdCpuToVram2(uint8_t command, uint32_t arguments[]) {
     currentArgument = 0;
 }
 
-void GPU::cmdVramToCpu(uint8_t command, uint32_t arguments[]) {
+void GPU::cmdVramToCpu(uint8_t command) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdVramToCpu: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -270,7 +274,7 @@ void GPU::cmdVramToCpu(uint8_t command, uint32_t arguments[]) {
     cmd = Command::None;
 }
 
-void GPU::cmdVramToVram(uint8_t command, uint32_t arguments[]) {
+void GPU::cmdVramToVram(uint8_t command) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cpuVramToVram: Suspicious arg0: 0x%x, breaking!!!\n", arguments[0]);
         cmd = Command::None;
@@ -437,7 +441,7 @@ void GPU::writeGP0(uint32_t data) {
         }
 
         if (gpuLogEnabled && cmd == Command::None) {
-            GPU_LOG_ENTRY entry;
+            LogEntry entry;
             entry.cmd = Command::Extra;
             entry.command = command;
             entry.args = std::vector<uint32_t>();
@@ -457,31 +461,31 @@ void GPU::writeGP0(uint32_t data) {
     }
 
     if (gpuLogEnabled && cmd != Command::CopyCpuToVram2) {
-        GPU_LOG_ENTRY entry;
+        LogEntry entry;
         entry.cmd = cmd;
         entry.command = command;
-        entry.args = std::vector<uint32_t>(arguments, arguments + argumentCount);
+        entry.args = std::vector<uint32_t>(arguments.begin(), arguments.begin() + argumentCount);
         gpuLogList.push_back(entry);
     }
 
     // printf("%s(0x%x)\n", CommandStr[(int)cmd], command);
 
     if (cmd == Command::FillRectangle)
-        cmdFillRectangle(command, arguments);
+        cmdFillRectangle(command);
     else if (cmd == Command::Polygon)
-        cmdPolygon(command, arguments);
+        cmdPolygon(command);
     else if (cmd == Command::Line)
-        cmdLine(command, arguments);
+        cmdLine(command);
     else if (cmd == Command::Rectangle)
-        cmdRectangle(command, arguments);
+        cmdRectangle(command);
     else if (cmd == Command::CopyCpuToVram1)
-        cmdCpuToVram1(command, arguments);
+        cmdCpuToVram1(command);
     else if (cmd == Command::CopyCpuToVram2)
-        cmdCpuToVram2(command, arguments);
+        cmdCpuToVram2(command);
     else if (cmd == Command::CopyVramToCpu)
-        cmdVramToCpu(command, arguments);
+        cmdVramToCpu(command);
     else if (cmd == Command::CopyVramToVram)
-        cmdVramToVram(command, arguments);
+        cmdVramToVram(command);
 }
 
 void GPU::writeGP1(uint32_t data) {
@@ -563,4 +567,19 @@ bool GPU::emulateGpuCycles(int cycles) {
     return false;
 }
 
+int GPU::minDrawingX(int x) const { return std::max((int)drawingArea.left, std::max(0, x)); }
+
+int GPU::minDrawingY(int y) const { return std::max((int)drawingArea.top, std::max(0, y)); }
+
+int GPU::maxDrawingX(int x) const { return std::min((int)drawingArea.right, std::min(VRAM_WIDTH, x)); }
+
+int GPU::maxDrawingY(int y) const { return std::min((int)drawingArea.bottom, std::min(VRAM_HEIGHT, y)); }
+
+bool GPU::insideDrawingArea(int x, int y) const {
+    return (x >= drawingArea.left) && (x < drawingArea.right) && (x < VRAM_WIDTH) && (y >= drawingArea.top) && (y < drawingArea.bottom)
+           && (y < VRAM_HEIGHT);
+}
+
 bool GPU::isNtsc() { return gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
+
+}  // namespace gpu

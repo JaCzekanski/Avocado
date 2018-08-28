@@ -18,7 +18,7 @@ class OpenGL {
 
     bool init();
     bool setup();
-    void render(GPU* gpu);
+    void render(gpu::GPU* gpu);
 
     void setViewFullVram(bool v) { viewFullVram = v; }
 

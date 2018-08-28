@@ -1,8 +1,8 @@
 #include "system.h"
+#include <sound/sound.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sound/sound.h>
 #include "bios/functions.h"
 #include "config.h"
 #include "utils/file.h"
@@ -15,7 +15,7 @@ System::System() {
     memset(expansion, 0, EXPANSION_SIZE);
 
     cpu = std::make_unique<mips::CPU>(this);
-    gpu = std::make_unique<GPU>();
+    gpu = std::make_unique<gpu::GPU>();
     spu = std::make_unique<spu::SPU>(this);
 
     cdrom = std::make_unique<device::cdrom::CDROM>(this);
@@ -340,7 +340,7 @@ void System::emulateFrame() {
             return;  // frame emulated
         }
 
-        if (gpu->gpuLine >= LINE_VBLANK_START_NTSC) {
+        if (gpu->gpuLine >= gpu::LINE_VBLANK_START_NTSC) {
             if (timer1->mode.syncEnabled) {
                 auto mode1 = static_cast<timer::CounterMode::SyncMode1>(timer1->mode.syncMode);
                 using modes = timer::CounterMode::SyncMode1;

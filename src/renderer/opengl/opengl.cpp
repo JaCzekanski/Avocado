@@ -104,7 +104,7 @@ void OpenGL::renderSecondStage() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void OpenGL::render(GPU *gpu) {
+void OpenGL::render(gpu::GPU *gpu) {
     // Viewport settings
     aspect = config["options"]["graphics"]["widescreen"] ? RATIO_16_9 : RATIO_4_3;
 
