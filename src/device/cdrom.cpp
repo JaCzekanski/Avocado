@@ -2,7 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
-#include "device/dma3Channel.h"
+#include "device/dma/dma3_channel.h"
 #include "system.h"
 #include "utils/bcd.h"
 #include "utils/string.h"

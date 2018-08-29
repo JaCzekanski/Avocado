@@ -7,16 +7,11 @@
 #include <string>
 #include "bios/exe_bootstrap.h"
 #include "config.h"
-#include "device/controller/peripherals/analog_controller.h"
-#include "device/controller/peripherals/digital_controller.h"
-#include "device/controller/peripherals/mouse.h"
-#include "device/dma3Channel.h"
+#include "device/dma/dma3_channel.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
-#include "input/key.h"
 #include "platform/windows/gui/gui.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
-#include "sound/adpcm.h"
 #include "sound/sound.h"
 #include "system.h"
 #include "utils/cue/cueParser.h"
@@ -28,46 +23,6 @@
 #undef main
 
 bool running = true;
-
-void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& basePath, const std::string& content) {
-    auto datDirRegex = std::regex("DATDIR=(.*)");
-    auto regex = std::regex("pqbload (.*) (.*)");
-
-    if (content.empty()) return;
-
-    std::string datDir;
-
-    std::stringstream stream;
-    stream.str(content);
-
-    std::string line;
-    while (std::getline(stream, line)) {
-        std::smatch matches;
-
-        std::regex_search(line, matches, datDirRegex);
-        if (matches.size() == 2) {
-            datDir = matches[1].str();
-        }
-
-        std::regex_search(line, matches, regex);
-        if (matches.size() == 3) {
-            std::string file = std::regex_replace(matches[1].str(), std::regex("\\$\\(DATDIR\\)"), datDir);
-            uint32_t addr = std::stoul(matches[2].str(), 0, 16);
-
-            printf("[INFO] Loading %s to 0x%x ", file.c_str(), addr);
-
-            // Load data file
-            auto data = getFileContents(basePath + file);
-            if (data.empty()) {
-                printf("failed\n");
-                continue;
-            }
-
-            for (auto i = 0; i < (int)data.size(); i++) sys->writeMemory8(addr + i, data[i]);
-            printf("ok\n");
-        }
-    }
-}
 
 void bootstrap(std::unique_ptr<System>& sys) {
     Sound::clearBuffer();
@@ -85,11 +40,6 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
 
     std::string filenameExt = getFilenameExt(path);
     transform(filenameExt.begin(), filenameExt.end(), filenameExt.begin(), tolower);
-
-    if (filenameExt == "makefile.mak") {
-        loadAssetsFromMakefile(sys, getPath(path), getFileContentsAsString(path));
-        return;
-    }
 
     if (ext == "psf" || ext == "minipsf") {
         bootstrap(sys);

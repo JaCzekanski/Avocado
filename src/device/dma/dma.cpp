@@ -1,13 +1,12 @@
 #include "dma.h"
 #include <cstdio>
-#include "dma2Channel.h"
-#include "dma3Channel.h"
-#include "dma4Channel.h"
-#include "dma6Channel.h"
+#include "dma2_channel.h"
+#include "dma3_channel.h"
+#include "dma4_channel.h"
+#include "dma6_channel.h"
 #include "system.h"
 
-namespace device {
-namespace dma {
+namespace device::dma {
 DMA::DMA(System* sys) : sys(sys) {
     dma[0] = std::make_unique<dmaChannel::DMAChannel>(0, sys);
     dma[1] = std::make_unique<dmaChannel::DMAChannel>(1, sys);
@@ -74,5 +73,4 @@ void DMA::write(uint32_t address, uint8_t data) {
         if (status.getEnableDma(channel)) status.setFlagDma(channel, 1);
     }
 }
-}  // namespace dma
-}  // namespace device
+}

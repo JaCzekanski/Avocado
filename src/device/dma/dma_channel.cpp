@@ -1,13 +1,17 @@
-#include "dmaChannel.h"
+#include "dma_channel.h"
 #include <cstdio>
 #include "system.h"
 
-namespace device {
-namespace dma {
-namespace dmaChannel {
+namespace device::dma::dmaChannel {
 DMAChannel::DMAChannel(int channel, System* sys) : channel(channel), sys(sys) {}
 
 void DMAChannel::step() {}
+
+uint32_t DMAChannel::readDevice() { return 0; }
+
+void DMAChannel::writeDevice(uint32_t data) {}
+
+void DMAChannel::beforeRead() {}
 
 uint8_t DMAChannel::read(uint32_t address) {
     if (address < 0x4) return baseAddress._byte[address];
@@ -114,6 +118,4 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.enabled = CHCR::Enabled::completed;
     }
 }
-}  // namespace dmaChannel
-}  // namespace dma
-}  // namespace device
+}

@@ -1,14 +1,11 @@
 #pragma once
 #include <memory>
 #include "device/device.h"
-#include "dmaChannel.h"
-#include "gpu/gpu.h"
+#include "dma_channel.h"
 
 struct System;
 
-namespace device {
-namespace dma {
-
+namespace device::dma {
 // 0x1f8010f0 - DPCR,  DMA Control
 union DPCR {
     struct {
@@ -96,5 +93,4 @@ class DMA {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 };
-}  // namespace dma
-}  // namespace device
+}
