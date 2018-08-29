@@ -90,11 +90,11 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
         if (parseValues) {
             column(string_format("%.0f", v.volume.getLeft() * 100.f));
             column(string_format("%.0f", v.volume.getRight() * 100.f));
-            column(string_format("%.0f", (v.ADSRVolume._reg / static_cast<float>(0x7fff)) * 100.f));
+            column(string_format("%.0f", (v.adsrVolume._reg / static_cast<float>(0x7fff)) * 100.f));
         } else {
             column(string_format("%04x", v.volume.left));
             column(string_format("%04x", v.volume.right));
-            column(string_format("%04x", v.ADSRVolume._reg));
+            column(string_format("%04x", v.adsrVolume._reg));
         }
 
         if (parseValues) {
@@ -105,10 +105,10 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
         column(string_format("%04x", v.currentAddress._reg));
         column(string_format("%04x", v.startAddress._reg));
         column(string_format("%04x", v.repeatAddress._reg));
-        column(string_format("%08x", v.ADSR._reg));
+        column(string_format("%08x", v.adsr._reg));
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
-            ImGui::TextUnformatted(adsrInfo(v.ADSR).c_str());
+            ImGui::TextUnformatted(adsrInfo(v.adsr).c_str());
             ImGui::EndTooltip();
         }
 

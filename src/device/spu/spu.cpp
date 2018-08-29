@@ -1,10 +1,10 @@
 #include "spu.h"
 #include <array>
 #include <vector>
+#include "reverb.h"
 #include "sound/adpcm.h"
 #include "system.h"
 #include "utils/math.h"
-#include "reverb.h"
 
 using namespace spu;
 
@@ -33,7 +33,7 @@ void SPU::step() {
         voice.processEnvelope();
 
         float sample = intToFloat(voice.decodedSamples[(int)voice.subAddress]);
-        sample *= intToFloat(voice.ADSRVolume._reg);
+        sample *= intToFloat(voice.adsrVolume._reg);
 
         sumLeft += sample * voice.volume.getLeft();
         sumRight += sample * voice.volume.getRight();
@@ -71,7 +71,7 @@ void SPU::step() {
             voice.loadRepeatAddress = true;
 
             if (!(flag & 2)) {  // Loop repeat
-                voice.ADSRVolume._reg = 0;
+                voice.adsrVolume._reg = 0;
                 voiceKeyOff(v);
             }
         }
@@ -129,10 +129,10 @@ uint8_t SPU::readVoice(uint32_t address) const {
         case 8:
         case 9:
         case 10:
-        case 11: return voices[voice].ADSR.read(reg - 8);
+        case 11: return voices[voice].adsr.read(reg - 8);
 
         case 12:
-        case 13: return voices[voice].ADSRVolume.read(reg - 12);
+        case 13: return voices[voice].adsrVolume.read(reg - 12);
 
         case 14:
         case 15: return voices[voice].repeatAddress.read(reg - 14);
@@ -168,10 +168,10 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
         case 8:
         case 9:
         case 10:
-        case 11: voices[voice].ADSR.write(reg - 8, data); return;
+        case 11: voices[voice].adsr.write(reg - 8, data); return;
 
         case 12:
-        case 13: voices[voice].ADSRVolume.write(reg - 12, data); return;
+        case 13: voices[voice].adsrVolume.write(reg - 12, data); return;
 
         case 14:
         case 15: voices[voice].repeatAddress.write(reg - 14, data); return;
@@ -183,7 +183,7 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 void SPU::voiceKeyOn(int i) {
     Voice& voice = voices[i];
 
-    voice.ADSRVolume._reg = 0;
+    voice.adsrVolume._reg = 0;
     voice.repeatAddress._reg = voice.startAddress._reg;
     voice.currentAddress._reg = voice.startAddress._reg;
     voice.state = Voice::State::Attack;

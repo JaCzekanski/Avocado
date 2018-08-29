@@ -11,8 +11,8 @@ struct Voice {
     Volume volume;
     Reg16 sampleRate;
     Reg16 startAddress;
-    ADSR ADSR;
-    Reg16 ADSRVolume;
+    ADSR adsr;
+    Reg16 adsrVolume;
     Reg16 repeatAddress;
 
     Reg16 currentAddress;

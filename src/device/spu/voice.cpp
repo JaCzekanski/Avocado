@@ -6,8 +6,8 @@ Voice::Voice() {
     volume._reg = 0;
     sampleRate._reg = 0;
     startAddress._reg = 0;
-    ADSR._reg = 0;
-    ADSRVolume._reg = 0;
+    adsr._reg = 0;
+    adsrVolume._reg = 0;
     repeatAddress._reg = 0;
     currentAddress._reg = 0;
     subAddress = 0;
@@ -24,11 +24,11 @@ Voice::Voice() {
 
 Envelope Voice::getCurrentPhase() {
     switch (state) {
-        case State::Attack: return ADSR.attack();
-        case State::Decay: return ADSR.decay();
-        case State::Sustain: return ADSR.sustain();
+        case State::Attack: return adsr.attack();
+        case State::Decay: return adsr.decay();
+        case State::Sustain: return adsr.sustain();
         case State::Release:
-        default: return ADSR.release();
+        default: return adsr.release();
     }
 }
 
@@ -55,21 +55,21 @@ void Voice::processEnvelope() {
     int step = e.getStep() << std::max(0, 11 - e.shift);
 
     if (e.mode == Mode::Exponential) {
-        if (e.direction == Dir::Increase && ADSRVolume._reg > 0x6000) {
+        if (e.direction == Dir::Increase && adsrVolume._reg > 0x6000) {
             cycles *= 4;
         }
         if (e.direction == Dir::Decrease) {
-            step = static_cast<int>(static_cast<float>(step) * std::ceil(static_cast<float>(ADSRVolume._reg) / static_cast<float>(0x8000)));
+            step = static_cast<int>(static_cast<float>(step) * std::ceil(static_cast<float>(adsrVolume._reg) / static_cast<float>(0x8000)));
         }
     }
 
     if (adsrWaitCycles == 0) {
         adsrWaitCycles = cycles;
-        ADSRVolume._reg = clamp(static_cast<int32_t>(ADSRVolume._reg) + step, 0, 0x7fff);
+        adsrVolume._reg = clamp(static_cast<int32_t>(adsrVolume._reg) + step, 0, 0x7fff);
 
         if (e.level != -1
-            && ((e.direction == Dir::Increase && ADSRVolume._reg >= e.level)
-                || (e.direction == Dir::Decrease && ADSRVolume._reg <= e.level))) {
+            && ((e.direction == Dir::Increase && adsrVolume._reg >= e.level)
+                || (e.direction == Dir::Decrease && adsrVolume._reg <= e.level))) {
             state = nextState(state);
             adsrWaitCycles = 0;
         }
