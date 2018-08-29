@@ -19,6 +19,12 @@ bool OpenGL::init() {
 bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress) != 0; }
 
 bool OpenGL::loadShaders() {
+    renderShader = std::make_unique<Program>("data/shader/render");
+    if (!renderShader->load()) {
+        printf("Cannot load render shader: %s\n", renderShader->getError().c_str());
+        return false;
+    }
+
     blitShader = std::make_unique<Program>("data/shader/blit");
     if (!blitShader->load()) {
         printf("Cannot load blit shader: %s\n", blitShader->getError().c_str());
@@ -44,6 +50,25 @@ std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, in
         {{0.f, 0.f}, {sx, sy}}, {{1.f, 0.f}, {sw, sy}}, {{1.f, 1.f}, {sw, sh}},
         {{0.f, 0.f}, {sx, sy}}, {{1.f, 1.f}, {sw, sh}}, {{0.f, 1.f}, {sx, sh}},
     };
+}
+
+void OpenGL::createRenderBuffer() {
+    glGenVertexArrays(1, &renderVao);
+    glBindVertexArray(renderVao);
+
+    glGenBuffers(1, &renderVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(gpu::Vertex), NULL, GL_DYNAMIC_DRAW);
+
+    renderShader->getAttrib("position").pointer(2, GL_INT, sizeof(gpu::Vertex), 0);
+    renderShader->getAttrib("color").pointer(3, GL_INT, sizeof(gpu::Vertex), 2 * sizeof(int));
+    renderShader->getAttrib("texcoord").pointer(2, GL_INT, sizeof(gpu::Vertex), 5 * sizeof(int));
+    renderShader->getAttrib("bitcount").pointer(1, GL_INT, sizeof(gpu::Vertex), 7 * sizeof(int));
+    renderShader->getAttrib("clut").pointer(2, GL_INT, sizeof(gpu::Vertex), 8 * sizeof(int));
+    renderShader->getAttrib("texpage").pointer(2, GL_INT, sizeof(gpu::Vertex), 10 * sizeof(int));
+    renderShader->getAttrib("flags").pointer(1, GL_INT, sizeof(gpu::Vertex), 12 * sizeof(int));
+
+    glBindVertexArray(0);
 }
 
 void OpenGL::createBlitBuffer() {
@@ -96,10 +121,40 @@ bool OpenGL::setup() {
 
     if (!loadShaders()) return false;
 
+    createRenderBuffer();
     createBlitBuffer();
     createRenderTexture();
 
     return true;
+}
+
+void OpenGL::renderVertices(gpu::GPU* gpu) {
+    static glm::vec2 lastPos;
+    auto& buffer = gpu->vertices;
+    if (buffer.empty()) return;
+
+    renderShader->use();
+
+    glBindVertexArray(renderVao);
+    glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpu::Vertex) * buffer.size(), buffer.data());
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderTex);
+
+    glUniform2f(renderShader->getUniform("displayAreaPos"), lastPos.x, lastPos.y);
+    glUniform2f(renderShader->getUniform("displayAreaSize"), gpu->gp1_08.getHorizontalResoulution(), gpu->gp1_08.getVerticalResoulution());
+
+    // TODO: Add framebuffer
+
+    printf("DisplayAreaStart: x: %4d, y:%4d, end: x: %4d, y: %4d\n", gpu->displayAreaStartX, gpu->displayAreaStartY,
+           gpu->gp1_08.getHorizontalResoulution(), gpu->gp1_08.getVerticalResoulution());
+
+    glDrawArrays(GL_TRIANGLES, 0, buffer.size());
+
+    lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
+
+    buffer.clear();
 }
 
 void OpenGL::renderSecondStage() {
@@ -112,7 +167,7 @@ void OpenGL::renderSecondStage() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void OpenGL::render(gpu::GPU *gpu) {
+void OpenGL::render(gpu::GPU* gpu) {
     // Viewport settings
     aspect = config["options"]["graphics"]["widescreen"] ? RATIO_16_9 : RATIO_4_3;
 
@@ -159,10 +214,12 @@ void OpenGL::render(gpu::GPU *gpu) {
     // TODO: Remove 1_5_5_5, move to RGB888
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT);
 
     glViewport(x, y, w, h);
-    renderSecondStage();
+
+    renderVertices(gpu);
+    // renderSecondStage();
 
     glViewport(0, 0, width, height);
 }

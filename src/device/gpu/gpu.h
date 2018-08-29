@@ -86,6 +86,9 @@ class GPU {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
+    // Hardware rendering
+    std::vector<Vertex> vertices;
+
     void reset();
     void cmdFillRectangle(uint8_t command);
     void cmdPolygon(PolygonArgs arg);

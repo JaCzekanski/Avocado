@@ -41,6 +41,9 @@ class OpenGL {
     std::unique_ptr<Program> renderShader;
     std::unique_ptr<Program> blitShader;
 
+    GLuint renderVao = 0;
+    GLuint renderVbo = 0;
+
     // VRAM to screen blit
     GLuint blitVao = 0;
     GLuint blitVbo = 0;
@@ -51,10 +54,13 @@ class OpenGL {
 
     bool loadExtensions();
     bool loadShaders();
+    void createRenderBuffer();
     void createBlitBuffer();
     void createVramTexture();
     void createRenderTexture();
     void updateTextureParameters();
     std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480);
+
+    void renderVertices(gpu::GPU* gpu);
     void renderSecondStage();
 };
