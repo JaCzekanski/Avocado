@@ -39,16 +39,19 @@ class OpenGL {
     const int bufferSize = 1024 * 1024;
 
     std::unique_ptr<Program> renderShader;
-    std::unique_ptr<Program> blitShader;
-
     GLuint renderVao = 0;
     GLuint renderVbo = 0;
+    GLuint renderFb = 0;
+    GLuint renderTex = 0;
+    GLuint vramTex = 0;
+
+    int renderWidth;
+    int renderHeight;
 
     // VRAM to screen blit
+    std::unique_ptr<Program> blitShader;
     GLuint blitVao = 0;
     GLuint blitVbo = 0;
-
-    GLuint renderTex = 0;
 
     bool viewFullVram = false;
 

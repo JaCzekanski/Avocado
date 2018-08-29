@@ -20,6 +20,7 @@ uniform vec2 displayAreaSize;
 
 void main() {
     vec2 pos = vec2((position.x - displayAreaPos.x) / displayAreaSize.x, (position.y - displayAreaPos.y) / displayAreaSize.y);
+    // vec2 pos = vec2(position.x / 1024.f, position.y / 512.f);
     fragColor = vec3(color.r / 255.f, color.g / 255.f, color.b / 255.f);
     fragTexcoord = vec2(texcoord.x, texcoord.y);
     fragBitcount = bitcount;

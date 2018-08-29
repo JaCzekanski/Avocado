@@ -33,6 +33,29 @@ bool OpenGL::loadShaders() {
     return true;
 }
 
+bool OpenGL::setup() {
+    if (!loadExtensions()) {
+        printf("Cannot initialize glad\n");
+        return false;
+    }
+
+    // Check actual version of OpenGL context
+    if (GLVersion.major * 10 + GLVersion.minor < VERSION_MAJOR * 10 + VERSION_MINOR) {
+        printf("Unable to initialize OpenGL context for version %d.%d (got %d.%d)\n", VERSION_MAJOR, VERSION_MINOR, GLVersion.major,
+               GLVersion.minor);
+        return false;
+    }
+
+    if (!loadShaders()) return false;
+
+    createRenderBuffer();
+    createBlitBuffer();
+    createRenderTexture();
+    createVramTexture();
+
+    return true;
+}
+
 std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, int screenW, int screenH) {
     /* X,Y
 
@@ -87,45 +110,51 @@ void OpenGL::createBlitBuffer() {
     glBindVertexArray(0);
 }
 
-void OpenGL::createRenderTexture() {
-    glGenTextures(1, &renderTex);
-    glBindTexture(GL_TEXTURE_2D, renderTex);
+void OpenGL::createVramTexture() {
+    glGenTextures(1, &vramTex);
+    glBindTexture(GL_TEXTURE_2D, vramTex);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, nullptr);
 
-    updateTextureParameters();
-}
-
-void OpenGL::updateTextureParameters() {
+    // Does effectively nothing since I read texels, not sample it
     bool smoothing = config["options"]["graphics"]["filtering"];
-
-    glBindTexture(GL_TEXTURE_2D, renderTex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, smoothing ? GL_LINEAR : GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, smoothing ? GL_LINEAR : GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-bool OpenGL::setup() {
-    if (!loadExtensions()) {
-        printf("Cannot initialize glad\n");
-        return false;
+void OpenGL::createRenderTexture() {
+    renderWidth = 640 * 2;
+    renderHeight = 480 * 2;
+
+    glGenTextures(1, &renderTex);
+    glBindTexture(GL_TEXTURE_2D, renderTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderWidth, renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // TODO: Make C++ wrappers like shaders
+    glGenFramebuffers(1, &renderFb);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderFb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTex, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
     }
 
-    // Check actual version of OpenGL context
-    if (GLVersion.major * 10 + GLVersion.minor < VERSION_MAJOR * 10 + VERSION_MINOR) {
-        printf("Unable to initialize OpenGL context for version %d.%d (got %d.%d)\n", VERSION_MAJOR, VERSION_MINOR, GLVersion.major,
-               GLVersion.minor);
-        return false;
-    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-    if (!loadShaders()) return false;
+void OpenGL::updateTextureParameters() {
+    // bool smoothing = config["options"]["graphics"]["filtering"];
 
-    createRenderBuffer();
-    createBlitBuffer();
-    createRenderTexture();
-
-    return true;
+    // glBindTexture(GL_TEXTURE_2D, renderTex);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, smoothing ? GL_LINEAR : GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, smoothing ? GL_LINEAR : GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 void OpenGL::renderVertices(gpu::GPU* gpu) {
@@ -140,20 +169,18 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpu::Vertex) * buffer.size(), buffer.data());
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderTex);
+    glBindTexture(GL_TEXTURE_2D, vramTex);
 
     glUniform2f(renderShader->getUniform("displayAreaPos"), lastPos.x, lastPos.y);
     glUniform2f(renderShader->getUniform("displayAreaSize"), gpu->gp1_08.getHorizontalResoulution(), gpu->gp1_08.getVerticalResoulution());
 
-    // TODO: Add framebuffer
-
-    printf("DisplayAreaStart: x: %4d, y:%4d, end: x: %4d, y: %4d\n", gpu->displayAreaStartX, gpu->displayAreaStartY,
-           gpu->gp1_08.getHorizontalResoulution(), gpu->gp1_08.getVerticalResoulution());
-
+    glViewport(0, 0, renderWidth, renderHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderFb);
     glDrawArrays(GL_TRIANGLES, 0, buffer.size());
 
-    lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
     buffer.clear();
 }
 
@@ -164,12 +191,14 @@ void OpenGL::renderSecondStage() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderTex);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void OpenGL::render(gpu::GPU* gpu) {
     // Viewport settings
     aspect = config["options"]["graphics"]["widescreen"] ? RATIO_16_9 : RATIO_4_3;
+    bool smoothing = config["options"]["graphics"]["filtering"];
 
     int x = 0;
     int y = 0;
@@ -188,6 +217,7 @@ void OpenGL::render(gpu::GPU* gpu) {
     } else {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
+        // bb = makeBlitBuf(0,0,1024,512);
 
         if (width > height * aspect) {
             // Fit vertical
@@ -207,19 +237,29 @@ void OpenGL::render(gpu::GPU* gpu) {
     glBindBuffer(GL_ARRAY_BUFFER, blitVbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, bb.size() * sizeof(BlitStruct), bb.data());
 
-    // Update Render texture
-    updateTextureParameters();
-    glBindTexture(GL_TEXTURE_2D, renderTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
+    // Clear framebuffer
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Copy VRAM to GPU
+    glBindTexture(GL_TEXTURE_2D, vramTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, gpu->vram.data());
     // TODO: Remove 1_5_5_5, move to RGB888
 
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    // glClear(GL_COLOR_BUFFER_BIT);
-
-    glViewport(x, y, w, h);
-
+    // Render all GPU commands
     renderVertices(gpu);
+
+    // TODO: Not working
+    // Blit rendered screen
+    // For OpenGL < 3.2
+    // glViewport(x, y, w, h);
     // renderSecondStage();
+
+    // For OpenGL > 3.2
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, renderFb);
+    glDrawBuffer(GL_BACK);
+    glBlitFramebuffer(0, 0, renderWidth, renderHeight, x, y, w, h, GL_COLOR_BUFFER_BIT, smoothing ? GL_LINEAR : GL_NEAREST);
 
     glViewport(0, 0, width, height);
 }
