@@ -322,7 +322,7 @@ void System::emulateFrame() {
 
         static float spuCounter = 0;
         // TODO: Yey, magic numbers!
-        spuCounter += (float)systemCycles / 1.575 / (float)0x300;
+        spuCounter += (float)systemCycles / 1.575f / (float)0x300;
         if (spuCounter >= 1.f) {
             spu->step();
             spuCounter -= 1.0f;
@@ -375,7 +375,7 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
         return false;
     }
 
-    for (size_t i = 0; i < exe.t_size; i++) {
+    for (uint32_t i = 0; i < exe.t_size; i++) {
         writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
     }
 
@@ -405,7 +405,7 @@ bool System::loadBios(std::string path) {
         printf("[WARNING]: Loaded bios (%s) have invalid header, are you using correct file?\n", getFilenameExt(path).c_str());
     }
 
-    copy(_bios.begin(), _bios.end(), bios);
+    std::copy(_bios.begin(), _bios.end(), bios);
     state = State::run;
     return true;
 }
@@ -423,7 +423,7 @@ bool System::loadExpansion(const std::vector<uint8_t>& _exp) {
         printf("[WARNING]: Loaded expansion have invalid header, are you using correct file?\n");
     }
 
-    copy(_exp.begin(), _exp.end(), expansion);
+    std::copy(_exp.begin(), _exp.end(), expansion);
     return true;
 }
 

@@ -9,7 +9,7 @@ Position Cue::getDiskSize() const {
     return size;
 }
 
-int Cue::getTrackCount() const { return tracks.size(); }
+size_t Cue::getTrackCount() const { return tracks.size(); }
 
 Position Cue::getTrackLength(int track) const { return tracks.at(track).getTrackSize(); }
 
@@ -20,7 +20,7 @@ std::vector<uint8_t> Cue::read(Position& pos, size_t bytes, bool audio) {
 
     auto buffer = std::vector<uint8_t>();
 
-    for (int i = 0; i < getTrackCount(); i++) {
+    for (size_t i = 0; i < getTrackCount(); i++) {
         auto track = tracks[i];
 
         if (pos >= (track.start - track.pause) && pos < track.end) {
@@ -39,7 +39,7 @@ std::vector<uint8_t> Cue::read(Position& pos, size_t bytes, bool audio) {
             auto file = files[track.filename];
 
             auto seek = pos - track.start;
-            fseek(file.get(), track.offsetInFile + seek.toLba() * 2352, SEEK_SET);
+            fseek(file.get(), (long)(track.offsetInFile + seek.toLba() * 2352), SEEK_SET);
 
             buffer.resize(bytes);
             fread(buffer.data(), bytes, 1, file.get());

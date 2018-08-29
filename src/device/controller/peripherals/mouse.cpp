@@ -51,8 +51,8 @@ void Mouse::update() {
     if (!inputLeft.isRelative) rawX /= 16;
     if (!inputUp.isRelative) rawY /= 16;
 
-    x = clamp<int16_t>(rawX, INT8_MIN, INT8_MAX);
-    y = clamp<int16_t>(rawY, INT8_MIN, INT8_MAX);
+    x = (int8_t)clamp<int16_t>(rawX, INT8_MIN, INT8_MAX);
+    y = (int8_t)clamp<int16_t>(rawY, INT8_MIN, INT8_MAX);
 }
 
 };  // namespace peripherals

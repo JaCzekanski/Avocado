@@ -45,7 +45,7 @@ Controller::Controller(System* sys) : sys(sys) {
 
     reload();
 
-    for (size_t i = 0; i < card.size(); i++) {
+    for (auto i = 0; i < (int)card.size(); i++) {
         card[i] = std::make_unique<peripherals::MemoryCard>(i + 1);
     }
 }
@@ -66,7 +66,7 @@ void Controller::reload() {
         }
     };
 
-    for (size_t i = 0; i < controller.size(); i++) {
+    for (auto i = 0; i < (int)controller.size(); i++) {
         controller[i] = createDevice(i);
     }
 }

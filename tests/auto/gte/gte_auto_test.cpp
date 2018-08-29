@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
     printf("Using file %s\n", logfile.c_str());
     auto testCases = parseTestCases(logfile);
-    printf("Test cases found: %d\n", testCases.size());
+    printf("Test cases found: %zd\n", testCases.size());
 
     GTE gte;
 

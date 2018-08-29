@@ -27,7 +27,8 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             case Voice::State::Decay: return " D  ";
             case Voice::State::Sustain: return "  S ";
             case Voice::State::Release: return "   R";
-            case Voice::State::Off: return "";
+            case Voice::State::Off:
+            default: return "";
         }
     };
 
@@ -129,40 +130,38 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
 void reverbInfo(spu::SPU* spu) {
     const int width = 8;
     const int height = 4;
-    const std::array<const char*, 32> registerDescription = {{
-        "dAPF1   - Reverb APF Offset 1",
-        "dAPF2   - Reverb APF Offset 2",
-        "vIIR    - Reverb Reflection Volume 1",
-        "vCOMB1  - Reverb Comb Volume 1",
-        "vCOMB2  - Reverb Comb Volume 2",
-        "vCOMB3  - Reverb Comb Volume 3",
-        "vCOMB4  - Reverb Comb Volume 4",
-        "vWALL   - Reverb Reflection Volume 2",
-        "vAPF1   - Reverb APF Volume 1",
-        "vAPF2   - Reverb APF Volume 2",
-        "mLSAME  - Reverb Same Side Reflection Address 1 Left",
-        "mRSAME  - Reverb Same Side Reflection Address 1 Right",
-        "mLCOMB1 - Reverb Comb Address 1 Left",
-        "mRCOMB1 - Reverb Comb Address 1 Right",
-        "mLCOMB2 - Reverb Comb Address 2 Left",
-        "mRCOMB2 - Reverb Comb Address 2 Right",
-        "dLSAME  - Reverb Same Side Reflection Address 2 Left",
-        "dRSAME  - Reverb Same Side Reflection Address 2 Right",
-        "mLDIFF  - Reverb Different Side Reflect Address 1 Left",
-        "mRDIFF  - Reverb Different Side Reflect Address 1 Right",
-        "mLCOMB3 - Reverb Comb Address 3 Left",
-        "mRCOMB3 - Reverb Comb Address 3 Right",
-        "mLCOMB4 - Reverb Comb Address 4 Left",
-        "mRCOMB4 - Reverb Comb Address 4 Right",
-        "dLDIFF  - Reverb Different Side Reflect Address 2 Left",
-        "dRDIFF  - Reverb Different Side Reflect Address 2 Right",
-        "mLAPF1  - Reverb APF Address 1 Left",
-        "mRAPF1  - Reverb APF Address 1 Right",
-        "mLAPF2  - Reverb APF Address 2 Left",
-        "mRAPF2  - Reverb APF Address 2 Right",
-        "vLIN    - Reverb Input Volume Left",
-        "vRIN    - Reverb Input Volume Right"
-    }};
+    const std::array<const char*, 32> registerDescription = {{"dAPF1   - Reverb APF Offset 1",
+                                                              "dAPF2   - Reverb APF Offset 2",
+                                                              "vIIR    - Reverb Reflection Volume 1",
+                                                              "vCOMB1  - Reverb Comb Volume 1",
+                                                              "vCOMB2  - Reverb Comb Volume 2",
+                                                              "vCOMB3  - Reverb Comb Volume 3",
+                                                              "vCOMB4  - Reverb Comb Volume 4",
+                                                              "vWALL   - Reverb Reflection Volume 2",
+                                                              "vAPF1   - Reverb APF Volume 1",
+                                                              "vAPF2   - Reverb APF Volume 2",
+                                                              "mLSAME  - Reverb Same Side Reflection Address 1 Left",
+                                                              "mRSAME  - Reverb Same Side Reflection Address 1 Right",
+                                                              "mLCOMB1 - Reverb Comb Address 1 Left",
+                                                              "mRCOMB1 - Reverb Comb Address 1 Right",
+                                                              "mLCOMB2 - Reverb Comb Address 2 Left",
+                                                              "mRCOMB2 - Reverb Comb Address 2 Right",
+                                                              "dLSAME  - Reverb Same Side Reflection Address 2 Left",
+                                                              "dRSAME  - Reverb Same Side Reflection Address 2 Right",
+                                                              "mLDIFF  - Reverb Different Side Reflect Address 1 Left",
+                                                              "mRDIFF  - Reverb Different Side Reflect Address 1 Right",
+                                                              "mLCOMB3 - Reverb Comb Address 3 Left",
+                                                              "mRCOMB3 - Reverb Comb Address 3 Right",
+                                                              "mLCOMB4 - Reverb Comb Address 4 Left",
+                                                              "mRCOMB4 - Reverb Comb Address 4 Right",
+                                                              "dLDIFF  - Reverb Different Side Reflect Address 2 Left",
+                                                              "dRDIFF  - Reverb Different Side Reflect Address 2 Right",
+                                                              "mLAPF1  - Reverb APF Address 1 Left",
+                                                              "mRAPF1  - Reverb APF Address 1 Right",
+                                                              "mLAPF2  - Reverb APF Address 2 Left",
+                                                              "mRAPF2  - Reverb APF Address 2 Right",
+                                                              "vLIN    - Reverb Input Volume Left",
+                                                              "vRIN    - Reverb Input Volume Right"}};
 
     ImGui::Checkbox("Force off", &spu->forceReverbOff);
 
@@ -201,12 +200,9 @@ void registersInfo(spu::SPU* spu) {
     ImGui::Text("CD     volume: %08x", spu->cdVolume._reg);
     ImGui::Text("Ext    volume: %08x", spu->extVolume._reg);
     ImGui::Text("Reverb volume: %08x", spu->reverbVolume._reg);
-    ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s %s %s", spu->control._reg, 
-                spu->control.spuEnable ? "SPU enable" : "",
-                spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", 
-                spu->control.irqEnable ? "IRQ" : "",
-                spu->control.masterReverb ? "Reverb" : "",
-                spu->control.cdReverb ? "CD_Reverb" : "");
+    ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s %s %s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
+                spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "",
+                spu->control.masterReverb ? "Reverb" : "", spu->control.cdReverb ? "CD_Reverb" : "");
 
     ImGui::Text("Status:  0x%0x04  %-3s", spu->SPUSTAT._reg, (spu->SPUSTAT._reg & (1 << 6)) ? "IRQ" : "");
 
@@ -221,7 +217,7 @@ void renderSamples(spu::SPU* spu) {
         samples.push_back((float)s / (float)0x7fff);
     }
 
-    ImGui::PlotLines("Preview", samples.data(), samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
+    ImGui::PlotLines("Preview", samples.data(), (int)samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
 }
 
 void spuWindow(spu::SPU* spu) {

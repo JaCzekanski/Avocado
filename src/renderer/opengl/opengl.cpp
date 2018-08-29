@@ -9,8 +9,8 @@
 bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, VERSION_MAJOR);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, VERSION_MINOR);
     SDL_GL_SetSwapInterval(0);
 
     return true;
@@ -86,6 +86,14 @@ bool OpenGL::setup() {
         printf("Cannot initialize glad\n");
         return false;
     }
+
+    // Check actual version of OpenGL context
+    if (GLVersion.major * 10 + GLVersion.minor < VERSION_MAJOR * 10 + VERSION_MINOR) {
+        printf("Unable to initialize OpenGL context for version %d.%d (got %d.%d)\n", VERSION_MAJOR, VERSION_MINOR, GLVersion.major,
+               GLVersion.minor);
+        return false;
+    }
+
     if (!loadShaders()) return false;
 
     createBlitBuffer();
@@ -128,15 +136,15 @@ void OpenGL::render(gpu::GPU *gpu) {
 
         if (width > height * aspect) {
             // Fit vertical
-            w = height * aspect;
-            x = (width - w) / 2;
+            w = static_cast<int>(height * aspect);
+            x = static_cast<int>((width - w) / 2.f);
         } else {
             // Fit horizontal
-            h = width * (1.0 / aspect);
-            y = (height - h) / 2;
+            h = static_cast<int>(width * (1.0f / aspect));
+            y = static_cast<int>((height - h) / 2.f);
         }
 
-        float y2 = gpu->displayRangeY2 - gpu->displayRangeY1;
+        float y2 = static_cast<float>(gpu->displayRangeY2 - gpu->displayRangeY1);
         if (gpu->gp1_08.getVerticalResoulution() == 480) y2 *= 2;
         glUniform2f(blitShader->getUniform("displayEnd"), gpu->displayRangeX1, gpu->displayAreaStartY + y2);
     }

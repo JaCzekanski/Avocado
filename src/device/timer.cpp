@@ -20,7 +20,7 @@ void Timer<which>::step(int cycles) {
             tval += cnt / 6;
             cnt %= 6;
         } else {  // System Clock
-            tval += cnt / 1.5f;
+            tval += (int)(cnt / 1.5f);
             cnt %= (int)1.5f;
         }
     } else if (which == 1) {
@@ -31,18 +31,18 @@ void Timer<which>::step(int cycles) {
             tval += cnt / 3413;
             cnt %= 3413;
         } else {  // System Clock
-            tval += cnt / 1.5f;
+            tval += (int)(cnt / 1.5f);
             cnt %= (int)1.5f;
         }
     } else if (which == 2) {
-        auto clock = static_cast<CounterMode::ClockSource2>((mode.clockSource>>1) & 1);
+        auto clock = static_cast<CounterMode::ClockSource2>((mode.clockSource >> 1) & 1);
         using modes = CounterMode::ClockSource2;
 
         if (clock == modes::systemClock_8) {
-            tval += cnt / (8 * 1.5f);
+            tval += (int)(cnt / (8 * 1.5f));
             cnt %= (int)(8 * 1.5f);
         } else {  // System Clock
-            tval += cnt * 1.5f;
+            tval += (int)(cnt * 1.5f);
             cnt %= (int)1.5f;
         }
     }

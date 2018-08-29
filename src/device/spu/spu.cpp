@@ -43,7 +43,7 @@ void SPU::step() {
             sumReverbRight += sample * voice.volume.getRight();
         }
 
-        int prevAddr = voice.subAddress;
+        int prevAddr = (int)voice.subAddress;
         voice.subAddress += (float)std::min((uint16_t)0x4000, voice.sampleRate._reg) / 4096.f;
 
         if ((int)prevAddr == (int)voice.subAddress) continue;

@@ -38,9 +38,9 @@ void CDROM::step() {
         auto pos = utils::Position(0, 2, 0);
 
         int track = 0;
-        for (int i = 0; i < cue.getTrackCount(); i++) {
+        for (int i = 0; i < (int)cue.getTrackCount(); i++) {
             if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
-                track = i;
+                track = (int)i;
                 break;
             }
         }
@@ -159,7 +159,7 @@ void CDROM::cmdPlay() {
     utils::Position pos;
     if (!CDROM_params.empty()) {
         int track = readParam();  // param or setloc used
-        if (track >= cue.getTrackCount()) {
+        if (track >= (int)cue.getTrackCount()) {
             printf("CDROM: Invalid PLAY track parameter (%d)\n", track);
             return;
         }
@@ -343,9 +343,9 @@ void CDROM::cmdGetlocP() {
     auto pos = utils::Position(0, 2, 0);
 
     int track = 0;
-    for (int i = 0; i < cue.getTrackCount(); i++) {
+    for (size_t i = 0; i < cue.getTrackCount(); i++) {
         if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
-            track = i;
+            track = (int)i;
             break;
         }
     }
@@ -375,7 +375,7 @@ void CDROM::cmdGetTN() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
     writeResponse(0x01);
-    writeResponse(cue.getTrackCount());
+    writeResponse((uint8_t)cue.getTrackCount());
 
     if (verbose) {
         printf("CDROM: cmdGetTN -> (");
@@ -398,7 +398,7 @@ void CDROM::cmdGetTD() {
         writeResponse(bcd::toBcd(diskSize.mm));
         writeResponse(bcd::toBcd(diskSize.ss));
     } else {  // Start of n track
-        if (track > cue.getTrackCount()) {
+        if (track > (int)cue.getTrackCount()) {
             // Error
             return;
         }

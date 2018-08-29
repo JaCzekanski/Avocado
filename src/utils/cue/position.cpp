@@ -6,10 +6,10 @@ Position::Position() : mm(0), ss(0), ff(0) {}
 
 Position::Position(int mm, int ss, int ff) : mm(mm), ss(ss), ff(ff) {}
 
-Position Position::fromLba(int lba) {
-    int mm = lba / 60 / 75;
-    int ss = (lba % (60 * 75)) / 75;
-    int ff = lba % 75;
+Position Position::fromLba(size_t lba) {
+    int mm = (int)lba / 60 / 75;
+    int ss = ((int)lba % (60 * 75)) / 75;
+    int ff = (int)lba % 75;
     return Position(mm, ss, ff);
 }
 

@@ -13,7 +13,7 @@ struct Cue {
     std::vector<Track> tracks;
 
     Position getDiskSize() const;
-    int getTrackCount() const;
+    size_t getTrackCount() const;
     Position getTrackLength(int track) const;
 
     void seekTo();

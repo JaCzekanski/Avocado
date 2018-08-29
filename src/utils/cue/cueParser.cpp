@@ -92,7 +92,7 @@ void CueParser::fixTracksLength() {
 
     Position lastEnd = globalOffset;
 
-    for (int i = 0; i < cue.getTrackCount(); i++) {
+    for (size_t i = 0; i < cue.getTrackCount(); i++) {
         Track& t = cue.tracks[i];
         // last track
         // fix length for last track

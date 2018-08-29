@@ -27,7 +27,7 @@ void cdromWindow(System* sys) {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::Text("Track  Pregap    Pause     Start     End       Offset B   Type   File");
 
-        ImGuiListClipper clipper(cue.getTrackCount());
+        ImGuiListClipper clipper((int)cue.getTrackCount());
         while (clipper.Step()) {
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
                 auto track = cue.tracks[i];

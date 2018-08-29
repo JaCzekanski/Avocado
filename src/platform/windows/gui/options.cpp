@@ -111,7 +111,7 @@ void drawImage(const optional<Image> image, float w = 0.f, float h = 0.f) {
             float aspect = static_cast<float>(img->w) / static_cast<float>(img->h);
             size = ImVec2(h * aspect, h);
         } else {
-            size = ImVec2(img->w, img->h);
+            size = ImVec2((float)img->w, (float)img->h);
         }
         ImGui::Image((ImTextureID)(uintptr_t)img->id, size);
     }
@@ -180,7 +180,7 @@ void controllerSetupWindow() {
         = {{ControllerType::NONE.c_str(), ControllerType::DIGITAL.c_str(), ControllerType::ANALOG.c_str(), ControllerType::MOUSE.c_str()}};
 
     const auto find = [&](std::string selectedType) -> int {
-        for (size_t i = 0; i < types.size(); i++) {
+        for (auto i = 0; i < (int)types.size(); i++) {
             std::string type = types[i];
             if (type == selectedType) return i;
         }
@@ -217,7 +217,7 @@ void controllerSetupWindow() {
     ImGui::Text("Type");
     ImGui::SameLine();
     ImGui::PushItemWidth(-1);
-    if (ImGui::Combo("##type", &typePos, types.data(), types.size())) {
+    if (ImGui::Combo("##type", &typePos, types.data(), (int)types.size())) {
         config["controller"][std::to_string(selectedController)]["type"] = types[typePos];
         configObserver.notify(Event::Controller);
     }
@@ -230,7 +230,7 @@ void controllerSetupWindow() {
 
     if (currentType != ControllerType::NONE) {
         ImGui::PushItemWidth(leftGroupWidth);
-        if (int pos = 0; ImGui::Combo("##defaults", &pos, defaults.data(), defaults.size())) {
+        if (int pos = 0; ImGui::Combo("##defaults", &pos, defaults.data(), (int)defaults.size())) {
             auto& keysConfig = config["controller"][std::to_string(selectedController)]["keys"];
             switch (pos) {
                 case 1: keysConfig = DefaultKeyBindings::none(); break;

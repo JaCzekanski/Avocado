@@ -10,6 +10,7 @@ std::string Key::mapAxis(Axis axis) {
         case Axis::Down: return "+y";
         case Axis::Left: return "-x";
     }
+    return "";
 }
 
 std::string Key::mapMouseButton(uint8_t button) {
@@ -19,8 +20,8 @@ std::string Key::mapMouseButton(uint8_t button) {
         case SDL_BUTTON_MIDDLE: return "Middle";
         case SDL_BUTTON_X1: return "X1";
         case SDL_BUTTON_X2: return "X2";
-        default: return "";
     }
+    return "";
 }
 
 Key::Axis Key::stringToMouseAxis(std::string axis) {

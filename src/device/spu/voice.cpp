@@ -59,7 +59,7 @@ void Voice::processEnvelope() {
             cycles *= 4;
         }
         if (e.direction == Dir::Decrease) {
-            step = static_cast<float>(step) * std::ceil(static_cast<float>(ADSRVolume._reg) / static_cast<float>(0x8000));
+            step = static_cast<int>(static_cast<float>(step) * std::ceil(static_cast<float>(ADSRVolume._reg) / static_cast<float>(0x8000)));
         }
     }
 

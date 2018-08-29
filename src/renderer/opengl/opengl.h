@@ -6,6 +6,9 @@
 
 class OpenGL {
    public:
+    static const int VERSION_MAJOR = 3;
+    static const int VERSION_MINOR = 2;
+
     static const int resWidth = 640;
     static const int resHeight = 480;
 

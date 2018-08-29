@@ -223,7 +223,7 @@ void gpuLogWindow(System *sys) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     int renderTo = -1;
-    ImGuiListClipper clipper(sys->gpu.get()->gpuLogList.size());
+    ImGuiListClipper clipper((int)sys->gpu.get()->gpuLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto &entry = sys->gpu.get()->gpuLogList[i];
@@ -270,7 +270,10 @@ void gpuLogWindow(System *sys) {
 
             // Binary vram dump
             std::vector<uint8_t> vram;
-            vram.assign(gpu->vram.begin(), gpu->vram.end());
+            for (auto d : gpu->vram) {
+                vram.push_back(d & 0xff);
+                vram.push_back((d >> 8) & 0xff);
+            }
             putFileContents(string_format("%s.bin", filename), vram);
 
             ImGui::CloseCurrentPopup();
@@ -335,7 +338,7 @@ void ioLogWindow(System *sys) {
     ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-    ImGuiListClipper clipper(sys->ioLogList.size());
+    ImGuiListClipper clipper((int)sys->ioLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto ioEntry = sys->ioLogList.at(i);

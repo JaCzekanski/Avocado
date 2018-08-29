@@ -39,7 +39,7 @@ bool isCw(const glm::ivec2 v[3]) {
 INLINE int fast_round(float n) {
     int i = (int)n;
     float r = n - i;
-    return i + r * 2;
+    return (int)(i + r * 2);
 }
 
 INLINE glm::ivec2 calculateTexel(GPU* gpu, glm::vec3 s, glm::ivec2 tex[3]) {

@@ -100,7 +100,6 @@ before_install:
 
   # Print sysmem & compiler info
   - uname -a
-  - cat /proc/cpuinfo
   - $CC --version
   - $CXX --version
   - ccache --version
@@ -138,7 +137,7 @@ before_script:
   - ./premake5 gmake
 
 script:
-  - make config=release -j3
+  - make config=release_x64 -j3
   - ccache -s # For travis debugging
 
 after_success:

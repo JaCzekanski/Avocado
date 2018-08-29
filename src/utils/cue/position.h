@@ -9,7 +9,7 @@ struct Position {
 
     Position();
     Position(int mm, int ss, int ff);
-    static Position fromLba(int lba);
+    static Position fromLba(size_t lba);
 
     std::string toString() const;
     int toLba() const;

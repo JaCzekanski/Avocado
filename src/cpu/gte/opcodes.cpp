@@ -44,7 +44,7 @@ int64_t GTE::setMac(int64_t value) {
 
 template <>
 void GTE::setIr<0>(int64_t value, bool lm) {
-    ir[0] = clip(value >> 12, 0x1000, 0x0000, Flag::IR0_SATURATED);
+    ir[0] = clip((int32_t)(value >> 12), 0x1000, 0x0000, Flag::IR0_SATURATED);
 }
 
 template <int i>
@@ -60,7 +60,7 @@ void GTE::setIr(int64_t value, bool lm) {
         saturatedBits = Flag::IR3_SATURATED;
     }
 
-    ir[i] = clip(value, 0x7fff, lm ? 0 : -0x8000, saturatedBits);
+    ir[i] = clip((int32_t)value, 0x7fff, lm ? 0 : -0x8000, saturatedBits);
 }
 
 template <int i>
@@ -68,7 +68,7 @@ void GTE::setMacAndIr(int64_t value, bool lm) {
     setIr<i>(setMac<i>(value), lm);
 }
 
-void GTE::setOtz(int64_t value) { otz = clip(value >> 12, 0xffff, 0x0000, Flag::SZ3_OTZ_SATURATED); }
+void GTE::setOtz(int64_t value) { otz = clip((int32_t)(value >> 12), 0xffff, 0x0000, Flag::SZ3_OTZ_SATURATED); }
 
 #define R (rgbc.read(0) << 4)
 #define G (rgbc.read(1) << 4)
@@ -242,7 +242,7 @@ uint32_t GTE::divide(uint16_t h, uint16_t sz3) {
         flag.divide_overflow = 1;
         return 0x1ffff;
     }
-    return n;
+    return (uint32_t)n;
 }
 
 // TODO: constexpr generate this
@@ -335,14 +335,14 @@ void GTE::rtps(int n) {
     // <only> if "MAC3 SAR 12" exceeds -8000h..+7FFFh (although IR3 is saturated when "MAC3" exceeds -8000h..+7FFFh).
     if (!sf) {
         flag.ir3_saturated = 0;
-        clip(mac3 >> 12, 0x7fff, -0x8000, Flag::IR3_SATURATED);
+        clip((int32_t)(mac3 >> 12), 0x7fff, -0x8000, Flag::IR3_SATURATED);
     }
 
-    pushScreenZ(mac3 >> 12);
+    pushScreenZ((int32_t)(mac3 >> 12));
     int64_t h_s3z = divideUNR(h, s[3].z);
 
-    int32_t x = setMac<0>(h_s3z * ir[1] + of[0]) >> 16;
-    int32_t y = setMac<0>(h_s3z * ir[2] + of[1]) >> 16;
+    int32_t x = (int32_t)(setMac<0>(h_s3z * ir[1] + of[0]) >> 16);
+    int32_t y = (int32_t)(setMac<0>(h_s3z * ir[2] + of[1]) >> 16);
     pushScreenXY(x, y);
 
     setMacAndIr<0>(h_s3z * dqa + dqb, lm);

@@ -63,7 +63,7 @@ void loadAssetsFromMakefile(std::unique_ptr<System>& sys, const std::string& bas
                 continue;
             }
 
-            for (size_t i = 0; i < data.size(); i++) sys->writeMemory8(addr + i, data[i]);
+            for (auto i = 0; i < (int)data.size(); i++) sys->writeMemory8(addr + i, data[i]);
             printf("ok\n");
         }
     }
@@ -206,7 +206,7 @@ std::unique_ptr<System> hardReset() {
 // Warning: this method might have 1 or more miliseconds of inaccuracy.
 void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool framelimiter, bool ntsc, bool mouseLocked) {
     static double timeToSkip = 0;
-    static double counterFrequency = SDL_GetPerformanceFrequency();
+    static double counterFrequency = (double)SDL_GetPerformanceFrequency();
     static double startTime = SDL_GetPerformanceCounter() / counterFrequency;
     static double fps;
     static double fpsTime = 0.0;
