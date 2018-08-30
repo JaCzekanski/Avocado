@@ -10,6 +10,7 @@ in uint flags;
 
 out vec3 fragColor;
 out vec2 fragTexcoord;
+flat out uvec3 fragFlatColor;
 flat out uint fragBitcount;
 flat out uvec2 fragClut;
 flat out uvec2 fragTexpage;
@@ -23,6 +24,7 @@ void main() {
     // vec2 pos = vec2(position.x / 1024.f, position.y / 512.f);
     fragColor = vec3(color.r / 255.f, color.g / 255.f, color.b / 255.f);
     fragTexcoord = vec2(texcoord.x, texcoord.y);
+    fragFlatColor = uvec3(color.r, color.g, color.b);
     fragBitcount = bitcount;
     fragClut = clut;
     fragTexpage = texpage;
