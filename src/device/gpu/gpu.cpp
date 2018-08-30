@@ -55,14 +55,15 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     Vertex v[3];
     for (int i : {0, 1, 2}) {
-        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+        v[i] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags, gp0_e2};
         vertices.push_back(v[i]);
     }
     // Render::drawTriangle(this, v);
 
     if (isQuad) {
         for (int i : {1, 2, 3}) {
-            v[i - 1] = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags};
+            v[i - 1]
+                = {{x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {t.uv[i].x, t.uv[i].y}, bitcount, {clutX, clutY}, {baseX, baseY}, flags, gp0_e2};
             vertices.push_back(v[i - 1]);
         }
         // Render::drawTriangle(this, v);
@@ -93,6 +94,9 @@ void GPU::cmdFillRectangle(uint8_t command) {
     }
 
     cmd = Command::None;
+
+    // HACK: clean screen when using hw renderer (render rectangle instead of modifying VRAM directlys)
+    cmdRectangle(RectangleArgs(0x60));
 }
 
 void GPU::cmdPolygon(PolygonArgs arg) {

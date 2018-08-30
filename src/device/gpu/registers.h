@@ -41,10 +41,10 @@ union GP0_E1 {
 // Texture Window setting
 union GP0_E2 {
     struct {
-        uint32_t textureWindowMaskX : 5;
-        uint32_t textureWindowMaskY : 5;
-        uint32_t textureWindowOffsetX : 5;
-        uint32_t textureWindowOffsetY : 5;
+        uint32_t maskX : 5;
+        uint32_t maskY : 5;
+        uint32_t offsetX : 5;
+        uint32_t offsetY : 5;
 
         uint32_t : 4;
         uint8_t command;  // 0xe1
@@ -223,10 +223,14 @@ struct Vertex {
     int clut[2];     // clut position
     int texpage[2];  // texture page position
     int flags;
+    GP0_E2 textureWindow;
+
     /**
      * 0b76543210
-     *          ^
-     *          Transparency enabled (yes for tris, no for rect)
+     *    ^^ ^^^^
+     *    || |Flags
+     *    |/
+     *    |Transparency mode
      */
 };
 

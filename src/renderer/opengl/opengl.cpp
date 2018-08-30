@@ -90,6 +90,7 @@ void OpenGL::createRenderBuffer() {
     renderShader->getAttrib("clut").pointer(2, GL_INT, sizeof(gpu::Vertex), 8 * sizeof(int));
     renderShader->getAttrib("texpage").pointer(2, GL_INT, sizeof(gpu::Vertex), 10 * sizeof(int));
     renderShader->getAttrib("flags").pointer(1, GL_INT, sizeof(gpu::Vertex), 12 * sizeof(int));
+    renderShader->getAttrib("textureWindow").pointer(1, GL_INT, sizeof(gpu::Vertex), 13 * sizeof(int));
 
     glBindVertexArray(0);
 }
@@ -176,6 +177,9 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
 
     glViewport(0, 0, renderWidth, renderHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, renderFb);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDrawArrays(GL_TRIANGLES, 0, buffer.size());
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -212,8 +216,8 @@ void OpenGL::render(gpu::GPU* gpu) {
         bb = makeBlitBuf(0, 0, w, h);
         glViewport(0, 0, w, h);
 
-        glUniform2f(blitShader->getUniform("displayStart"), 0.f, 0.f);
-        glUniform2f(blitShader->getUniform("displayEnd"), 1024.f, 512.f);
+        // glUniform2f(blitShader->getUniform("displayStart"), 0.f, 0.f);
+        // glUniform2f(blitShader->getUniform("displayEnd"), 1024.f, 512.f);
     } else {
         bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
                          gpu->gp1_08.getVerticalResoulution());
@@ -231,7 +235,7 @@ void OpenGL::render(gpu::GPU* gpu) {
 
         float y2 = static_cast<float>(gpu->displayRangeY2 - gpu->displayRangeY1);
         if (gpu->gp1_08.getVerticalResoulution() == 480) y2 *= 2;
-        glUniform2f(blitShader->getUniform("displayEnd"), gpu->displayRangeX1, gpu->displayAreaStartY + y2);
+        // glUniform2f(blitShader->getUniform("displayEnd"), gpu->displayRangeX1, gpu->displayAreaStartY + y2);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, blitVbo);

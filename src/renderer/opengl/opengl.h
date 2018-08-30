@@ -28,7 +28,7 @@ class OpenGL {
     bool getViewFullVram() { return viewFullVram; }
 
     // Debug
-    GLuint getVramTextureId() const { return renderTex; }
+    GLuint getVramTextureId() const { return vramTex; }
 
    private:
     struct BlitStruct {

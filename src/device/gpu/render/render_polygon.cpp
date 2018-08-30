@@ -42,7 +42,7 @@ INLINE int fast_round(float n) {
     return (int)(i + r * 2);
 }
 
-INLINE glm::ivec2 calculateTexel(GPU* gpu, glm::vec3 s, glm::ivec2 tex[3]) {
+INLINE glm::ivec2 calculateTexel(glm::vec3 s, glm::ivec2 tex[3], gpu::GP0_E2 textureWindow) {
     glm::ivec2 texel = glm::ivec2(fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
                                   fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y));
 
@@ -52,8 +52,8 @@ INLINE glm::ivec2 calculateTexel(GPU* gpu, glm::vec3 s, glm::ivec2 tex[3]) {
 
     // Texture masking
     // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
-    texel.x = (texel.x & ~(gpu->gp0_e2.textureWindowMaskX * 8)) | ((gpu->gp0_e2.textureWindowOffsetX & gpu->gp0_e2.textureWindowMaskX) * 8);
-    texel.y = (texel.y & ~(gpu->gp0_e2.textureWindowMaskY * 8)) | ((gpu->gp0_e2.textureWindowOffsetY & gpu->gp0_e2.textureWindowMaskY) * 8);
+    texel.x = (texel.x & ~(textureWindow.maskX * 8)) | ((textureWindow.offsetX & textureWindow.maskX) * 8);
+    texel.y = (texel.y & ~(textureWindow.maskY * 8)) | ((textureWindow.offsetY & textureWindow.maskY) * 8);
 
     return texel;
 }
@@ -74,8 +74,8 @@ INLINE PSXColor doShading(glm::vec3 s, glm::ivec2 p, glm::vec3* color, int flags
 
 template <ColorDepth bits>
 INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm::ivec2* tex, glm::ivec2 texPage, glm::ivec2 clut,
-                      int flags) {
-    glm::ivec2 texel = calculateTexel(gpu, s, tex);
+                      int flags, gpu::GP0_E2 textureWindow) {
+    glm::ivec2 texel = calculateTexel(s, tex, textureWindow);
 
     PSXColor c;
     switch (bits) {
@@ -121,7 +121,8 @@ INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm
 }
 
 template <ColorDepth bits>
-void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int flags) {
+void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int flags,
+              gpu::GP0_E2 textureWindow) {
     // clang-format off
     glm::ivec2 min = glm::ivec2(
         gpu->minDrawingX(std::min({ pos[0].x, pos[1].x, pos[2].x })),
@@ -158,7 +159,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
         for (p.x = min.x; p.x < max.x; p.x++) {
             if ((is.x | is.y | is.z) >= 0) {
                 glm::vec3 s = glm::vec3(is) / (float)area;
-                plotPixel<bits>(gpu, p, s, color, tex, texPage, clut, flags);
+                plotPixel<bits>(gpu, p, s, color, tex, texPage, clut, flags, textureWindow);
             }
 
             is.x += A12;
@@ -180,6 +181,7 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     glm::ivec2 clut;
     int bits;
     int flags;
+    gpu::GP0_E2 textureWindow;
     for (int j = 0; j < 3; j++) {
         pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
         color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
@@ -196,9 +198,10 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
     bits = v[0].bitcount;
     flags = v[0].flags;
+    textureWindow = v[0].textureWindow;
 
-    if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags);
-    if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags);
-    if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags);
-    if (bits == 16) triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags);
+    if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
+    if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
+    if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
+    if (bits == 16) triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
 }
