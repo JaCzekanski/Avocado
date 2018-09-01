@@ -1,5 +1,7 @@
 #version 150
 
+#define FILTERING 0
+
 in vec3 fragColor;
 in vec2 fragTexcoord;
 flat in uvec3 fragFlatColor;
@@ -12,6 +14,7 @@ flat in uint fragTextureWindow;
 out vec4 outColor;
 
 uniform sampler2D vram;
+uniform uint nativeTexture;
 
 const uint BIT_NONE = 0u;
 const uint BIT_4 = 4U;
@@ -32,11 +35,19 @@ const float W = 1024.f;
 const float H = 512.f;
 
 uint internalToPsxColor(vec4 c) {
-    uint a = uint(floor(c.a + 0.5));
-    uint r = uint(floor(c.r * 31.0 + 0.5));
-    uint g = uint(floor(c.g * 31.0 + 0.5));
-    uint b = uint(floor(c.b * 31.0 + 0.5));
-    return (a << 15) | (b << 10) | (g << 5) | r;
+    if (nativeTexture == 0u) {
+        uint a = uint(floor(c.a + 0.5));
+        uint r = uint(floor(c.r * 31.0 + 0.5));
+        uint g = uint(floor(c.g * 31.0 + 0.5));
+        uint b = uint(floor(c.b * 31.0 + 0.5));
+        return (a << 15) | (b << 10) | (g << 5) | r;
+    } else {
+        uint a = uint(floor(c.a + 0.5));
+        uint r = uint(floor(c.r * 31.0 + 0.5));
+        uint g = uint(floor(c.g * 31.0 + 0.5));
+        uint b = uint(floor(c.b * 31.0 + 0.5));
+        return (a << 15) | (b << 10) | (g << 5) | r;
+    }
 }
 
 vec4 vramRead(int x, int y) { return texelFetch(vram, ivec2(x, y), 0); }
@@ -81,6 +92,30 @@ vec4 clut8bit(vec2 coord, ivec2 clut) {
     return vramRead(clut.x + int(which), clut.y);
 }
 
+vec4 filter4bit(vec2 texcoord, ivec2 fragClut) {
+    vec2 texel = calculateTexel(fragTexcoord);
+    float xf = fract(fragTexcoord.x);
+    float yf = fract(fragTexcoord.y);
+
+    vec4 colors[3 * 3];
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            colors[(y + 1) * 3 + (x + 1)] = clut4bit(ivec2(texel.x + x, texel.y + y), fragClut);
+        }
+    }
+
+    vec4 color = vec4(0, 0, 0, 0);
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            float distancex = clamp(2.0 - abs((xf * 2 - 1) - float(x)), 0.0, 1.0);
+            float distancey = clamp(2.0 - abs((yf * 2 - 1) - float(y)), 0.0, 1.0);
+            float distance = sqrt(pow(distancex, 2) * pow(distancey, 2));
+            color = mix(color, colors[(y + 1) * 3 + (x + 1)], distance);
+        }
+    }
+    return clamp(color, vec4(0), vec4(1));
+}
+
 vec4 read16bit(vec2 coord) { return vramRead(fragTexpage.x + int(coord.x), fragTexpage.y + int(coord.y)); }
 
 void main() {
@@ -96,13 +131,16 @@ void main() {
     if (fragBitcount == BIT_NONE) {
         color = doShading(fragColor, fragFlags);
     } else if (fragBitcount == BIT_4) {
+#if (FILTERING == 1)
+        color = filter4bit(fragTexcoord, fragClut);
+#else
         color = clut4bit(texel, fragClut);
+#endif
     } else if (fragBitcount == BIT_8) {
-        color = clut8bit(texel, fragClut);
+        color = clut8bit(texel, fragClut);  // vec4(0.0, 1.0, 0.0, 1.0);
     } else if (fragBitcount == BIT_16) {
         color = read16bit(texel);
     }
-
     // Transparency
     if ((fragBitcount != BIT_NONE || ((fragFlags & SemiTransparency) == SemiTransparency)) && internalToPsxColor(color) == 0x0000u) discard;
 

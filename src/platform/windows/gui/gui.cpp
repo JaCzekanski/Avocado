@@ -31,7 +31,6 @@ bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
 bool gteLogEnabled = false;
 bool gpuLogEnabled = false;
-bool showVRAM = false;
 bool singleFrame = false;
 bool showIo = false;
 bool exitProgram = false;

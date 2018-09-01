@@ -1,6 +1,6 @@
-#include "Shader.h"
-#include "utils/file.h"
+#include "shader.h"
 #include <vector>
+#include "utils/file.h"
 
 Shader::Shader(std::string name, ShaderType shaderType) {
     this->name = name;

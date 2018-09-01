@@ -1,6 +1,6 @@
-#include "Attribute.h"
+#include "attribute.h"
 
-Attribute::Attribute(GLint id) : id(id) {}
+Attribute::Attribute(GLuint id) : id(id) {}
 
 Attribute::~Attribute() {}
 

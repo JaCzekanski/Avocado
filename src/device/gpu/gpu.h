@@ -126,6 +126,8 @@ class GPU {
     bool gpuLogEnabled = true;
     std::vector<LogEntry> gpuLogList;
     std::array<uint16_t, VRAM_WIDTH * VRAM_HEIGHT> prevVram{};
+
+    void clear() { vertices.clear(); }
 };
 
 }  // namespace gpu

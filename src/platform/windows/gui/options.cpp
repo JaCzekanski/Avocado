@@ -18,12 +18,19 @@ bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
 
 void graphicsOptionsWindow() {
+    const std::array<const char*, 4> resolutions = {{"1x", "2x", "3x", "4x"}};
+    int internalResolution = config["options"]["graphics"]["resolution"];
     bool filtering = config["options"]["graphics"]["filtering"];
     bool widescreen = config["options"]["graphics"]["widescreen"];
     ImGui::Begin("Graphics", &showGraphicsOptionsWindow, ImGuiWindowFlags_AlwaysAutoResize);
 
+    if (ImGui::Combo("Internal resolution", &internalResolution, resolutions.data(), resolutions.size())) {
+        config["options"]["graphics"]["resolution"] = internalResolution;
+        configObserver.notify(Event::Graphics);
+    }
     if (ImGui::Checkbox("Filtering", &filtering)) {
         config["options"]["graphics"]["filtering"] = filtering;
+        configObserver.notify(Event::Graphics);
     }
     if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
         config["options"]["graphics"]["widescreen"] = widescreen;

@@ -2,12 +2,15 @@
 #include <glad/glad.h>
 #include <memory>
 #include "device/gpu/gpu.h"
-#include "shader/Program.h"
+#include "shader/buffer.h"
+#include "shader/framebuffer.h"
+#include "shader/program.h"
+#include "shader/texture.h"
 
 class OpenGL {
    public:
-    static const int VERSION_MAJOR = 3;
-    static const int VERSION_MINOR = 2;
+    const int VERSION_MAJOR = 3;
+    const int VERSION_MINOR = 2;
 
     static const int resWidth = 640;
     static const int resHeight = 480;
@@ -23,12 +26,9 @@ class OpenGL {
     bool setup();
     void render(gpu::GPU* gpu);
 
-    void setViewFullVram(bool v) { viewFullVram = v; }
-
-    bool getViewFullVram() { return viewFullVram; }
-
+    bool dumpTextures = false;
     // Debug
-    GLuint getVramTextureId() const { return vramTex; }
+    GLuint getVramTextureId() const { return vramTex->get(); }
 
    private:
     struct BlitStruct {
@@ -39,31 +39,24 @@ class OpenGL {
     const int bufferSize = 1024 * 1024;
 
     std::unique_ptr<Program> renderShader;
-    GLuint renderVao = 0;
-    GLuint renderVbo = 0;
-    GLuint renderFb = 0;
-    GLuint renderTex = 0;
-    GLuint vramTex = 0;
+    std::unique_ptr<Buffer> renderBuffer;
+    std::unique_ptr<Framebuffer> renderFramebuffer;
+    std::unique_ptr<Texture> renderTex;
+    std::unique_ptr<Texture> vramTex;
 
     int renderWidth;
     int renderHeight;
 
     // VRAM to screen blit
     std::unique_ptr<Program> blitShader;
-    GLuint blitVao = 0;
-    GLuint blitVbo = 0;
-
-    bool viewFullVram = false;
+    std::unique_ptr<Buffer> blitBuffer;
 
     bool loadExtensions();
     bool loadShaders();
-    void createRenderBuffer();
-    void createBlitBuffer();
-    void createVramTexture();
-    void createRenderTexture();
-    void updateTextureParameters();
-    std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480);
-
+    void bindRenderAttributes();
     void renderVertices(gpu::GPU* gpu);
-    void renderSecondStage();
+
+    void bindBlitAttributes();
+    std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480);
+    void renderBlit(gpu::GPU* gpu);
 };

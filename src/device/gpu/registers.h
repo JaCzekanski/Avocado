@@ -216,6 +216,9 @@ enum class Command : int {
 
 struct Vertex {
     enum Flags { SemiTransparency = 1 << 0, RawTexture = 1 << 1, Dithering = 1 << 2, GouroudShading = 1 << 3 };
+    enum Type { Polygon = 0, Rectangle, Line };
+
+    int type;
     int position[2];
     int color[3];
     int texcoord[2];

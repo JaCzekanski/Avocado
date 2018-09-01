@@ -1,17 +1,21 @@
 #pragma once
-#include <vector>
-#include "Shader.h"
-#include "Attribute.h"
 #include <glad/glad.h>
+#include <unordered_map>
+#include <vector>
+#include "attribute.h"
+#include "shader.h"
+#include "uniform.h"
 
 class Program {
     std::string name;
     std::string error = "";
     std::vector<Shader> shaders;
     GLuint programId = 0;
+    std::unordered_map<const char*, Attribute> attributes;
+    std::unordered_map<const char*, Uniform> uniforms;
 
     void destroy();
-    GLuint link(std::vector<Shader> &shaders);
+    GLuint link(std::vector<Shader>& shaders);
     bool initialized;
 
    public:
@@ -25,6 +29,6 @@ class Program {
 
     GLuint get();
     bool use();
-    Attribute getAttrib(const GLchar *name);
-    GLint getUniform(const GLchar *name);
+    Attribute getAttrib(const char* name);
+    Uniform getUniform(const char* name);
 };

@@ -1,4 +1,4 @@
-#include "Program.h"
+#include "program.h"
 #include "utils/file.h"
 
 Program::Program(std::string name) { this->name = name; }
@@ -31,11 +31,11 @@ bool Program::load() {
     return true;
 }
 
-GLuint Program::link(std::vector<Shader> &shaders) {
+GLuint Program::link(std::vector<Shader>& shaders) {
     GLuint id = glCreateProgram();
     if (id == 0) return 0;
 
-    for (Shader &s : shaders) {
+    for (Shader& s : shaders) {
         if (s.isCompiled()) continue;
         if (!s.compile()) {
             error = s.getError();
@@ -74,16 +74,32 @@ bool Program::use() {
     return true;
 }
 
-Attribute Program::getAttrib(const GLchar *name) {
+Attribute Program::getAttrib(const char* name) {
     if (!initialized) return 0;
+    if (auto key = attributes.find(name); key != attributes.end()) {
+        return key->second;
+    }
     GLint loc = glGetAttribLocation(programId, name);
     if (loc == -1) {
-        printf("GL: Cannot find attribute %s in program %s\n", name, this->name.c_str());
+        printf("[GL] Cannot find attribute \"%s\" in program %s\n", name, this->name.c_str());
     }
-    return Attribute(loc);
+    auto attribute = Attribute(loc);
+    attributes.emplace(name, attribute);
+
+    return attribute;
 }
 
-GLint Program::getUniform(const GLchar *name) {
+Uniform Program::getUniform(const char* name) {
     if (!initialized) return 0;
-    return glGetUniformLocation(programId, name);
+    if (auto key = uniforms.find(name); key != uniforms.end()) {
+        return key->second;
+    }
+    GLint loc = glGetUniformLocation(programId, name);
+    if (loc == -1) {
+        printf("[GL] Cannot find uniform \"%s\" in program %s\n", name, this->name.c_str());
+    }
+    auto uniform = Uniform(loc);
+    uniforms.emplace(name, uniform);
+
+    return uniform;
 }

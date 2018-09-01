@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
     }
 
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
-                                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL /* | SDL_WINDOW_ALLOW_HIGHDPI*/);
+                                          SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr) {
         printf("Cannot create window (%s)\n", SDL_GetError());
         return 1;
@@ -260,13 +260,14 @@ int main(int argc, char** argv) {
     ImGui::CreateContext();
     ImGui_ImplSdlGL3_Init(window);
     ImGui::StyleColorsDark();
-
-    ImGuiIO& io = ImGui::GetIO();
-    // io.Fonts->AddFontDefault();
-    ImFontConfig config;
-    config.OversampleH = 4;
-    config.OversampleV = 4;
-    io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", 16.0f, &config);
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        // io.Fonts->AddFontDefault();
+        ImFontConfig config;
+        config.OversampleH = 4;
+        config.OversampleV = 4;
+        io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", 16.0f, &config);
+    }
 
     ImGuiStyle& style = ImGui::GetStyle();
     style.GrabRounding = style.FrameRounding = 6.f;
@@ -275,7 +276,6 @@ int main(int argc, char** argv) {
 
     Sound::play();
 
-    vramTextureId = opengl.getVramTextureId();
     if (!isEmulatorConfigured())
         sys->state = System::State::stop;
     else
@@ -334,10 +334,17 @@ int main(int argc, char** argv) {
                         sys->state = System::State::pause;
                     }
                 }
-                if (event.key.keysym.sym == SDLK_q) {
-                    showVRAM = !showVRAM;
-                }
                 if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = !frameLimitEnabled;
+                if (event.key.keysym.sym == SDLK_t) opengl.dumpTextures = true;
+                if (event.key.keysym.sym == SDLK_v) {
+                    int tex = config["test"]["native_texture"];
+
+                    config["test"]["native_texture"] = tex ? 0 : 1;
+
+                    configObserver.notify(Event::Graphics);
+
+                    vramTextureId = opengl.getVramTextureId();
+                }
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
@@ -352,22 +359,15 @@ int main(int argc, char** argv) {
             ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
-        if (showVRAM != opengl.getViewFullVram()) {
-            if (showVRAM)
-                SDL_SetWindowSize(window, 1024, 512);
-            else
-                SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
-            opengl.setViewFullVram(showVRAM);
-        }
-
         if (doHardReset) {
             doHardReset = false;
             sys = hardReset();
         }
 
-        sys->controller->update();
-
         if (sys->state == System::State::run) {
+            sys->gpu->clear();
+            sys->controller->update();
+
             sys->emulateFrame();
             if (singleFrame) {
                 singleFrame = false;
@@ -376,6 +376,7 @@ int main(int argc, char** argv) {
         }
         ImGui_ImplSdlGL3_NewFrame(window);
 
+        SDL_GL_GetDrawableSize(window, &opengl.width, &opengl.height);
         opengl.render(sys->gpu.get());
         renderImgui(sys.get());
 

@@ -2,10 +2,10 @@
 #include "glad/glad.h"
 
 class Attribute {
-    GLint id;
+    GLuint id;
 
    public:
-    Attribute(GLint id);
+    Attribute(GLuint id);
     ~Attribute();
 
     void enable();
