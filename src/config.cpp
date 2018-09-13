@@ -151,9 +151,13 @@ const json defaultConfig = {
     }},
     {"options", {
         {"graphics", {
+            {"rendering_mode", RenderingMode::SOFTWARE},
             {"filtering", false},
             {"widescreen", false},
-            {"resolution", 0}
+            {"resolution", {
+                {"width", 640u},
+                {"height", 480u}
+            }}
         }}
     }},
     {"debug", {
@@ -168,9 +172,6 @@ const json defaultConfig = {
     {"memoryCard", {
         {"1", "data/memory/card1.mcr"},
         {"2", nullptr}
-    }},
-    {"test", {
-        {"native_texture", 0u}
     }}
 };
 // clang-format on

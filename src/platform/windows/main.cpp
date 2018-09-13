@@ -335,16 +335,6 @@ int main(int argc, char** argv) {
                     }
                 }
                 if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = !frameLimitEnabled;
-                if (event.key.keysym.sym == SDLK_t) opengl.dumpTextures = true;
-                if (event.key.keysym.sym == SDLK_v) {
-                    int tex = config["test"]["native_texture"];
-
-                    config["test"]["native_texture"] = tex ? 0 : 1;
-
-                    configObserver.notify(Event::Graphics);
-
-                    vramTextureId = opengl.getVramTextureId();
-                }
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;

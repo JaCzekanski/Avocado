@@ -14,7 +14,6 @@ flat in uint fragTextureWindow;
 out vec4 outColor;
 
 uniform sampler2D vram;
-uniform uint nativeTexture;
 
 const uint BIT_NONE = 0u;
 const uint BIT_4 = 4U;
@@ -35,19 +34,11 @@ const float W = 1024.f;
 const float H = 512.f;
 
 uint internalToPsxColor(vec4 c) {
-    if (nativeTexture == 0u) {
-        uint a = uint(floor(c.a + 0.5));
-        uint r = uint(floor(c.r * 31.0 + 0.5));
-        uint g = uint(floor(c.g * 31.0 + 0.5));
-        uint b = uint(floor(c.b * 31.0 + 0.5));
-        return (a << 15) | (b << 10) | (g << 5) | r;
-    } else {
-        uint a = uint(floor(c.a + 0.5));
-        uint r = uint(floor(c.r * 31.0 + 0.5));
-        uint g = uint(floor(c.g * 31.0 + 0.5));
-        uint b = uint(floor(c.b * 31.0 + 0.5));
-        return (a << 15) | (b << 10) | (g << 5) | r;
-    }
+    uint a = uint(floor(c.a + 0.5));
+    uint r = uint(floor(c.r * 31.0 + 0.5));
+    uint g = uint(floor(c.g * 31.0 + 0.5));
+    uint b = uint(floor(c.b * 31.0 + 0.5));
+    return (a << 15) | (b << 10) | (g << 5) | r;
 }
 
 vec4 vramRead(int x, int y) { return texelFetch(vram, ivec2(x, y), 0); }

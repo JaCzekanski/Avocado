@@ -18,20 +18,101 @@ bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
 
 void graphicsOptionsWindow() {
-    const std::array<const char*, 4> resolutions = {{"1x", "2x", "3x", "4x"}};
-    int internalResolution = config["options"]["graphics"]["resolution"];
-    bool filtering = config["options"]["graphics"]["filtering"];
-    bool widescreen = config["options"]["graphics"]["widescreen"];
+    const int MAX_LEN = 5;
+    static bool initialized = false;
+    static char _width[MAX_LEN + 1] = {0};
+    static char _height[MAX_LEN + 1] = {0};
+
+    const int baseWidth = 640;
+    const int baseHeight = 480;
+
+    const std::array<const char*, 5> resolutions = {{"Custom", "1x (640x480)", "2x (1280x960)", "3x (1920x1440)", "4x (2560x1920)"}};
+    static int selectedResolution = 0;
+
+    const std::array<const char*, 3> renderingModes
+        = {{"Software (slow, accurate)", "Hardware (fast, pretty)", "Software + Hardware (pretty and accurate, but slow)"}};
+    static int selectedRenderingMode = 0;
+
+    auto setResolutionToEditText = [&](int w, int h) {
+        snprintf(_width, MAX_LEN, "%u", w);
+        snprintf(_height, MAX_LEN, "%u", h);
+    };
+
+    auto parseResolution = [&] {
+        int width = 0;
+        int height = 0;
+
+        if (sscanf(_width, "%u", &width) != 1) return;
+        if (sscanf(_height, "%u", &height) != 1) return;
+
+        config["options"]["graphics"]["resolution"]["width"] = width;
+        config["options"]["graphics"]["resolution"]["height"] = height;
+        configObserver.notify(Event::Graphics);
+    };
+
+    // Load
+    if (!initialized) {
+        initialized = true;
+
+        int w = config["options"]["graphics"]["resolution"]["width"];
+        int h = config["options"]["graphics"]["resolution"]["height"];
+
+        float mulW = static_cast<float>(w) / baseWidth;
+        float mulH = static_cast<float>(h) / baseHeight;
+
+        if (mulW - static_cast<int>(mulW) < 0.001f && mulH - static_cast<int>(mulH) < 0.001f
+            && static_cast<int>(mulW) == static_cast<int>(mulH)) {
+            selectedResolution = static_cast<int>(mulW);
+        }
+
+        setResolutionToEditText(w, h);
+    }
+
     ImGui::Begin("Graphics", &showGraphicsOptionsWindow, ImGuiWindowFlags_AlwaysAutoResize);
 
-    if (ImGui::Combo("Internal resolution", &internalResolution, resolutions.data(), resolutions.size())) {
-        config["options"]["graphics"]["resolution"] = internalResolution;
+    ImGui::Text("Rendering mode");
+    ImGui::SameLine();
+    if (ImGui::Combo("##rendering_mode", &selectedRenderingMode, renderingModes.data(), renderingModes.size())) {
+        config["options"]["graphics"]["rendering_mode"] = selectedRenderingMode;
         configObserver.notify(Event::Graphics);
     }
+
+    if ((RenderingMode)selectedRenderingMode != RenderingMode::SOFTWARE) {
+        ImGui::Text("Internal resolution");
+        ImGui::SameLine();
+        if (ImGui::Combo("##resolution_presets", &selectedResolution, resolutions.data(), resolutions.size()) && selectedResolution > 0) {
+            auto w = baseWidth * selectedResolution;
+            auto h = baseHeight * selectedResolution;
+            setResolutionToEditText(w, h);
+            parseResolution();
+        }
+
+        if (selectedResolution == 0) {
+            ImGui::Text("Custom resolution: ");
+            ImGui::SameLine();
+
+            ImGui::PushItemWidth(50);
+            if (ImGui::InputText("##width", _width, MAX_LEN, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsHexadecimal)) {
+                parseResolution();
+            }
+
+            ImGui::SameLine();
+            ImGui::Text("x");
+            ImGui::SameLine();
+
+            if (ImGui::InputText("##height", _height, MAX_LEN, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsHexadecimal)) {
+                parseResolution();
+            }
+            ImGui::PopItemWidth();
+        }
+    }
+
+    bool filtering = config["options"]["graphics"]["filtering"];
     if (ImGui::Checkbox("Filtering", &filtering)) {
         config["options"]["graphics"]["filtering"] = filtering;
         configObserver.notify(Event::Graphics);
     }
+    bool widescreen = config["options"]["graphics"]["widescreen"];
     if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
         config["options"]["graphics"]["widescreen"] = widescreen;
     }

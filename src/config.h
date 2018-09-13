@@ -12,6 +12,8 @@ json mouse();
 json controller();
 }  // namespace DefaultKeyBindings
 
+enum class RenderingMode { SOFTWARE = 0u, HARDWARE = 1u, MIXED = 2u };
+
 extern const char* CONFIG_NAME;
 extern const nlohmann::json defaultConfig;
 extern nlohmann::json config;

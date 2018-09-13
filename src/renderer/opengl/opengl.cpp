@@ -63,22 +63,17 @@ bool OpenGL::setup() {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    int multiplier = config["options"]["graphics"]["resolution"];
     bool filtering = config["options"]["graphics"]["filtering"];
 
-    renderWidth = 640 * (multiplier + 1);
-    renderHeight = 480 * (multiplier + 1);
+    renderWidth = config["options"]["graphics"]["resolution"]["width"];
+    renderHeight = config["options"]["graphics"]["resolution"]["height"];
 
     renderBuffer = std::make_unique<Buffer>(bufferSize * sizeof(gpu::Vertex));
     renderTex = std::make_unique<Texture>(renderWidth, renderHeight, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, filtering);
     renderFramebuffer = std::make_unique<Framebuffer>(renderTex->get());
 
     blitBuffer = std::make_unique<Buffer>(makeBlitBuf().size() * sizeof(BlitStruct));
-    if (config["test"]["native_texture"] == 1) {
-        vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_BGRA, GL_UNSIGNED_BYTE, filtering);
-    } else {
-        vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, filtering);
-    }
+    vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_FLOAT, false);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -126,115 +121,19 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
     auto& buffer = gpu->vertices;
     if (buffer.empty()) return;
 
-    struct Tex {
-        int x;
-        int y;
-        int w;
-        int h;
+    // Unpack VRAM to native GPU format (4x float)
+    std::vector<float> vramUnpacked(gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH * 4);
+    for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
+        for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
+            PSXColor c = gpu->vram[y * gpu::VRAM_WIDTH + x];
 
-        int bitcount;
-        int clutx;
-        int cluty;
-    };
-
-    std::vector<Tex> textures;
-    for (int i = 0; i < buffer.size(); i++) {
-        gpu::Vertex cmd = buffer[i];
-        if (cmd.bitcount != 0) {
-            static int texX1;
-            static int texY1;
-            static int texX2;
-            static int texY2;
-
-            if (cmd.texcoord[0] < texX1) texX1 = cmd.texcoord[0];
-            if (cmd.texcoord[0] > texX2) texX2 = cmd.texcoord[0];
-
-            if (cmd.texcoord[1] < texY1) texY1 = cmd.texcoord[1];
-            if (cmd.texcoord[1] > texY2) texY2 = cmd.texcoord[1];
-
-            if (i % 3 == 0) {
-                Tex tex;
-                tex.w = texX2;
-                tex.h = texY2;
-                tex.x = cmd.texpage[0];
-                tex.y = cmd.texpage[1];
-                tex.clutx = cmd.clut[0];
-                tex.cluty = cmd.clut[1];
-                tex.bitcount = cmd.bitcount;
-
-                bool found = false;
-                for (auto& _tex : textures) {
-                    if (_tex.x == tex.x && _tex.y == tex.y && _tex.clutx == tex.clutx && _tex.cluty == tex.cluty) {
-                        if (tex.w > _tex.w) _tex.w = tex.w;
-                        if (tex.h > _tex.h) _tex.h = tex.h;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    textures.emplace_back(tex);
-                }
-
-                // printf("[TEX]: bits: %d,  tp.x: 0x%04x, tp.y: 0x%04x, clut.x: 0x%04x, clut.y: 0x%04x, w: \n", cmd.bitcount,
-                // cmd.texpage[0], cmd.texpage[1], cmd.clut[0], cmd.clut[1]); printf("[TEX] %2d, x: %#4x, y: %#4x, w: %#4x, h: %#4x\n",
-                // cmd.bitcount, texX1, texY1, texW, texH);
-                texX1 = 1024;
-                texY1 = 512;
-                texX2 = 0;
-                texY2 = 0;
-            }
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = c.r / 31.f;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = c.g / 31.f;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = c.b / 31.f;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = (float)c.k;
         }
     }
-
-    int texture = 0;
-    for (auto& tex : textures) {
-        if (dumpTextures) {
-            std::vector<uint8_t> img;
-            img.resize(tex.w * tex.h * 4);
-
-            for (int y = 0; y < tex.h; y++) {
-                for (int x = 0; x < tex.w; x++) {
-                    uint16_t raw;
-                    if (tex.bitcount == 4) raw = tex4bit(gpu, glm::ivec2(x, y), glm::ivec2(tex.x, tex.y), glm::ivec2(tex.clutx, tex.cluty));
-                    if (tex.bitcount == 8) raw = tex8bit(gpu, glm::ivec2(x, y), glm::ivec2(tex.x, tex.y), glm::ivec2(tex.clutx, tex.cluty));
-                    if (tex.bitcount == 16) raw = tex16bit(gpu, glm::ivec2(x, y), glm::ivec2(tex.x, tex.y));
-
-                    PSXColor color(raw);
-
-                    img[(y * tex.w + x) * 4 + 0] = color.r << 3;
-                    img[(y * tex.w + x) * 4 + 1] = color.g << 3;
-                    img[(y * tex.w + x) * 4 + 2] = color.b << 3;
-                    img[(y * tex.w + x) * 4 + 3] = 255;  //(!color.k)*255;
-                }
-            }
-            stbi_write_png(string_format("texturedump/%d.png", texture).c_str(), tex.w, tex.h, 4, img.data(), 4 * tex.w);
-            texture++;
-        }
-        printf("[TEX]: %d texx: %#4x, texy: %#4x, w: %#4x, h: %#4x, clutx: %#4x, cluty: %#4x\n", tex.bitcount, tex.x, tex.y, tex.w, tex.h,
-               tex.clutx, tex.cluty);
-    }
-    dumpTextures = false;
-    printf("Used textures: %d\n", textures.size());
-
-    // Copy VRAM to GPU
-    if (config["test"]["native_texture"] == 1) {
-        // Unpack VRAM to RGBA 8888 format
-        std::vector<uint8_t> vramUnpacked(gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH * 4);
-        for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
-            for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
-                PSXColor c = gpu->vram[y * gpu::VRAM_WIDTH + x];
-
-                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = c.b * 8;
-                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = c.g * 8;
-                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = c.r * 8;
-                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = c.k * 255;
-            }
-        }
-        vramTex->update(vramUnpacked.data());
-        // TODO: Remove 1_5_5_5, move to RGB888
-    } else {
-        vramTex->update(gpu->vram.data());
-    }
+    vramTex->update(vramUnpacked.data());
 
     renderShader->use();
     renderBuffer->bind();
@@ -243,7 +142,6 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
 
     // Set uniforms
     vramTex->bind(0);
-    renderShader->getUniform("nativeTexture").u(config["test"]["native_texture"]);
     renderShader->getUniform("vram").i(0);
     renderShader->getUniform("displayAreaPos").f(lastPos.x, lastPos.y);
     renderShader->getUniform("displayAreaSize").f(gpu->gp1_08.getHorizontalResoulution(), gpu->gp1_08.getVerticalResoulution());

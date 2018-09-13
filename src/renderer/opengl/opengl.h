@@ -26,7 +26,6 @@ class OpenGL {
     bool setup();
     void render(gpu::GPU* gpu);
 
-    bool dumpTextures = false;
     // Debug
     GLuint getVramTextureId() const { return vramTex->get(); }
 
