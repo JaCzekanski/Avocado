@@ -10,7 +10,7 @@ Voice::Voice() {
     adsrVolume._reg = 0;
     repeatAddress._reg = 0;
     currentAddress._reg = 0;
-    subAddress = 0;
+    counter._reg = 0;
     state = State::Off;
     loopEnd = false;
     mode = Mode::ADSR;

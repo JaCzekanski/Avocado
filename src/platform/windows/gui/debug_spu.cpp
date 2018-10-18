@@ -14,7 +14,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     auto column = [&](const std::string& str) {
         static int n = 0;
         ImVec2 size = ImGui::CalcTextSize(str.c_str());
-        size.x += 16.f;
+        size.x += 8.f;
         if (size.x > columnsWidth[n]) columnsWidth[n] = size.x;
         ImGui::TextUnformatted(str.c_str());
         ImGui::NextColumn();
@@ -220,6 +220,11 @@ void renderSamples(spu::SPU* spu) {
     ImGui::PlotLines("Preview", samples.data(), (int)samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
 }
 
+void debugTools(spu::SPU* spu) {
+    ImGui::Checkbox("Force interpolation off", &spu->forceInterpolationOff);
+    ImGui::TreePop();
+}
+
 void spuWindow(spu::SPU* spu) {
     if (!showSpuWindow) {
         return;
@@ -232,6 +237,7 @@ void spuWindow(spu::SPU* spu) {
     if (ImGui::TreeNodeEx("Channels", treeFlags)) channelsInfo(spu, parseValues);
     if (ImGui::TreeNodeEx("Reverb", treeFlags)) reverbInfo(spu);
     if (ImGui::TreeNodeEx("Registers", treeFlags)) registersInfo(spu);
+    if (ImGui::TreeNodeEx("Debug tools", treeFlags)) debugTools(spu);
 
     ImGui::Checkbox("Parse values", &parseValues);
     renderSamples(spu);

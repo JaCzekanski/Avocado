@@ -1,6 +1,7 @@
 #include "spu.h"
 #include <array>
 #include <vector>
+#include "interpolation.h"
 #include "reverb.h"
 #include "sound/adpcm.h"
 #include "system.h"
@@ -32,7 +33,18 @@ void SPU::step() {
 
         voice.processEnvelope();
 
-        float sample = intToFloat(voice.decodedSamples[(int)voice.subAddress]);
+        uint16_t step = voice.sampleRate._reg;
+        if (voice.pitchModulation && v > 0) {
+            // TODO: Add pitch modulation
+        }
+        if (step > 0x3fff) step = 0x4000;
+
+        float sample;
+        if (forceInterpolationOff) {
+            sample = intToFloat(voice.decodedSamples[voice.counter.sample]);
+        } else {
+            sample = intToFloat(spu::interpolate(voice, voice.counter.sample, voice.counter.index));
+        }
         sample *= intToFloat(voice.adsrVolume._reg);
 
         sumLeft += sample * voice.volume.getLeft();
@@ -43,14 +55,15 @@ void SPU::step() {
             sumReverbRight += sample * voice.volume.getRight();
         }
 
-        int prevAddr = (int)voice.subAddress;
-        voice.subAddress += (float)std::min((uint16_t)0x4000, voice.sampleRate._reg) / 4096.f;
+        Voice::Counter prevCounter = voice.counter;
+        voice.counter._reg += step;
+        if (voice.counter.sample == prevCounter.sample) continue;
 
-        if ((int)prevAddr == (int)voice.subAddress) continue;
-
-        if (voice.subAddress >= 28) {
-            voice.subAddress -= 28;
+        if (voice.counter.sample >= 28) {
+            // Overflow, next ADPCM block
+            voice.counter.sample -= 28;
             voice.currentAddress._reg += 2;
+            voice.prevDecodedSamples = voice.decodedSamples;
             voice.decodedSamples.clear();
 
             if (voice.loadRepeatAddress) {
@@ -151,7 +164,7 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
         case 2:
         case 3:
             voices[voice].volume.write(reg, data);
-            if (reg == 3 && (voices[voice].volume.left & 0x8000 || voices[voice].volume.right & 0x8000)) {
+            if (reg == 3 && ((voices[voice].volume.left & 0x8000) || (voices[voice].volume.right & 0x8000))) {
                 printf("[SPU][WARN] Volume Sweep enabled for voice %d\n", voice);
             }
             return;
@@ -161,7 +174,8 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 
         case 6:
         case 7:
-            voices[voice].subAddress = 0.f;
+            voices[voice].counter._reg = 0;
+            voices[voice].prevDecodedSamples.clear();  // TODO: Not sure is this is what real hardware does
             voices[voice].startAddress.write(reg - 6, data);
             return;
 
