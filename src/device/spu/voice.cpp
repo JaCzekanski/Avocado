@@ -1,4 +1,5 @@
 #include "voice.h"
+#include "sound/adpcm.h"
 #include "utils/math.h"
 
 namespace spu {
@@ -75,4 +76,39 @@ void Voice::processEnvelope() {
         }
     }
 }
+
+void Voice::parseFlags(uint8_t flags) {
+    flagsParsed = true;
+
+    if (flags & ADPCM::Flag::Start) {
+        repeatAddress = currentAddress;
+    }
+
+    if (flags & ADPCM::Flag::End) {
+        // Jump to Repeat address AFTER playing current sample
+        loopEnd = true;
+        loadRepeatAddress = true;
+
+        if (!(flags & ADPCM::Flag::Repeat)) {
+            adsrVolume._reg = 0;
+            keyOff();
+        }
+    }
+}
+
+void Voice::keyOn() {
+    adsrVolume._reg = 0;
+    repeatAddress._reg = startAddress._reg;
+    currentAddress._reg = startAddress._reg;
+    state = Voice::State::Attack;
+    loopEnd = false;
+    loadRepeatAddress = false;
+    adsrWaitCycles = 0;
+}
+
+void Voice::keyOff() {
+    state = Voice::State::Release;
+    adsrWaitCycles = 0;
+}
+
 }  // namespace spu

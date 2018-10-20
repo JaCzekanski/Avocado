@@ -34,6 +34,7 @@ struct Voice {
     int adsrWaitCycles;
     bool loopEnd;
     bool loadRepeatAddress;
+    bool flagsParsed;
 
     // ADPCM decoding
     int32_t prevSample[2];
@@ -44,5 +45,9 @@ struct Voice {
     Envelope getCurrentPhase();
     State nextState(State current);
     void processEnvelope();
+    void parseFlags(uint8_t flags);
+
+    void keyOn();
+    void keyOff();
 };
 }  // namespace spu

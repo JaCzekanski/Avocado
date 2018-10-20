@@ -29,6 +29,7 @@ void SPU::step() {
                 sys->interrupt->trigger(interrupt::SPU);
             }
             voice.decodedSamples = ADPCM::decode(&ram[readAddress], voice.prevSample);
+            voice.flagsParsed = false;
         }
 
         voice.processEnvelope();
@@ -55,12 +56,9 @@ void SPU::step() {
             sumReverbRight += sample * voice.volume.getRight();
         }
 
-        Voice::Counter prevCounter = voice.counter;
         voice.counter._reg += step;
-        if (voice.counter.sample == prevCounter.sample) continue;
-
         if (voice.counter.sample >= 28) {
-            // Overflow, next ADPCM block
+            // Overflow, parse next ADPCM block
             voice.counter.sample -= 28;
             voice.currentAddress._reg += 2;
             voice.prevDecodedSamples = voice.decodedSamples;
@@ -68,25 +66,12 @@ void SPU::step() {
 
             if (voice.loadRepeatAddress) {
                 voice.loadRepeatAddress = false;
-                voice.currentAddress._reg = voice.repeatAddress._reg;
+                voice.currentAddress = voice.repeatAddress;
             }
-            continue;
         }
 
-        uint8_t flag = ram[voice.currentAddress._reg * 8 + 1];
-
-        if (flag & 4) {  // Loop start
-            voice.repeatAddress._reg = voice.currentAddress._reg;
-        }
-
-        if (flag & 1) {  // Loop end
-            voice.loopEnd = true;
-            voice.loadRepeatAddress = true;
-
-            if (!(flag & 2)) {  // Loop repeat
-                voice.adsrVolume._reg = 0;
-                voiceKeyOff(v);
-            }
+        if (!voice.flagsParsed) {
+            voice.parseFlags(ram[voice.currentAddress._reg * 8 + 1]);
         }
     }
 
@@ -192,25 +177,6 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 
         default: return;
     }
-}
-
-void SPU::voiceKeyOn(int i) {
-    Voice& voice = voices[i];
-
-    voice.adsrVolume._reg = 0;
-    voice.repeatAddress._reg = voice.startAddress._reg;
-    voice.currentAddress._reg = voice.startAddress._reg;
-    voice.state = Voice::State::Attack;
-    voice.loopEnd = false;
-    voice.loadRepeatAddress = false;
-    voice.adsrWaitCycles = 0;
-}
-
-void SPU::voiceKeyOff(int i) {
-    Voice& voice = voices[i];
-
-    voice.state = Voice::State::Release;
-    voice.adsrWaitCycles = 0;
 }
 
 uint8_t SPU::read(uint32_t address) {
@@ -353,7 +319,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         _keyOn.write(address - 0x1f801d88, data);
         if (address == 0x1f801d8b) {
             for (int i = 0; i < VOICE_COUNT; i++) {
-                if (_keyOn.getBit(i)) voiceKeyOn(i);
+                if (_keyOn.getBit(i)) voices[i].keyOn();
             }
         }
         return;
@@ -363,7 +329,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         _keyOff.write(address - 0x1f801d8c, data);
         if (address == 0x1f801d8f) {
             for (int i = 0; i < VOICE_COUNT; i++) {
-                if (_keyOff.getBit(i)) voiceKeyOff(i);
+                if (_keyOff.getBit(i)) voices[i].keyOff();
             }
         }
         return;

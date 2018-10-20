@@ -46,8 +46,6 @@ struct SPU {
 
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);
-    void voiceKeyOn(int i);
-    void voiceKeyOff(int i);
 
     SPU(System* sys);
     void step();
