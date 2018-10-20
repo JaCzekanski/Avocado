@@ -36,6 +36,8 @@ struct Voice {
     bool loadRepeatAddress;
     bool flagsParsed;
 
+    float sample;  // Used for Pitch Modulation
+
     // ADPCM decoding
     int32_t prevSample[2];
     std::vector<int16_t> decodedSamples;

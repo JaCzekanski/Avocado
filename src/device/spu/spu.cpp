@@ -34,9 +34,11 @@ void SPU::step() {
 
         voice.processEnvelope();
 
-        uint16_t step = voice.sampleRate._reg;
-        if (voice.pitchModulation && v > 0) {
-            // TODO: Add pitch modulation
+        uint32_t step = voice.sampleRate._reg;
+        if (voice.pitchModulation && v > 0 && !forcePitchModulationOff) {
+            int32_t factor = static_cast<int32_t>(floatToInt(voices[v - 1].sample) + 0x8000);
+            step = (step * factor) >> 15;
+            step &= 0xffff;
         }
         if (step > 0x3fff) step = 0x4000;
 
@@ -47,6 +49,7 @@ void SPU::step() {
             sample = intToFloat(spu::interpolate(voice, voice.counter.sample, voice.counter.index));
         }
         sample *= intToFloat(voice.adsrVolume._reg);
+        voice.sample = sample;
 
         sumLeft += sample * voice.volume.getLeft();
         sumRight += sample * voice.volume.getRight();
@@ -340,9 +343,6 @@ void SPU::write(uint32_t address, uint8_t data) {
 
         pitchModulation.write(address - 0x1F801D90, data);
         if (address == 0x1F801D93) {
-            if (pitchModulation._reg != 0) {
-                printf("[SPU] Game uses pitch modulation, sound might be invalid\n");
-            }
             for (int v = 1; v < VOICE_COUNT; v++) {
                 voices[v].pitchModulation = pitchModulation.getBit(v);
             }

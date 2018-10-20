@@ -222,6 +222,7 @@ void renderSamples(spu::SPU* spu) {
 
 void debugTools(spu::SPU* spu) {
     ImGui::Checkbox("Force interpolation off", &spu->forceInterpolationOff);
+    ImGui::Checkbox("Force Pitch Modulation off", &spu->forcePitchModulationOff);
     ImGui::TreePop();
 }
 
