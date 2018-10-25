@@ -1,5 +1,6 @@
 #include "adpcm.h"
 #include <cassert>
+#include "tables.h"
 
 namespace ADPCM {
 int filterTablePos[5] = {0, 60, 115, 98, 122};
@@ -56,6 +57,33 @@ std::vector<int16_t> decode(uint8_t buffer[16], int32_t prevSample[2]) {
     return decoded;
 }
 
+// Separate buffers and counters for left and right channels
+// TODO: Come up with better solution. Are two buffers really necessary?
+int16_t ringbuf[2][0x20] = {};
+int p[2] = {};
+int sixstep[2] = {6, 6};
+
+template <int ch>
+int16_t doZigzag(int p, int table) {
+    int32_t sum = 0;
+    for (int i = 1; i < 29; i++) {
+        sum += (ringbuf[ch][(p - i) & 0x1f] * zigzagTables[table][i]) / 0x8000;
+    }
+    return clamp_16bit(sum);
+}
+
+template <int ch>
+void interpolate(int16_t sample, std::vector<int16_t>& output) {
+    ringbuf[ch][p[ch]++ & 0x1f] = sample;
+
+    if (--sixstep[ch] == 0) {
+        sixstep[ch] = 6;
+        for (int table = 0; table < 7; table++) {
+            output.push_back(doZigzag<ch>(p[ch], table));
+        }
+    }
+}
+
 enum class Channel { mono, left, right };
 
 template <Channel channel>
@@ -99,7 +127,11 @@ std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2]) {
             sample += (prevSample[0] * filterPos + prevSample[1] * filterNeg + 32) / 64;
 
             // clamp to -0x8000 +0x7fff
-            decoded.push_back(clamp_16bit(sample));
+            // Intepolate 37800Hz to 44100Hz
+            if (channel == Channel::mono || channel == Channel::left)
+                interpolate<0>(clamp_16bit(sample), decoded);
+            else
+                interpolate<1>(clamp_16bit(sample), decoded);
 
             // Move previous samples forward
             prevSample[1] = prevSample[0];
