@@ -89,6 +89,13 @@ class CDROM {
         Mode() : _reg(0) {}
     };
 
+    struct Filter {
+        uint8_t file;
+        uint8_t channel;
+
+        Filter() : file(0), channel(0) {}
+    };
+
     int verbose = 1;
 
     CDROM_Status status;
@@ -98,6 +105,7 @@ class CDROM {
     std::deque<uint8_t> CDROM_interrupt;
 
     Mode mode;
+    Filter filter;
 
     System* sys;
     int readSector = 0;
@@ -148,7 +156,7 @@ class CDROM {
         return param;
     }
 
-    void debugLog(const char *cmd);
+    void debugLog(const char* cmd);
 
    public:
     utils::Cue cue;

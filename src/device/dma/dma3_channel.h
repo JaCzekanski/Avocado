@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "dma_channel.h"
 #include "utils/file.h"
 
@@ -23,6 +24,7 @@ class DMA3Channel : public DMAChannel {
     DMA3Channel(int channel, System* sys);
 
     bool load(const std::string& iso);
+    std::array<uint8_t, SECTOR_SIZE> readSector(uint32_t sector);
     void seekTo(uint32_t destSector);
     void advanceSector();
     uint8_t readByte();

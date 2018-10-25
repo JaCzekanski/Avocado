@@ -3,8 +3,10 @@
 #include <cstdio>
 #include "config.h"
 #include "device/dma/dma3_channel.h"
+#include "sound/adpcm.h"
 #include "system.h"
 #include "utils/bcd.h"
+#include "utils/cd.h"
 #include "utils/string.h"
 
 // TODO: CDROM shouldn't know about DMA channels
@@ -12,6 +14,7 @@
 
 namespace device {
 namespace cdrom {
+
 CDROM::CDROM(System* sys) : sys(sys) { verbose = config["debug"]["log"]["cdrom"]; }
 
 void CDROM::step() {
@@ -61,6 +64,83 @@ void CDROM::step() {
                 printf("0x%02x,", r);
             }
             printf(")\n");
+        }
+    }
+
+    static int xacnt = 0;
+    if (mode.xaEnabled && stat.read && xacnt++ == 1000) {
+        xacnt = 0;
+        const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
+
+        for (int i = 0; i < 1; i++) {
+            auto data = dma3->readSector(readSector);
+            readSector++;
+
+            if (memcmp(data.data(), sync.data(), sync.size()) != 0) {
+                printf("Invalid sync\n");
+                continue;
+            }
+
+            uint8_t minute = data[12];
+            uint8_t second = data[13];
+            uint8_t sector = data[14];
+            uint8_t mode = data[15];
+
+            uint8_t file = data[16];
+            uint8_t channel = data[17];
+            auto submode = static_cast<cd::Submode>(data[18]);
+            auto codinginfo = static_cast<cd::Codinginfo>(data[19]);
+
+            // XA uses Mode2 sectors
+            if (mode != 2) {
+                // printf("Not mode2 (%d instead)\n",mode);
+                continue;
+            }
+
+            // Only Form2 ?
+            if (!submode.form2) {
+                // printf("Not form2\n");
+                continue;
+            }
+
+            // Filter XA file/channel
+            if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
+                // printf("Mismatch filter\n");
+                continue;
+            }
+
+            // Only realtime audio
+            if (!submode.audio || !submode.realtime) {
+                // printf("!audio || !realtime\n");
+                continue;
+            }
+
+            if (codinginfo.sampleRate == 1) {
+                printf("[CDROM] Unsupported 18900Hz sampling rate for XA\n");
+                exit(1);
+            }
+
+            if (codinginfo.bits == 1) {
+                printf("[CDROM] Unsupported 8bit mode for XA\n");
+                exit(1);
+            }
+
+            auto [left, right] = ADPCM::decodeXA(data.data() + 24, codinginfo);
+            // for (int i = 0; i<left.size(); i++) {
+            //     auto s = left[i];
+            //     fputc(s&0xff, stdout);
+            //     fputc((s>>8)&0xff, stdout);
+
+            //     s = right[i];
+            //     fputc(s&0xff, stdout);
+            //     fputc((s>>8)&0xff, stdout);
+            // }
+
+            if (submode.endOfFile) {
+                printf("End of file\n");
+                stat.read = false;
+                break;
+            }
         }
     }
 }
@@ -169,7 +249,6 @@ void CDROM::cmdPlay() {
         pos = utils::Position::fromLba(readSector);
     }
 
-    if (verbose) printf("CDROM: PLAY (pos: %s)\n", pos.toString().c_str());
     stat.setMode(StatusCode::Mode::Playing);
 
     CDROM_interrupt.push_back(3);
@@ -202,7 +281,6 @@ void CDROM::cmdMotorOn() {
 }
 
 void CDROM::cmdStop() {
-    if (verbose) printf("CDROM: STOP\n");
     stat.setMode(StatusCode::Mode::None);
     stat.motor = 0;
 
@@ -218,7 +296,6 @@ void CDROM::cmdStop() {
 }
 
 void CDROM::cmdPause() {
-    if (verbose) printf("CDROM: PAUSE\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -263,13 +340,12 @@ void CDROM::cmdDemute() {
 }
 
 void CDROM::cmdSetFilter() {
-    // TODO: Stub!
-    int file = readParam();
-    int channel = readParam();
+    filter.file = readParam();
+    filter.channel = readParam();
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSetFilter(file = 0x%02x, ch = 0x%02x)\n", file, channel);
+    if (verbose) printf("CDROM: cmdSetFilter(file = 0x%02x, ch = 0x%02x)\n", filter.file, filter.channel);
 }
 
 void CDROM::cmdSetmode() {
@@ -282,7 +358,7 @@ void CDROM::cmdSetmode() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSetmode: 0x%02x\n", setmode);
+    if (verbose) printf("CDROM: cmdSetmode(0x%02x)\n", setmode);
 }
 
 void CDROM::cmdSetSession() {
@@ -298,7 +374,6 @@ void CDROM::cmdSetSession() {
 }
 
 void CDROM::cmdSeekP() {
-    if (verbose) printf("CDROM: SEEKP\n");
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -313,7 +388,6 @@ void CDROM::cmdSeekP() {
 }
 
 void CDROM::cmdGetlocL() {
-    if (verbose) printf("CDROM: cmdGetlocL\n");
     // TODO: Invalid implementation, but allows GTA2 to run
     uint32_t tmp = readSector + 2 * 75;
     uint32_t minute = tmp / 75 / 60;
@@ -324,7 +398,7 @@ void CDROM::cmdGetlocL() {
     writeResponse(bcd::toBcd(minute));  // minute (track)
     writeResponse(bcd::toBcd(second));  // second (track)
     writeResponse(bcd::toBcd(sector));  // sector (track)
-    writeResponse(bcd::toBcd(minute));  // mode
+    writeResponse(bcd::toBcd(0x02));    // mode
     writeResponse(bcd::toBcd(0x00));    // file
     writeResponse(bcd::toBcd(0x00));    // channel
     writeResponse(bcd::toBcd(0x08));    // sm
@@ -332,9 +406,12 @@ void CDROM::cmdGetlocL() {
 
     if (verbose) {
         printf("CDROM: cmdGetlocL -> (");
-        for (auto r : CDROM_response) {
-            printf("0x%02x,", r);
-        }
+        printf("pos = (%02x:%02x:%02x), ", CDROM_response[0], CDROM_response[1], CDROM_response[2]);
+        printf("mode = 0x%x, ", CDROM_response[3]);
+        printf("file = 0x%x, ", CDROM_response[4]);
+        printf("channel = 0x%x, ", CDROM_response[5]);
+        printf("submode = 0x%x, ", CDROM_response[6]);
+        printf("ci = 0x%x", CDROM_response[7]);
         printf(")\n");
     }
 }
