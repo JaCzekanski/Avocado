@@ -6,6 +6,10 @@
 
 struct System;
 
+namespace device::cdrom {
+class CDROM;
+}
+
 namespace spu {
 struct SPU {
     static const uint32_t BASE_ADDRESS = 0x1f801c00;
@@ -49,7 +53,7 @@ struct SPU {
     void writeVoice(uint32_t address, uint8_t data);
 
     SPU(System* sys);
-    void step();
+    void step(device::cdrom::CDROM* cdrom);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 

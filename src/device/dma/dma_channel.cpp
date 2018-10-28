@@ -108,7 +108,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 if (addr == 0xffffff || addr == 0) break;
 
                 if (++breaker > 0x4000) {
-                    printf("GPU DMA transfer too long, breaking.\n");
+                    printf("[DMA] GPU DMA transfer too long, breaking.\n");
                     break;
                 }
             }
@@ -118,4 +118,4 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.enabled = CHCR::Enabled::completed;
     }
 }
-}
+}  // namespace device::dma::dmaChannel

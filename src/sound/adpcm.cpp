@@ -87,7 +87,7 @@ void interpolate(int16_t sample, std::vector<int16_t>& output) {
 enum class Channel { mono, left, right };
 
 template <Channel channel>
-std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2]) {
+std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2], bool sampleRate) {
     std::vector<int16_t> decoded;
 
     std::initializer_list<int> blocks;
@@ -128,10 +128,16 @@ std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2]) {
 
             // clamp to -0x8000 +0x7fff
             // Intepolate 37800Hz to 44100Hz
-            if (channel == Channel::mono || channel == Channel::left)
+            if (channel == Channel::mono || channel == Channel::left) {
                 interpolate<0>(clamp_16bit(sample), decoded);
-            else
+
+                // 18900Hz to 37800Hz
+                // FIXME: Doubling samples isn't how you should interpolate it, right?
+                if (sampleRate) interpolate<0>(clamp_16bit(sample), decoded);
+            } else {
                 interpolate<1>(clamp_16bit(sample), decoded);
+                if (sampleRate) interpolate<0>(clamp_16bit(sample), decoded);
+            }
 
             // Move previous samples forward
             prevSample[1] = prevSample[0];
@@ -152,13 +158,13 @@ std::pair<std::vector<int16_t>, std::vector<int16_t>> decodeXA(uint8_t buffer[12
     // Each sector contains of 18 128-byte portions
     for (int packet = 0; packet < 18; packet++) {
         if (codinginfo.stereo) {
-            auto l = decodePacket<Channel::left>(buffer + packet * 128, prevSampleLeft);
-            auto r = decodePacket<Channel::right>(buffer + packet * 128, prevSampleRight);
+            auto l = decodePacket<Channel::left>(buffer + packet * 128, prevSampleLeft, codinginfo.sampleRate);
+            auto r = decodePacket<Channel::right>(buffer + packet * 128, prevSampleRight, codinginfo.sampleRate);
 
             left.insert(left.end(), l.begin(), l.end());
             right.insert(right.end(), r.begin(), r.end());
         } else {
-            auto mono = decodePacket<Channel::mono>(buffer + packet * 128, prevSampleLeft);
+            auto mono = decodePacket<Channel::mono>(buffer + packet * 128, prevSampleLeft, codinginfo.sampleRate);
             left.insert(left.end(), mono.begin(), mono.end());
             right.insert(right.end(), mono.begin(), mono.end());
         }

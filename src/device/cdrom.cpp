@@ -68,7 +68,7 @@ void CDROM::step() {
     }
 
     static int xacnt = 0;
-    if (mode.xaEnabled && stat.read && xacnt++ == 1000) {
+    if (mode.xaEnabled && stat.read && xacnt++ == 1150) {  // FIXME: yey, magic numbers
         xacnt = 0;
         const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
 
@@ -115,17 +115,15 @@ void CDROM::step() {
                 continue;
             }
 
-            if (codinginfo.sampleRate == 1) {
-                printf("[CDROM] Unsupported 18900Hz sampling rate for XA\n");
-                exit(1);
-            }
-
             if (codinginfo.bits == 1) {
                 printf("[CDROM] Unsupported 8bit mode for XA\n");
                 exit(1);
             }
 
             auto [left, right] = ADPCM::decodeXA(data.data() + 24, codinginfo);
+            audio.first.insert(audio.first.end(), left.begin(), left.end());
+            audio.second.insert(audio.second.end(), right.begin(), right.end());
+
             // for (int i = 0; i<left.size(); i++) {
             //     auto s = left[i];
             //     fputc(s&0xff, stdout);
@@ -734,22 +732,27 @@ void CDROM::write(uint32_t address, uint8_t data) {
     }
 
     if (address == 2 && status.index == 2) {  // Left CD to Left SPU
+        volumeLeftToLeft = data;
         return;
     }
 
     if (address == 3 && status.index == 2) {  // Left CD to Right SPU
+        volumeLeftToRight = data;
         return;
     }
 
     if (address == 1 && status.index == 3) {  // Right CD to Right SPU
+        volumeRightToRight = data;
         return;
     }
 
     if (address == 2 && status.index == 3) {  // Right CD to Left SPU
+        volumeRightToLeft = data;
         return;
     }
 
     if (address == 3 && status.index == 3) {  // Apply volume changes (bit5)
+        // FIXME: Temporarily ignored
         return;
     }
 

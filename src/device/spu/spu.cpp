@@ -7,6 +7,8 @@
 #include "system.h"
 #include "utils/math.h"
 
+#include "device/cdrom.h"
+
 using namespace spu;
 
 SPU::SPU(System* sys) : sys(sys) {
@@ -14,7 +16,7 @@ SPU::SPU(System* sys) : sys(sys) {
     audioBufferPos = 0;
 }
 
-void SPU::step() {
+void SPU::step(device::cdrom::CDROM* cdrom) {
     float sumLeft = 0, sumReverbLeft = 0;
     float sumRight = 0, sumReverbRight = 0;
     for (int v = 0; v < VOICE_COUNT; v++) {
@@ -89,6 +91,29 @@ void SPU::step() {
         }
         sumLeft += reverbLeft;
         sumRight += reverbRight;
+    }
+
+    // Mix with cd
+    if (!cdrom->audio.first.empty()) {
+        float left = intToFloat(cdrom->audio.first.front());
+        float right = intToFloat(cdrom->audio.second.front());
+
+        // TODO: Refactor to use ring buffer
+        cdrom->audio.first.pop_front();
+        cdrom->audio.second.pop_front();
+
+        // 0x80 - full volume
+        // 0xff - 2x volume
+        float l_l = cdrom->volumeLeftToLeft / 128.f;
+        float l_r = cdrom->volumeLeftToRight / 128.f;
+        float r_l = cdrom->volumeRightToLeft / 128.f;
+        float r_r = cdrom->volumeRightToRight / 128.f;
+
+        sumLeft += left * l_l;
+        sumRight += left * l_r;
+
+        sumLeft += right * r_l;
+        sumRight += right * r_r;
     }
 
     audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));

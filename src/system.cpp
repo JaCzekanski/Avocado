@@ -292,7 +292,7 @@ void System::singleStep() {
     timer1->step(3);
     timer2->step(3);
     controller->step();
-    spu->step();
+    spu->step(cdrom.get());
 
     if (gpu->emulateGpuCycles(3)) {
         interrupt->trigger(interrupt::VBLANK);
@@ -324,7 +324,7 @@ void System::emulateFrame() {
         // TODO: Yey, magic numbers!
         spuCounter += (float)systemCycles / 1.575f / (float)0x300;
         if (spuCounter >= 1.f) {
-            spu->step();
+            spu->step(cdrom.get());
             spuCounter -= 1.0f;
         }
 

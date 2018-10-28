@@ -159,6 +159,11 @@ class CDROM {
     void debugLog(const char* cmd);
 
    public:
+    uint8_t volumeLeftToLeft = 0;
+    uint8_t volumeLeftToRight = 0;
+    uint8_t volumeRightToLeft = 0;
+    uint8_t volumeRightToRight = 0;
+    std::pair<std::deque<uint16_t>, std::deque<uint16_t>> audio;
     utils::Cue cue;
 
     CDROM(System* sys);
