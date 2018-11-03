@@ -17,5 +17,7 @@ struct AbstractDevice {
 
     // Update key state
     virtual void update();
+
+    virtual ~AbstractDevice();
 };
 };  // namespace peripherals

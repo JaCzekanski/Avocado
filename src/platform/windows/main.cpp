@@ -14,7 +14,7 @@
 #include "renderer/opengl/opengl.h"
 #include "sound/sound.h"
 #include "system.h"
-#include "utils/cue/cueParser.h"
+#include "utils/cue/cue_parser.h"
 #include "utils/file.h"
 #include "utils/psf.h"
 #include "utils/string.h"
@@ -81,7 +81,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         return;
     }
 
-    std::unique_ptr<utils::Cue> cue = nullptr;
+    std::optional<utils::Cue> cue = {};
 
     if (ext == "cue") {
         try {
@@ -94,7 +94,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         cue = utils::Cue::fromBin(path.c_str());
     }
 
-    if (cue != nullptr) {
+    if (cue) {
         sys->cdrom->cue = *cue;
         // TODO: Remove dynamic casts
         bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())->load(cue->tracks[0].filename);

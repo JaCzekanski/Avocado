@@ -83,8 +83,10 @@ class DMAChannel {
    public:
     bool irqFlag = false;
     DMAChannel(int channel, System* sys);
+    virtual ~DMAChannel();
+
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 };
-}
+}  // namespace device::dma::dmaChannel

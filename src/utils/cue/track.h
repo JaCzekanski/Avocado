@@ -4,7 +4,7 @@
 namespace utils {
 struct Track {
     static const int SECTOR_SIZE = 2352;
-    enum class Type { DATA, AUDIO };
+    enum class Type { DATA, AUDIO, INVALID };
 
     std::string filename;
     int number = 0;

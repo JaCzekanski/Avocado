@@ -163,7 +163,9 @@ class CDROM {
     uint8_t volumeLeftToRight = 0;
     uint8_t volumeRightToLeft = 0;
     uint8_t volumeRightToRight = 0;
-    std::pair<std::deque<uint16_t>, std::deque<uint16_t>> audio;
+    std::pair<std::deque<int16_t>, std::deque<int16_t>> audio;
+    std::vector<uint8_t> rawSector;
+    utils::Track::Type trackType;
     utils::Cue cue;
 
     CDROM(System* sys);

@@ -67,77 +67,92 @@ void CDROM::step() {
         }
     }
 
-    static int xacnt = 0;
-    if (mode.xaEnabled && stat.read && xacnt++ == 1150) {  // FIXME: yey, magic numbers
-        xacnt = 0;
+    // If not sync found - treat as AudioCD?
+    static int readcnt = 0;
+    if (stat.read && readcnt++ == 1150) {  // FIXME: yey, magic numbers
+        readcnt = 0;
         const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
 
-        for (int i = 0; i < 1; i++) {
-            auto data = dma3->readSector(readSector);
-            readSector++;
+        std::tie(rawSector, trackType) = cue.read(utils::Position::fromLba(readSector));
+        readSector++;
 
-            if (memcmp(data.data(), sync.data(), sync.size()) != 0) {
-                printf("Invalid sync\n");
-                continue;
+        if (trackType == utils::Track::Type::AUDIO) {
+            if (!mode.cddaEnable) {
+                return;
             }
 
-            uint8_t minute = data[12];
-            uint8_t second = data[13];
-            uint8_t sector = data[14];
-            uint8_t mode = data[15];
+            // Decode Red Book Audio (16bit Stereo 44100Hz)
+            for (size_t i = 0; i < rawSector.size(); i += 2) {
+                int16_t sample = rawSector[i] | (rawSector[i + 1] << 8);
 
-            uint8_t file = data[16];
-            uint8_t channel = data[17];
-            auto submode = static_cast<cd::Submode>(data[18]);
-            auto codinginfo = static_cast<cd::Codinginfo>(data[19]);
+                if (i % 2 == 0) {
+                    audio.first.push_back(sample);
+                } else {
+                    audio.first.push_back(sample);
+                }
+            }
+        } else if (trackType == utils::Track::Type::DATA) {
+            if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
+                printf("Invalid sync\n");
+                return;
+            }
+
+            uint8_t minute = rawSector[12];
+            uint8_t second = rawSector[13];
+            uint8_t sector = rawSector[14];
+            uint8_t mode = rawSector[15];
+
+            uint8_t file = rawSector[16];
+            uint8_t channel = rawSector[17];
+            auto submode = static_cast<cd::Submode>(rawSector[18]);
+            auto codinginfo = static_cast<cd::Codinginfo>(rawSector[19]);
 
             // XA uses Mode2 sectors
+            // Does PSX even support Mode1?
             if (mode != 2) {
                 // printf("Not mode2 (%d instead)\n",mode);
-                continue;
+                return;
             }
 
             // Only Form2 ?
+            // Does PSX support Form1?
             if (!submode.form2) {
                 // printf("Not form2\n");
-                continue;
+                return;
             }
 
-            // Filter XA file/channel
-            if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
-                // printf("Mismatch filter\n");
-                continue;
-            }
+            // Streaming
+            if (submode.realtime) {
+                // Filter XA file/channel
+                if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
+                    // printf("Mismatch filter\n");
+                    return;
+                }
 
-            // Only realtime audio
-            if (!submode.audio || !submode.realtime) {
-                // printf("!audio || !realtime\n");
-                continue;
-            }
+                // Only realtime audio
+                if (!submode.audio || !submode.realtime) {
+                    // printf("!audio || !realtime\n");
+                    return;
+                }
 
-            if (codinginfo.bits == 1) {
-                printf("[CDROM] Unsupported 8bit mode for XA\n");
-                exit(1);
-            }
+                if (codinginfo.bits == 1) {
+                    printf("[CDROM] Unsupported 8bit mode for XA\n");
+                    exit(1);
+                }
 
-            auto [left, right] = ADPCM::decodeXA(data.data() + 24, codinginfo);
-            audio.first.insert(audio.first.end(), left.begin(), left.end());
-            audio.second.insert(audio.second.end(), right.begin(), right.end());
+                if (this->mode.xaEnabled) {
+                    auto [left, right] = ADPCM::decodeXA(rawSector.data() + 24, codinginfo);
+                    audio.first.insert(audio.first.end(), left.begin(), left.end());
+                    audio.second.insert(audio.second.end(), right.begin(), right.end());
+                }
 
-            // for (int i = 0; i<left.size(); i++) {
-            //     auto s = left[i];
-            //     fputc(s&0xff, stdout);
-            //     fputc((s>>8)&0xff, stdout);
-
-            //     s = right[i];
-            //     fputc(s&0xff, stdout);
-            //     fputc((s>>8)&0xff, stdout);
-            // }
-
-            if (submode.endOfFile) {
-                printf("End of file\n");
-                stat.read = false;
-                break;
+                if (submode.endOfFile) {
+                    printf("End of file\n");
+                    stat.read = false;
+                    return;
+                }
+            } else {
+                // Plain data
             }
         }
     }
@@ -392,15 +407,17 @@ void CDROM::cmdGetlocL() {
     uint32_t second = (tmp / 75) % 60;
     uint32_t sector = tmp % 75;
 
+    // TODO: This implementation is INVALID
+    // It should return CURRENT filter, not set one
     CDROM_interrupt.push_back(3);
     writeResponse(bcd::toBcd(minute));  // minute (track)
     writeResponse(bcd::toBcd(second));  // second (track)
     writeResponse(bcd::toBcd(sector));  // sector (track)
-    writeResponse(bcd::toBcd(0x02));    // mode
-    writeResponse(bcd::toBcd(0x00));    // file
-    writeResponse(bcd::toBcd(0x00));    // channel
-    writeResponse(bcd::toBcd(0x08));    // sm
-    writeResponse(bcd::toBcd(0x00));    // ci
+    writeResponse(0x02);                // mode
+    writeResponse(filter.file);
+    writeResponse(filter.channel);
+    writeResponse(0x64);  // sm
+    writeResponse(0x01);  // ci
 
     if (verbose) {
         printf("CDROM: cmdGetlocL -> (");
@@ -582,6 +599,8 @@ void CDROM::cmdGetId() {
 }
 
 void CDROM::cmdReadS() {
+    audio.first.clear();
+    audio.second.clear();
     stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(3);

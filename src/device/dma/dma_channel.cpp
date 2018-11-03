@@ -5,6 +5,8 @@
 namespace device::dma::dmaChannel {
 DMAChannel::DMAChannel(int channel, System* sys) : channel(channel), sys(sys) {}
 
+DMAChannel::~DMAChannel() {}
+
 void DMAChannel::step() {}
 
 uint32_t DMAChannel::readDevice() { return 0; }

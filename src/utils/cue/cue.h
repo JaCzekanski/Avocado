@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 #include "position.h"
@@ -17,10 +18,10 @@ struct Cue {
     Position getTrackLength(int track) const;
 
     void seekTo();
-    std::vector<uint8_t> read(Position& pos, size_t bytes, bool audio = false);
+    std::pair<std::vector<uint8_t>, Track::Type> read(Position pos, size_t bytes = 2352);
     // read method
 
-    static std::unique_ptr<Cue> fromBin(const char* file);
+    static std::optional<Cue> fromBin(const char* file);
 
    private:
     std::unordered_map<std::string, std::shared_ptr<FILE>> files;
