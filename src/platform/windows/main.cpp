@@ -7,7 +7,6 @@
 #include <string>
 #include "bios/exe_bootstrap.h"
 #include "config.h"
-#include "device/dma/dma3_channel.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "platform/windows/gui/gui.h"
 #include "platform/windows/input/sdl_input_manager.h"
@@ -84,21 +83,15 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     std::optional<utils::Cue> cue = {};
 
     if (ext == "cue") {
-        try {
-            utils::CueParser parser;
-            cue = parser.parse(path.c_str());
-        } catch (std::exception& e) {
-            printf("Error parsing cue: %s\n", e.what());
-        }
+        utils::CueParser parser;
+        cue = parser.parse(path.c_str());
     } else if (ext == "iso" || ext == "bin" || ext == "img") {
         cue = utils::Cue::fromBin(path.c_str());
     }
 
     if (cue) {
         sys->cdrom->cue = *cue;
-        // TODO: Remove dynamic casts
-        bool success = dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())->load(cue->tracks[0].filename);
-        sys->cdrom->setShell(!success);
+        sys->cdrom->setShell(false);
         printf("File %s loaded\n", filenameExt.c_str());
     }
 }

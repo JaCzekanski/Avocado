@@ -109,6 +109,7 @@ class CDROM {
 
     System* sys;
     int readSector = 0;
+    int seekSector = 0;
 
     StatusCode stat;
 
@@ -165,6 +166,13 @@ class CDROM {
     uint8_t volumeRightToRight = 0;
     std::pair<std::deque<int16_t>, std::deque<int16_t>> audio;
     std::vector<uint8_t> rawSector;
+
+    std::vector<uint8_t> dataBuffer;
+    int dataBufferPointer;  // for DMA
+
+    bool isBufferEmpty();
+    uint8_t readByte();
+
     utils::Track::Type trackType;
     utils::Cue cue;
     bool mute = false;

@@ -75,7 +75,6 @@ class DMAChannel {
 
     virtual uint32_t readDevice();
     virtual void writeDevice(uint32_t data);
-    virtual void beforeRead();
 
    protected:
     bool verbose = false;

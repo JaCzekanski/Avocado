@@ -2,15 +2,11 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
-#include "device/dma/dma3_channel.h"
 #include "sound/adpcm.h"
 #include "system.h"
 #include "utils/bcd.h"
 #include "utils/cd.h"
 #include "utils/string.h"
-
-// TODO: CDROM shouldn't know about DMA channels
-#define dma3 dynamic_cast<device::dma::dmaChannel::DMA3Channel*>(sys->dma->dma[3].get())
 
 namespace device {
 namespace cdrom {
@@ -176,7 +172,7 @@ uint8_t CDROM::read(uint32_t address) {
         return response;
     }
     if (address == 2) {  // CD Data
-        return dma3->readByte();
+        return readByte();
     }
     if (address == 3) {                                // CD Interrupt enable / flags
         if (status.index == 0 || status.index == 2) {  // Interrupt enable
@@ -195,6 +191,36 @@ uint8_t CDROM::read(uint32_t address) {
     printf("CDROM%d.%d->R    ?????\n", address, status.index);
     sys->state = System::State::pause;
     return 0;
+}
+
+bool CDROM::isBufferEmpty() {
+    if (dataBuffer.empty()) return true;
+
+    if (!mode.sectorSize && dataBufferPointer >= 0x800) return true;
+    if (mode.sectorSize && dataBufferPointer >= 0x924) return true;
+
+    return false;
+}
+
+uint8_t CDROM::readByte() {
+    if (dataBuffer.empty()) {
+        printf("[CDROM] Buffer empty\n");
+        return 0;
+    }
+
+    // 0 - 0x800 - just data
+    // 1 - 0x924 - whole sector without sync
+    int dataStart = 12;
+    if (!mode.sectorSize) dataStart += 12;
+
+    // docs says that reading outside of data buffer returns these value
+    if (!mode.sectorSize && dataBufferPointer >= 0x800) {
+        return dataBuffer[0x800 - 8];
+    } else if (mode.sectorSize && dataBufferPointer >= 0x924) {
+        return dataBuffer[0x924 - 4];
+    }
+
+    return dataBuffer[dataStart + dataBufferPointer++];
 }
 
 void CDROM::debugLog(const char* cmd) {
@@ -236,8 +262,7 @@ void CDROM::cmdSetloc() {
     uint8_t second = bcd::toBinary(readParam());
     uint8_t sector = bcd::toBinary(readParam());
 
-    readSector = sector + (second * 75) + (minute * 60 * 75);
-    dma3->seekTo(readSector);
+    seekSector = sector + (second * 75) + (minute * 60 * 75);
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -257,7 +282,7 @@ void CDROM::cmdPlay() {
         pos = cue.tracks[track].start;
         if (verbose) printf("CDROM: PLAY (track: %d)\n", track);
     } else {
-        pos = utils::Position::fromLba(readSector);
+        pos = utils::Position::fromLba(seekSector);
     }
 
     readSector = pos.toLba();
@@ -267,12 +292,12 @@ void CDROM::cmdPlay() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
-    // AudioCD::play(cue, pos);
-
     if (verbose) printf("CDROM: cmdPlay (pos: %s)\n", pos.toString().c_str());
 }
 
 void CDROM::cmdReadN() {
+    readSector = seekSector;
+
     stat.setMode(StatusCode::Mode::Reading);
 
     CDROM_interrupt.push_back(3);
@@ -303,8 +328,6 @@ void CDROM::cmdStop() {
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 
-    // AudioCD::stop();
-
     if (verbose) printf("CDROM: cmdStop\n");
 }
 
@@ -317,8 +340,6 @@ void CDROM::cmdPause() {
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
 
-    // AudioCD::stop();
-
     if (verbose) printf("CDROM: cmdPause\n");
 }
 
@@ -330,7 +351,6 @@ void CDROM::cmdInit() {
     stat.setMode(StatusCode::Mode::None);
 
     mode._reg = 0;
-    dma3->sectorSize = mode.sectorSize;
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
@@ -368,8 +388,6 @@ void CDROM::cmdSetmode() {
 
     mode._reg = setmode;
 
-    dma3->sectorSize = mode.sectorSize;
-
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -389,6 +407,8 @@ void CDROM::cmdSetSession() {
 }
 
 void CDROM::cmdSeekP() {
+    readSector = seekSector;
+
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -512,7 +532,7 @@ void CDROM::cmdGetTD() {
 }
 
 void CDROM::cmdSeekL() {
-    dma3->seekTo(readSector);
+    readSector = seekSector;
 
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
@@ -599,6 +619,8 @@ void CDROM::cmdGetId() {
 }
 
 void CDROM::cmdReadS() {
+    readSector = seekSector;
+
     audio.first.clear();
     audio.second.clear();
     stat.setMode(StatusCode::Mode::Reading);
@@ -714,19 +736,19 @@ void CDROM::write(uint32_t address, uint8_t data) {
         return;
     }
     if (address == 3 && status.index == 0) {  // Request register
-        static int state = 0;
-        if (data & 0x80) {  // want data
-            if (state == 1) {
-                state = 0;
-                // advance sector
-                dma3->advanceSector();
+        if (data & 0x80) {                    // want data
+            // Load fifo only when buffer is empty
+            if (isBufferEmpty()) {
+                dataBuffer = rawSector;
+                dataBufferPointer = 0;
+                // status.dataFifoEmpty = 0;
             }
         } else {  // clear data fifo
             // status.dataFifoEmpty = 0;
-            if (state == 0) state = 1;
+            dataBuffer.clear();
+            dataBufferPointer = 0;
         }
 
-        // 0x00, 0x80,  get next sector?
         if (verbose == 2) printf("CDROM: W REQDATA: 0x%02x\n", data);
         return;
     }

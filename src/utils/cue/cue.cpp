@@ -60,7 +60,7 @@ std::optional<Cue> Cue::fromBin(const char* file) {
     t.offsetInFile = 0;
     t.size = size;
     t.type = Track::Type::DATA;
-    t.start = Position(0, 0, 0);
+    t.start = Position(0, 2, 0);
     t.end = Position::fromLba(size / Track::SECTOR_SIZE);
     t.pause = Position(0, 0, 0);
 
