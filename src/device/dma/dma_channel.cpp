@@ -36,7 +36,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.startTrigger = CHCR::StartTrigger::clear;
 
         if (control.syncMode == CHCR::SyncMode::startImmediately) {
-            //            printf("DMA%d mode: word @ 0x%08x\n", channel, baseAddress.address);
+            if (verbose) printf("DMA%d mode: word @ 0x%08x\n", channel, baseAddress.address);
 
             // TODO: Check Transfer Direction
             // TODO: Check Memory Address Step
@@ -75,14 +75,10 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
             } else if (control.transferDirection == CHCR::TransferDirection::fromMainRam)  // VRAM WRITE
             {
-                if (verbose) {
-                    if (channel == 3) {
-                        printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
-                    }
-                    if (channel == 4) {
-                        printf("DMA%d CPU -> SPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
-                    }
-                }
+                if (verbose && channel == 3)
+                    printf("DMA%d CPU -> VRAM @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
+                if (verbose && channel == 4)
+                    printf("DMA%d CPU -> SPU @ 0x%08x, BS: 0x%04x, BC: 0x%04x\n", channel, addr, blockSize, blockCount);
 
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
