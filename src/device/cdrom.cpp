@@ -25,73 +25,71 @@ void CDROM::step() {
         }
     }
 
-    if (stat.read) {
-        static int cnt = 0;
-
-        if (++cnt == 500) {
-            cnt = 0;
-            ackMoreData();
-        }
-    }
-
-    static int reportcnt = 0;
-    if (mode.cddaReport && stat.play && reportcnt++ == 4000) {
-        reportcnt = 0;
-        // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-        auto pos = utils::Position(0, 2, 0);
-
-        int track = 0;
-        for (int i = 0; i < (int)cue.getTrackCount(); i++) {
-            if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
-                track = (int)i;
-                break;
-            }
-        }
-
-        CDROM_interrupt.push_back(1);
-        writeResponse(stat._reg);           // stat
-        writeResponse(track);               // track
-        writeResponse(0x01);                // index
-        writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
-        writeResponse(bcd::toBcd(pos.ss));  // second (disc)
-        writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
-        writeResponse(bcd::toBcd(0));       // peaklo
-        writeResponse(bcd::toBcd(0));       // peakhi
-
-        if (verbose) {
-            printf("CDROM: CDDA report -> (");
-            for (auto r : CDROM_response) {
-                printf("0x%02x,", r);
-            }
-            printf(")\n");
-        }
-    }
-
-    // If not sync found - treat as AudioCD?
     static int readcnt = 0;
-    if (stat.read && readcnt++ == 1150) {  // FIXME: yey, magic numbers
+    if ((stat.read || stat.play) && readcnt++ == 1150) {  // FIXME: yey, magic numbers
         readcnt = 0;
         const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
 
-        std::tie(rawSector, trackType) = cue.read(utils::Position::fromLba(readSector));
+        auto pos = utils::Position::fromLba(readSector);
+        std::tie(rawSector, trackType) = cue.read(pos);
         readSector++;
 
-        if (trackType == utils::Track::Type::AUDIO) {
+        ackMoreData();
+
+        if (trackType == utils::Track::Type::AUDIO && stat.play) {
             if (!mode.cddaEnable) {
                 return;
             }
 
-            // Decode Red Book Audio (16bit Stereo 44100Hz)
-            for (size_t i = 0; i < rawSector.size(); i += 2) {
-                int16_t sample = rawSector[i] | (rawSector[i + 1] << 8);
+            if (memcmp(rawSector.data(), sync.data(), sync.size()) == 0) {
+                printf("[CDROM] Trying to read Data track as audio\n");
+                return;
+            }
 
-                if (i % 2 == 0) {
-                    audio.first.push_back(sample);
-                } else {
-                    audio.first.push_back(sample);
+            if (mode.cddaReport) {
+                // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
+                int track = 0;
+                for (int i = 0; i < (int)cue.getTrackCount(); i++) {
+                    if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
+                        track = (int)i;
+                        break;
+                    }
+                }
+
+                CDROM_interrupt.push_back(1);
+                writeResponse(stat._reg);           // stat
+                writeResponse(track);               // track
+                writeResponse(0x01);                // index
+                writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
+                writeResponse(bcd::toBcd(pos.ss));  // second (disc)
+                writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
+                writeResponse(bcd::toBcd(0));       // peaklo
+                writeResponse(bcd::toBcd(0));       // peakhi
+
+                if (verbose) {
+                    printf("CDROM: CDDA report -> (");
+                    for (auto r : CDROM_response) {
+                        printf("0x%02x,", r);
+                    }
+                    printf(")\n");
                 }
             }
-        } else if (trackType == utils::Track::Type::DATA) {
+
+            if (!this->mute) {
+                // Decode Red Book Audio (16bit Stereo 44100Hz)
+                bool channel = true;
+                for (size_t i = 0; i < rawSector.size(); i += 2) {
+                    int16_t sample = rawSector[i] | (rawSector[i + 1] << 8);
+
+                    if (channel) {
+                        audio.first.push_back(sample);
+                    } else {
+                        audio.second.push_back(sample);
+                    }
+                    channel = !channel;
+                }
+            }
+        } else if (trackType == utils::Track::Type::DATA && stat.read) {
             if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
                 printf("Invalid sync\n");
                 return;
@@ -140,7 +138,7 @@ void CDROM::step() {
                     exit(1);
                 }
 
-                if (this->mode.xaEnabled) {
+                if (this->mode.xaEnabled && !this->mute) {
                     auto [left, right] = ADPCM::decodeXA(rawSector.data() + 24, codinginfo);
                     audio.first.insert(audio.first.end(), left.begin(), left.end());
                     audio.second.insert(audio.second.end(), right.begin(), right.end());
@@ -262,6 +260,8 @@ void CDROM::cmdPlay() {
         pos = utils::Position::fromLba(readSector);
     }
 
+    readSector = pos.toLba();
+
     stat.setMode(StatusCode::Mode::Playing);
 
     CDROM_interrupt.push_back(3);
@@ -339,6 +339,7 @@ void CDROM::cmdInit() {
 }
 
 void CDROM::cmdMute() {
+    mute = true;
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -346,6 +347,7 @@ void CDROM::cmdMute() {
 }
 
 void CDROM::cmdDemute() {
+    mute = false;
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
 
@@ -401,23 +403,21 @@ void CDROM::cmdSeekP() {
 }
 
 void CDROM::cmdGetlocL() {
-    // TODO: Invalid implementation, but allows GTA2 to run
-    uint32_t tmp = readSector + 2 * 75;
-    uint32_t minute = tmp / 75 / 60;
-    uint32_t second = (tmp / 75) % 60;
-    uint32_t sector = tmp % 75;
+    if (trackType != utils::Track::Type::DATA || rawSector.empty()) {
+        CDROM_interrupt.push_back(5);
+        writeResponse(0x80);
+        return;
+    }
 
-    // TODO: This implementation is INVALID
-    // It should return CURRENT filter, not set one
     CDROM_interrupt.push_back(3);
-    writeResponse(bcd::toBcd(minute));  // minute (track)
-    writeResponse(bcd::toBcd(second));  // second (track)
-    writeResponse(bcd::toBcd(sector));  // sector (track)
-    writeResponse(0x02);                // mode
-    writeResponse(filter.file);
-    writeResponse(filter.channel);
-    writeResponse(0x64);  // sm
-    writeResponse(0x01);  // ci
+    writeResponse(rawSector[12]);  // minute (track)
+    writeResponse(rawSector[13]);  // second (track)
+    writeResponse(rawSector[14]);  // sector (track)
+    writeResponse(rawSector[15]);  // mode
+    writeResponse(rawSector[16]);  // file
+    writeResponse(rawSector[17]);  // channel
+    writeResponse(rawSector[18]);  // sm
+    writeResponse(rawSector[19]);  // ci
 
     if (verbose) {
         printf("CDROM: cmdGetlocL -> (");
@@ -432,7 +432,7 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    auto pos = utils::Position(0, 2, 0);
+    auto pos = utils::Position::fromLba(readSector);
 
     int track = 0;
     for (size_t i = 0; i < cue.getTrackCount(); i++) {

@@ -167,6 +167,7 @@ class CDROM {
     std::vector<uint8_t> rawSector;
     utils::Track::Type trackType;
     utils::Cue cue;
+    bool mute = false;
 
     CDROM(System* sys);
     void step();
