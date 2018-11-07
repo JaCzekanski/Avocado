@@ -45,12 +45,6 @@ void CDROM::step() {
             if (mode.cddaReport) {
                 // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
                 int track = 0;
-                for (int i = 0; i < (int)cue.getTrackCount(); i++) {
-                    if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
-                        track = (int)i;
-                        break;
-                    }
-                }
 
                 CDROM_interrupt.push_back(1);
                 writeResponse(stat._reg);           // stat
@@ -279,7 +273,7 @@ void CDROM::cmdPlay() {
             printf("CDROM: Invalid PLAY track parameter (%d)\n", track);
             return;
         }
-        pos = cue.tracks[track].start;
+        // pos = cue.tracks[track].start;
         if (verbose) printf("CDROM: PLAY (track: %d)\n", track);
     } else {
         pos = utils::Position::fromLba(seekSector);
@@ -454,15 +448,8 @@ void CDROM::cmdGetlocL() {
 void CDROM::cmdGetlocP() {
     auto pos = utils::Position::fromLba(readSector);
 
+    auto posInTrack = pos;
     int track = 0;
-    for (size_t i = 0; i < cue.getTrackCount(); i++) {
-        if (pos >= (cue.tracks[i].start - cue.tracks[i].pause) && pos < cue.tracks[i].end) {
-            track = (int)i;
-            break;
-        }
-    }
-
-    auto posInTrack = pos - cue.tracks[track].start;
 
     CDROM_interrupt.push_back(3);
     writeResponse(track);                      // track
@@ -515,7 +502,7 @@ void CDROM::cmdGetTD() {
             return;
         }
 
-        auto start = cue.tracks[track - 1].start - cue.tracks[track - 1].pause;
+        auto start = cue.getTrackStart(track);
 
         if (verbose) printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
         writeResponse(bcd::toBcd(start.mm));

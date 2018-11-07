@@ -25,7 +25,7 @@ void cdromWindow(System* sys) {
         ImGui::Text("%s", cue.file.c_str());
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-        ImGui::Text("Track  Pregap    Pause     Start     End       Offset B   Type   File");
+        ImGui::Text("Track  Pregap     Start     End       Offset B   Type   File");
 
         ImGuiListClipper clipper((int)cue.getTrackCount());
         while (clipper.Step()) {
@@ -33,8 +33,8 @@ void cdromWindow(System* sys) {
                 auto track = cue.tracks[i];
 
                 bool nodeOpened
-                    = ImGui::TreeNode((void*)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-8s  %-9zu  %-5s  %s", i, POSITION(track.pregap),
-                                      POSITION(track.pause), POSITION(track.start), POSITION(track.end), track.offsetInFile,
+                    = ImGui::TreeNode((void*)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-9zu  %-5s  %s", i, POSITION(track.pregap),
+                                      POSITION(track.index1), POSITION(track.index1 + utils::Position::fromLba(track.frames)), track.offset,
                                       track.type == utils::Track::Type::DATA ? "DATA" : "AUDIO", track.filename.c_str());
 
                 if (nodeOpened) {

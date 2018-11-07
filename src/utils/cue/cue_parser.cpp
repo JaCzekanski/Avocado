@@ -27,6 +27,7 @@ bool CueParser::parseTrack(std::string& line) {
 
     track.number = stoi(matches[1].str());
     track.type = matchTrackType(matches[2].str());
+    track.filename = lastFile;
     return true;
 }
 
@@ -40,17 +41,12 @@ bool CueParser::parseIndex(std::string& line) {
     int ss = stoi(matches[3].str());
     int ff = stoi(matches[4].str());
     if (index == 0) {
-        index0 = {mm, ss, ff};
+        track.index0 = {mm, ss, ff};
     } else if (index == 1) {
-        track.start = {mm, ss, ff};
-
-        if (track.number == 1 && track.type == Track::Type::DATA) {
-            // Even though Index1 points to 00:00:00
-            // binary file of first track (data) cointains data from 00:02:00, not 00:00:00.
-            // Two seconds are missing and this code adapts for that
-        }
-
+        track.index1 = {mm, ss, ff};
         addTrackToCue();
+    } else {
+        throw ParsingException(string_format("Cue with index > 1 (%d given) are not supported", index));
     }
     return true;
 }
@@ -67,72 +63,77 @@ bool CueParser::parsePregap(std::string& line) {
     return true;
 }
 
+bool CueParser::parsePostgap(std::string& line) {
+    std::smatch matches;
+    regex_search(line, matches, regexPostgap);
+    if (matches.size() != 4) return false;
+
+    int mm = stoi(matches[1].str());
+    int ss = stoi(matches[2].str());
+    int ff = stoi(matches[3].str());
+    track.postgap = {mm, ss, ff};
+    return true;
+}
+
 void CueParser::addTrackToCue() {
     // ignore if track is not completed
     if (track.number == 0) return;
 
-    // Treat index0 as pregap
-    // Pregap and index0 are mutually exclusive
-    if (track.number > 1 && track.pregap.toLba() == 0) {
-        track.pause = track.start - index0;
-    }
-    track.filename = lastFile;
-    track.size = getFileSize(lastFile);
+    // if (track.number == 1 && track.type == Track::Type::DATA) {
+    //     track.pregap = track.pregap + Position{0,2,0};
+    // }
 
-    track.start = globalOffset + track.start + track.pregap;
+    if (track.pregap == Position{0, 0, 0} && track.index0) {
+        track.pregap = track.index1 - *track.index0;
+    }
+
+    if (!track.index0) {
+        track.index0 = track.index1 - track.pregap;
+    }
 
     cue.tracks.push_back(track);
     track = Track();
-    index0 = Position(0, 0, 0);
 }
 
 void CueParser::fixTracksLength() {
-    if (cue.getTrackCount() == 1) {
-        Track& track = cue.tracks[0];
+    for (int t = 0; t < cue.tracks.size(); t++) {
+        // Last track / single track .cue
+        if (t == cue.tracks.size() - 1) {
+            size_t size = getFileSize(cue.tracks[t].filename);
+            if (size == 0) {
+                throw ParsingException(string_format("File %s not found", cue.tracks[t].filename.c_str()));
+            }
 
-        track.offsetInFile = 0;
-        track.end = Position::fromLba(track.size / Track::SECTOR_SIZE);
-        return;
-    }
-
-    Position lastEnd = globalOffset;
-
-    for (size_t i = 0; i < cue.getTrackCount(); i++) {
-        Track& t = cue.tracks[i];
-        // last track
-        // fix length for last track
-        if (i == cue.getTrackCount() - 1) {
-            t.end = lastEnd + Position::fromLba(t.size / Track::SECTOR_SIZE);
-
-            break;
-        }
-
-        Track& n = cue.tracks[i + 1];
-
-        if (t.filename == n.filename) {
-            t.end = n.start - (n.pregap + n.pause) + t.pregap;
-            n.offsetInFile = t.end.toLba() * Track::SECTOR_SIZE;
+            if (t != 0 && cue.tracks[t].filename == cue.tracks[t - 1].filename) {
+                cue.tracks[t].offset = cue.tracks[t - 1].offset + cue.tracks[t - 1].frames * Track::SECTOR_SIZE;
+                cue.tracks[t].frames = (size - cue.tracks[t].offset) / Track::SECTOR_SIZE;
+            } else {
+                cue.tracks[t].offset = 0;
+                cue.tracks[t].frames = size / Track::SECTOR_SIZE;  // TODO: SECTOR_SIZE to getFrameSize
+            }
         } else {
-            t.offsetInFile = 0;
-            t.end = Position::fromLba(t.size / Track::SECTOR_SIZE) + lastEnd;
-            n.start = n.start + t.end;
+            if (cue.tracks[t].filename == cue.tracks[t - 1].filename) {
+                cue.tracks[t].frames = (*(cue.tracks[t + 1].index0) - *(cue.tracks[t].index0)).toLba();
 
-            lastEnd = t.end;
+                if (t == 0) {
+                    cue.tracks[t].offset = 0;
+                } else {
+                    cue.tracks[t].offset = cue.tracks[t - 1].offset + cue.tracks[t - 1].frames * Track::SECTOR_SIZE;
+                }
+
+                if (cue.tracks[t].frames == 0) {
+                    throw ParsingException(string_format("Something's fucky, track %d has no frames.", t));
+                }
+            } else {
+                size_t size = getFileSize(cue.tracks[t].filename);
+                if (size == 0) {
+                    throw ParsingException(string_format("File %s not found", cue.tracks[t].filename.c_str()));
+                }
+
+                cue.tracks[t].offset = 0;
+                cue.tracks[t].frames = size / Track::SECTOR_SIZE;  // TODO: SECTOR_SIZE to getFrameSize
+            }
         }
-
-        //        Track& prev = cue.tracks[i - 1];
-        //        Track& next = cue.tracks[i];
-        //
-        //        // Separate bin files
-        //        if (next.filename != prev.filename) {
-        //            prev.end = prev.start + Position::fromLba(prev.size / Track::SECTOR_SIZE);
-        //            next.start = next.start + prev.end;
-        //            next.offsetInFile = 0;
-        //        } else {
-        //            // Single bin
-        //            prev.end = next.start - (next.pregap + next.pause);
-        //            next.offsetInFile = prev.end.toLba() * Track::SECTOR_SIZE;
-        //        }
     }
 }
 
@@ -150,8 +151,6 @@ std::optional<Cue> CueParser::parse(const char* path) {
         return {};
     }
 
-    globalOffset = Position(0, 2, 0);
-
     cue.file = path;
 
     try {
@@ -164,9 +163,11 @@ std::optional<Cue> CueParser::parse(const char* path) {
             if (parseTrack(line)) continue;
             if (parseIndex(line)) continue;
             if (parsePregap(line)) continue;
+            if (parsePostgap(line)) continue;
+            printf("[CUE] Unparsed line: %s\n", line.c_str());
         }
 
-        addTrackToCue();
+        addTrackToCue();  // ?
         fixTracksLength();
     } catch (ParsingException& e) {
         printf("[DISK] Error loading .cue: %s\n", e.what());

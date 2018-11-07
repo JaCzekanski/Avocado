@@ -21,6 +21,8 @@ Position Position::operator+(const Position& p) const { return fromLba(toLba() +
 
 Position Position::operator-(const Position& p) const { return fromLba(toLba() - p.toLba()); }
 
+bool Position::operator==(const Position& p) const { return toLba() == p.toLba(); }
+
 bool Position::operator>=(const Position& p) const { return toLba() >= p.toLba(); }
 
 bool Position::operator<(const Position& p) const { return toLba() < p.toLba(); }

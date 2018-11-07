@@ -15,6 +15,7 @@ struct Cue {
 
     Position getDiskSize() const;
     size_t getTrackCount() const;
+    Position getTrackStart(int track) const;
     Position getTrackLength(int track) const;
 
     void seekTo();

@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include "position.h"
 
 namespace utils {
@@ -10,17 +11,20 @@ struct Track {
     int number = 0;
     Type type;
 
-    // Pregap is not included
-    // Pause is included in image
+    Position pregap;                 // (Size) silence not included in image
+    std::optional<Position> index0;  // (Position) Audio "before" start, same as pause
+    Position index1;                 // (Position) Start of data/audio
+    Position postgap;                // (Size) "silence" included in image
 
-    Position pregap;  // Length, not included in image
-    Position pause;   // Length, included in image
-    Position start;
-    Position end;
+    size_t offset;  // aka offset in file in sectors (frames)
+    size_t frames;  // aka size in sectors
 
-    size_t offsetInFile = 0;
-    size_t size;
+    Track() {
+        pregap = {0, 0, 0};
+        index1 = {0, 0, 0};
+        postgap = {0, 0, 0};
 
-    Position getTrackSize() const;
+        frames = 0;
+    }
 };
 }  // namespace utils

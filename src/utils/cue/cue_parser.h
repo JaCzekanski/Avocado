@@ -15,6 +15,7 @@ class CueParser {
     const std::regex regexTrack = std::regex(R"(TRACK (\d+) (.*))");
     const std::regex regexIndex = std::regex(R"(INDEX (\d+) (\d+):(\d+):(\d+))");
     const std::regex regexPregap = std::regex(R"(PREGAP (\d+):(\d+):(\d+))");
+    const std::regex regexPostgap = std::regex(R"(POSTGAP (\d+):(\d+):(\d+))");
 
     std::string cuePath;
     std::string lastFile;
@@ -23,14 +24,11 @@ class CueParser {
     Cue cue;
     Track track;
 
-    Position index0;
-
-    Position globalOffset;
-
     bool parseFile(std::string& line);
     bool parseTrack(std::string& line);
     bool parseIndex(std::string& line);
     bool parsePregap(std::string& line);
+    bool parsePostgap(std::string& line);
     void addTrackToCue();
     void fixTracksLength();
     Track::Type matchTrackType(const std::string& s) const;
