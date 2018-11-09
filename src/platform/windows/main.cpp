@@ -366,6 +366,18 @@ int main(int argc, char** argv) {
         SDL_GL_SwapWindow(window);
 
         limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc(), inputManager->mouseLocked);
+
+#ifdef __APPLE__
+        // HACK: Starting with MacOS Mojave Apple has broken OpenGL in several ways.
+        // OpenGL context is black until window has been moven/resized.
+        // This is what this hack does.
+
+        static bool macOsMojaveHack = false;
+        if (!macOsMojaveHack) {
+            macOsMojaveHack = true;
+            SDL_SetWindowSize(window, OpenGL::resWidth, OpenGL::resHeight);
+        }
+#endif
     }
     saveMemoryCards(sys, true);
     saveConfigFile(CONFIG_NAME);
