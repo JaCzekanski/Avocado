@@ -7,13 +7,13 @@
 
 extern bool showCdromWindow;
 
-#define POSITION(x) ((useLba) ? string_format("%d", (x).toLba()).c_str() : (x).toString().c_str())
+#define POSITION(x) ((useFrames) ? string_format("%d", (x).toLba()).c_str() : (x).toString().c_str())
 
 void cdromWindow(System* sys) {
     if (!showCdromWindow) {
         return;
     }
-    static bool useLba = false;
+    static bool useFrames = false;
 
     ImGui::Begin("CDROM", &showCdromWindow);
 
@@ -25,7 +25,7 @@ void cdromWindow(System* sys) {
         ImGui::Text("%s", cue.file.c_str());
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-        ImGui::Text("Track  Pregap     Start     End       Offset B   Type   File");
+        ImGui::Text("Track  Pregap     Start     End       Offset   Type   File");
 
         ImGuiListClipper clipper((int)cue.getTrackCount());
         while (clipper.Step()) {
@@ -35,7 +35,7 @@ void cdromWindow(System* sys) {
                 bool nodeOpened
                     = ImGui::TreeNode((void*)(intptr_t)i, "%02d  %-8s  %-8s  %-8s  %-9zu  %-5s  %s", i, POSITION(track.pregap),
                                       POSITION(track.index1), POSITION(track.index1 + utils::Position::fromLba(track.frames)), track.offset,
-                                      track.type == utils::Track::Type::DATA ? "DATA" : "AUDIO", track.filename.c_str());
+                                      track.type == utils::Track::Type::DATA ? "DATA" : "AUDIO", getFilenameExt(track.filename).c_str());
 
                 if (nodeOpened) {
                     ImGui::TreePop();
@@ -44,7 +44,7 @@ void cdromWindow(System* sys) {
         }
         ImGui::PopStyleVar();
 
-        ImGui::Checkbox("Use LBA", &useLba);
+        ImGui::Checkbox("Use frames", &useFrames);
     }
     ImGui::End();
 }

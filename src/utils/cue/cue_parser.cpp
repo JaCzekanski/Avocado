@@ -8,7 +8,10 @@ namespace utils {
 bool CueParser::parseFile(std::string& line) {
     std::smatch matches;
     regex_search(line, matches, regexFile);
-    if (matches.size() != 3) return false;
+    if (matches.size() != 3) {
+        regex_search(line, matches, regexFile2);
+        if (matches.size() != 3) return false;
+    }
 
     lastFile = cuePath + "/" + matches[1].str();
     lastFileType = matches[2].str();
@@ -85,6 +88,8 @@ void CueParser::addTrackToCue() {
 
     if (track.pregap == Position{0, 0, 0} && track.index0) {
         track.pregap = track.index1 - *track.index0;
+    } else {
+        track.index0 = track.index1;
     }
 
     if (!track.index0) {
@@ -112,7 +117,7 @@ void CueParser::fixTracksLength() {
                 cue.tracks[t].frames = size / Track::SECTOR_SIZE;  // TODO: SECTOR_SIZE to getFrameSize
             }
         } else {
-            if (cue.tracks[t].filename == cue.tracks[t - 1].filename) {
+            if (cue.tracks[t].filename == cue.tracks[t + 1].filename) {
                 cue.tracks[t].frames = (*(cue.tracks[t + 1].index0) - *(cue.tracks[t].index0)).toLba();
 
                 if (t == 0) {

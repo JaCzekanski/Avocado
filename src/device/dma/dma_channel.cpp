@@ -36,8 +36,6 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.startTrigger = CHCR::StartTrigger::clear;
 
         if (control.syncMode == CHCR::SyncMode::startImmediately) {
-            if (verbose) printf("DMA%d mode: word @ 0x%08x\n", channel, baseAddress.address);
-
             // TODO: Check Transfer Direction
             // TODO: Check Memory Address Step
 

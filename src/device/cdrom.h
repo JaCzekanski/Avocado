@@ -186,8 +186,6 @@ class CDROM {
     bool getShell() const { return stat.getShell(); }
     void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
-        status.dataFifoEmpty = 1;
-
         CDROM_interrupt.push_back(1);
         writeResponse(stat._reg);
     }

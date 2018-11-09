@@ -30,8 +30,6 @@ void CDROM::step() {
         std::tie(rawSector, trackType) = cue.read(pos);
         readSector++;
 
-        ackMoreData();
-
         if (trackType == utils::Track::Type::AUDIO && stat.play) {
             if (!mode.cddaEnable) {
                 return;
@@ -44,7 +42,9 @@ void CDROM::step() {
 
             if (mode.cddaReport) {
                 // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-                int track = 0;
+                auto pos = utils::Position::fromLba(readSector);
+
+                int track = cue.getTrackByPosition(pos);
 
                 CDROM_interrupt.push_back(1);
                 writeResponse(stat._reg);           // stat
@@ -80,6 +80,8 @@ void CDROM::step() {
                 }
             }
         } else if (trackType == utils::Track::Type::DATA && stat.read) {
+            ackMoreData();
+
             if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
                 printf("Invalid sync\n");
                 return;
@@ -87,7 +89,7 @@ void CDROM::step() {
 
             uint8_t minute = rawSector[12];
             uint8_t second = rawSector[13];
-            uint8_t sector = rawSector[14];
+            uint8_t frame = rawSector[14];
             uint8_t mode = rawSector[15];
 
             uint8_t file = rawSector[16];
@@ -98,19 +100,14 @@ void CDROM::step() {
             // XA uses Mode2 sectors
             // Does PSX even support Mode1?
             if (mode != 2) {
-                // printf("Not mode2 (%d instead)\n",mode);
+                printf("Not mode2 (%d instead)\n", mode);
                 return;
             }
 
             // Only Form2 ?
             // Does PSX support Form1?
-            if (!submode.form2) {
-                // printf("Not form2\n");
-                return;
-            }
-
             // Streaming
-            if (submode.realtime) {
+            if (submode.form2 && submode.realtime) {
                 // Filter XA file/channel
                 if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
                     // printf("Mismatch filter\n");
@@ -209,12 +206,20 @@ uint8_t CDROM::readByte() {
 
     // docs says that reading outside of data buffer returns these value
     if (!mode.sectorSize && dataBufferPointer >= 0x800) {
-        return dataBuffer[0x800 - 8];
+        dataBufferPointer++;
+        return dataBuffer[dataStart + 0x800 - 8];
     } else if (mode.sectorSize && dataBufferPointer >= 0x924) {
-        return dataBuffer[0x924 - 4];
+        dataBufferPointer++;
+        return dataBuffer[dataStart + 0x924 - 4];
     }
 
-    return dataBuffer[dataStart + dataBufferPointer++];
+    uint8_t data = dataBuffer[dataStart + dataBufferPointer++];
+
+    if (isBufferEmpty()) {
+        status.dataFifoEmpty = 0;
+    }
+
+    return data;
 }
 
 void CDROM::debugLog(const char* cmd) {
@@ -273,7 +278,7 @@ void CDROM::cmdPlay() {
             printf("CDROM: Invalid PLAY track parameter (%d)\n", track);
             return;
         }
-        // pos = cue.tracks[track].start;
+        pos = cue.getTrackStart(track);
         if (verbose) printf("CDROM: PLAY (track: %d)\n", track);
     } else {
         pos = utils::Position::fromLba(seekSector);
@@ -448,8 +453,8 @@ void CDROM::cmdGetlocL() {
 void CDROM::cmdGetlocP() {
     auto pos = utils::Position::fromLba(readSector);
 
-    auto posInTrack = pos;
-    int track = 0;
+    int track = cue.getTrackByPosition(pos);
+    auto posInTrack = pos - cue.getTrackStart(track);
 
     CDROM_interrupt.push_back(3);
     writeResponse(track);                      // track
@@ -528,8 +533,6 @@ void CDROM::cmdSeekL() {
 
     CDROM_interrupt.push_back(2);
     writeResponse(stat._reg);
-
-    status.dataFifoEmpty = 0;
 
     if (verbose) printf("CDROM: cmdSeekL\n");
 }
@@ -728,10 +731,10 @@ void CDROM::write(uint32_t address, uint8_t data) {
             if (isBufferEmpty()) {
                 dataBuffer = rawSector;
                 dataBufferPointer = 0;
-                // status.dataFifoEmpty = 0;
+                status.dataFifoEmpty = 1;
             }
         } else {  // clear data fifo
-            // status.dataFifoEmpty = 0;
+            status.dataFifoEmpty = 0;
             dataBuffer.clear();
             dataBufferPointer = 0;
         }

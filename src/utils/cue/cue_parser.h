@@ -12,6 +12,7 @@ class ParsingException : public std::runtime_error {
 };
 class CueParser {
     const std::regex regexFile = std::regex(R"(FILE \"([^\"]+)\" (.*))");
+    const std::regex regexFile2 = std::regex(R"(FILE (.+) (.*))");
     const std::regex regexTrack = std::regex(R"(TRACK (\d+) (.*))");
     const std::regex regexIndex = std::regex(R"(INDEX (\d+) (\d+):(\d+):(\d+))");
     const std::regex regexPregap = std::regex(R"(PREGAP (\d+):(\d+):(\d+))");

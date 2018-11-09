@@ -17,6 +17,7 @@ struct Cue {
     size_t getTrackCount() const;
     Position getTrackStart(int track) const;
     Position getTrackLength(int track) const;
+    int getTrackByPosition(Position pos) const;
 
     void seekTo();
     std::pair<std::vector<uint8_t>, Track::Type> read(Position pos, size_t bytes = 2352);
