@@ -49,7 +49,7 @@ std::pair<std::vector<uint8_t>, Track::Type> Cue::read(Position pos, size_t byte
             FILE* f = fopen(track.filename.c_str(), "rb");
             if (!f) {
                 printf("Unable to load file %s\n", track.filename.c_str());
-                return std::make_tuple(buffer, type);
+                return std::make_pair(buffer, type);
             }
 
             files.emplace(track.filename, std::shared_ptr<FILE>(f, fclose));
@@ -66,7 +66,7 @@ std::pair<std::vector<uint8_t>, Track::Type> Cue::read(Position pos, size_t byte
         fread(buffer.data(), bytes, 1, file.get());
     }
 
-    return std::make_tuple(buffer, type);
+    return std::make_pair(buffer, type);
 }
 
 std::optional<Cue> Cue::fromBin(const char* file) {

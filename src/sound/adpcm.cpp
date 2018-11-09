@@ -170,6 +170,6 @@ std::pair<std::vector<int16_t>, std::vector<int16_t>> decodeXA(uint8_t buffer[12
         }
     }
 
-    return std::make_tuple(left, right);
+    return std::make_pair(left, right);
 }
 }  // namespace ADPCM
