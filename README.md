@@ -9,6 +9,8 @@ If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitt
 
 ## Changelog
 
+*9.11.2018* - XA-ADPCM (streaming audio) and Red Book audio support - music should play in most games, SPU samples interpolation (sounds less harsh), Pitch modulation support (used by few games), refactored CDROM reading and cue parsing subsystems, various fixes, hardware (OpenGL) rendering
+
 *27.08.2018* - Support for digital controller, DualShock (without vibrations) and mouse. Two controllers are supported (no multitap for now)
 
 *19.08.2018* - Memory card support
@@ -28,7 +30,7 @@ AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/s
 Despite this emulator being in early development, some 3D games can run. [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability)
 
 
-Currently there is no Audio CD or streaming XA-ADPCM support (**many games will only output sound without music**), MDEC is missing (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed).
+Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make audio stutter**), MDEC is missing (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed). Many games won't boot or crash shortly after booting.
 
 ## Running
 
