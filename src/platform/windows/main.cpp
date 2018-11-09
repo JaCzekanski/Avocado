@@ -285,6 +285,9 @@ int main(int argc, char** argv) {
             newEvent = true;
         }
 
+        auto lockMouse = sys->state == System::State::run && inputManager->mouseLocked;
+        SDL_SetRelativeMouseMode((SDL_bool)lockMouse);
+
         inputManager->newFrame();
         while (newEvent || SDL_PollEvent(&event)) {
             newEvent = false;

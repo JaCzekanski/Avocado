@@ -67,7 +67,6 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
 
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && event.button.clicks == 2) {
         mouseLocked = true;
-        SDL_SetRelativeMouseMode(SDL_TRUE);
         return true;
     }
 
