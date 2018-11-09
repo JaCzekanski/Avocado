@@ -37,6 +37,8 @@ class OpenGL {
 
     const int bufferSize = 1024 * 1024;
 
+    bool hardwareRendering;
+
     std::unique_ptr<Program> renderShader;
     std::unique_ptr<Buffer> renderBuffer;
     std::unique_ptr<Framebuffer> renderFramebuffer;
@@ -55,7 +57,9 @@ class OpenGL {
     void bindRenderAttributes();
     void renderVertices(gpu::GPU* gpu);
 
+    void updateVramTexture(gpu::GPU* gpu);
+
     void bindBlitAttributes();
-    std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480);
-    void renderBlit(gpu::GPU* gpu);
+    std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480, bool invert = false);
+    void renderBlit(gpu::GPU* gpu, bool software);
 };

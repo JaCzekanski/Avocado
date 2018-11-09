@@ -6,10 +6,12 @@
 enum class Event {
     Controller,
     Graphics,
+    Gpu,
 };
 
 class ConfigObserver {
     using Callback = std::function<void()>;
+    // TODO: Allow multiple listeners for single callback
     std::unordered_map<Event, Callback> observers;
 
    public:

@@ -12,7 +12,12 @@ json mouse();
 json controller();
 }  // namespace DefaultKeyBindings
 
-enum class RenderingMode { SOFTWARE = 0u, HARDWARE = 1u, MIXED = 2u };
+enum RenderingMode { SOFTWARE = 1 << 0, HARDWARE = 1 << 1, MIXED = SOFTWARE | HARDWARE };
+NLOHMANN_JSON_SERIALIZE_ENUM(RenderingMode, {
+                                                {RenderingMode::SOFTWARE, "software"},
+                                                {RenderingMode::HARDWARE, "hardware"},
+                                                {RenderingMode::MIXED, "mixed"},
+                                            });
 
 extern const char* CONFIG_NAME;
 extern const nlohmann::json defaultConfig;

@@ -89,6 +89,8 @@ class GPU {
     // Hardware rendering
     std::vector<Vertex> vertices;
 
+    bool softwareRendering;
+
     void reset();
     void cmdFillRectangle(uint8_t command);
     void cmdPolygon(PolygonArgs arg);
@@ -104,6 +106,8 @@ class GPU {
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
 
+    void reload();
+
    public:
     GP0_E2 gp0_e2;
     GP1_08 gp1_08;
@@ -111,6 +115,7 @@ class GPU {
     std::array<uint16_t, VRAM_WIDTH * VRAM_HEIGHT> vram{};
 
     GPU();
+    ~GPU();
     void step();
     bool emulateGpuCycles(int cycles);
     uint32_t read(uint32_t address);

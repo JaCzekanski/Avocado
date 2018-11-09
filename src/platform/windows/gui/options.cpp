@@ -65,6 +65,8 @@ void graphicsOptionsWindow() {
             selectedResolution = static_cast<int>(mulW);
         }
 
+        selectedRenderingMode = (int)config["options"]["graphics"]["rendering_mode"].get<RenderingMode>() - 1;
+
         setResolutionToEditText(w, h);
     }
 
@@ -73,11 +75,12 @@ void graphicsOptionsWindow() {
     ImGui::Text("Rendering mode");
     ImGui::SameLine();
     if (ImGui::Combo("##rendering_mode", &selectedRenderingMode, renderingModes.data(), renderingModes.size())) {
-        config["options"]["graphics"]["rendering_mode"] = selectedRenderingMode;
+        config["options"]["graphics"]["rendering_mode"] = static_cast<RenderingMode>(selectedRenderingMode + 1);
         configObserver.notify(Event::Graphics);
+        configObserver.notify(Event::Gpu);
     }
 
-    if ((RenderingMode)selectedRenderingMode != RenderingMode::SOFTWARE) {
+    if (selectedRenderingMode != 0) {
         ImGui::Text("Internal resolution");
         ImGui::SameLine();
         if (ImGui::Combo("##resolution_presets", &selectedResolution, resolutions.data(), resolutions.size()) && selectedResolution > 0) {

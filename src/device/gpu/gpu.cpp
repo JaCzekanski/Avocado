@@ -1,6 +1,7 @@
 #include "gpu.h"
 #include <cassert>
 #include <cstdio>
+#include "config.h"
 #include "render/render.h"
 #include "utils/logic.h"
 
@@ -9,7 +10,18 @@ namespace gpu {
 const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
 
-GPU::GPU() { reset(); }
+GPU::GPU() {
+    configObserver.registerCallback(Event::Gpu, [&]() { reload(); });
+    reload();
+    reset();
+}
+
+GPU::~GPU() { configObserver.unregisterCallback(Event::Gpu); }
+
+void GPU::reload() {
+    auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
+    softwareRendering = (mode & RenderingMode::SOFTWARE) != 0;
+}
 
 void GPU::reset() {
     irqRequest = false;
@@ -60,7 +72,9 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
                 {baseX, baseY},         flags,        gp0_e2};
         vertices.push_back(v[i]);
     }
-    // Render::drawTriangle(this, v);
+    if (softwareRendering) {
+        Render::drawTriangle(this, v);
+    }
 
     if (isQuad) {
         for (int i : {1, 2, 3}) {
@@ -69,7 +83,9 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
                         {baseX, baseY},         flags,        gp0_e2};
             vertices.push_back(v[i - 1]);
         }
-        // Render::drawTriangle(this, v);
+        if (softwareRendering) {
+            Render::drawTriangle(this, v);
+        }
     }
 }
 

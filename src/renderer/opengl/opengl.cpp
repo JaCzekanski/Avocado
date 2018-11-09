@@ -5,7 +5,6 @@
 #include "device/gpu/gpu.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-#include "device/gpu/render/texture_utils.h"
 #include "utils/string.h"
 
 using std::make_unique;
@@ -63,6 +62,9 @@ bool OpenGL::setup() {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
+    auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
+    hardwareRendering = (mode & RenderingMode::HARDWARE) != 0;
+
     bool filtering = config["options"]["graphics"]["filtering"];
 
     renderWidth = config["options"]["graphics"]["resolution"]["width"];
@@ -81,7 +83,7 @@ bool OpenGL::setup() {
     return true;
 }
 
-std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, int screenW, int screenH) {
+std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, int screenW, int screenH, bool invert) {
     /* X,Y
 
        0,0      1,0
@@ -89,10 +91,18 @@ std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, in
 
        0,1      1,1
     */
+
     float sx = (float)screenX / 1024.f;
     float sy = (float)screenY / 512.f;
+
     float sw = sx + (float)screenW / 1024.f;
     float sh = sy + (float)screenH / 512.f;
+
+    if (invert) {
+        float tmp = sy;
+        sy = sh;
+        sh = tmp;
+    }
 
     return {
         {{0.f, 0.f}, {sx, sy}}, {{1.f, 0.f}, {sw, sy}}, {{1.f, 1.f}, {sw, sh}},
@@ -116,11 +126,7 @@ void OpenGL::bindBlitAttributes() {
     blitShader->getAttrib("texcoord").pointer(2, GL_FLOAT, sizeof(BlitStruct), 2 * sizeof(float));
 }
 
-void OpenGL::renderVertices(gpu::GPU* gpu) {
-    static glm::vec2 lastPos;
-    auto& buffer = gpu->vertices;
-    if (buffer.empty()) return;
-
+void OpenGL::updateVramTexture(gpu::GPU* gpu) {
     // Unpack VRAM to native GPU format (4x float)
     std::vector<float> vramUnpacked(gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH * 4);
     for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
@@ -134,6 +140,12 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
         }
     }
     vramTex->update(vramUnpacked.data());
+}
+
+void OpenGL::renderVertices(gpu::GPU* gpu) {
+    static glm::vec2 lastPos;
+    auto& buffer = gpu->vertices;
+    if (buffer.empty()) return;
 
     renderShader->use();
     renderBuffer->bind();
@@ -178,7 +190,7 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void OpenGL::renderBlit(gpu::GPU* gpu) {
+void OpenGL::renderBlit(gpu::GPU* gpu, bool software) {
     blitShader->use();
 
     // Viewport settings
@@ -190,8 +202,10 @@ void OpenGL::renderBlit(gpu::GPU* gpu) {
     int h = height;
 
     std::vector<BlitStruct> bb = makeBlitBuf(0, 0, 1024, 512);
-    // bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
-    //                  gpu->gp1_08.getVerticalResoulution());
+    if (software) {
+        bb = makeBlitBuf(gpu->displayAreaStartX, gpu->displayAreaStartY, gpu->gp1_08.getHorizontalResoulution(),
+                         gpu->gp1_08.getVerticalResoulution(), true);
+    }
 
     if (width > height * aspect) {
         // Fit vertical
@@ -213,7 +227,11 @@ void OpenGL::renderBlit(gpu::GPU* gpu) {
     blitBuffer->bind();
     bindBlitAttributes();
 
-    renderTex->bind(0);
+    if (software) {
+        vramTex->bind(0);
+    } else {
+        renderTex->bind(0);
+    }
     blitShader->getUniform("renderBuffer").i(0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -225,12 +243,16 @@ void OpenGL::render(gpu::GPU* gpu) {
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Render all GPU commands
-    renderVertices(gpu);
+    updateVramTexture(gpu);
+
+    if (hardwareRendering) {
+        // Render all GPU commands
+        renderVertices(gpu);
+    }
 
     // Blit rendered polygons to screen
     // For OpenGL < 3.2
-    renderBlit(gpu);
+    renderBlit(gpu, !hardwareRendering);
 
     // For OpenGL > 3.2
     // glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
