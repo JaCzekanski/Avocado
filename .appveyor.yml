@@ -50,6 +50,7 @@ after_build:
   - ps: $env:TARGETDIR = "build\$($env:CONFIGURATION)"
   - ps: if ($env:platform -ne "x86") { $env:TARGETDIR = $env:TARGETDIR + "_" + $env:platform }
   - ps: Copy-Item $env:TARGETDIR\avocado.exe artifact\avocado.exe
+  - ps: Copy-Item $env:TARGETDIR\avocado.pdb artifact\avocado.pdb
   - ps: Copy-Item externals\SDL2\lib\$env:platform\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
 

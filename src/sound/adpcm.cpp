@@ -90,7 +90,7 @@ template <Channel channel>
 std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2], bool sampleRate) {
     std::vector<int16_t> decoded;
 
-    std::initializer_list<int> blocks;
+    std::vector<int> blocks;
     if (channel == Channel::mono) {
         blocks = {0, 1, 2, 3, 4, 5, 6, 7};
     } else if (channel == Channel::left) {
