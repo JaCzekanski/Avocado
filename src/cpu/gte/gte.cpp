@@ -1,4 +1,14 @@
 #include "gte.h"
+#include "config.h"
+
+GTE::GTE() {
+    configObserver.registerCallback(Event::Gte, [&]() { reload(); });
+    reload();
+}
+
+GTE::~GTE() { configObserver.unregisterCallback(Event::Gte); }
+
+void GTE::reload() { widescreenHack = config["options"]["graphics"]["forceWidescreen"]; }
 
 uint32_t GTE::read(uint8_t n) {
     uint32_t ret = [this](uint8_t n) -> uint32_t {
@@ -72,14 +82,11 @@ uint32_t GTE::read(uint8_t n) {
 
             case 56: return of[0];
             case 57: return of[1];
-            case 58:
-                return (int32_t)(int16_t)h;  // gte_bug: H is sign extended on read
+            case 58: return (int32_t)(int16_t)h;  // gte_bug: H is sign extended on read
             case 59: return (int32_t)dqa;
             case 60: return dqb;
-            case 61:
-                return (int32_t)(int16_t)zsf3;  // gte_bug?: sign extended
-            case 62:
-                return (int32_t)(int16_t)zsf4;  // gte_bug?: sign extended
+            case 61: return (int32_t)(int16_t)zsf3;  // gte_bug?: sign extended
+            case 62: return (int32_t)(int16_t)zsf4;  // gte_bug?: sign extended
             case 63: flag.calculate(); return flag.reg;
             default: return 0;
         }

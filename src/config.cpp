@@ -154,6 +154,7 @@ const json defaultConfig = {
             {"rendering_mode", RenderingMode::SOFTWARE},
             {"filtering", false},
             {"widescreen", false},
+            {"forceWidescreen", false},
             {"resolution", {
                 {"width", 640u},
                 {"height", 480u}

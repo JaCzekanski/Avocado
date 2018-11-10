@@ -118,6 +118,18 @@ void graphicsOptionsWindow() {
     bool widescreen = config["options"]["graphics"]["widescreen"];
     if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
         config["options"]["graphics"]["widescreen"] = widescreen;
+        if (!widescreen) {
+            config["options"]["graphics"]["forceWidescreen"] = false;
+        }
+        configObserver.notify(Event::Gte);
+    }
+
+    if (widescreen) {
+        bool forceWidescreen = config["options"]["graphics"]["forceWidescreen"];
+        if (ImGui::Checkbox("Force widescreen in 3d (hack)", &forceWidescreen)) {
+            config["options"]["graphics"]["forceWidescreen"] = forceWidescreen;
+            configObserver.notify(Event::Gte);
+        }
     }
 
     ImGui::End();

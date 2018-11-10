@@ -84,6 +84,9 @@ struct GTE {
     int16_t zsf4 = 0;
     Flag flag;
 
+    GTE();
+    ~GTE();
+
     uint32_t read(uint8_t n);
     void write(uint8_t n, uint32_t d);
 
@@ -124,9 +127,12 @@ struct GTE {
     std::vector<GTE_ENTRY> log;
 
    private:
+    bool widescreenHack;
     // Temporary, used in commands
     bool sf;
     bool lm;
+
+    void reload();
 
     void multiplyVectors(gte::Vector<int16_t> v1, gte::Vector<int16_t> v2, gte::Vector<int16_t> tr = gte::Vector<int16_t>(0));
     gte::Vector<int64_t> multiplyMatrixByVector(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr = gte::Vector<int32_t>(0));

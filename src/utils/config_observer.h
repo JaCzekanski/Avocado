@@ -7,6 +7,7 @@ enum class Event {
     Controller,
     Graphics,
     Gpu,
+    Gte,
 };
 
 class ConfigObserver {
