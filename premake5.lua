@@ -258,8 +258,8 @@ project "avocado"
 			"glad",
 			"imgui",
 		}
-		buildoptions {"`sdl2-config --cflags`"}
-		linkoptions {"`sdl2-config --libs`"}
+		buildoptions {getOutput("sdl2-config --cflags")}
+		linkoptions {getOutput("sdl2-config --libs")}
 		
 
 	filter "system:macosx"
@@ -272,8 +272,8 @@ project "avocado"
 			"glad",
 			"imgui",
 		}
-		buildoptions {"`sdl2-config --cflags`"}
-		linkoptions {"`sdl2-config --libs`"}
+		buildoptions {getOutput("sdl2-config --cflags")}
+		linkoptions {getOutput("sdl2-config --libs")}
 
 project "avocado_test"
 	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
