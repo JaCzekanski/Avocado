@@ -75,7 +75,17 @@ bool OpenGL::setup() {
     renderFramebuffer = std::make_unique<Framebuffer>(renderTex->get());
 
     blitBuffer = std::make_unique<Buffer>(makeBlitBuf().size() * sizeof(BlitStruct));
-    vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_FLOAT, false);
+
+    // Try native texture
+    vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, false);
+
+    if (vramTex->isCreated()) {
+        supportNativeTexture = true;
+    } else {
+        // Use compability mode
+        vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_FLOAT, false);
+        supportNativeTexture = false;
+    }
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -127,8 +137,17 @@ void OpenGL::bindBlitAttributes() {
 }
 
 void OpenGL::updateVramTexture(gpu::GPU* gpu) {
+    if (supportNativeTexture) {
+        vramTex->update(gpu->vram.data());
+        return;
+    }
+
+    size_t dataSize = gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH * 4;
+    if (vramUnpacked.size() != dataSize) {
+        vramUnpacked.resize(dataSize);
+    }
+
     // Unpack VRAM to native GPU format (4x float)
-    std::vector<float> vramUnpacked(gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH * 4);
     for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
         for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
             PSXColor c = gpu->vram[y * gpu::VRAM_WIDTH + x];

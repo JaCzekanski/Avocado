@@ -389,6 +389,7 @@ int main(int argc, char** argv) {
     ImGui_ImplSdlGL3_Shutdown();
     ImGui::DestroyContext();
     InputManager::setInstance(nullptr);
+    opengl.~OpenGL();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();

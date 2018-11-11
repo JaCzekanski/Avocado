@@ -9,6 +9,8 @@ class Texture {
     GLint dataFormat;
     GLenum type;
 
+    bool success;
+
    public:
     Texture(int width, int height, GLint internalFormat, GLint dataFormat, GLenum type, bool filter);
     ~Texture();
@@ -18,4 +20,5 @@ class Texture {
     GLuint get();
     int getWidth();
     int getHeight();
+    bool isCreated();
 };
