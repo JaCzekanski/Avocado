@@ -83,6 +83,12 @@ filter "platforms:x64"
 	architecture "x64"
 	vectorextensions "AVX"
 
+filter "system:macosx"
+	xcodebuildsettings {
+		['ALWAYS_SEARCH_USER_PATHS'] = {'YES'}
+	}
+
+
 filter {"kind:*App"}
 	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
 
@@ -202,7 +208,7 @@ project "common"
 
 project "avocado"
 	uuid "c2c4899a-ddca-491f-9a66-1d33173a553e"
-	kind "ConsoleApp"
+	kind "WindowedApp"
 	location "build/libs/avocado"
 	debugdir "."
 	dependson { "common" }

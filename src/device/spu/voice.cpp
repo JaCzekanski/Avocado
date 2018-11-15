@@ -98,7 +98,9 @@ void Voice::parseFlags(uint8_t flags) {
 
 void Voice::keyOn() {
     adsrVolume._reg = 0;
-    repeatAddress._reg = startAddress._reg;
+    // INFO: Square games load repeatAddress before keyOn,
+    // setting it here to startAddress causes glitched sample repetitions
+    // repeatAddress._reg = startAddress._reg;
     currentAddress._reg = startAddress._reg;
     state = Voice::State::Attack;
     loopEnd = false;
