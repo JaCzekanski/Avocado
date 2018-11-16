@@ -208,7 +208,7 @@ project "common"
 
 project "avocado"
 	uuid "c2c4899a-ddca-491f-9a66-1d33173a553e"
-	kind "WindowedApp"
+	kind "ConsoleApp"
 	location "build/libs/avocado"
 	debugdir "."
 	dependson { "common" }
@@ -269,6 +269,7 @@ project "avocado"
 		
 
 	filter "system:macosx"
+	    kind "WindowedApp"
 		files { 
 			"src/imgui/**.*",
 			"src/renderer/opengl/**.*",
