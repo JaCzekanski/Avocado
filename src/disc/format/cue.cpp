@@ -1,19 +1,24 @@
 #include "cue.h"
 
-namespace utils {
+namespace disc {
+    namespace format {
+std::string Cue::getFile() const {
+    return file;
+}
+
 Position Cue::getDiskSize() const {
-    Position size = Position::fromLba(2 * 75);
+    int frames = 0;
     for (auto t : tracks) {
-        // size = size + t.getTrackSize();
+        frames += t.frames;
     }
-    return size;
+    return Position::fromLba(frames) + Position{0,2,0};
 }
 
 size_t Cue::getTrackCount() const { return tracks.size(); }
 
 Position Cue::getTrackStart(int track) const {
     size_t total = 0;
-    if (tracks.at(0).type == Track::Type::DATA) {
+    if (tracks.at(0).type == disc::TrackType::DATA) {
         total += 75 * 2;
     }
     for (int i = 0; i < track - 1; i++) {
@@ -36,9 +41,9 @@ int Cue::getTrackByPosition(Position pos) const {
     return -1;
 }
 
-std::pair<std::vector<uint8_t>, Track::Type> Cue::read(Position pos, size_t bytes) {
-    auto buffer = std::vector<uint8_t>(bytes);
-    auto type = Track::Type::INVALID;
+disc::Sector Cue::read(Position pos) {
+    auto buffer = std::vector<uint8_t>(Track::SECTOR_SIZE);
+    auto type = disc::TrackType::INVALID;
 
     // pos = pos;// - Position{0, 2, 0};
 
@@ -58,18 +63,18 @@ std::pair<std::vector<uint8_t>, Track::Type> Cue::read(Position pos, size_t byte
         type = track.type;
         auto file = files[track.filename];
 
-        if (trackNum == 0 && type == Track::Type::DATA) {
+        if (trackNum == 0 && type == disc::TrackType::DATA) {
             pos = pos - Position{0, 2, 0};
         }
         auto seek = pos - *track.index0;
         fseek(file.get(), (long)(track.offset + seek.toLba() * Track::SECTOR_SIZE), SEEK_SET);
-        fread(buffer.data(), bytes, 1, file.get());
+        fread(buffer.data(), Track::SECTOR_SIZE, 1, file.get());
     }
 
     return std::make_pair(buffer, type);
 }
 
-std::optional<Cue> Cue::fromBin(const char* file) {
+std::unique_ptr<Cue> Cue::fromBin(const char* file) {
     auto size = getFileSize(file);
     if (size == 0) {
         return {};
@@ -78,17 +83,18 @@ std::optional<Cue> Cue::fromBin(const char* file) {
     Track t;
     t.filename = file;
     t.number = 1;
-    t.type = Track::Type::DATA;
+    t.type = disc::TrackType::DATA;
     t.pregap = Position(0, 0, 0);
     t.index0 = Position(0, 0, 0);
     t.index1 = Position(0, 0, 0);
     t.offset = 0;
     t.frames = size / Track::SECTOR_SIZE;
 
-    auto cue = Cue();
-    cue.file = file;
-    cue.tracks.push_back(t);
+    auto cue = std::make_unique<Cue>();
+    cue->file = file;
+    cue->tracks.push_back(t);
 
     return cue;
 }
+    }
 }  // namespace utils

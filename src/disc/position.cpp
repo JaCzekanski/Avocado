@@ -1,7 +1,7 @@
 #include "position.h"
 #include "utils/string.h"
 
-namespace utils {
+namespace disc {
 Position::Position() : mm(0), ss(0), ff(0) {}
 
 Position::Position(int mm, int ss, int ff) : mm(mm), ss(ss), ff(ff) {}

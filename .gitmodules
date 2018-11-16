@@ -14,3 +14,12 @@
 [submodule "externals/catch"]
 	path = externals/catch
 	url = https://github.com/catchorg/Catch2.git
+[submodule "externals/flac"]
+	path = externals/flac
+	url = https://github.com/xiph/flac
+[submodule "externals/lzma"]
+	path = externals/lzma
+	url = https://github.com/jljusten/LZMA-SDK
+[submodule "externals/libchdr"]
+	path = externals/libchdr
+	url = https://github.com/JaCzekanski/libchdr

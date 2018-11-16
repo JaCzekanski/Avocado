@@ -2,7 +2,7 @@
 #include <deque>
 #include <memory>
 #include "device.h"
-#include "utils/cue/cue.h"
+#include "disc/disc.h"
 
 struct System;
 
@@ -173,8 +173,8 @@ class CDROM {
     bool isBufferEmpty();
     uint8_t readByte();
 
-    utils::Track::Type trackType;
-    utils::Cue cue;
+    disc::TrackType trackType;
+    std::unique_ptr<disc::Disc> disc;
     bool mute = false;
 
     CDROM(System* sys);

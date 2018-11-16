@@ -9,6 +9,8 @@ If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitt
 
 ## Changelog
 
+*19.11.2018* - added .chd file support
+
 *9.11.2018* - XA-ADPCM (streaming audio) and Red Book audio support - music should play in most games, SPU samples interpolation (sounds less harsh), Pitch modulation support (used by few games), refactored CDROM reading and cue parsing subsystems, various fixes, hardware (OpenGL) rendering
 
 *27.08.2018* - Support for digital controller, DualShock (without vibrations) and mouse. Two controllers are supported (no multitap for now)
@@ -45,7 +47,7 @@ Avocado doesn't support fast booting. [UniROM](http://www.psxdev.net/forum/viewt
 Press the **Start** button (Enter by default) to fastboot, or **R2** (keypad *) to slowboot a game.
 You can run the included Playstation firmware replacement *Caetla* with the **Select** button (Right shift) then run the .exe directly from the disk.
 
-To load a .cue/.bin/.img file just drag and drop it.
+To load a .cue/.bin/.img/.chd file just drag and drop it.
 
 ## Controls
 

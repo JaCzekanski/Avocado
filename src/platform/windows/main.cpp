@@ -7,13 +7,14 @@
 #include <string>
 #include "bios/exe_bootstrap.h"
 #include "config.h"
+#include "disc/format/chd_format.h"
+#include "disc/format/cue_parser.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "platform/windows/gui/gui.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/sound.h"
 #include "system.h"
-#include "utils/cue/cue_parser.h"
 #include "utils/file.h"
 #include "utils/psf.h"
 #include "utils/string.h"
@@ -80,17 +81,18 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         return;
     }
 
-    std::optional<utils::Cue> cue = {};
-
-    if (ext == "cue") {
-        utils::CueParser parser;
-        cue = parser.parse(path.c_str());
+    std::unique_ptr<disc::Disc> disc;
+    if (ext == "chd") {
+        disc = disc::format::Chd::open(path);
+    } else if (ext == "cue") {
+        disc::format::CueParser parser;
+        disc = parser.parse(path.c_str());
     } else if (ext == "iso" || ext == "bin" || ext == "img") {
-        cue = utils::Cue::fromBin(path.c_str());
+        disc = disc::format::Cue::fromBin(path.c_str());
     }
 
-    if (cue) {
-        sys->cdrom->cue = *cue;
+    if (disc) {
+        sys->cdrom->disc = std::move(disc);
         sys->cdrom->setShell(false);
         printf("File %s loaded\n", filenameExt.c_str());
     }
@@ -186,11 +188,10 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
         fpsTime = 0.0;
 
         // TODO: Move this part outside method
-        std::string gameName;
-        if (sys->cdrom->cue.file.empty())
-            gameName = "No CD";
-        else
-            gameName = getFilename(sys->cdrom->cue.file);
+        std::string gameName = "No CD";
+        if (sys->cdrom->disc) {
+            gameName = getFilename(sys->cdrom->disc->getFile());
+        }
 
         std::string title = string_format("Avocado %s | %s | FPS: %.0f (%0.2f ms) %s", BUILD_STRING, gameName.c_str(), fps,
                                           (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <sstream>
 #include "miniz.h"
+#include "utils/file.h"
 #include "utils/psx_exe.h"
 
 namespace {

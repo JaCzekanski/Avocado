@@ -3,9 +3,10 @@
 #include <optional>
 #include <regex>
 #include "cue.h"
-#include "track.h"
+#include "disc/track.h"
 
-namespace utils {
+namespace disc {
+    namespace format{
 class ParsingException : public std::runtime_error {
    public:
     ParsingException(const std::string& s) : std::runtime_error(s) {}
@@ -32,9 +33,10 @@ class CueParser {
     bool parsePostgap(std::string& line);
     void addTrackToCue();
     void fixTracksLength();
-    Track::Type matchTrackType(const std::string& s) const;
+    disc::TrackType matchTrackType(const std::string& s) const;
 
    public:
-    std::optional<Cue> parse(const char* path);
+   std::unique_ptr<Cue> parse(const char* path);
 };
+    };
 }  // namespace utils

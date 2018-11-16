@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace utils {
+namespace disc {
 struct Position {
     int mm;
     int ss;

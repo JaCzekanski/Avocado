@@ -1,15 +1,15 @@
 #pragma once
 #include <optional>
 #include "position.h"
+#include "disc.h"
 
-namespace utils {
+namespace disc {
 struct Track {
     static const int SECTOR_SIZE = 2352;
-    enum class Type { DATA, AUDIO, INVALID };
 
     std::string filename;
     int number = 0;
-    Type type;
+    disc::TrackType type;
 
     Position pregap;                 // (Size) silence not included in image
     std::optional<Position> index0;  // (Position) Audio "before" start, same as pause

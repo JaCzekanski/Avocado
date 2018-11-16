@@ -26,11 +26,11 @@ void CDROM::step() {
         readcnt = 0;
         const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
 
-        auto pos = utils::Position::fromLba(readSector);
-        std::tie(rawSector, trackType) = cue.read(pos);
+        auto pos = disc::Position::fromLba(readSector);
+        std::tie(rawSector, trackType) = disc->read(pos);
         readSector++;
 
-        if (trackType == utils::Track::Type::AUDIO && stat.play) {
+        if (trackType == disc::TrackType::AUDIO && stat.play) {
             if (!mode.cddaEnable) {
                 return;
             }
@@ -42,13 +42,13 @@ void CDROM::step() {
 
             if (mode.cddaReport) {
                 // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-                auto pos = utils::Position::fromLba(readSector);
+                auto pos = disc::Position::fromLba(readSector);
 
-                int track = cue.getTrackByPosition(pos);
+                int track = disc->getTrackByPosition(pos);
 
                 CDROM_interrupt.push_back(1);
                 writeResponse(stat._reg);           // stat
-                writeResponse(track);               // track
+                writeResponse(bcd::toBcd(track));   // track
                 writeResponse(0x01);                // index
                 writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
                 writeResponse(bcd::toBcd(pos.ss));  // second (disc)
@@ -79,7 +79,7 @@ void CDROM::step() {
                     channel = !channel;
                 }
             }
-        } else if (trackType == utils::Track::Type::DATA && stat.read) {
+        } else if (trackType == disc::TrackType::DATA && stat.read) {
             ackMoreData();
 
             if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
@@ -271,17 +271,17 @@ void CDROM::cmdSetloc() {
 
 void CDROM::cmdPlay() {
     // Play NOT IMPLEMENTED
-    utils::Position pos;
+    disc::Position pos;
     if (!CDROM_params.empty()) {
         int track = readParam();  // param or setloc used
-        if (track >= (int)cue.getTrackCount()) {
+        if (track >= (int)disc->getTrackCount()) {
             printf("CDROM: Invalid PLAY track parameter (%d)\n", track);
             return;
         }
-        pos = cue.getTrackStart(track);
+        pos = disc->getTrackStart(track);
         if (verbose) printf("CDROM: PLAY (track: %d)\n", track);
     } else {
-        pos = utils::Position::fromLba(seekSector);
+        pos = disc::Position::fromLba(seekSector);
     }
 
     readSector = pos.toLba();
@@ -422,7 +422,7 @@ void CDROM::cmdSeekP() {
 }
 
 void CDROM::cmdGetlocL() {
-    if (trackType != utils::Track::Type::DATA || rawSector.empty()) {
+    if (trackType != disc::TrackType::DATA || rawSector.empty()) {
         CDROM_interrupt.push_back(5);
         writeResponse(0x80);
         return;
@@ -451,13 +451,13 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    auto pos = utils::Position::fromLba(readSector);
+    auto pos = disc::Position::fromLba(readSector);
 
-    int track = cue.getTrackByPosition(pos);
-    auto posInTrack = pos - cue.getTrackStart(track);
+    int track = disc->getTrackByPosition(pos);
+    auto posInTrack = pos - disc->getTrackStart(track);
 
     CDROM_interrupt.push_back(3);
-    writeResponse(track);                      // track
+    writeResponse(bcd::toBcd(track));          // track
     writeResponse(0x01);                       // index
     writeResponse(bcd::toBcd(posInTrack.mm));  // minute (track)
     writeResponse(bcd::toBcd(posInTrack.ss));  // second (track)
@@ -478,8 +478,8 @@ void CDROM::cmdGetlocP() {
 void CDROM::cmdGetTN() {
     CDROM_interrupt.push_back(3);
     writeResponse(stat._reg);
-    writeResponse(0x01);
-    writeResponse((uint8_t)cue.getTrackCount());
+    writeResponse(bcd::toBcd(0x01));
+    writeResponse(bcd::toBcd(disc->getTrackCount()));
 
     if (verbose) {
         printf("CDROM: cmdGetTN -> (");
@@ -496,18 +496,18 @@ void CDROM::cmdGetTD() {
     writeResponse(stat._reg);
     if (track == 0)  // end of last track
     {
-        auto diskSize = cue.getDiskSize();
+        auto diskSize = disc->getDiskSize();
         if (verbose) printf("GetTD(0): minute: %d, second: %d\n", diskSize.mm, diskSize.ss);
 
         writeResponse(bcd::toBcd(diskSize.mm));
         writeResponse(bcd::toBcd(diskSize.ss));
     } else {  // Start of n track
-        if (track > (int)cue.getTrackCount()) {
+        if (track > (int)disc->getTrackCount()) {
             // Error
             return;
         }
 
-        auto start = cue.getTrackStart(track);
+        auto start = disc->getTrackStart(track);
 
         if (verbose) printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
         writeResponse(bcd::toBcd(start.mm));
@@ -574,14 +574,14 @@ void CDROM::cmdGetId() {
     }
 
     // No CD
-    if (cue.getTrackCount() == 0) {
+    if (disc->getTrackCount() == 0) {
         CDROM_interrupt.push_back(5);
         writeResponse(0x08);
         writeResponse(0x40);
         for (int i = 0; i < 6; i++) writeResponse(0);
     }
     // Audio CD
-    else if (cue.tracks[0].type == utils::Track::Type::AUDIO) {
+    else if (disc->read(disc::Position(0, 2, 0)).second == disc::TrackType::AUDIO) {
         CDROM_interrupt.push_back(5);
         writeResponse(0x0a);
         writeResponse(0x90);

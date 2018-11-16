@@ -5,6 +5,7 @@
 #include "debugger/debugger.h"
 #include "gui.h"
 #include "imgui/imgui_memory_editor.h"
+#include "utils/file.h"
 #include "utils/string.h"
 
 extern bool showVramWindow;

@@ -3,8 +3,8 @@
 #include "utils/file.h"
 #include "utils/string.h"
 
-namespace utils {
-
+namespace disc {
+    namespace format{
 bool CueParser::parseFile(std::string& line) {
     std::smatch matches;
     regex_search(line, matches, regexFile);
@@ -142,14 +142,14 @@ void CueParser::fixTracksLength() {
     }
 }
 
-Track::Type CueParser::matchTrackType(const std::string& s) const {
-    if (s == "MODE2/2352") return Track::Type::DATA;
-    if (s == "AUDIO") return Track::Type::AUDIO;
+disc::TrackType CueParser::matchTrackType(const std::string& s) const {
+    if (s == "MODE2/2352") return disc::TrackType::DATA;
+    if (s == "AUDIO") return disc::TrackType::AUDIO;
 
     throw ParsingException(string_format("Unsupported track type %s", s.c_str()));
 }
 
-std::optional<Cue> CueParser::parse(const char* path) {
+std::unique_ptr<Cue> CueParser::parse(const char* path) {
     cuePath = getPath(path);
     auto contents = getFileContentsAsString(path);
     if (contents.empty()) {
@@ -180,6 +180,7 @@ std::optional<Cue> CueParser::parse(const char* path) {
     }
 
     if (cue.getTrackCount() == 0) return {};
-    return cue;
+    return std::make_unique<Cue>(cue);
 }
+    };
 }  // namespace utils
