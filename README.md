@@ -81,4 +81,4 @@ See appveyor.yml in case of problems.
 
 Use [GitHub issue tracker](https://github.com/JaCzekanski/Avocado/issues) to file bugs. Please attach [Game ID](http://redump.org/discs/system/psx/), screenshots/video, BIOS and build version.
 
-See [Game compability list](https://github.com/JaCzekanski/Avocado/wiki/Compability) before creating a bug issue.
+See [Game compability list](https://literalmente-game.github.io/compatibility_lists/avocado.html) before creating a bug issue.
