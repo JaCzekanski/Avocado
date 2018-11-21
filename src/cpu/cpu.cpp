@@ -49,6 +49,15 @@ void CPU::moveLoadDelaySlots() {
 #endif
 }
 
+void CPU::invalidateSlot(uint32_t r) {
+#ifdef ENABLE_LOAD_DELAY_SLOTS
+    // TODO: Remove branching in delay slots to improve performance
+    if (slots[0].reg == r) {
+        slots[0].reg = 0;
+    }
+#endif
+}
+
 bool CPU::executeInstructions(int count) {
     checkForInterrupts();
     for (int i = 0; i < count; i++) {

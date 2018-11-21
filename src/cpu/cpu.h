@@ -1,9 +1,9 @@
 #pragma once
+#include <array>
 #include <cstdint>
 #include <unordered_map>
 #include "cpu/cop0.h"
 #include "cpu/gte/gte.h"
-#include <array>
 
 struct System;
 
@@ -62,6 +62,7 @@ struct CPU {
     CPU(System* sys);
     void checkForInterrupts();
     void moveLoadDelaySlots();
+    void invalidateSlot(uint32_t r);
 
     void loadDelaySlot(uint32_t r, uint32_t data);
     bool executeInstructions(int count);

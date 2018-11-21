@@ -214,27 +214,43 @@ void special(CPU *cpu, Opcode i) {
 // SLL rd, rt, a
 void op_sll(CPU *cpu, Opcode i) {
     cpu->reg[i.rd] = cpu->reg[i.rt] << i.sh;
+    cpu->invalidateSlot(i.rd);
 }
 
 // Shift Word Right Logical
 // SRL rd, rt, a
-void op_srl(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rt] >> i.sh; }
+void op_srl(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rt] >> i.sh;
+    cpu->invalidateSlot(i.rd);
+}
 
 // Shift Word Right Arithmetic
 // SRA rd, rt, a
-void op_sra(CPU *cpu, Opcode i) { cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> i.sh; }
+void op_sra(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> i.sh;
+    cpu->invalidateSlot(i.rd);
+}
 
 // Shift Word Left Logical Variable
 // SLLV rd, rt, rs
-void op_sllv(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rt] << (cpu->reg[i.rs] & 0x1f); }
+void op_sllv(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rt] << (cpu->reg[i.rs] & 0x1f);
+    cpu->invalidateSlot(i.rd);
+}
 
 // Shift Word Right Logical Variable
 // SRLV rd, rt, a
-void op_srlv(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rt] >> (cpu->reg[i.rs] & 0x1f); }
+void op_srlv(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rt] >> (cpu->reg[i.rs] & 0x1f);
+    cpu->invalidateSlot(i.rd);
+}
 
 // Shift Word Right Arithmetic Variable
 // SRAV rd, rt, rs
-void op_srav(CPU *cpu, Opcode i) { cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> (cpu->reg[i.rs] & 0x1f); }
+void op_srav(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = ((int32_t)cpu->reg[i.rt]) >> (cpu->reg[i.rs] & 0x1f);
+    cpu->invalidateSlot(i.rd);
+}
 
 // Jump Register
 // JR rs
@@ -253,6 +269,7 @@ void op_jr(CPU *cpu, Opcode i) {
 void op_jalr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
     cpu->reg[i.rd] = cpu->PC + 8;
+    cpu->invalidateSlot(i.rd);
     if (addr & 3) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
@@ -274,7 +291,10 @@ void op_break(CPU *cpu, Opcode i) { exception(cpu, COP0::CAUSE::Exception::break
 
 // Move From Hi
 // MFHI rd
-void op_mfhi(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->hi; }
+void op_mfhi(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->hi;
+    cpu->invalidateSlot(i.rd);
+}
 
 // Move To Hi
 // MTHI rd
@@ -282,7 +302,10 @@ void op_mthi(CPU *cpu, Opcode i) { cpu->hi = cpu->reg[i.rs]; }
 
 // Move From Lo
 // MFLO rd
-void op_mflo(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->lo; }
+void op_mflo(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->lo;
+    cpu->invalidateSlot(i.rd);
+}
 
 // Move To Lo
 // MTLO rd
@@ -346,11 +369,15 @@ void op_add(CPU *cpu, Opcode i) {
         return;
     }
     cpu->reg[i.rd] = result;
+    cpu->invalidateSlot(i.rd);
 }
 
 // Add unsigned
 // addu rd, rs, rt
-void op_addu(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt]; }
+void op_addu(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rs] + cpu->reg[i.rt];
+    cpu->invalidateSlot(i.rd);
+}
 
 // Subtract
 // sub rd, rs, rt
@@ -364,27 +391,43 @@ void op_sub(CPU *cpu, Opcode i) {
         return;
     }
     cpu->reg[i.rd] = result;
+    cpu->invalidateSlot(i.rd);
 }
 
 // Subtract unsigned
 // subu rd, rs, rt
-void op_subu(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt]; }
+void op_subu(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rs] - cpu->reg[i.rt];
+    cpu->invalidateSlot(i.rd);
+}
 
 // And
 // and rd, rs, rt
-void op_and(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rs] & cpu->reg[i.rt]; }
+void op_and(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rs] & cpu->reg[i.rt];
+    cpu->invalidateSlot(i.rd);
+}
 
 // Or
 // OR rd, rs, rt
-void op_or(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rs] | cpu->reg[i.rt]; }
+void op_or(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rs] | cpu->reg[i.rt];
+    cpu->invalidateSlot(i.rd);
+}
 
 // Xor
 // XOR rd, rs, rt
-void op_xor(CPU *cpu, Opcode i) { cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt]; }
+void op_xor(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = cpu->reg[i.rs] ^ cpu->reg[i.rt];
+    cpu->invalidateSlot(i.rd);
+}
 
 // Nor
 // NOR rd, rs, rt
-void op_nor(CPU *cpu, Opcode i) { cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]); }
+void op_nor(CPU *cpu, Opcode i) {
+    cpu->reg[i.rd] = ~(cpu->reg[i.rs] | cpu->reg[i.rt]);
+    cpu->invalidateSlot(i.rd);
+}
 
 // Set On Less Than Signed
 // SLT rd, rs, rt
@@ -393,6 +436,8 @@ void op_slt(CPU *cpu, Opcode i) {
         cpu->reg[i.rd] = 1;
     else
         cpu->reg[i.rd] = 0;
+
+    cpu->invalidateSlot(i.rd);
 }
 
 // Set On Less Than Unsigned
@@ -402,6 +447,8 @@ void op_sltu(CPU *cpu, Opcode i) {
         cpu->reg[i.rd] = 1;
     else
         cpu->reg[i.rd] = 0;
+
+    cpu->invalidateSlot(i.rd);
 }
 
 /**
@@ -498,11 +545,15 @@ void op_addi(CPU *cpu, Opcode i) {
         return;
     }
     cpu->reg[i.rt] = result;
+    cpu->invalidateSlot(i.rt);
 }
 
 // Add Immediate Unsigned Word
 // ADDIU rt, rs, imm
-void op_addiu(CPU *cpu, Opcode i) { cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset; }
+void op_addiu(CPU *cpu, Opcode i) {
+    cpu->reg[i.rt] = cpu->reg[i.rs] + i.offset;
+    cpu->invalidateSlot(i.rt);
+}
 
 // Set On Less Than Immediate
 // SLTI rd, rs, rt
@@ -511,6 +562,8 @@ void op_slti(CPU *cpu, Opcode i) {
         cpu->reg[i.rt] = 1;
     else
         cpu->reg[i.rt] = 0;
+
+    cpu->invalidateSlot(i.rt);
 }
 
 // Set On Less Than Immediate Unsigned
@@ -520,23 +573,37 @@ void op_sltiu(CPU *cpu, Opcode i) {
         cpu->reg[i.rt] = 1;
     else
         cpu->reg[i.rt] = 0;
+
+    cpu->invalidateSlot(i.rt);
 }
 
 // And Immediate
 // ANDI rt, rs, imm
-void op_andi(CPU *cpu, Opcode i) { cpu->reg[i.rt] = cpu->reg[i.rs] & i.imm; }
+void op_andi(CPU *cpu, Opcode i) {
+    cpu->reg[i.rt] = cpu->reg[i.rs] & i.imm;
+    cpu->invalidateSlot(i.rt);
+}
 
 // Or Immediete
 // ORI rt, rs, imm
-void op_ori(CPU *cpu, Opcode i) { cpu->reg[i.rt] = cpu->reg[i.rs] | i.imm; }
+void op_ori(CPU *cpu, Opcode i) {
+    cpu->reg[i.rt] = cpu->reg[i.rs] | i.imm;
+    cpu->invalidateSlot(i.rt);
+}
 
 // Xor Immediate
 // XORI rt, rs, imm
-void op_xori(CPU *cpu, Opcode i) { cpu->reg[i.rt] = cpu->reg[i.rs] ^ i.imm; }
+void op_xori(CPU *cpu, Opcode i) {
+    cpu->reg[i.rt] = cpu->reg[i.rs] ^ i.imm;
+    cpu->invalidateSlot(i.rt);
+}
 
 // Load Upper Immediate
 // LUI rt, imm
-void op_lui(CPU *cpu, Opcode i) { cpu->reg[i.rt] = i.imm << 16; }
+void op_lui(CPU *cpu, Opcode i) {
+    cpu->reg[i.rt] = i.imm << 16;
+    cpu->invalidateSlot(i.rt);
+}
 
 // Coprocessor zero
 void op_cop0(CPU *cpu, Opcode i) {
@@ -554,6 +621,7 @@ void op_cop0(CPU *cpu, Opcode i) {
                 case 15: cpu->reg[i.rt] = cpu->cop0.revId; break;
                 default: cpu->reg[i.rt] = 0; break;
             }
+            cpu->invalidateSlot(i.rt);
             break;
 
         case 4:
@@ -573,7 +641,7 @@ void op_cop0(CPU *cpu, Opcode i) {
                     cpu->cop0.cause._reg &= ~0x300;
                     cpu->cop0.cause._reg |= (cpu->reg[i.rt] & 0x300);
                     break;
-                default: cpu->reg[i.rt] = 0; break;
+                default: break;
             }
             break;
 
@@ -607,10 +675,12 @@ void op_cop2(CPU *cpu, Opcode i) {
         // Move data from co-processor two
         // MFC2 rt, <nn>
         cpu->reg[i.rt] = cpu->gte.read(i.rd);
+        cpu->invalidateSlot(i.rt);
     } else if (i.rs == 0x02) {
         // Move control from co-processor two
         // CFC2 rt, <nn>
         cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
+        cpu->invalidateSlot(i.rt);
     } else if (i.rs == 0x04) {
         // Move data to co-processor two
         // MTC2 rt, <nn>
@@ -806,9 +876,7 @@ void op_swc2(CPU *cpu, Opcode i) {
 }
 
 // Invalid coprocessor stub
-void invalid_cop(CPU *cpu, Opcode i) {
-    exception(cpu, COP0::CAUSE::Exception::busErrorData);
-}
+void invalid_cop(CPU *cpu, Opcode i) { exception(cpu, COP0::CAUSE::Exception::busErrorData); }
 
 // BREAKPOINT
 void op_breakpoint(CPU *cpu, Opcode i) {
