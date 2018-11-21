@@ -201,7 +201,10 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
         case 13: voices[voice].adsrVolume.write(reg - 12, data); return;
 
         case 14:
-        case 15: voices[voice].repeatAddress.write(reg - 14, data); return;
+        case 15:
+            voices[voice].repeatAddress.write(reg - 14, data);
+            voices[voice].ignoreLoadRepeatAddress = true;
+            return;
 
         default: return;
     }

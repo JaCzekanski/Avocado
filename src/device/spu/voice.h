@@ -23,6 +23,7 @@ struct Voice {
     ADSR adsr;
     Reg16 adsrVolume;
     Reg16 repeatAddress;
+    bool ignoreLoadRepeatAddress;
 
     Reg16 currentAddress;
     Counter counter;

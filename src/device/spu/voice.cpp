@@ -11,6 +11,7 @@ Voice::Voice() {
     adsrVolume._reg = 0;
     repeatAddress._reg = 0;
     currentAddress._reg = 0;
+    ignoreLoadRepeatAddress = false;
     counter._reg = 0;
     state = State::Off;
     loopEnd = false;
@@ -98,9 +99,15 @@ void Voice::parseFlags(uint8_t flags) {
 
 void Voice::keyOn() {
     adsrVolume._reg = 0;
+
     // INFO: Square games load repeatAddress before keyOn,
-    // setting it here to startAddress causes glitched sample repetitions
-    // repeatAddress._reg = startAddress._reg;
+    // setting it here to startAddress causes glitched sample repetitions.
+    // ignoreLoadRepeatAddress is set to true on write to repeatAddress register
+    if (!ignoreLoadRepeatAddress) {
+        repeatAddress._reg = startAddress._reg;
+        ignoreLoadRepeatAddress = false;
+    }
+
     currentAddress._reg = startAddress._reg;
     state = Voice::State::Attack;
     loopEnd = false;
