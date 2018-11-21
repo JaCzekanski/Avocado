@@ -4,9 +4,9 @@ namespace spu {
 
 int Envelope::getStep() const {
     if (direction == Direction::Increase) {
-        return 4 + step;
+        return 7 - step;
     } else {
-        return -step - 5;
+        return -8 + step;
     }
 }
 
@@ -35,7 +35,7 @@ Envelope ADSR::attack() {
 Envelope ADSR::decay() {
     Envelope e;
     e.level = (sustainLevel + 1) * 0x800;
-    e.step = 3;  // -8
+    e.step = 0;  // -8
     e.shift = decayShift;
     e.direction = Envelope::Direction::Decrease;
     e.mode = Envelope::Mode::Exponential;
@@ -55,7 +55,7 @@ Envelope ADSR::sustain() {
 Envelope ADSR::release() {
     Envelope e;
     e.level = 0;
-    e.step = 3;  // -8
+    e.step = 0;  // -8
     e.shift = releaseShift;
     e.direction = Envelope::Direction::Decrease;
     e.mode = static_cast<Envelope::Mode>(releaseMode);
