@@ -160,9 +160,7 @@ project "imgui"
 		"externals/glad/include",
 	}
 	files { 
-		"externals/imgui/imgui.cpp",
-		"externals/imgui/imgui_draw.cpp",
-		"externals/imgui/imgui_demo.cpp",
+		"externals/imgui/*.cpp",
 	}
 
 project "flac"

@@ -373,9 +373,11 @@ std::string formatOpcode(mips::Opcode &opcode) {
 
 void disassemblyWindow(System *sys) {
     static uint32_t startAddress = 0;
-    static bool lockAddress = false;
+    static char addressInput[10];
 
     ImGui::Begin("Disassembly", &showDisassemblyWindow, ImVec2(400, 500));
+
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 
     if (ImGui::Button(sys->state == System::State::run ? "Pause" : "Run")) {
         if (sys->state == System::State::run)
@@ -386,6 +388,7 @@ void disassemblyWindow(System *sys) {
     ImGui::SameLine();
     if (ImGui::Button("Step")) {
         sys->singleStep();
+        startAddress = sys->cpu->PC;
     }
     ImGui::SameLine();
     ImGui::Checkbox("Map register names", &debugger::mapRegisterNames);
@@ -393,37 +396,47 @@ void disassemblyWindow(System *sys) {
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
-    ImGui::Columns(4);
-    for (int i = 0; i < 34; i++) {
-        if (i == 0)
-            ImGui::Text("PC: 0x%08x", sys->cpu->PC);
-        else if (i == 32)
-            ImGui::Text("hi: 0x%08x", sys->cpu->hi);
-        else if (i == 33)
-            ImGui::Text("lo: 0x%08x", sys->cpu->lo);
-        else
-            ImGui::Text("%s: 0x%08x", debugger::reg(i).c_str(), sys->cpu->reg[i]);
 
-        ImGui::NextColumn();
+    // R0 - R31
+    ImGui::Columns(4);
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 4; x++) {
+            int i = x * 8 + y;
+            ImGui::Text("%4s: 0x%08x", debugger::reg(i).c_str(), sys->cpu->reg[i]);
+            ImGui::NextColumn();
+        }
     }
     ImGui::Columns(1);
+    ImGui::Separator();
 
+    ImGui::Text("PC: 0x%08x", sys->cpu->PC);
+
+    ImGui::Columns(1);
     ImGui::NewLine();
 
-    ImGui::BeginChild("Disassembly", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
-    if (!lockAddress) startAddress = sys->cpu->PC;
-    for (int i = -15; i < 15; i++) {
-        uint32_t address = (startAddress + i * 4) & 0xFFFFFFFC;
+    ImGui::BeginChild("Disassembly", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true, ImGuiWindowFlags_NoScrollbar);
+    int items = ImGui::GetWindowHeight() / (ImGui::GetTextLineHeightWithSpacing());
+    for (int64_t i = -items / 2; i < items / 2 - 1; i++) {
+        int64_t _address = startAddress + i * 4;
+        if (_address < 0 || _address > 0xffffffff) {
+            ImGui::NewLine();
+            continue;
+        }
+
+        uint32_t address = _address & 0xFFFFFFFC;
         mips::Opcode opcode(sys->readMemory32(address));
 
+        bool breakpointActive = sys->cpu->breakpoints.find(address) != sys->cpu->breakpoints.end();
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
-        if (i == 0)
+        if (address == sys->cpu->PC) {
             color = ImVec4(1.f, 1.f, 0.f, 1.f);
-        else if (sys->cpu->breakpoints.find(address) != sys->cpu->breakpoints.end())
+        } else if (breakpointActive) {
             color = ImVec4(1.f, 0.f, 0.f, 1.f);
+        }
         ImGui::PushStyleColor(ImGuiCol_Text, color);
 
-        if (ImGui::Selectable(string_format("0x%08x: %s", address, formatOpcode(opcode).c_str()).c_str())) {
+        if (ImGui::Selectable(
+                string_format("%c 0x%08x: %s", breakpointActive ? 'B' : ' ', address, formatOpcode(opcode).c_str()).c_str())) {
             auto bp = sys->cpu->breakpoints.find(address);
             if (bp == sys->cpu->breakpoints.end()) {
                 sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
@@ -447,14 +460,13 @@ void disassemblyWindow(System *sys) {
     ImGui::SameLine();
 
     ImGui::PushItemWidth(80.f);
-    char addressInput[10];
     if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
-        if (sscanf(addressInput, "%x", &startAddress) == 1)
-            lockAddress = true;
-        else if (strlen(addressInput) == 0)
-            lockAddress = false;
+        if (sscanf(addressInput, "%x", &startAddress) == 1) {
+        }
     }
     ImGui::PopItemWidth();
+
+    ImGui::PopFont();
 
     ImGui::End();
 }

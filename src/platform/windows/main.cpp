@@ -261,6 +261,7 @@ int main(int argc, char** argv) {
         config.OversampleH = 4;
         config.OversampleV = 4;
         io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", 16.0f, &config);
+        io.Fonts->AddFontDefault();
     }
 
     ImGuiStyle& style = ImGui::GetStyle();
@@ -291,6 +292,8 @@ int main(int argc, char** argv) {
 
         inputManager->newFrame();
         while (newEvent || SDL_PollEvent(&event)) {
+            ImGui_ImplSdlGL3_ProcessEvent(&event);
+
             newEvent = false;
             if (inputManager->handleEvent(event)) continue;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
@@ -342,8 +345,6 @@ int main(int argc, char** argv) {
                 opengl.width = event.window.data1;
                 opengl.height = event.window.data2;
             }
-
-            ImGui_ImplSdlGL3_ProcessEvent(&event);
         }
 
         if (doHardReset) {
