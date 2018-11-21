@@ -8,7 +8,7 @@ std::array<int8_t, 64> noise_addition = {
 	 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1,
 	 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1}};
 
-std::array<int8_t, 5> noise_halfcycle = {{0, 84, 140, 180, 210}};
+std::array<uint8_t, 5> noise_halfcycle = {{0, 84, 140, 180, 210}};
 };
 
 namespace spu {

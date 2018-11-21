@@ -50,7 +50,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         float sample;
 
 		if (voice.mode == Voice::Mode::Noise) {
-            sample = intToFloat(noise.getNoiseLevel());
+			sample = intToFloat(noise.getNoiseLevel());
 		} else if (forceInterpolationOff) {
             sample = intToFloat(voice.decodedSamples[voice.counter.sample]);
         } else {
