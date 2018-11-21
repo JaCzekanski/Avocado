@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include "device/device.h"
+#include "noise.h"
 #include "regs.h"
 #include "voice.h"
 
@@ -30,6 +31,8 @@ struct SPU {
     DataTransferControl dataTransferControl;
     Control control;
     Reg16 SPUSTAT;
+
+	Noise noise;
 
     Reg32 _keyOn;
     Reg32 _keyOff;

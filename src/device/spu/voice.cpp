@@ -89,7 +89,7 @@ void Voice::parseFlags(uint8_t flags) {
         loopEnd = true;
         loadRepeatAddress = true;
 
-        if (!(flags & ADPCM::Flag::Repeat)) {
+        if (!(flags & ADPCM::Flag::Repeat) && mode != Mode::Noise) {
             adsrVolume._reg = 0;
             keyOff();
         }

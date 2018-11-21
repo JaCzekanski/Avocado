@@ -19,6 +19,9 @@ SPU::SPU(System* sys) : sys(sys) {
 void SPU::step(device::cdrom::CDROM* cdrom) {
     float sumLeft = 0, sumReverbLeft = 0;
     float sumRight = 0, sumReverbRight = 0;
+
+	noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
+
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
 
@@ -45,7 +48,10 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         if (step > 0x3fff) step = 0x4000;
 
         float sample;
-        if (forceInterpolationOff) {
+
+		if (voice.mode == Voice::Mode::Noise) {
+            sample = intToFloat(noise.getNoiseLevel());
+		} else if (forceInterpolationOff) {
             sample = intToFloat(voice.decodedSamples[voice.counter.sample]);
         } else {
             sample = intToFloat(spu::interpolate(voice, voice.counter.sample, voice.counter.index));
@@ -380,9 +386,6 @@ void SPU::write(uint32_t address, uint8_t data) {
         noiseEnabled.write(address - 0x1F801D94, data);
 
         if (address == 0x1F801D97) {
-            if (noiseEnabled._reg != 0) {
-                printf("[SPU] Game uses noise channels, sound might be invalid\n");
-            }
             for (int v = 0; v < VOICE_COUNT; v++) {
                 voices[v].mode = noiseEnabled.getBit(v) ? Voice::Mode::Noise : Voice::Mode::ADSR;
             }
