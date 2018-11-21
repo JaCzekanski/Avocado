@@ -28,6 +28,22 @@ struct COP0 {
             uint32_t isInDelaySlot : 1;
         };
 
+        const char* getExceptionName() const {
+            switch (exception) {
+                case Exception::interrupt: return "interrupt";
+                case Exception::addressErrorLoad: return "addressErrorLoad";
+                case Exception::addressErrorStore: return "addressErrorStore";
+                case Exception::busErrorInstruction: return "busErrorInstruction";
+                case Exception::busErrorData: return "busErrorData";
+                case Exception::syscall: return "syscall";
+                case Exception::breakpoint: return "breakpoint";
+                case Exception::reservedInstruction: return "reservedInstruction";
+                case Exception::coprocessorUnusable: return "coprocessorUnusable";
+                case Exception::arithmeticOverflow: return "arithmeticOverflow";
+                default: return "unknown";
+            }
+        }
+
         uint32_t _reg;
         CAUSE() : _reg(0) {}
     };

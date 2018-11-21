@@ -2,8 +2,10 @@
 #include <cstdint>
 #include <functional>
 #include <unordered_map>
+#include "debugger/debugger.h"
 #include "system.h"
 #include "utils/string.h"
+#include "utils/log.h"
 
 namespace bios {
 
@@ -96,6 +98,30 @@ inline bool haltSystem(System* sys) {
     return true;
 }
 
+inline bool unresolvedException(System* sys) {
+    const int howManyInstructionsToDisassemble = 6;
+    auto cause = sys->cpu->cop0.cause;
+    uint32_t epc = sys->cpu->cop0.epc;
+
+    log::printf("🔴[EMU] Unresolved exception⚪️: 🅱️%s❌‍⚪️ (%u), epc=🔵0x%08x⚪️, ra=🔵0x%08x\n",
+                cause.getExceptionName(), cause.exception, epc, sys->cpu->reg[31]);
+    for (uint32_t addr = epc - howManyInstructionsToDisassemble * 4; addr <= epc; addr += 4) {
+        auto opcode = mips::Opcode(sys->readMemory32(addr));
+        auto ins = debugger::decodeInstruction(opcode);
+
+        if (addr == epc) {
+            ins.parameters += "🅱️     <---- Caused the exception";
+        }
+
+        log::printf("🔵0x%08x:⚪️ %-8s %s\n", addr, ins.mnemonic.c_str(), ins.parameters.c_str());
+    }
+    log::printf("🔴This is most likely bug in the Avocado, please report it.\n");
+    log::printf("🔴 🅱️Emulation stopped.\n");
+
+    sys->state = System::State::halted;
+    return false;
+}
+
 const std::unordered_map<uint8_t, Function> A0 = {
     {0x00, {"FileOpen(const char* file, int mode)"}},
     {0x01, {"FileSeek(FILE* file, int offset, int origin)"}},
@@ -161,7 +187,7 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x3D, {"std_in_gets(void* dst)"}},
     {0x3E, {"std_out_puts(const char* src)", dbgOutputString}},
     {0x3F, {"printf(const char* fmt)", noLog}},
-    {0x40, {"SystemErrorUnresolvedException()", haltSystem}},
+    {0x40, {"SystemErrorUnresolvedException()", unresolvedException}},
     {0x41, {"LoadExeHeader(const char* filename, void* headerbuf)"}},
     {0x42, {"LoadExeFile(const char* filename, void* headerbuf)"}},
     {0x43, {"DoExecute(void* header, int param1, int param2)"}},
@@ -309,35 +335,37 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x5D, {"wait_card_status(int slot)"}},
 };
 
-const std::unordered_map<uint8_t, Function> C0 = {{0x00, {"EnqueueTimerAndVblankIrqs(int priority)"}},
-                                                  {0x01, {"EnqueueSyscallHandler(int priority)"}},
-                                                  {0x02, {"SysEnqIntRP(int priority, void* struc)"}},  // ;bugged, use with care
-                                                  {0x03, {"SysDeqIntRP(int priority, void* struc)"}},  // ;bugged, use with care
-                                                  {0x04, {"get_free_EvCB_slot()"}},
-                                                  {0x05, {"get_free_TCB_slot()"}},
-                                                  {0x06, {"ExceptionHandler()"}},
-                                                  {0x07, {"InstallExceptionHandlers()"}},  //   ;destroys/uses k0/k1
-                                                  {0x08, {"SysInitMemory(void* addr, int size)"}},
-                                                  {0x09, {"SysInitKernelVariables()"}},
-                                                  {0x0A, {"ChangeClearRCnt(int t, int flag)"}},
-                                                  {0x0B, {"SystemError()", haltSystem}},  //  ;PS2: return 0
-                                                  {0x0C, {"InitDefInt(int priority)"}},
-                                                  {0x0D, {"SetIrqAutoAck(int irq, int flag)"}},
-                                                  {0x0E, {"return_0()"}},  //               ;DTL-H2000: dev_sio_init
-                                                  {0x0F, {"return_0()"}},  //               ;DTL-H2000: dev_sio_open
-                                                  {0x10, {"return_0()"}},  //               ;DTL-H2000: dev_sio_in_out
-                                                  {0x11, {"return_0()"}},  //               ;DTL-H2000: dev_sio_ioctl
-                                                  {0x12, {"InstallDevices(int ttyflag)"}},
-                                                  {0x13, {"FlushStdInOutPut()"}},
-                                                  {0x14, {"return 0()"}},  //               ;DTL-H2000: SystemError
-                                                  {0x15, {"tty_cdevinput(int circ, char c)"}},
-                                                  {0x16, {"tty_cdevscan()"}},
-                                                  {0x17, {"tty_circgetc(int circ)"}},  //    ;uses r5 as garbage txt for ioabort
-                                                  {0x18, {"tty_circputc(char c, int circ)"}},
-                                                  {0x19, {"ioabort(const char* txt1, const char* txt2)"}},
-                                                  {0x1A, {"set_card_find_mode(int mode)"}},  // ;0=normal, 1=find deleted files
-                                                  {0x1B, {"KernelRedirect(int ttyflag)"}},   // ;PS2: ttyflag=1 causes SystemError
-                                                  {0x1C, {"AdjustA0Table()"}},
-                                                  {0x1D, {"get_card_find_mode()"}}};
+const std::unordered_map<uint8_t, Function> C0 = {//
+    {0x00, {"EnqueueTimerAndVblankIrqs(int priority)"}},
+    {0x01, {"EnqueueSyscallHandler(int priority)"}},
+    {0x02, {"SysEnqIntRP(int priority, void* struc)"}},  // ;bugged, use with care
+    {0x03, {"SysDeqIntRP(int priority, void* struc)"}},  // ;bugged, use with care
+    {0x04, {"get_free_EvCB_slot()"}},
+    {0x05, {"get_free_TCB_slot()"}},
+    {0x06, {"ExceptionHandler()"}},
+    {0x07, {"InstallExceptionHandlers()"}},  //   ;destroys/uses k0/k1
+    {0x08, {"SysInitMemory(void* addr, int size)"}},
+    {0x09, {"SysInitKernelVariables()"}},
+    {0x0A, {"ChangeClearRCnt(int t, int flag)"}},
+    {0x0B, {"SystemError()", haltSystem}},  //  ;PS2: return 0
+    {0x0C, {"InitDefInt(int priority)"}},
+    {0x0D, {"SetIrqAutoAck(int irq, int flag)"}},
+    {0x0E, {"return_0()"}},  //               ;DTL-H2000: dev_sio_init
+    {0x0F, {"return_0()"}},  //               ;DTL-H2000: dev_sio_open
+    {0x10, {"return_0()"}},  //               ;DTL-H2000: dev_sio_in_out
+    {0x11, {"return_0()"}},  //               ;DTL-H2000: dev_sio_ioctl
+    {0x12, {"InstallDevices(int ttyflag)"}},
+    {0x13, {"FlushStdInOutPut()"}},
+    {0x14, {"return 0()"}},  //               ;DTL-H2000: SystemError
+    {0x15, {"tty_cdevinput(int circ, char c)"}},
+    {0x16, {"tty_cdevscan()"}},
+    {0x17, {"tty_circgetc(int circ)"}},  //    ;uses r5 as garbage txt for ioabort
+    {0x18, {"tty_circputc(char c, int circ)"}},
+    {0x19, {"ioabort(const char* txt1, const char* txt2)"}},
+    {0x1A, {"set_card_find_mode(int mode)"}},  // ;0=normal, 1=find deleted files
+    {0x1B, {"KernelRedirect(int ttyflag)"}},   // ;PS2: ttyflag=1 causes SystemError
+    {0x1C, {"AdjustA0Table()"}},
+    {0x1D, {"get_card_find_mode()"}}
+};
 
 };  // namespace bios
