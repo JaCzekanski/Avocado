@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
+#include "disc/empty.h"
 #include "sound/adpcm.h"
 #include "system.h"
 #include "utils/bcd.h"
@@ -11,7 +12,10 @@
 namespace device {
 namespace cdrom {
 
-CDROM::CDROM(System* sys) : sys(sys) { verbose = config["debug"]["log"]["cdrom"]; }
+CDROM::CDROM(System* sys) : sys(sys) {
+    verbose = config["debug"]["log"]["cdrom"];
+    disc = std::make_unique<disc::Empty>();
+}
 
 void CDROM::step() {
     status.transmissionBusy = 0;
