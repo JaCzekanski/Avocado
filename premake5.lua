@@ -322,9 +322,9 @@ project "avocado"
 	links {
 		"common",
 		"miniz",
+		"chdr",
 		"lzma",
 		"flac",
-		"chdr",
 	}
 
 	filter "system:windows" 

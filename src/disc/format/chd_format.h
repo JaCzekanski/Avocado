@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "chd.h"
 #include "disc/disc.h"
 #include "disc/track.h"

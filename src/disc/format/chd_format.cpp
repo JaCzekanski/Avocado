@@ -1,4 +1,5 @@
 #include "chd_format.h"
+#include <cstring>
 #include "disc/track.h"
 #include "utils/file.h"
 #include "utils/string.h"
