@@ -8,6 +8,8 @@ matrix:
       cache: ccache
       install: "./.travis/linux/pull-container.sh"
       script: "./.travis/linux/run-container.sh"
+      after_success: "./.travis/linux/notify-discord.sh success $WEBHOOK_URL"
+      after_failure: "./.travis/linux/notify-discord.sh failure $WEBHOOK_URL"
 
 notifications:
   - email: false
