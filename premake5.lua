@@ -360,6 +360,7 @@ project "avocado"
 			"src/platform/windows/**.*"
 		}
 		links { 
+			"stdc++fs", -- for experimental/filesystem
 			"glad",
 			"imgui",
 		}

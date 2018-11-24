@@ -8,9 +8,9 @@
 #include "utils/file.h"
 #include "utils/string.h"
 
-#ifdef _WIN32
-#include <filesystem>
-using namespace std::experimental::filesystem::v1;
+#if defined(_WIN32) || defined(__linux__)
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 #endif
 
 bool showGraphicsOptionsWindow = false;
@@ -140,12 +140,12 @@ void biosSelectionWindow() {
     static std::vector<std::string> bioses;
     static int selectedBios = 0;
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
     if (!biosesFound) {
         bioses.clear();
-        auto dir = directory_iterator("data/bios");
+        auto dir = fs::directory_iterator("data/bios");
         for (auto& e : dir) {
-            if (!is_regular_file(e)) continue;
+            if (!fs::is_regular_file(e)) continue;
 
             auto path = e.path().string();
             auto ext = getExtension(path);
@@ -169,7 +169,7 @@ void biosSelectionWindow() {
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
     if (bioses.empty()) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__linux__)
         ImGui::Text(
             "BIOS directory is empty.\n"
             "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
