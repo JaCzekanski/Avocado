@@ -1,5 +1,7 @@
 #include "dma.h"
 #include <cstdio>
+#include "dma0_channel.h"
+#include "dma1_channel.h"
 #include "dma2_channel.h"
 #include "dma3_channel.h"
 #include "dma4_channel.h"
@@ -8,8 +10,8 @@
 
 namespace device::dma {
 DMA::DMA(System* sys) : sys(sys) {
-    dma[0] = std::make_unique<dmaChannel::DMAChannel>(0, sys);
-    dma[1] = std::make_unique<dmaChannel::DMAChannel>(1, sys);
+    dma[0] = std::make_unique<dmaChannel::DMA0Channel>(0, sys, sys->mdec.get());
+    dma[1] = std::make_unique<dmaChannel::DMA1Channel>(1, sys, sys->mdec.get());
     dma[2] = std::make_unique<dmaChannel::DMA2Channel>(2, sys, sys->gpu.get());
     dma[3] = std::make_unique<dmaChannel::DMA3Channel>(3, sys, sys->cdrom.get());
     dma[4] = std::make_unique<dmaChannel::DMA4Channel>(4, sys, sys->spu.get());

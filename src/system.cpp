@@ -17,13 +17,13 @@ System::System() {
     cpu = std::make_unique<mips::CPU>(this);
     gpu = std::make_unique<gpu::GPU>();
     spu = std::make_unique<spu::SPU>(this);
+    mdec = std::make_unique<MDEC>();
 
     cdrom = std::make_unique<device::cdrom::CDROM>(this);
     controller = std::make_unique<device::controller::Controller>(this);
     dma = std::make_unique<device::dma::DMA>(this);
     expansion2 = std::make_unique<Expansion2>();
     interrupt = std::make_unique<Interrupt>(this);
-    mdec = std::make_unique<MDEC>();
     memoryControl = std::make_unique<MemoryControl>();
     serial = std::make_unique<Serial>();
     timer0 = std::make_unique<Timer<0>>(this);
