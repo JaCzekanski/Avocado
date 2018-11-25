@@ -1,8 +1,8 @@
 #include "dma0_channel.h"
-#include "device/mdec.h"
+#include "device/mdec/mdec.h"
 
 namespace device::dma::dmaChannel {
-DMA0Channel::DMA0Channel(int channel, System* sys, MDEC* mdec) : DMAChannel(channel, sys), mdec(mdec) {}
+DMA0Channel::DMA0Channel(int channel, System* sys, mdec::MDEC* mdec) : DMAChannel(channel, sys), mdec(mdec) {}
 
 uint32_t DMA0Channel::readDevice() { return 0; }
 

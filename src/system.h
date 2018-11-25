@@ -7,7 +7,7 @@
 #include "device/expansion2.h"
 #include "device/gpu/gpu.h"
 #include "device/interrupt.h"
-#include "device/mdec.h"
+#include "device/mdec/mdec.h"
 #include "device/memory_control.h"
 #include "device/serial.h"
 #include "device/spu/spu.h"
@@ -89,7 +89,7 @@ struct System {
     std::unique_ptr<Expansion2> expansion2;
     std::unique_ptr<gpu::GPU> gpu;
     std::unique_ptr<Interrupt> interrupt;
-    std::unique_ptr<MDEC> mdec;
+    std::unique_ptr<mdec::MDEC> mdec;
     std::unique_ptr<MemoryControl> memoryControl;
     std::unique_ptr<spu::SPU> spu;
     std::unique_ptr<Serial> serial;

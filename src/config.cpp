@@ -169,7 +169,8 @@ const json defaultConfig = {
             { "cdrom", 0u },
             { "memoryCard", 1u },
             { "controller", 1u },
-            { "dma", 0u }
+            { "dma", 0u },
+            { "mdec", 0u }
         }}
     }},
     {"memoryCard", {
