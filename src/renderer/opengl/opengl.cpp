@@ -187,6 +187,8 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
     renderFramebuffer->bind();
     glViewport(0, 0, renderWidth, renderHeight);
 
+    // Copy previous Screen state
+
     // Render
     auto mapType = [](int type) {
         if (type == gpu::Vertex::Type::Line)

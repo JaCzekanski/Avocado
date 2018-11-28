@@ -16,19 +16,42 @@ void MDEC::reset() {
 
     cmd = Commands::None;
 
-    output.resize(0x20 * 0x5a * 20);
     outputPtr = 0;
 }
 
+int part = 0;
 uint32_t MDEC::read(uint32_t address) {
     if (address < 4) {
-        uint32_t data = output[outputPtr];
-        if (++outputPtr >= output.size()) {
+        // 0:  r B G R
+        // 1:  G R b g
+        // 2:  b g r B
+        // 3:    B G R  <- cycle continues
+
+        uint32_t data;
+        if (part == 0)
+            data = (output[outputPtr] & 0xffffff) | ((output[outputPtr + 1] & 0xff) << 24);
+        else if (part == 1)
+            data = ((output[outputPtr + 1] & 0xffff00) >> 8) | ((output[outputPtr + 2] & 0xffff) << 16);
+        else if (part == 2)
+            data = ((output[outputPtr + 2] & 0xff0000) >> 16) | ((output[outputPtr + 3] & 0xffffff) << 8);
+
+        if (part == 2) {
+            part = 0;
+            outputPtr += 4;
+        } else {
+            part++;
+        }
+
+        if (outputPtr >= output.size()) {
             outputPtr = 0;
         }
         return data;
     }
     if (address >= 4 && address < 8) {
+        // TODO: Handle fifo bits
+        status.dataOutFifoEmpty = outputPtr >= output.size();
+        status.dataInFifoFull = 0;
+        status.commandBusy = 0;
         return status._reg;
     }
 
@@ -42,13 +65,15 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
         case 1:  // Decode macroblock
             this->cmd = Commands::DecodeMacroblock;
 
-            // for (auto& d : output) {
-            //     d = rand();
-            // }
             status.colorDepth = static_cast<Status::ColorDepth>((data & 0x18000000) >> 27);
             status.outputSigned = (data & (1 << 26)) != 0;
             status.outputSetBit15 = (data & (1 << 25)) != 0;
             paramCount = data & 0xffff;
+
+            input.resize(paramCount * 2);  // 16bit, so paramCount * 2
+            outputPtr = 0;
+            part = 0;
+            output.resize(0);
 
             status.commandBusy = true;
 
@@ -71,13 +96,13 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
 
             if (verbose) printf("[MDEC] Set Quant table (color: %d)\n", color);
             break;
-        case 3:  // Set Scale table
-            this->cmd = Commands::SetScaleTable;
+        case 3:
+            this->cmd = Commands::SetIDCT;
 
             paramCount = 64 / 2;  // 64 uint16_t
             status.commandBusy = true;
 
-            if (verbose) printf("[MDEC] Set Scale table\n");
+            if (verbose) printf("[MDEC] Set IDCT table\n");
             break;
         default: this->cmd = Commands::None; break;
     }
@@ -88,7 +113,16 @@ void MDEC::write(uint32_t address, uint32_t data) {
     if (address < 4) {
         if (paramCount != 0) {
             switch (cmd) {
-                case Commands::DecodeMacroblock: break;
+                case Commands::DecodeMacroblock:
+                    // Macroblock consist of
+                    input[cnt * 2] = data & 0xffff;
+                    input[cnt * 2 + 1] = (data >> 16) & 0xffff;
+                    if (paramCount == 1) {
+                        // TODO: Pass macroblock, not raw pointer
+                        decodeMacroblocks();
+                    }
+
+                    break;
 
                 case Commands::SetQuantTable: {
                     uint8_t* table;
@@ -109,9 +143,9 @@ void MDEC::write(uint32_t address, uint32_t data) {
                     break;
                 }
 
-                case Commands::SetScaleTable:
+                case Commands::SetIDCT:
                     for (int i = 0; i < 2; i++) {
-                        scaleTable[cnt * 2 + i] = data >> (i * 16);
+                        idctTable[cnt * 2 + i] = data >> (i * 16);
                     }
                     break;
 

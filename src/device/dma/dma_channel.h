@@ -36,7 +36,7 @@ union BCR {
 
 // DMA Channel Control
 union CHCR {
-    enum class TransferDirection : uint32_t { toMainRam = 0, fromMainRam = 1 };
+    enum class Direction : uint32_t { toRam = 0, fromRam = 1 };
     enum class MemoryAddressStep : uint32_t { forward = 0, backward = 1 };
     enum class SyncMode : uint32_t { startImmediately = 0, syncBlockToDmaRequests = 1, linkedListMode = 2 };
     enum class ChoppingEnable : uint32_t { normal = 0, chopping = 1 };
@@ -44,7 +44,7 @@ union CHCR {
     enum class StartTrigger : uint32_t { clear = 0, automatic = 0, manual = 1 };
 
     struct {
-        TransferDirection transferDirection : 1;
+        Direction direction : 1;
         MemoryAddressStep memoryAddressStep : 1;
         uint32_t : 6;
         ChoppingEnable choppingEnable : 1;
@@ -76,8 +76,10 @@ class DMAChannel {
     virtual uint32_t readDevice();
     virtual void writeDevice(uint32_t data);
 
+    const char* name();
+
    protected:
-    bool verbose = false;
+    int verbose;
 
    public:
     bool irqFlag = false;

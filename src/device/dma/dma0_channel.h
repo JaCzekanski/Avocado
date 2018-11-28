@@ -9,7 +9,6 @@ namespace device::dma::dmaChannel {
 class DMA0Channel : public DMAChannel {
     mdec::MDEC* mdec;
 
-    uint32_t readDevice() override;
     void writeDevice(uint32_t data) override;
 
    public:
