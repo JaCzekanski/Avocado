@@ -7,7 +7,13 @@ A Modern Playstation 1 emulator.
 
 If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitter.com/JaCzekanski)) or create an [Issue](https://github.com/JaCzekanski/Avocado/issues). There is also [Discord server](https://discord.gg/ATEJApR).
 
+## Compability
+
+See [Avocado compability list](https://avocado-db.czekanski.info)
+
 ## Changelog
+
+*8.12.2018* - created Compability list webapp
 
 *19.11.2018* - added .chd file support
 
@@ -29,7 +35,7 @@ AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/s
 
 *Note: x64 build requires [AVX compatible processor](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#CPUs_with_AVX)*
 
-Despite this emulator being in early development, some 3D games can run. [Game compability list](https://literalmente-game.github.io/compatibility_lists/avocado.html)
+Despite this emulator being in early development, some 3D games can run. [Game compability list](https://avocado-db.czekanski.info)
 
 
 Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make audio stutter**), MDEC is missing (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed). Many games won't boot or crash shortly after booting.
@@ -83,4 +89,4 @@ See appveyor.yml in case of problems.
 
 Use [GitHub issue tracker](https://github.com/JaCzekanski/Avocado/issues) to file bugs. Please attach [Game ID](http://redump.org/discs/system/psx/), screenshots/video, BIOS and build version.
 
-See [Game compability list](https://literalmente-game.github.io/compatibility_lists/avocado.html) before creating a bug issue.
+See [Game compability list](https://avocado-db.czekanski.info) before creating a bug issue.
