@@ -32,7 +32,9 @@ struct SPU {
     Control control;
     Reg16 SPUSTAT;
 
-	Noise noise;
+    uint32_t captureBufferIndex;
+
+    Noise noise;
 
     Reg32 _keyOn;
     Reg32 _keyOff;
@@ -59,6 +61,9 @@ struct SPU {
     void step(device::cdrom::CDROM* cdrom);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+
+    void memoryWrite8(uint32_t address, uint8_t data);
+    void memoryWrite16(uint32_t address, uint16_t data);
 
     void dumpRam();
 };

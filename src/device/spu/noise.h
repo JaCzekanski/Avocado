@@ -9,6 +9,6 @@ struct Noise {
     Noise();
     int16_t getNoiseLevel();
 
-	void doNoise(uint16_t step, uint16_t shift);
+    void doNoise(uint16_t step, uint16_t shift);
 };
 }  // namespace spu
