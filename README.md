@@ -9,11 +9,11 @@ If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitt
 
 ## Compability
 
-See [Avocado compability list](https://avocado-db.czekanski.info)
+See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
-*8.12.2018* - created Compability list webapp
+*8.12.2018* - created Compatibility list webapp
 
 *19.11.2018* - added .chd file support
 
@@ -89,4 +89,4 @@ See appveyor.yml in case of problems.
 
 Use [GitHub issue tracker](https://github.com/JaCzekanski/Avocado/issues) to file bugs. Please attach [Game ID](http://redump.org/discs/system/psx/), screenshots/video, BIOS and build version.
 
-See [Game compability list](https://avocado-db.czekanski.info) before creating a bug issue.
+See [Game compatibility list](https://avocado-db.czekanski.info) before creating a bug issue.
