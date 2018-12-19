@@ -14,16 +14,16 @@ using namespace spu;
 SPU::SPU(System* sys) : sys(sys) {
     ram.fill(0);
     audioBufferPos = 0;
-    capture_buffer_index = 0;
+    captureBufferIndex = 0;
 }
 
 void SPU::step(device::cdrom::CDROM* cdrom) {
     float sumLeft = 0, sumReverbLeft = 0;
     float sumRight = 0, sumReverbRight = 0;
 
-    int16_t cd_left = 0, cd_right = 0;
+    int16_t cdLeft = 0, cdRight = 0;
 
-	noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
+    noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
 
     for (int v = 0; v < VOICE_COUNT; v++) {
         Voice& voice = voices[v];
@@ -52,9 +52,9 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
         float sample;
 
-		if (voice.mode == Voice::Mode::Noise) {
-			sample = intToFloat(noise.getNoiseLevel());
-		} else if (forceInterpolationOff) {
+        if (voice.mode == Voice::Mode::Noise) {
+            sample = intToFloat(noise.getNoiseLevel());
+        } else if (forceInterpolationOff) {
             sample = intToFloat(voice.decodedSamples[voice.counter.sample]);
         } else {
             sample = intToFloat(spu::interpolate(voice, voice.counter.sample, voice.counter.index));
@@ -104,11 +104,11 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
     // Mix with cd
     if (!cdrom->audio.first.empty()) {
-        cd_left = cdrom->audio.first.front();
-        cd_right = cdrom->audio.second.front();
+        cdLeft = cdrom->audio.first.front();
+        cdRight = cdrom->audio.second.front();
 
-        float left = intToFloat(cd_left);
-        float right = intToFloat(cd_right);
+        float left = intToFloat(cdLeft);
+        float right = intToFloat(cdRight);
 
         // TODO: Refactor to use ring buffer
         cdrom->audio.first.pop_front();
@@ -137,13 +137,13 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         bufferReady = true;
     }
 
-    uint32_t cd_left_address = capture_buffer_index;
-    uint32_t cd_right_address = 0x400 + capture_buffer_index;
+    uint32_t cdLeftAddress = captureBufferIndex;
+    uint32_t cdRightAddress = 0x400 + captureBufferIndex;
 
-    capture_buffer_index = (capture_buffer_index + 2) & 0x3ff;
+    captureBufferIndex = (captureBufferIndex + 2) & 0x3ff;
 
-    memory_write16(cd_left_address, cd_left);
-    memory_write16(cd_right_address, cd_right);
+    memoryWrite16(cdLeftAddress, cdLeft);
+    memoryWrite16(cdRightAddress, cdRight);
 }
 
 uint8_t SPU::readVoice(uint32_t address) const {
@@ -441,7 +441,7 @@ void SPU::write(uint32_t address, uint8_t data) {
             currentDataAddress %= RAM_SIZE;
         }
 
-        memory_write8(currentDataAddress++, data);
+        memoryWrite8(currentDataAddress++, data);
         return;
     }
 
@@ -476,7 +476,7 @@ void SPU::write(uint32_t address, uint8_t data) {
     printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
 }
 
-void SPU::memory_write8(uint32_t address, uint8_t data) {
+void SPU::memoryWrite8(uint32_t address, uint8_t data) {
     ram[address] = data;
 
     if (control.irqEnable && address == irqAddress._reg * 8) {
@@ -485,9 +485,9 @@ void SPU::memory_write8(uint32_t address, uint8_t data) {
     }
 }
 
-void SPU::memory_write16(uint32_t address, uint16_t data) {
-    memory_write8(address, (uint8_t)data);
-    memory_write8(address + 1, (uint8_t)(data >> 8));
+void SPU::memoryWrite16(uint32_t address, uint16_t data) {
+    memoryWrite8(address, (uint8_t)data);
+    memoryWrite8(address + 1, (uint8_t)(data >> 8));
 }
 
 void SPU::dumpRam() {
