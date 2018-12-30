@@ -7,8 +7,6 @@
 #include <stb_image_write.h>
 #include "utils/string.h"
 
-using std::make_unique;
-
 bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -16,7 +14,6 @@ bool OpenGL::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, VERSION_MINOR);
     // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
-    SDL_GL_SetSwapInterval(0);
 
     configObserver.registerCallback(Event::Graphics, [&]() { setup(); });
 
@@ -55,6 +52,15 @@ bool OpenGL::setup() {
 
     if (!loadShaders()) return false;
 
+    bool vsync = config["options"]["graphics"]["vsync"];
+    if (vsync) {
+        if (SDL_GL_SetSwapInterval(-1) != 0) {  // Try adaptive VSync
+            SDL_GL_SetSwapInterval(1);          // Normal VSync
+        }
+    } else {
+        SDL_GL_SetSwapInterval(0);  // No VSync
+    }
+
     // OpenGL 3.2 requires VAO to be used
     // I'm binding single one for whole program - it isn't optimal
     // but will make porting to GLES2/WebGL1 much easier
@@ -89,6 +95,7 @@ bool OpenGL::setup() {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(0);
 
     return true;
 }

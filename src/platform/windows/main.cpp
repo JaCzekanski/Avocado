@@ -275,8 +275,6 @@ int main(int argc, char** argv) {
     ImGuiStyle& style = ImGui::GetStyle();
     style.GrabRounding = style.FrameRounding = 6.f;
 
-    SDL_GL_SetSwapInterval(0);
-
     Sound::play();
 
     if (!isEmulatorConfigured())

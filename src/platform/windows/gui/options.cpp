@@ -132,6 +132,12 @@ void graphicsOptionsWindow() {
         }
     }
 
+    bool vsync = config["options"]["graphics"]["vsync"];
+    if (ImGui::Checkbox("VSync", &vsync)) {
+        config["options"]["graphics"]["vsync"] = vsync;
+        configObserver.notify(Event::Graphics);
+    }
+
     ImGui::End();
 }
 

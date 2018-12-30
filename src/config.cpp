@@ -158,7 +158,8 @@ const json defaultConfig = {
             {"resolution", {
                 {"width", 640u},
                 {"height", 480u}
-            }}
+            }},
+            {"vsync", false}
         }}
     }},
     {"debug", {
