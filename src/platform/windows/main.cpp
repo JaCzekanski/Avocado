@@ -162,6 +162,14 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 
     double frameTime = ntsc ? (1.0 / 60.0) : (1.0 / 50.0);
 
+    // Hack: when emulation is paused and app is inactive
+    // detlaTime accumulates and forces app to run without framelimiting
+    // until this time passes.
+    // This limits that behavior
+    if (deltaTime > 1.0) {
+        deltaTime = 1.0;
+    }
+
     if (framelimiter) {
         // If frame was shorter than frameTime - spin
         if (deltaTime < frameTime - timeToSkip) {
