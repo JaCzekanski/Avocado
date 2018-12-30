@@ -231,6 +231,10 @@ uint8_t SPU::read(uint32_t address) {
         return mainVolume.read(address - 0x1f801d80);
     }
 
+    if (address >= 0x1f801da4 && address <= 0x1f801da5) {  // IRQ (used by Vib-Ribbon)
+        return irqAddress.read(address - 0x1f801da4);
+    }
+
     if (address >= 0x1f801da6 && address <= 0x1f801da7) {  // Data address
         return dataAddress.read(address - 0x1f801da6);
     }
