@@ -23,15 +23,24 @@ bool OpenGL::init() {
 bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress) != 0; }
 
 bool OpenGL::loadShaders() {
+    // PS1 GPU in Shader simulation
     renderShader = std::make_unique<Program>("data/shader/render");
     if (!renderShader->load()) {
         printf("[GL] Cannot load render shader: %s\n", renderShader->getError().c_str());
         return false;
     }
 
+    // Draw/Blit texture to framebuffer (with PS1 clipping and other modifiers)
     blitShader = std::make_unique<Program>("data/shader/blit");
     if (!blitShader->load()) {
         printf("[GL] Cannot load blit shader: %s\n", blitShader->getError().c_str());
+        return false;
+    }
+
+    // Copy texture to texture
+    copyShader = std::make_unique<Program>("data/shader/copy");
+    if (!copyShader->load()) {
+        printf("[GL] Cannot load copy shader: %s\n", copyShader->getError().c_str());
         return false;
     }
     return true;
@@ -143,6 +152,85 @@ void OpenGL::bindBlitAttributes() {
     blitShader->getAttrib("texcoord").pointer(2, GL_FLOAT, sizeof(BlitStruct), 2 * sizeof(float));
 }
 
+void OpenGL::bindCopyAttributes() {
+    copyShader->getAttrib("position").pointer(2, GL_FLOAT, sizeof(BlitStruct), 0);
+    copyShader->getAttrib("texcoord").pointer(2, GL_FLOAT, sizeof(BlitStruct), 2 * sizeof(float));
+}
+
+void OpenGL::update24bitTexture(gpu::GPU* gpu) {
+    // Hack: 24 bit is degraded to 15bit native texture here
+    if (supportNativeTexture) {
+        size_t dataSize = gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH;
+        static std::vector<uint16_t> vram24Unpacked;
+        if (vram24Unpacked.size() != dataSize) {
+            vram24Unpacked.resize(dataSize);
+        }
+
+        // Unpack VRAM to native GPU format (4x float)
+        for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
+            for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
+                int xMasked = (x / 2) * 3;
+                uint16_t col;
+                if (x % 2 == 0) {
+                    uint16_t c1 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 0];
+                    uint16_t c2 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 1];
+
+                    uint8_t r = (c1 & 0x00ff) >> 0;
+                    uint8_t g = (c1 & 0xff00) >> 8;
+                    uint8_t b = (c2 & 0x00ff) >> 0;
+
+                    col = to15bit(r, g, b);
+
+                } else {
+                    uint16_t c1 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 1];
+                    uint16_t c2 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 2];
+
+                    uint8_t r = (c1 & 0xff00) >> 8;
+                    uint8_t g = (c2 & 0x00ff) >> 0;
+                    uint8_t b = (c2 & 0xff00) >> 8;
+
+                    col = to15bit(r, g, b);
+                }
+
+                vram24Unpacked[(y * gpu::VRAM_WIDTH + x)] = col;
+            }
+        }
+        vramTex->update(vram24Unpacked.data());
+        return;
+    }
+
+    size_t dataSize = gpu::VRAM_HEIGHT * gpu::VRAM_WIDTH * 4;
+    if (vramUnpacked.size() != dataSize) {
+        vramUnpacked.resize(dataSize);
+    }
+
+    // Unpack VRAM to native GPU format (4x float)
+    for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
+        for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
+            int xMasked = (x / 2) * 3;
+            if (x % 2 == 0) {
+                uint16_t c1 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 0];
+                uint16_t c2 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 1];
+
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = ((c1 & 0x00ff) >> 0) / 255.f;
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = ((c1 & 0xff00) >> 8) / 255.f;
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = ((c2 & 0x00ff) >> 0) / 255.f;
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = 1.0;
+            } else {
+                uint16_t c1 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 1];
+                uint16_t c2 = gpu->vram[y * gpu::VRAM_WIDTH + xMasked + 2];
+
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = ((c1 & 0xff00) >> 8) / 255.f;
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = ((c2 & 0x00ff) >> 0) / 255.f;
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = ((c2 & 0xff00) >> 8) / 255.f;
+                vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = 1.0;
+            }
+        }
+    }
+
+    vramTex->update(vramUnpacked.data());
+}
+
 void OpenGL::updateVramTexture(gpu::GPU* gpu) {
     if (supportNativeTexture) {
         vramTex->update(gpu->vram.data());
@@ -154,6 +242,7 @@ void OpenGL::updateVramTexture(gpu::GPU* gpu) {
         vramUnpacked.resize(dataSize);
     }
 
+    // TODO: Crash on close!
     // Unpack VRAM to native GPU format (4x float)
     for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
         for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
@@ -170,49 +259,73 @@ void OpenGL::updateVramTexture(gpu::GPU* gpu) {
 
 void OpenGL::renderVertices(gpu::GPU* gpu) {
     static glm::vec2 lastPos;
-    auto& buffer = gpu->vertices;
-    if (buffer.empty()) return;
 
-    renderShader->use();
+    int areaX = lastPos.x;
+    int areaY = lastPos.y;
+    int areaW = gpu->gp1_08.getHorizontalResoulution();
+    int areaH = gpu->gp1_08.getVerticalResoulution();
+
+    // TODO: Synchronize frames (which is being rendered and which is being drawn)
+    // Mark vram dirty to prevent unnecessary copying
+    // Implement double buffering in opengl in shaders
+
+    // 1. Copy previous Screen state (VRAM to render framebuffer)
+    copyShader->use();
+
+    // Reuse renderBuffer
     renderBuffer->bind();
-    renderBuffer->update(sizeof(gpu::Vertex) * buffer.size(), buffer.data());
-    bindRenderAttributes();
+    std::vector<BlitStruct> bb = makeBlitBuf(areaX, areaY, areaW, areaH, true);
 
-    // Set uniforms
+    blitBuffer->bind();
+    blitBuffer->update(bb.size() * sizeof(BlitStruct), bb.data());
+    bindBlitAttributes();
+
     vramTex->bind(0);
-    renderShader->getUniform("vram").i(0);
-    renderShader->getUniform("displayAreaPos").f(lastPos.x, lastPos.y);
-    renderShader->getUniform("displayAreaSize").f(gpu->gp1_08.getHorizontalResoulution(), gpu->gp1_08.getVerticalResoulution());
+    copyShader->getUniform("vram").i(0);
 
-    renderFramebuffer->bind();
     glViewport(0, 0, renderWidth, renderHeight);
+    renderFramebuffer->bind();
 
-    // Copy previous Screen state
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    // Render
-    auto mapType = [](int type) {
-        if (type == gpu::Vertex::Type::Line)
-            return GL_LINES;
-        else
-            return GL_TRIANGLES;
-    };
-    int lastType = gpu::Vertex::Type::Polygon;
-    int begin = 0;
-    int count = 0;
-    for (int i = 0; i < (int)buffer.size(); i++) {
-        ++count;
-        int type = buffer[i].type;
+    // 2. Simulate GPU in Shader (skip if no entries in renderlist)
+    auto& buffer = gpu->vertices;
+    if (!buffer.empty()) {
+        renderShader->use();
+        renderBuffer->bind();
+        renderBuffer->update(sizeof(gpu::Vertex) * buffer.size(), buffer.data());
+        bindRenderAttributes();
 
-        if (i == 0 || (lastType == type && i < buffer.size() - 1)) continue;
+        // Set uniforms
+        vramTex->bind(0);
+        renderShader->getUniform("vram").i(0);
+        renderShader->getUniform("displayAreaPos").f(areaX, areaY);
+        renderShader->getUniform("displayAreaSize").f(areaW, areaH);
 
-        if (lastType != buffer[i].type) count--;
-        glDrawArrays(mapType(lastType), begin, count);
+        // Render
+        auto mapType = [](int type) {
+            if (type == gpu::Vertex::Type::Line)
+                return GL_LINES;
+            else
+                return GL_TRIANGLES;
+        };
+        int lastType = gpu::Vertex::Type::Polygon;
+        int begin = 0;
+        int count = 0;
+        for (int i = 0; i < (int)buffer.size(); i++) {
+            ++count;
+            int type = buffer[i].type;
 
-        lastType = type;
-        begin = begin + count;
-        count = 1;
+            if (i == 0 || (lastType == type && i < buffer.size() - 1)) continue;
+
+            if (lastType != buffer[i].type) count--;
+            glDrawArrays(mapType(lastType), begin, count);
+
+            lastType = type;
+            begin = begin + count;
+            count = 1;
+        }
     }
-
     lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -247,7 +360,9 @@ void OpenGL::renderBlit(gpu::GPU* gpu, bool software) {
 
     float y2 = static_cast<float>(gpu->displayRangeY2 - gpu->displayRangeY1);
     if (gpu->gp1_08.getVerticalResoulution() == 480) y2 *= 2;
-    blitShader->getUniform("displayEnd").f(gpu->displayRangeX1, gpu->displayAreaStartY + y2);
+    // TODO: convert xy to screen space
+    blitShader->getUniform("clipLeftTop").f(0, 0);
+    blitShader->getUniform("clipRightBottom").f(1024, gpu->displayAreaStartY + y2);
 
     glViewport(x, y, w, h);
     blitBuffer->update(bb.size() * sizeof(BlitStruct), bb.data());
@@ -271,7 +386,11 @@ void OpenGL::render(gpu::GPU* gpu) {
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    updateVramTexture(gpu);
+    if (gpu->gp1_08.colorDepth == gpu::GP1_08::ColorDepth::bit24) {
+        update24bitTexture(gpu);
+    } else {
+        updateVramTexture(gpu);
+    }
 
     if (hardwareRendering) {
         // Render all GPU commands

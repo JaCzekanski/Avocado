@@ -53,15 +53,20 @@ class OpenGL {
     std::unique_ptr<Program> blitShader;
     std::unique_ptr<Buffer> blitBuffer;
 
+    std::unique_ptr<Program> copyShader;
+
     bool loadExtensions();
     bool loadShaders();
     void bindRenderAttributes();
     void renderVertices(gpu::GPU* gpu);
 
-    std::vector<uint8_t> vramUnpacked;
+    std::vector<float> vramUnpacked;
+    void update24bitTexture(gpu::GPU* gpu);
     void updateVramTexture(gpu::GPU* gpu);
 
     void bindBlitAttributes();
     std::vector<BlitStruct> makeBlitBuf(int screenX = 0, int screenY = 0, int screenW = 640, int screenH = 480, bool invert = false);
     void renderBlit(gpu::GPU* gpu, bool software);
+
+    void bindCopyAttributes();
 };

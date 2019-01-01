@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
+#include "device/gpu/psx_color.h"
 
 namespace mdec {
 
@@ -28,18 +29,26 @@ uint32_t MDEC::read(uint32_t address) {
         // 3:    B G R  <- cycle continues
 
         uint32_t data;
-        if (part == 0)
-            data = (output[outputPtr] & 0xffffff) | ((output[outputPtr + 1] & 0xff) << 24);
-        else if (part == 1)
-            data = ((output[outputPtr + 1] & 0xffff00) >> 8) | ((output[outputPtr + 2] & 0xffff) << 16);
-        else if (part == 2)
-            data = ((output[outputPtr + 2] & 0xff0000) >> 16) | ((output[outputPtr + 3] & 0xffffff) << 8);
+        if (status.colorDepth == Status::ColorDepth::bit_24) {
+            if (part == 0)
+                data = (output[outputPtr] & 0xffffff) | ((output[outputPtr + 1] & 0xff) << 24);
+            else if (part == 1)
+                data = ((output[outputPtr + 1] & 0xffff00) >> 8) | ((output[outputPtr + 2] & 0xffff) << 16);
+            else if (part == 2)
+                data = ((output[outputPtr + 2] & 0xff0000) >> 16) | ((output[outputPtr + 3] & 0xffffff) << 8);
 
-        if (part == 2) {
-            part = 0;
-            outputPtr += 4;
-        } else {
-            part++;
+            if (part == 2) {
+                part = 0;
+                outputPtr += 4;
+            } else {
+                part++;
+            }
+        }
+        if (status.colorDepth == Status::ColorDepth::bit_15) {
+            uint16_t bit15 = (uint16_t)status.outputSetBit15 << 15;
+            data = (bit15 | to15bit(output[outputPtr + 0]));
+            data |= (bit15 | to15bit(output[outputPtr + 1])) << 16;
+            outputPtr += 2;
         }
 
         if (outputPtr >= output.size()) {
@@ -69,6 +78,12 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
             status.outputSigned = (data & (1 << 26)) != 0;
             status.outputSetBit15 = (data & (1 << 25)) != 0;
             paramCount = data & 0xffff;
+
+            if (status.colorDepth == Status::ColorDepth::bit_4 || status.colorDepth == Status::ColorDepth::bit_8) {
+                printf(
+                    "[MDEC] Warning: 4 and 8 bit format not supported, please report this game "
+                    "(https://github.com/JaCzekanski/Avocado/issues).\n");
+            }
 
             input.resize(paramCount * 2);  // 16bit, so paramCount * 2
             outputPtr = 0;
