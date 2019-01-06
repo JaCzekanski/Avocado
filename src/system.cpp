@@ -1,10 +1,10 @@
 #include "system.h"
-#include <sound/sound.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include "bios/functions.h"
 #include "config.h"
+#include "sound/sound.h"
 #include "utils/file.h"
 #include "utils/psx_exe.h"
 

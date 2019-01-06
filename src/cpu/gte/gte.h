@@ -1,11 +1,11 @@
 #pragma once
-#include <utils/logic.h>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 #include "command.h"
 #include "device/device.h"
 #include "math.h"
+#include "utils/logic.h"
 
 struct GTE {
     union Flag {

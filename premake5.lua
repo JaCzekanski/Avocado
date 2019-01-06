@@ -64,6 +64,12 @@ filter {"configurations:Release", "system:windows or system:macosx"}
 filter "action:vs*"
 	defines "_CRT_SECURE_NO_WARNINGS"
 
+filter {"action:vs*", "configurations:Release"}
+	staticruntime "On"
+    flags {
+		"LinkTimeOptimization",
+	}
+
 filter "action:gmake"
 	buildoptions { 
 		"-Wall",
@@ -81,7 +87,9 @@ include "premake/miniz.lua"
 project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
 	kind "StaticLib"
-	location "build/libs/core"
+	location "build/libs/common"
+	pchheader "src/stdafx.h"
+	pchsource "src/stdafx.cpp"
 
 	includedirs { 
 		"src", 
@@ -118,6 +126,8 @@ project "avocado"
 	kind "ConsoleApp"
 	location "build/libs/avocado"
 	debugdir "."
+	pchheader "src/stdafx.h"
+	pchsource "src/stdafx.cpp"
 
 	includedirs { 
 		"src", 

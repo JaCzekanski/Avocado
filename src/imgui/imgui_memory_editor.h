@@ -40,7 +40,7 @@
 // frame.
 
 #pragma once
-#include <stdio.h>  // sprintf, scanf
+#include <cstdio>
 
 struct MemoryEditor {
     typedef unsigned char u8;
@@ -231,8 +231,9 @@ struct MemoryEditor {
                 if ((addr >= HighlightMin && addr < HighlightMax) || (HighlightFn && HighlightFn(mem_data, addr))) {
                     ImVec2 pos = ImGui::GetCursorScreenPos();
                     float highlight_width = s.GlyphWidth * 2;
-                    bool is_next_byte_highlighted = (addr + 1 < mem_size) && ((HighlightMax != (size_t)-1 && addr + 1 < HighlightMax)
-                                                                              || (HighlightFn && HighlightFn(mem_data, addr + 1)));
+                    bool is_next_byte_highlighted
+                        = (addr + 1 < mem_size)
+                          && ((HighlightMax != (size_t)-1 && addr + 1 < HighlightMax) || (HighlightFn && HighlightFn(mem_data, addr + 1)));
                     if (is_next_byte_highlighted || (n + 1 == Rows)) {
                         highlight_width = s.HexCellWidth;
                         if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
