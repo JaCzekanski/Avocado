@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "cpu/cop0.h"
 #include "cpu/gte/gte.h"
+#include "opcode.h"
 
 struct System;
 
@@ -58,6 +59,7 @@ struct CPU {
     bool exception;
     std::array<LoadSlot, 2> slots;
     System* sys;
+    Opcode _opcode;
 
     CPU(System* sys);
     void checkForInterrupts();

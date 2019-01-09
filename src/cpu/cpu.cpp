@@ -5,7 +5,7 @@
 #include "system.h"
 
 namespace mips {
-CPU::CPU(System* sys) : sys(sys) {
+CPU::CPU(System* sys) : sys(sys), _opcode(0) {
     PC = 0xBFC00000;
     jumpPC = 0;
     shouldJump = false;
@@ -59,9 +59,9 @@ void CPU::invalidateSlot(uint32_t r) {
 }
 
 bool CPU::executeInstructions(int count) {
-    checkForInterrupts();
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
+        checkForInterrupts();
 
         if (cop0.dcic & (1 << 24) && PC == cop0.bpc) {
             cop0.dcic &= ~(1 << 24);  // disable breakpoint
@@ -82,7 +82,7 @@ bool CPU::executeInstructions(int count) {
             }
         }
 
-        Opcode _opcode(sys->readMemory32(PC));
+        _opcode = Opcode(sys->readMemory32(PC));
 
         bool isJumpCycle = shouldJump;
         const auto& op = instructions::OpcodeTable[_opcode.op];

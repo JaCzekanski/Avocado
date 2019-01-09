@@ -164,6 +164,10 @@ std::array<PrimaryInstruction, 64> SpecialTable = {{
 void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
     cpu->cop0.cause.exception = cause;
 
+    if (cause != COP0::CAUSE::Exception::busErrorInstruction) {
+        cpu->cop0.cause.coprocessorNumber = cpu->_opcode.op & 3;
+    }
+
     if (cpu->shouldJump) {
         cpu->cop0.cause.isInDelaySlot = true;
         cpu->cop0.epc = cpu->PC - 4;
@@ -197,7 +201,6 @@ void invalid(CPU *cpu, Opcode i) {
     // printf("Invalid opcode at 0x%08x: 0x%08x\n", cpu->PC, i.opcode);
     // cpu->sys->state = System::State::halted;
 
-    cpu->cop0.cause.coprocessorNumber = i.op & 3;
     exception(cpu, COP0::CAUSE::Exception::reservedInstruction);
     // TODO: cpu->sys kinda sucks
 }
@@ -260,6 +263,7 @@ void op_srav(CPU *cpu, Opcode i) {
 void op_jr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
     if (addr & 3) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -274,6 +278,7 @@ void op_jalr(CPU *cpu, Opcode i) {
     cpu->reg[i.rd] = cpu->PC + 8;
     cpu->invalidateSlot(i.rd);
     if (addr & 3) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -611,25 +616,27 @@ void op_lui(CPU *cpu, Opcode i) {
 // Coprocessor zero
 void op_cop0(CPU *cpu, Opcode i) {
     switch (i.rs) {
-        case 0:
+        case 0: {
             // Move from co-processor zero
             // MFC0 rd, <nn>
+            uint32_t val = 0;
             switch (i.rd) {
-                case 3: cpu->reg[i.rt] = cpu->cop0.bpc; break;
-                case 5: cpu->reg[i.rt] = cpu->cop0.bda; break;
-                case 6: cpu->reg[i.rt] = cpu->cop0.jumpdest; break;
-                case 7: cpu->reg[i.rt] = cpu->cop0.dcic; break;
-                case 8: cpu->reg[i.rt] = cpu->cop0.badVaddr; break;
-                case 9: cpu->reg[i.rt] = cpu->cop0.bdam; break;
-                case 11: cpu->reg[i.rt] = cpu->cop0.bpcm; break;
-                case 12: cpu->reg[i.rt] = cpu->cop0.status._reg; break;
-                case 13: cpu->reg[i.rt] = cpu->cop0.cause._reg; break;
-                case 14: cpu->reg[i.rt] = cpu->cop0.epc; break;
-                case 15: cpu->reg[i.rt] = cpu->cop0.revId; break;
-                default: exception(cpu, COP0::CAUSE::Exception::reservedInstruction); break;
+                case 3: val = cpu->cop0.bpc; break;
+                case 5: val = cpu->cop0.bda; break;
+                case 6: val = cpu->cop0.jumpdest; break;
+                case 7: val = cpu->cop0.dcic; break;
+                case 8: val = cpu->cop0.badVaddr; break;
+                case 9: val = cpu->cop0.bdam; break;
+                case 11: val = cpu->cop0.bpcm; break;
+                case 12: val = cpu->cop0.status._reg; break;
+                case 13: val = cpu->cop0.cause._reg; break;
+                case 14: val = cpu->cop0.epc; break;
+                case 15: val = cpu->cop0.revId; break;
+                default: exception(cpu, COP0::CAUSE::Exception::reservedInstruction); return;
             }
-            cpu->invalidateSlot(i.rt);
+            cpu->loadDelaySlot(i.rt, val);
             break;
+        }
 
         case 4:
             // Move to co-processor zero
@@ -684,13 +691,11 @@ void op_cop2(CPU *cpu, Opcode i) {
     if (i.rs == 0x00) {
         // Move data from co-processor two
         // MFC2 rt, <nn>
-        cpu->reg[i.rt] = cpu->gte.read(i.rd);
-        cpu->invalidateSlot(i.rt);
+        cpu->loadDelaySlot(i.rt, cpu->gte.read(i.rd));
     } else if (i.rs == 0x02) {
         // Move control from co-processor two
         // CFC2 rt, <nn>
-        cpu->reg[i.rt] = cpu->gte.read(i.rd + 32);
-        cpu->invalidateSlot(i.rt);
+        cpu->loadDelaySlot(i.rt, cpu->gte.read(i.rd + 32));
     } else if (i.rs == 0x04) {
         // Move data to co-processor two
         // MTC2 rt, <nn>
@@ -715,8 +720,8 @@ void op_lb(CPU *cpu, Opcode i) {
 // LH rt, offset(base)
 void op_lh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 1)  // non aligned address
-    {
+    if (addr & 1) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -750,8 +755,8 @@ void op_lwl(CPU *cpu, Opcode i) {
 // LW rt, offset(base)
 void op_lw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 3)  // non aligned address
-    {
+    if (addr & 3) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -769,8 +774,8 @@ void op_lbu(CPU *cpu, Opcode i) {
 // LHU rt, offset(base)
 void op_lhu(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 1)  // non aligned address
-    {
+    if (addr & 1) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -812,8 +817,8 @@ void op_sb(CPU *cpu, Opcode i) {
 // SH rt, offset(base)
 void op_sh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 1)  // non aligned address
-    {
+    if (addr & 1) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
@@ -841,8 +846,8 @@ void op_swl(CPU *cpu, Opcode i) {
 // SW rt, offset(base)
 void op_sw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 3)  // non aligned address
-    {
+    if (addr & 3) {
+        cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }

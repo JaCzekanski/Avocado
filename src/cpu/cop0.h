@@ -24,8 +24,8 @@ struct COP0 {
             uint32_t interruptPending : 8;
             uint32_t : 12;
             uint32_t coprocessorNumber : 2;  // If coprocessor caused the exception
-            uint32_t : 1;
-            Bit isInDelaySlot : 1;
+            uint32_t branchDelayTaken : 1;
+            uint32_t isInDelaySlot : 1;
         };
 
         uint32_t _reg;
