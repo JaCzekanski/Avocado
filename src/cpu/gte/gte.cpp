@@ -1,7 +1,7 @@
 #include "gte.h"
 #include "config.h"
 
-GTE::GTE() {
+GTE::GTE() : unrTable(generateUnrTable()) {
     configObserver.registerCallback(Event::Gte, [&]() { reload(); });
     reload();
 }
@@ -53,32 +53,32 @@ uint32_t GTE::read(uint8_t n) {
             case 30: return lzcs;
             case 31: return lzcr;
 
-            case 32: return ((uint16_t)rt.v12 << 16) | (uint16_t)rt.v11;
-            case 33: return ((uint16_t)rt.v21 << 16) | (uint16_t)rt.v13;
-            case 34: return ((uint16_t)rt.v23 << 16) | (uint16_t)rt.v22;
-            case 35: return ((uint16_t)rt.v32 << 16) | (uint16_t)rt.v31;
-            case 36: return (int32_t)rt.v33;
-            case 37: return tr.x;
-            case 38: return tr.y;
-            case 39: return tr.z;
+            case 32: return ((uint16_t)rotation[0][1] << 16) | (uint16_t)rotation[0][0];
+            case 33: return ((uint16_t)rotation[1][0] << 16) | (uint16_t)rotation[0][2];
+            case 34: return ((uint16_t)rotation[1][2] << 16) | (uint16_t)rotation[1][1];
+            case 35: return ((uint16_t)rotation[2][1] << 16) | (uint16_t)rotation[2][0];
+            case 36: return (int32_t)rotation[2][2];
+            case 37: return translation.x;
+            case 38: return translation.y;
+            case 39: return translation.z;
 
-            case 40: return ((uint16_t)l.v12 << 16) | (uint16_t)l.v11;
-            case 41: return ((uint16_t)l.v21 << 16) | (uint16_t)l.v13;
-            case 42: return ((uint16_t)l.v23 << 16) | (uint16_t)l.v22;
-            case 43: return ((uint16_t)l.v32 << 16) | (uint16_t)l.v31;
-            case 44: return (int32_t)l.v33;
-            case 45: return bk.r;
-            case 46: return bk.g;
-            case 47: return bk.b;
+            case 40: return ((uint16_t)light[0][1] << 16) | (uint16_t)light[0][0];
+            case 41: return ((uint16_t)light[1][0] << 16) | (uint16_t)light[0][2];
+            case 42: return ((uint16_t)light[1][2] << 16) | (uint16_t)light[1][1];
+            case 43: return ((uint16_t)light[2][1] << 16) | (uint16_t)light[2][0];
+            case 44: return (int32_t)light[2][2];
+            case 45: return backgroundColor.r;
+            case 46: return backgroundColor.g;
+            case 47: return backgroundColor.b;
 
-            case 48: return ((uint16_t)lr.v12 << 16) | (uint16_t)lr.v11;
-            case 49: return ((uint16_t)lr.v21 << 16) | (uint16_t)lr.v13;
-            case 50: return ((uint16_t)lr.v23 << 16) | (uint16_t)lr.v22;
-            case 51: return ((uint16_t)lr.v32 << 16) | (uint16_t)lr.v31;
-            case 52: return (int32_t)lr.v33;
-            case 53: return fc.r;
-            case 54: return fc.g;
-            case 55: return fc.b;
+            case 48: return ((uint16_t)color[0][1] << 16) | (uint16_t)color[0][0];
+            case 49: return ((uint16_t)color[1][0] << 16) | (uint16_t)color[0][2];
+            case 50: return ((uint16_t)color[1][2] << 16) | (uint16_t)color[1][1];
+            case 51: return ((uint16_t)color[2][1] << 16) | (uint16_t)color[2][0];
+            case 52: return (int32_t)color[2][2];
+            case 53: return farColor.r;
+            case 54: return farColor.g;
+            case 55: return farColor.b;
 
             case 56: return of[0];
             case 57: return of[1];
@@ -171,67 +171,67 @@ void GTE::write(uint8_t n, uint32_t d) {
         case 31: break;
 
         case 32:
-            rt.v12 = d >> 16;
-            rt.v11 = d;
+            rotation[0][1] = d >> 16;
+            rotation[0][0] = d;
             break;
         case 33:
-            rt.v21 = d >> 16;
-            rt.v13 = d;
+            rotation[1][0] = d >> 16;
+            rotation[0][2] = d;
             break;
         case 34:
-            rt.v23 = d >> 16;
-            rt.v22 = d;
+            rotation[1][2] = d >> 16;
+            rotation[1][1] = d;
             break;
         case 35:
-            rt.v32 = d >> 16;
-            rt.v31 = d;
+            rotation[2][1] = d >> 16;
+            rotation[2][0] = d;
             break;
-        case 36: rt.v33 = d; break;
-        case 37: tr.x = d; break;
-        case 38: tr.y = d; break;
-        case 39: tr.z = d; break;
+        case 36: rotation[2][2] = d; break;
+        case 37: translation.x = d; break;
+        case 38: translation.y = d; break;
+        case 39: translation.z = d; break;
 
         case 40:
-            l.v12 = d >> 16;
-            l.v11 = d;
+            light[0][1] = d >> 16;
+            light[0][0] = d;
             break;
         case 41:
-            l.v21 = d >> 16;
-            l.v13 = d;
+            light[1][0] = d >> 16;
+            light[0][2] = d;
             break;
         case 42:
-            l.v23 = d >> 16;
-            l.v22 = d;
+            light[1][2] = d >> 16;
+            light[1][1] = d;
             break;
         case 43:
-            l.v32 = d >> 16;
-            l.v31 = d;
+            light[2][1] = d >> 16;
+            light[2][0] = d;
             break;
-        case 44: l.v33 = d; break;
-        case 45: bk.r = d; break;
-        case 46: bk.g = d; break;
-        case 47: bk.b = d; break;
+        case 44: light[2][2] = d; break;
+        case 45: backgroundColor.r = d; break;
+        case 46: backgroundColor.g = d; break;
+        case 47: backgroundColor.b = d; break;
 
         case 48:
-            lr.v12 = d >> 16;
-            lr.v11 = d;
+            color[0][1] = d >> 16;
+            color[0][0] = d;
             break;
         case 49:
-            lr.v21 = d >> 16;
-            lr.v13 = d;
+            color[1][0] = d >> 16;
+            color[0][2] = d;
             break;
         case 50:
-            lr.v23 = d >> 16;
-            lr.v22 = d;
+            color[1][2] = d >> 16;
+            color[1][1] = d;
             break;
         case 51:
-            lr.v32 = d >> 16;
-            lr.v31 = d;
+            color[2][1] = d >> 16;
+            color[2][0] = d;
             break;
-        case 52: lr.v33 = d; break;
-        case 53: fc.r = d; break;
-        case 54: fc.g = d; break;
-        case 55: fc.b = d; break;
+        case 52: color[2][2] = d; break;
+        case 53: farColor.r = d; break;
+        case 54: farColor.g = d; break;
+        case 55: farColor.b = d; break;
 
         case 56: of[0] = d; break;
         case 57: of[1] = d; break;

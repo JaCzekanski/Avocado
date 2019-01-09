@@ -70,12 +70,12 @@ struct GTE {
     int32_t lzcs = 0;
     int32_t lzcr = 0;
 
-    gte::Matrix rt;
-    gte::Vector<int32_t> tr;
-    gte::Matrix l;
-    gte::Vector<int32_t> bk;
-    gte::Matrix lr;
-    gte::Vector<int32_t> fc;
+    gte::Matrix rotation;
+    gte::Vector<int32_t> translation;
+    gte::Matrix light;
+    gte::Vector<int32_t> backgroundColor;
+    gte::Matrix color;
+    gte::Vector<int32_t> farColor;
     int32_t of[2] = {0};
     uint16_t h = 0;
     int16_t dqa = 0;
@@ -90,6 +90,68 @@ struct GTE {
     uint32_t read(uint8_t n);
     void write(uint8_t n, uint32_t d);
 
+    bool command(gte::Command &cmd);
+
+    struct GTE_ENTRY {
+        enum class MODE { read, write, func } mode;
+
+        uint32_t n;
+        uint32_t data;
+    };
+
+    std::vector<GTE_ENTRY> log;
+
+   private:
+    constexpr std::array<uint8_t, 0x101> generateUnrTable() {
+        std::array<uint8_t, 0x101> table = {{0}};
+        for (int i = 0; i < (int)table.size(); i++) {
+            table[i] = std::max(0, (0x40000 / (i + 0x100) + 1) / 2 - 0x101);
+        }
+        return table;
+    }
+    const std::array<uint8_t, 0x101> unrTable;
+
+    bool widescreenHack;
+    // Temporary, used in commands
+    bool sf;
+    bool lm;
+
+    void reload();
+
+    void multiplyVectors(gte::Vector<int16_t> v1, gte::Vector<int16_t> v2, gte::Vector<int16_t> tr = gte::Vector<int16_t>(0));
+    void multiplyMatrixByVector(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr = gte::Vector<int32_t>(0));
+    int64_t multiplyMatrixByVectorRTP(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr);
+
+    int countLeadingZeroes(uint32_t n);
+    size_t countLeadingZeroes16(uint16_t n);
+    int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
+
+    template <int bit_size>
+    void checkOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
+
+    template <int i>
+    int64_t checkMacOverflowAndExtend(int64_t value);
+
+    template <int i>
+    int64_t setMac(int64_t value);
+
+    template <int i>
+    void setIr(int32_t value, bool lm = false);
+
+    template <int i>
+    void setMacAndIr(int64_t value, bool lm = false);
+
+    void setOtz(int64_t value);
+    void pushScreenXY(int32_t x, int32_t y);
+    void pushScreenZ(int32_t z);
+    void pushColor();
+    void pushColor(uint32_t r, uint32_t g, uint32_t b);
+
+    uint32_t recip(uint16_t divisor);
+    uint32_t divideUNR(uint32_t a, uint32_t b);
+    uint32_t divide(uint16_t h, uint16_t sz3);
+
+    // Opcodes
     void nclip();
     void ncds(int n = 0);
     void ncs(int n = 0);
@@ -103,8 +165,7 @@ struct GTE {
     void dpcs(bool useRGB0 = false);
     void dcpl();
     void intpl();
-    uint32_t divide(uint16_t h, uint16_t sz3);
-    uint32_t divideUNR(uint32_t a, uint32_t b);
+    template <bool setMAC0 = true>
     void rtps(int n = 0);
     void rtpt();
     void avsz3();
@@ -114,48 +175,4 @@ struct GTE {
     void gpl();
     void sqr();
     void op();
-
-    bool command(gte::Command &cmd);
-
-    struct GTE_ENTRY {
-        enum class MODE { read, write, func } mode;
-
-        uint32_t n;
-        uint32_t data;
-    };
-
-    std::vector<GTE_ENTRY> log;
-
-   private:
-    bool widescreenHack;
-    // Temporary, used in commands
-    bool sf;
-    bool lm;
-
-    void reload();
-
-    void multiplyVectors(gte::Vector<int16_t> v1, gte::Vector<int16_t> v2, gte::Vector<int16_t> tr = gte::Vector<int16_t>(0));
-    gte::Vector<int64_t> multiplyMatrixByVector(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr = gte::Vector<int32_t>(0));
-
-    int countLeadingZeroes(uint32_t n);
-    size_t countLeadingZeroes16(uint16_t n);
-    int32_t clip(int32_t value, int32_t max, int32_t min, uint32_t flags = 0);
-
-    template <int bit_size>
-    void checkOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags);
-
-    template <int i>
-    int64_t setMac(int64_t value);
-
-    template <int i>
-    void setIr(int64_t value, bool lm = false);
-
-    template <int i>
-    void setMacAndIr(int64_t value, bool lm = false);
-
-    void setOtz(int64_t value);
-    void pushScreenXY(int32_t x, int32_t y);
-    void pushScreenZ(int32_t z);
-    void pushColor();
-    void pushColor(uint32_t r, uint32_t g, uint32_t b);
 };

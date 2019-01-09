@@ -1,20 +1,8 @@
 #pragma once
+#include <array>
 #include <cstdint>
-
 namespace gte {
-struct Matrix {
-    int16_t v11 = 0;
-    int16_t v12 = 0;
-    int16_t v13 = 0;
-
-    int16_t v21 = 0;
-    int16_t v22 = 0;
-    int16_t v23 = 0;
-
-    int16_t v31 = 0;
-    int16_t v32 = 0;
-    int16_t v33 = 0;
-};
+using Matrix = std::array<std::array<int16_t, 3>, 3>;
 
 template <typename X, typename Y = X, typename Z = X>
 struct Vector {
@@ -34,6 +22,8 @@ struct Vector {
     Vector(X x) : x(x), y(x), z(x) {}
     Vector(X x, Y y, Z z) : x(x), y(y), z(z) {}
 };
+
+Vector<int16_t> toVector(int16_t ir[4]);
 
 struct Color {
     int32_t r = 0;

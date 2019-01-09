@@ -106,11 +106,11 @@ void gteRegistersWindow(GTE &gte) {
     ImGui::NextColumn();
 
     ImGui::Separator();
-    ImGui::Text("TRX:  %08X", gte.tr.x);
+    ImGui::Text("TRX:  %08X", gte.translation.x);
     ImGui::NextColumn();
-    ImGui::Text("TRY:  %08X", gte.tr.y);
+    ImGui::Text("TRY:  %08X", gte.translation.y);
     ImGui::NextColumn();
-    ImGui::Text("TRZ:  %08X", gte.tr.z);
+    ImGui::Text("TRZ:  %08X", gte.translation.z);
     ImGui::NextColumn();
 
     ImGui::Separator();
@@ -126,26 +126,12 @@ void gteRegistersWindow(GTE &gte) {
 
     ImGui::Separator();
 
-    ImGui::Text("RT11:  %04hX", gte.rt.v11);
-    ImGui::NextColumn();
-    ImGui::Text("RT12:  %04hX", gte.rt.v12);
-    ImGui::NextColumn();
-    ImGui::Text("RT13:  %04hX", gte.rt.v13);
-    ImGui::NextColumn();
-
-    ImGui::Text("RT21:  %04hX", gte.rt.v21);
-    ImGui::NextColumn();
-    ImGui::Text("RT22:  %04hX", gte.rt.v22);
-    ImGui::NextColumn();
-    ImGui::Text("RT23:  %04hX", gte.rt.v23);
-    ImGui::NextColumn();
-
-    ImGui::Text("RT31:  %04hX", gte.rt.v31);
-    ImGui::NextColumn();
-    ImGui::Text("RT32:  %04hX", gte.rt.v32);
-    ImGui::NextColumn();
-    ImGui::Text("RT33:  %04hX", gte.rt.v33);
-    ImGui::NextColumn();
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            ImGui::Text("RT%d%d:  %04hX", y + 1, x + 1, gte.rotation[y][x]);
+            ImGui::NextColumn();
+        }
+    }
 
     ImGui::Separator();
     ImGui::Text("VX0:  %04hX", gte.v[0].x);
