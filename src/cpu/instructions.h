@@ -81,7 +81,6 @@ void op_sw(CPU* cpu, Opcode i);
 void op_swr(CPU* cpu, Opcode i);
 void op_lwc2(CPU* cpu, Opcode i);
 void op_swc2(CPU* cpu, Opcode i);
-void invalid_cop(CPU* cpu, Opcode i);
 void op_breakpoint(CPU* cpu, Opcode i);
 
 extern std::array<PrimaryInstruction, 64> OpcodeTable;

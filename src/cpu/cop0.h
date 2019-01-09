@@ -72,8 +72,12 @@ struct COP0 {
     };
 
     uint32_t bpc = 0;       // r3
+    uint32_t bda = 0;       // r5
+    uint32_t jumpdest = 0;  // r6
     uint32_t dcic = 0;      // r7
     uint32_t badVaddr = 0;  // r8
+    uint32_t bdam = 0;      // r9
+    uint32_t bpcm = 0;      // r11
     STATUS status;          // r12
     CAUSE cause;            // r13
     uint32_t epc = 0;       // r14

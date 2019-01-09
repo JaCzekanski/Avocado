@@ -27,9 +27,9 @@ std::array<PrimaryInstruction, 64> OpcodeTable = {{
     {15, op_lui},
 
     {16, op_cop0},
-    {17, invalid_cop},
+    {17, dummy},
     {18, op_cop2},
-    {19, invalid_cop},
+    {19, dummy},
     {20, invalid},
     {21, invalid},
     {22, invalid},
@@ -62,19 +62,19 @@ std::array<PrimaryInstruction, 64> OpcodeTable = {{
     {46, op_swr},
     {47, invalid},
 
-    {48, invalid_cop},
-    {49, invalid_cop},
+    {48, dummy},
+    {49, dummy},
     {50, op_lwc2},
-    {51, invalid_cop},
+    {51, dummy},
     {52, invalid},
     {53, invalid},
     {54, invalid},
     {55, invalid},
 
-    {56, invalid_cop},
-    {57, invalid_cop},
+    {56, dummy},
+    {57, dummy},
     {58, op_swc2},
-    {59, invalid_cop},
+    {59, dummy},
     {60, invalid},
     {61, invalid},
     {62, invalid},
@@ -194,8 +194,11 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
 void dummy(CPU *cpu, Opcode i) {}
 
 void invalid(CPU *cpu, Opcode i) {
-    printf("Invalid opcode at 0x%08x: 0x%08x\n", cpu->PC, i.opcode);
-    cpu->sys->state = System::State::halted;
+    // printf("Invalid opcode at 0x%08x: 0x%08x\n", cpu->PC, i.opcode);
+    // cpu->sys->state = System::State::halted;
+
+    cpu->cop0.cause.coprocessorNumber = i.op & 3;
+    exception(cpu, COP0::CAUSE::Exception::reservedInstruction);
     // TODO: cpu->sys kinda sucks
 }
 
@@ -613,13 +616,17 @@ void op_cop0(CPU *cpu, Opcode i) {
             // MFC0 rd, <nn>
             switch (i.rd) {
                 case 3: cpu->reg[i.rt] = cpu->cop0.bpc; break;
+                case 5: cpu->reg[i.rt] = cpu->cop0.bda; break;
+                case 6: cpu->reg[i.rt] = cpu->cop0.jumpdest; break;
                 case 7: cpu->reg[i.rt] = cpu->cop0.dcic; break;
                 case 8: cpu->reg[i.rt] = cpu->cop0.badVaddr; break;
+                case 9: cpu->reg[i.rt] = cpu->cop0.bdam; break;
+                case 11: cpu->reg[i.rt] = cpu->cop0.bpcm; break;
                 case 12: cpu->reg[i.rt] = cpu->cop0.status._reg; break;
                 case 13: cpu->reg[i.rt] = cpu->cop0.cause._reg; break;
                 case 14: cpu->reg[i.rt] = cpu->cop0.epc; break;
                 case 15: cpu->reg[i.rt] = cpu->cop0.revId; break;
-                default: cpu->reg[i.rt] = 0; break;
+                default: exception(cpu, COP0::CAUSE::Exception::reservedInstruction); break;
             }
             cpu->invalidateSlot(i.rt);
             break;
@@ -629,7 +636,10 @@ void op_cop0(CPU *cpu, Opcode i) {
             // MTC0 rs, <nn>
             switch (i.rd) {
                 case 3: cpu->cop0.bpc = cpu->reg[i.rt]; break;
+                case 5: cpu->cop0.bda = cpu->reg[i.rt]; break;
                 case 7: cpu->cop0.dcic = cpu->reg[i.rt]; break;
+                case 9: cpu->cop0.bdam = cpu->reg[i.rt]; break;
+                case 11: cpu->cop0.bpcm = cpu->reg[i.rt]; break;
                 case 12:
                     if (cpu->reg[i.rt] & (1 << 17)) {
                         // printf("Panic, SwC not handled\n");
@@ -655,7 +665,7 @@ void op_cop0(CPU *cpu, Opcode i) {
             cpu->cop0.status.previousMode = cpu->cop0.status.oldMode;
             break;
 
-        default: invalid(cpu, i);
+        default: exception(cpu, COP0::CAUSE::Exception::reservedInstruction); break;
     }
 }
 
@@ -874,9 +884,6 @@ void op_swc2(CPU *cpu, Opcode i) {
     auto gteRead = cpu->gte.read(i.rt);
     cpu->sys->writeMemory32(addr, gteRead);
 }
-
-// Invalid coprocessor stub
-void invalid_cop(CPU *cpu, Opcode i) { exception(cpu, COP0::CAUSE::Exception::busErrorData); }
 
 // BREAKPOINT
 void op_breakpoint(CPU *cpu, Opcode i) {
