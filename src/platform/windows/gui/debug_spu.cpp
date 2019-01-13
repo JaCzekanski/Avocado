@@ -62,9 +62,10 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     };
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
     ImGui::Columns(COL_NUM, nullptr, false);
 
-    column("");
+    column("Ch");
     column("State");
     column("VolL");
     column("VolR");
@@ -123,8 +124,8 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     }
 
     ImGui::Columns(1);
+    ImGui::PopFont();
     ImGui::PopStyleVar();
-    ImGui::TreePop();
 }
 
 void reverbInfo(spu::SPU* spu) {
@@ -191,7 +192,6 @@ void reverbInfo(spu::SPU* spu) {
 
     ImGui::Columns(1);
     ImGui::PopStyleVar();
-    ImGui::TreePop();
 }
 
 void registersInfo(spu::SPU* spu) {
@@ -208,7 +208,6 @@ void registersInfo(spu::SPU* spu) {
 
     ImGui::Text("IRQ Address: 0x%08x", spu->irqAddress._reg);
     ImGui::PopStyleVar();
-    ImGui::TreePop();
 }
 
 void renderSamples(spu::SPU* spu) {
@@ -223,7 +222,6 @@ void renderSamples(spu::SPU* spu) {
 void debugTools(spu::SPU* spu) {
     ImGui::Checkbox("Force interpolation off", &spu->forceInterpolationOff);
     ImGui::Checkbox("Force Pitch Modulation off", &spu->forcePitchModulationOff);
-    ImGui::TreePop();
 }
 
 void spuWindow(spu::SPU* spu) {

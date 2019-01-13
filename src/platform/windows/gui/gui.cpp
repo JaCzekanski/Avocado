@@ -64,10 +64,17 @@ void renderImgui(System* sys) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Emulation")) {
+                if (ImGui::MenuItem("Pause/Resume", "Space")) {
+                    if (sys->state == System::State::pause) {
+                        sys->state = System::State::run;
+                    } else if (sys->state == System::State::run) {
+                        sys->state = System::State::pause;
+                    }
+                }
                 if (ImGui::MenuItem("Soft reset", "F2")) sys->softReset();
                 if (ImGui::MenuItem("Hard reset", "Shift+F2")) doHardReset = true;
 
-                const char* shellStatus = sys->cdrom->getShell() ? "Shell opened" : "Shell closed";
+                const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
                 if (ImGui::MenuItem(shellStatus, "F3")) {
                     sys->cdrom->toggleShell();
                 }

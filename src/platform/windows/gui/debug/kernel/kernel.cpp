@@ -18,6 +18,7 @@ void parse(System* sys) {
     uint32_t addr = sys->readMemory32(0x108);
     uint32_t count = sys->readMemory32(0x108 + 4) / size;
 
+    ImGui::TreePush();
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
@@ -30,6 +31,7 @@ void parse(System* sys) {
         ImGui::Separator();
     }
     ImGui::PopStyleVar();
+    ImGui::TreePop();
 }
 }  // namespace PCB
 
@@ -40,6 +42,7 @@ void parse(System* sys) {
     uint32_t addr = sys->readMemory32(0x110);
     uint32_t count = sys->readMemory32(0x110 + 4) / size;
 
+    ImGui::TreePush();
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
@@ -71,6 +74,7 @@ void parse(System* sys) {
         ImGui::Separator();
     }
     ImGui::PopStyleVar();
+    ImGui::TreePop();
 }
 }  // namespace TCB
 
@@ -148,6 +152,7 @@ void parse(System* sys) {
     uint32_t addr = sys->readMemory32(0x120);
     uint32_t count = sys->readMemory32(0x120 + 4) / size;
 
+    ImGui::TreePush();
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
@@ -172,24 +177,17 @@ void parse(System* sys) {
         ImGui::Separator();
     }
     ImGui::PopStyleVar();
+    ImGui::TreePop();
 }
 }  // namespace EvCB
 
 void kernelWindow(System* sys) {
     ImGui::Begin("Kernel", &showKernelWindow, ImVec2(300, 200));
+    int treeFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
-    if (ImGui::TreeNodeEx("Process Control Blocks (PCB)", ImGuiTreeNodeFlags_CollapsingHeader)) {
-        PCB::parse(sys);
-        ImGui::TreePop();
-    }
-    if (ImGui::TreeNodeEx("Thread Control Blocks (TCB)", ImGuiTreeNodeFlags_CollapsingHeader)) {
-        TCB::parse(sys);
-        ImGui::TreePop();
-    }
-    if (ImGui::TreeNodeEx("Event Control Blocks (EvCB)", ImGuiTreeNodeFlags_CollapsingHeader)) {
-        EvCB::parse(sys);
-        ImGui::TreePop();
-    }
+    if (ImGui::TreeNodeEx("Process Control Blocks (PCB)", treeFlags)) PCB::parse(sys);
+    if (ImGui::TreeNodeEx("Thread Control Blocks (TCB)", treeFlags)) TCB::parse(sys);
+    if (ImGui::TreeNodeEx("Event Control Blocks (EvCB)", treeFlags)) EvCB::parse(sys);
 
     ImGui::End();
 }
