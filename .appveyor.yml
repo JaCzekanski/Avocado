@@ -8,9 +8,6 @@ environment:
   PREMAKE_VERSION: 5.0.0-alpha12
   SDL_VERSION: 2.0.9
   matrix:
- # - TOOLSET: vs2013
- # - TOOLSET: vs2015
- #   platform: Win32
   - TOOLSET: vs2017
     platform: Win32
   - TOOLSET: vs2017
@@ -62,20 +59,18 @@ after_build:
   - 7z a avocado.zip %APPVEYOR_BUILD_FOLDER%\artifact\.
 
 test_script:
-  - .\%TARGETDIR%\avocado_test.exe --success -r junit > test-result.xml  || ver > nul
+  - .\%TARGETDIR%\avocado_test.exe --success -r junit > test-result.xml || ver > nul
 
   - ps: Start-FileDownload 'https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/raw/d5bc41278fd198ef5e4afceb35e0587aca7f2f60/gte_valid_0xc0ffee_50.log'
-  - .\%TARGETDIR%\avocado_autotest.exe gte_valid_0xc0ffee_50.log   || ver > nul
+  - .\%TARGETDIR%\avocado_autotest.exe gte_valid_0xc0ffee_50.log || ver > nul
 
 after_test:
   - ps: (New-Object 'System.Net.WebClient').UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test-result.xml))
 
 on_success:
-  - ps: Start-FileDownload "https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1" "send.ps1"
-  - ps: ./send.ps1 success $env:WEBHOOK_URL
+  - ps: ./.appveyor/notify-discord.ps1 success $env:WEBHOOK_URL
 on_failure:
-  - ps: Start-FileDownload "https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1" "send.ps1"
-  - ps: ./send.ps1 failure $env:WEBHOOK_URL
+  - ps: ./.appveyor/notify-discord.ps1 failure $env:WEBHOOK_URL
 
 artifacts:
   - path: avocado.zip
