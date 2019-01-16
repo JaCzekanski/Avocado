@@ -91,7 +91,7 @@ uint8_t Controller::read(uint32_t address) {
         uint8_t data = (ack << 7) |        // /ACK Input Level 0 - High, 1 - Low
                                            // 6, 5, 4 - 0
                        (0 << 3) |          // Parity error
-                       (0 << 2) |          // TX Ready Flag 2
+                       (1 << 2) |          // TX Ready Flag 2
                        (rxPending << 1) |  // RX FIFO Not Empty
                        (1 << 0);           // TX Ready Flag 1
         ack = false;
