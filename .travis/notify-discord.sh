@@ -43,7 +43,7 @@ else
   URL=""
 fi
 
-TIMESTAMP=$(date --utc +%FT%TZ)
+TIMESTAMP=$(date +%FT%TZ)
 WEBHOOK_DATA='{
   "username": "",
   "avatar_url": "https://travis-ci.org/images/logos/TravisCI-Mascot-1.png",
@@ -61,6 +61,11 @@ WEBHOOK_DATA='{
       {
         "name": "Commit",
         "value": "'"[\`${TRAVIS_COMMIT:0:7}\`](https://github.com/$TRAVIS_REPO_SLUG/commit/$TRAVIS_COMMIT)"'",
+        "inline": true
+      },
+      {
+        "name": "Job",
+        "value": "'"$TRAVIS_JOB_NAME"'",
         "inline": true
       },
       {

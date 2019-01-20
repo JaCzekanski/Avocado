@@ -5,7 +5,7 @@ os:
   - Visual Studio 2017
 
 environment:
-  PREMAKE_VERSION: 5.0.0-alpha12
+  PREMAKE_VERSION: 5.0.0-alpha13
   SDL_VERSION: 2.0.9
   matrix:
   - TOOLSET: vs2017

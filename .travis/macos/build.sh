@@ -1,19 +1,12 @@
 #!/bin/bash -ex
-# Run by run-container.sh, builds Avocado in Docker container and runs tests
 
-export OS=linux64
+export OS=macos
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT
 
-export CC="ccache clang-6.0 -fcolor-diagnostics"
-export CXX="ccache clang++-6.0 -fcolor-diagnostics"
-
-cd /home/build
-
-# Download SDL2
-apt update
-apt install -y --no-install-recommends libsdl2-dev
+export CC="ccache clang"
+export CXX="ccache clang++"
 
 # Generate Makefile
 premake5 gmake
@@ -31,7 +24,7 @@ wget -nv https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/ra
 # Package
 mkdir -p $ARTIFACT
 export TARGETDIR=build/release_x64
-cp $TARGETDIR/avocado $ARTIFACT/avocado
+cp $TARGETDIR/avocado.app $ARTIFACT/avocado.app
 cp -r data $ARTIFACT/
 
 # Remove .gitignore and asm dir

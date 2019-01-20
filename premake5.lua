@@ -1,57 +1,7 @@
-function generateVersionFile()
-	local version = getSingleLineOutput('git describe --exact-match')
-	local branch = getSingleLineOutput('git symbolic-ref --short -q HEAD')
-	local commit = getSingleLineOutput('git rev-parse --short=6 HEAD')
-	local date = os.date("!%Y-%m-%d %H:%M:%S")
-
-	if os.getenv("APPVEYOR") == "True" then
-		branch = os.getenv("APPVEYOR_REPO_BRANCH")
-	end
-
-	local versionString = ''
-
-	if version == '' then
-		versionString = string.format("%s-%s (%s)", branch, commit, date)
-	else
-		versionString = string.format("v%s", version)
-	end
-
-	versionString = versionString .. " \" BUILD_ARCH \""
-
-	f = io.open('src/version.h', 'w')
-	f:write('#pragma once\n')
-	f:write(string.format('#ifndef BUILD_ARCH\n'))
-	f:write(string.format('    #define BUILD_ARCH "UNKNOWN-ARCH"\n'))
-	f:write(string.format('#endif\n'))
-	f:write(string.format('#define BUILD_VERSION "%s"\n', version))
-	f:write(string.format('#define BUILD_BRANCH "%s"\n', branch))
-	f:write(string.format('#define BUILD_COMMIT "%s"\n', commit))
-	f:write(string.format('#define BUILD_DATE "%s"\n', date))
-	f:write(string.format('#define BUILD_STRING "%s"\n', versionString))
-	f:close()
-end
-
-function getSingleLineOutput(command)
-	return string.gsub(getOutput(command), '\n', '')
-end
-
-function getOutput(command)
-	local nullDevice = ''
-	if package.config:sub(1,1) == '\\' then
-		nullDevice = 'NUL'
-	else
-		nullDevice = '/dev/null'
-	end
-
-	local file = io.popen(command .. ' 2> ' .. nullDevice, 'r')
-	local output = file:read('*all')
-	file:close()
-
-	return output
-end
+include "premake/tools.lua"
 
 workspace "Avocado"    
-	configurations { "debug", "release", "fast_debug" }
+	configurations { "debug", "release" }
 	platforms {"x86", "x64"}
     startproject "avocado"
     defaultplatform "x86"
@@ -89,7 +39,7 @@ filter "system:macosx"
 	}
 
 
-filter {"kind:*App"}
+filter "kind:*App"
 	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
 
 filter {"kind:*App", "platforms:x86"}
@@ -101,168 +51,34 @@ filter "configurations:Debug"
 	symbols "On"
 
 filter "configurations:Release"
+	staticruntime "on"
 	defines { "NDEBUG" }
+	flags { "MultiProcessorCompile" }
 	optimize "Full"
 
-filter "configurations:FastDebug"
-    defines { "DEBUG" }
-    symbols "On"
-    optimize "Speed"
-    editandcontinue "On"
+filter {"configurations:Release", "system:windows or system:macosx"}
+	flags { "LinkTimeOptimization" }
 
-filter {"action:vs*"}
-    flags { "MultiProcessorCompile" }
+filter "action:vs*"
 	defines "_CRT_SECURE_NO_WARNINGS"
-
-filter {"action:vs*", "configurations:Release"}
-    flags {
-		"LinkTimeOptimization",
-		"StaticRuntime"
-	}
 
 filter "action:gmake"
 	buildoptions { 
 		"-Wall",
 		"-Wextra",
-		"-Wno-unused-parameter",
 	}
 
-project "glad"
-	uuid "9add6bd2-2372-4614-a367-2e8863415083"
-	kind "StaticLib"
-	language "c"
-	location "build/libs/glad"
-	includedirs { 
-		"externals/glad/include"
-	}
-	files { 
-		"externals/glad/src/*.c",
-	}
+include "premake/glad.lua"
+include "premake/miniz.lua"
+include "premake/imgui.lua"
+include "premake/flac.lua"
+include "premake/chdr.lua"
+include "premake/lzma.lua"
 
-project "miniz"
-	uuid "4D28CBE8-3092-4400-B67B-FD51FCAFBD34"
-	kind "StaticLib"
-	language "c"
-	location "build/libs/miniz"
-	includedirs { 
-		"externals/miniz"
-	}
-	files { 
-		"externals/miniz/*.c",
-	}
-
-project "imgui"
-	uuid "a8f18b69-f15a-4804-80f7-e8f80ab91369"
-	kind "StaticLib"
-	location "build/libs/imgui"
-	includedirs { 
-		"externals/imgui",
-		"externals/glad/include",
-	}
-	files { 
-		"externals/imgui/*.cpp",
-	}
-
-project "flac"
-	uuid "2f208b4f-2e69-408e-b0df-b0e72b031b02"
-	kind "StaticLib"
-	language "c"
-	location "build/libs/flac"
-	includedirs { 
-		"externals/flac/src/libFLAC/include",
-		"externals/flac/include",
-	}
-	files { 
-		"externals/flac/src/libFLAC/bitmath.c",
-		"externals/flac/src/libFLAC/bitreader.c",
-		"externals/flac/src/libFLAC/cpu.c",
-		"externals/flac/src/libFLAC/crc.c",
-		"externals/flac/src/libFLAC/fixed.c",
-		"externals/flac/src/libFLAC/fixed_intrin_sse2.c",
-		"externals/flac/src/libFLAC/fixed_intrin_ssse3.c",
-		"externals/flac/src/libFLAC/float.c",
-		"externals/flac/src/libFLAC/format.c",
-		"externals/flac/src/libFLAC/lpc.c",
-		"externals/flac/src/libFLAC/lpc_intrin_avx2.c",
-		"externals/flac/src/libFLAC/lpc_intrin_sse2.c",
-		"externals/flac/src/libFLAC/lpc_intrin_sse41.c",
-		"externals/flac/src/libFLAC/lpc_intrin_sse.c",
-		"externals/flac/src/libFLAC/md5.c",
-		"externals/flac/src/libFLAC/memory.c",
-		"externals/flac/src/libFLAC/metadata_iterators.c",
-		"externals/flac/src/libFLAC/metadata_object.c",
-		"externals/flac/src/libFLAC/stream_decoder.c",
-		"externals/flac/src/libFLAC/window.c",
-	}
-	filter "system:windows" 
-		files {
-			"externals/flac/src/libFLAC/windows_unicode_filenames.c",
-		}
-	filter {}
-	defines {
-		"PACKAGE_VERSION=\"1.3.2\"",
-		"FLAC__HAS_OGG=0", 
-		"FLAC__NO_DLL", 
-		"HAVE_LROUND", 
-		"HAVE_STDINT_H", 
-		"HAVE_STDLIB_H",
-	}
-
-
-project "lzma"
-	uuid "af99f9c5-e14a-4478-bac5-07d457753d35"
-	kind "StaticLib"
-	language "c"
-	location "build/libs/lzma"
-	includedirs { 
-		"externals/lzma/C",
-	}
-	files { 
-		"externals/lzma/C/Alloc.c",
-		"externals/lzma/C/Bra86.c",
-		"externals/lzma/C/Bra.c",
-		"externals/lzma/C/BraIA64.c",
-		"externals/lzma/C/CpuArch.c",
-		"externals/lzma/C/Delta.c",
-		"externals/lzma/C/LzFind.c",
-		"externals/lzma/C/Lzma86Dec.c",
-		"externals/lzma/C/Lzma86Enc.c",
-		"externals/lzma/C/LzmaDec.c",
-		"externals/lzma/C/LzmaEnc.c",
-		"externals/lzma/C/LzmaLib.c",
-		"externals/lzma/C/Sort.c",
-	}
-	defines {
-		"_7ZIP_ST"
-	}
-
-project "chdr"
-	uuid "d148de3d-efbb-4f1d-88bc-a112be68fc04"
-	kind "StaticLib"
-	language "c"
-	location "build/libs/chdr"
-	includedirs { 
-		"externals/flac/include",
-		"externals/lzma/C",
-		"externals/libchdr/src",
-		"externals/miniz",
-	}
-	files { 
-		"externals/libchdr/src/*.c",
-	}
-	defines {
-		"FLAC__NO_DLL",
-	}
-	links {
-		"miniz",
-		"lzma",
-		"flac",
-	}
-
-project "common"
+project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
 	kind "StaticLib"
-	location "build/libs/common"
+	location "build/libs/core"
 
 	includedirs { 
 		"src", 
@@ -290,12 +106,6 @@ project "common"
 		"chdr",
 	}
 
-	filter "system:windows" 
-		defines "WIN32" 
-
-	filter {"action:gmake", "system:windows"}
-		defines {"_CRT_SECURE_NO_WARNINGS"}
-		
 	if _ACTION ~= nil then
 		generateVersionFile()
 	end
@@ -310,7 +120,6 @@ project "avocado"
 		"src", 
 		"externals/imgui",
 		"externals/glad/include",
-		"externals/SDL2/include",
 		"externals/glm",
 		"externals/json/include",
 		"externals/stb",
@@ -318,15 +127,23 @@ project "avocado"
 	}
 
 	links {
-		"common",
+		"core",
 		"miniz",
 		"chdr",
 		"lzma",
 		"flac",
 	}
 
-	filter "system:windows" 
-		defines "WIN32" 
+	filter "options:headless"
+		files { 
+			"src/platform/headless/**.cpp",
+			"src/platform/headless/**.h"
+		}
+
+	filter {"system:windows", "not options:headless"}
+		includedirs { 
+			"externals/SDL2/include",
+		} 
 		files { 
 			"src/imgui/**.*",
 			"src/renderer/opengl/**.*",
@@ -338,19 +155,14 @@ project "avocado"
 			"imgui",
 			"OpenGL32"
 		}
-		filter "platforms:x86"
-			libdirs "externals/SDL2/lib/x86"
+
+	filter {"system:windows", "not options:headless", "platforms:x86"}
+		libdirs "externals/SDL2/lib/x86"
 		
-		filter "platforms:x64"
-			libdirs "externals/SDL2/lib/x64"
+	filter {"system:windows", "not options:headless", "platforms:x64"}
+		libdirs "externals/SDL2/lib/x64"
 
-	filter {"system:linux", "options:headless"}
-		files { 
-			"src/platform/headless/**.cpp",
-			"src/platform/headless/**.h"
-		}
 
--- TODO: Make headless and normal configurations
 	filter {"system:linux", "not options:headless"}
 		files { 
 			"src/imgui/**.*",
@@ -366,7 +178,7 @@ project "avocado"
 		linkoptions {getOutput("sdl2-config --libs")}
 		
 
-	filter "system:macosx"
+	filter {"system:macosx", "not options:headless"}
 	    kind "WindowedApp"
 		files { 
 			"src/imgui/**.*",
@@ -388,11 +200,6 @@ project "avocado_test"
 
 	includedirs { 
 		"src", 
-		"externals/imgui",
-		"externals/glad/include",
-		"externals/SDL2/include",
-		"externals/glm",
-		"externals/json/src",
 		"externals/catch/single_include"
 	}
 
@@ -403,7 +210,7 @@ project "avocado_test"
 	}
 
 	links {
-		"common"
+		"core"
 	}
 
 project "avocado_autotest"
@@ -414,11 +221,6 @@ project "avocado_autotest"
 
 	includedirs { 
 		"src", 
-		"externals/imgui",
-		"externals/glad/include",
-		"externals/SDL2/include",
-		"externals/glm",
-		"externals/json/src"
 	}
 
 	files { 
@@ -428,5 +230,5 @@ project "avocado_autotest"
 	}
 
 	links {
-		"common"
+		"core"
 	}

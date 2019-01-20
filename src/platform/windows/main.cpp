@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
-        printf("Cannot init SDL\n");
+        printf("Cannot init SDL (%s)\n", SDL_GetError());
         return 1;
     }
 
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
 
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (glContext == nullptr) {
-        printf("Cannot create OpenGL context\n");
+        printf("Cannot create OpenGL context (%s)\n", SDL_GetError());
         return 1;
     }
 

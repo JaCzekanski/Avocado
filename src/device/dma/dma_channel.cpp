@@ -1,9 +1,10 @@
 #include "dma_channel.h"
 #include <cstdio>
+#include "config.h"
 #include "system.h"
 
 namespace device::dma::dmaChannel {
-DMAChannel::DMAChannel(int channel, System* sys) : channel(channel), sys(sys) {}
+DMAChannel::DMAChannel(int channel, System* sys) : channel(channel), sys(sys) { verbose = (int)config["debug"]["log"]["dma"]; }
 
 DMAChannel::~DMAChannel() {}
 

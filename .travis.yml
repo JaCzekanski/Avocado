@@ -1,15 +1,23 @@
 language: cpp
 matrix:
   include:
-    - os: linux
-      env: NAME=clang6
+    - name: "Linux Clang6"
+      os: linux
       sudo: required
       dist: trusty
       cache: ccache
       install: "./.travis/linux/pull-container.sh"
       script: "./.travis/linux/run-container.sh"
-      after_success: "./.travis/linux/notify-discord.sh success $WEBHOOK_URL"
-      after_failure: "./.travis/linux/notify-discord.sh failure $WEBHOOK_URL"
-
+      after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
+      after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
+    - name: "macOS"
+      os: osx
+      osx_image: xcode10.1
+      cache: ccache
+      install: "./.travis/macos/install-dependencies.sh"
+      script: "./.travis/macos/build.sh"
+      after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
+      after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
+    
 notifications:
   - email: false
