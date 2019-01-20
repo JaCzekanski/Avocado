@@ -30,15 +30,26 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 Build   | Status | Download
 --------|--------|---------
 Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
+Travis CI (macOS) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
 AppVeyor (Windows x86) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x86 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3DWin32)
 AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x64 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3Dx64)
-
-*Note: x64 build requires [AVX compatible processor](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#CPUs_with_AVX)*
 
 Despite this emulator being in early development, some 3D games can run. [Game compability list](https://avocado-db.czekanski.info)
 
 
 Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make audio stutter**), MDEC is missing (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed). Many games won't boot or crash shortly after booting.
+
+## Requirements
+- OS: Windows 7 or later, macOS 10.13 or later, Linux
+- GPU: Graphics card supporting **OpenGL 3.2**
+- CPU: [AVX compatible x64 processor](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#CPUs_with_AVX) or any x86 processor
+
+### Notes
+Avocado focuses on supporting relatively modern hardware (2010 and forwards) and non-legacy OSes. 
+
+Emulator is currently single-threaded - if you have multicore CPU you will not benefit from it. Single thread performance is what really matters.
+
+Currently Avocado requires OpenGL 3.2. In the future this limitation will be lifted for software rendering.
 
 ## Running
 
@@ -69,14 +80,16 @@ Configure controls under Options->Controller menu.
 
 ## Build
 
-Requirements (Windows):
+
+### Windows
+Requirements:
 - Visual Studio 2017
 - [Premake5](https://premake.github.io/download.html)
 - [SDL2 dev library](https://www.libsdl.org/download-2.0.php)
 
 ```
 > git clone https://github.com/JaCzekanski/Avocado.git
-> cd avocado
+> cd Avocado
 > git submodule update --init --recursive
 > premake5 vs2017
 
@@ -84,6 +97,47 @@ Requirements (Windows):
 ```
 
 See appveyor.yml in case of problems.
+
+### Linux
+Requirements:
+- Clang6 or newer
+- [Premake5](https://premake.github.io/download.html)
+
+```
+> sudo apt update
+> sudo apt install libsdl2-dev
+> git clone https://github.com/JaCzekanski/Avocado.git
+> cd Avocado
+> git submodule update --init --recursive
+> premake5 gmake
+> make config=release_x64 -j4
+
+# Running
+> ./build/release_x64/avocado
+```
+
+See .travis/linux/build.sh in case of problems.
+
+### macOS
+Requirements:
+- XCode
+- [Premake5](https://premake.github.io/download.html)
+- [Brew](https://brew.sh)
+
+```
+> brew update
+> brew install sdl2
+> git clone https://github.com/JaCzekanski/Avocado.git
+> cd Avocado
+> git submodule update --init --recursive
+> premake5 gmake
+> make config=release_x64 -j4
+
+# Running
+> ./build/release_x64/avocado.app
+```
+
+See .travis/macos/build.sh in case of problems.
 
 ## Bugs
 
