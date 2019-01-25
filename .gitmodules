@@ -23,3 +23,6 @@
 [submodule "externals/libchdr"]
 	path = externals/libchdr
 	url = https://github.com/JaCzekanski/libchdr
+[submodule "externals/fmt"]
+	path = externals/fmt
+	url = https://github.com/fmtlib/fmt

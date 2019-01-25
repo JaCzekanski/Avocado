@@ -57,7 +57,9 @@ filter "configurations:Release"
 	optimize "Full"
 
 filter {"configurations:Release", "system:windows or system:macosx"}
-	flags { "LinkTimeOptimization" }
+	if os.getenv("CI") == true then
+		flags { "LinkTimeOptimization" }
+	end
 
 filter "action:vs*"
 	defines "_CRT_SECURE_NO_WARNINGS"
@@ -68,12 +70,13 @@ filter "action:gmake"
 		"-Wextra",
 	}
 
-include "premake/glad.lua"
-include "premake/miniz.lua"
-include "premake/imgui.lua"
-include "premake/flac.lua"
 include "premake/chdr.lua"
+include "premake/flac.lua"
+include "premake/fmt.lua"
+include "premake/glad.lua"
+include "premake/imgui.lua"
 include "premake/lzma.lua"
+include "premake/miniz.lua"
 
 project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
@@ -124,6 +127,7 @@ project "avocado"
 		"externals/json/include",
 		"externals/stb",
 		"externals/libchdr/src",
+		"externals/fmt/include",
 	}
 
 	links {
@@ -132,6 +136,7 @@ project "avocado"
 		"chdr",
 		"lzma",
 		"flac",
+		"fmt",
 	}
 
 	filter "options:headless"
