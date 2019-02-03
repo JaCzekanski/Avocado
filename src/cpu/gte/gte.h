@@ -165,8 +165,7 @@ struct GTE {
     void dpcs(bool useRGB0 = false);
     void dcpl();
     void intpl();
-    template <bool setMAC0 = true>
-    void rtps(int n = 0);
+    void rtps(int n = 0, bool setMAC0 = true);
     void rtpt();
     void avsz3();
     void avsz4();

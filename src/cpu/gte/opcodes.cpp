@@ -345,8 +345,7 @@ void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
  * Multiplicate vector (V) with rotation matrix (R),
  * translate it (TR) and apply perspective transformation.
  */
-template <bool setMAC0>
-void GTE::rtps(int n) {
+void GTE::rtps(int n, bool setMAC0) {
     int64_t mac3 = multiplyMatrixByVectorRTP(rotation, v[n], translation);
 
     pushScreenZ((int32_t)(mac3 >> 12));
@@ -367,9 +366,9 @@ void GTE::rtps(int n) {
  * Same as RTPS, but repeated for vector 0, 1 and 2
  */
 void GTE::rtpt() {
-    rtps<false>(0);
-    rtps<false>(1);
-    rtps<true>(2);
+    rtps(0, false);
+    rtps(1, false);
+    rtps(2, true);
 }
 
 /**
