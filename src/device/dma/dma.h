@@ -68,19 +68,36 @@ union DICR {
 
     DICR() : _reg(0) {}
 
+    void write(int n, uint8_t value) {
+        if (n <= 2) {
+            _byte[n] = value;
+        } else if (n == 3) {
+            _byte[3] &= ~value;
+        }
+        masterFlag = calcMasterFlag();
+    }
+
+    bool calcMasterFlag() {
+        uint8_t enables = (_reg & 0x7F0000) >> 16;
+        uint8_t flags = (_reg & 0x7F000000) >> 24;
+        return forceIRQ || (masterEnable && (enables & flags));
+    }
+
     bool getEnableDma(int channel) { return _reg & (1 << (16 + channel)); }
 
     void setFlagDma(int channel, bool value) {
-        if (value)
+        if (value) {
             _reg |= (1 << (24 + channel));
-        else
+        } else {
             _reg &= ~(1 << (24 + channel));
+        }
     }
 };
 
 class DMA {
     DPCR control;
     DICR status;
+    bool pendingInterrupt = false;
 
    private:
     System* sys;
@@ -93,4 +110,4 @@ class DMA {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 };
-}
+}  // namespace device::dma

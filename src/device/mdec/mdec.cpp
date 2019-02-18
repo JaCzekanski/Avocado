@@ -43,12 +43,15 @@ uint32_t MDEC::read(uint32_t address) {
             } else {
                 part++;
             }
-        }
-        if (status.colorDepth == Status::ColorDepth::bit_15) {
+        } else if (status.colorDepth == Status::ColorDepth::bit_15) {
             uint16_t bit15 = (uint16_t)status.outputSetBit15 << 15;
             data = (bit15 | to15bit(output[outputPtr + 0]));
             data |= (bit15 | to15bit(output[outputPtr + 1])) << 16;
             outputPtr += 2;
+        } else {
+            // Unsupported 4 and 8 bit modes
+            data = 0;
+            outputPtr++;
         }
 
         if (outputPtr >= output.size()) {

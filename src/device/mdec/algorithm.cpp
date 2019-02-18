@@ -168,16 +168,15 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, uint16_t*& src, const std::
 }
 
 void MDEC::idct(std::array<int16_t, 64>& src) {
-    // std::array<int16_t, 64> dst = {{}};
     std::array<int64_t, 64> tmp = {{}};
 
     for (int x = 0; x < 8; x++) {
         for (int y = 0; y < 8; y++) {
             int64_t sum = 0;
             for (int i = 0; i < 8; i++) {
-                sum += idctTable.at(i * 8 + y) * src.at(x + i * 8);
+                sum += idctTable[i * 8 + y] * src[x + i * 8];
             }
-            tmp.at(x + y * 8) = sum;
+            tmp[x + y * 8] = sum;
         }
     }
 
@@ -185,11 +184,11 @@ void MDEC::idct(std::array<int16_t, 64>& src) {
         for (int y = 0; y < 8; y++) {
             int64_t sum = 0;
             for (int i = 0; i < 8; i++) {
-                sum += tmp.at(i + y * 8) * idctTable.at(x + i * 8);
+                sum += tmp[i + y * 8] * idctTable[x + i * 8];
             }
 
             int round = (sum >> 31) & 1;
-            src.at(x + y * 8) = (sum >> 32) + round;
+            src[x + y * 8] = (sum >> 32) + round;
         }
     }
 }

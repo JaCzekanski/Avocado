@@ -20,13 +20,8 @@ DMA::DMA(System* sys) : sys(sys) {
 }
 
 void DMA::step() {
-    bool prevMasterFlag = status.masterFlag;
-
-    uint8_t enables = (status._reg & 0x7F0000) >> 16;
-    uint8_t flags = (status._reg & 0x7F000000) >> 24;
-    status.masterFlag = status.forceIRQ || (status.masterEnable && (enables & flags));
-
-    if (!prevMasterFlag && status.masterFlag) {
+    if (pendingInterrupt) {
+        pendingInterrupt = false;
         sys->interrupt->trigger(interrupt::DMA);
     }
 }
@@ -56,13 +51,7 @@ void DMA::write(uint32_t address, uint8_t data) {
             return;
         }
         if (address >= 0xF4 && address < 0xf8) {
-            if (address == 0xf7) {
-                // Clear flags (by writing 1 to bit) which sets it to 0
-                // do not touch master flag
-                status._byte[address - 0xF4] &= 0x80 | ((~data) & 0x7f);
-                return;
-            }
-            status._byte[address - 0xf4] = data;
+            status.write(address - 0xf4, data);
             return;
         }
         printf("W Unimplemented DMA address 0x%08x\n", address);
@@ -72,7 +61,10 @@ void DMA::write(uint32_t address, uint8_t data) {
     dma[channel]->write(address % 0x10, data);
     if (dma[channel]->irqFlag) {
         dma[channel]->irqFlag = false;
-        if (status.getEnableDma(channel)) status.setFlagDma(channel, 1);
+        if (status.getEnableDma(channel)) {
+            status.setFlagDma(channel, 1);
+            pendingInterrupt = status.calcMasterFlag();
+        }
     }
 }
 }  // namespace device::dma
