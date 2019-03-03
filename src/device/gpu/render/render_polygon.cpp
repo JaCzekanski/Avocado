@@ -36,11 +36,7 @@ bool isCw(const glm::ivec2 v[3]) {
     return n.z < 0;
 }
 
-INLINE int fast_round(float n) {
-    int i = (int)n;
-    float r = n - i;
-    return (int)(i + r * 2);
-}
+INLINE int fast_round(float n) { return static_cast<int>(n + 0.5f); }
 
 INLINE glm::ivec2 calculateTexel(glm::vec3 s, glm::ivec2 tex[3], gpu::GP0_E2 textureWindow) {
     glm::ivec2 texel = glm::ivec2(fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
