@@ -13,6 +13,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
+*13.03.2019* - merged MDEC (video decoder) support
+
 *8.12.2018* - created Compatibility list webapp
 
 *19.11.2018* - added .chd file support
