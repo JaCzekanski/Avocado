@@ -58,7 +58,7 @@ filter "configurations:Release"
 
 filter {"configurations:Release", "system:windows or system:macosx"}
 	if os.getenv("CI") == true then
-		flags { "LinkTimeOptimization" }
+	flags { "LinkTimeOptimization" }
 	end
 
 filter "action:vs*"
@@ -78,7 +78,6 @@ filter "action:gmake"
 
 include "premake/chdr.lua"
 include "premake/flac.lua"
-include "premake/fmt.lua"
 include "premake/glad.lua"
 include "premake/imgui.lua"
 include "premake/lzma.lua"
@@ -133,7 +132,6 @@ project "avocado"
 		"externals/json/include",
 		"externals/stb",
 		"externals/libchdr/src",
-		"externals/fmt/include",
 	}
 
 	links {
@@ -142,7 +140,6 @@ project "avocado"
 		"chdr",
 		"lzma",
 		"flac",
-		"fmt",
 	}
 
 	filter "options:headless"
