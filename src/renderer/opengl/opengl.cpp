@@ -102,6 +102,9 @@ bool OpenGL::setup() {
         supportNativeTexture = false;
     }
 
+    extern int vramTextureId;
+    vramTextureId = vramTex->get();
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUseProgram(0);
@@ -387,19 +390,21 @@ void OpenGL::render(gpu::GPU* gpu) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (gpu->gp1_08.colorDepth == gpu::GP1_08::ColorDepth::bit24) {
+        // HACK: Force software rendering for movies (24bit mode)
         update24bitTexture(gpu);
+        renderBlit(gpu, true);
     } else {
         updateVramTexture(gpu);
-    }
 
-    if (hardwareRendering) {
-        // Render all GPU commands
-        renderVertices(gpu);
-    }
+        if (hardwareRendering) {
+            // Render all GPU commands
+            renderVertices(gpu);
+        }
 
-    // Blit rendered polygons to screen
-    // For OpenGL < 3.2
-    renderBlit(gpu, !hardwareRendering);
+        // Blit rendered polygons to screen
+        // For OpenGL < 3.2
+        renderBlit(gpu, !hardwareRendering);
+    }
 
     // For OpenGL > 3.2
     // glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

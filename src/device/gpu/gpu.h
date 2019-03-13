@@ -51,6 +51,8 @@ class GPU {
 
     GP0_E1 gp0_e1;
 
+    // TODO: Move Debug GUI stuff to class and befriend it
+   public:
     // GP0(0xe3)
     // GP0(0xe4)
     Rect<int16_t> drawingArea;
@@ -86,6 +88,7 @@ class GPU {
     // GP1(0x09)
     bool textureDisableAllowed = false;
 
+   private:
     // Hardware rendering
     std::vector<Vertex> vertices;
 
