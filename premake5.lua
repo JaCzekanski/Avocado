@@ -88,8 +88,6 @@ project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
 	kind "StaticLib"
 	location "build/libs/common"
-	pchheader "src/stdafx.h"
-	pchsource "src/stdafx.cpp"
 
 	includedirs { 
 		"src", 
@@ -126,8 +124,6 @@ project "avocado"
 	kind "ConsoleApp"
 	location "build/libs/avocado"
 	debugdir "."
-	pchheader "src/stdafx.h"
-	pchsource "src/stdafx.cpp"
 
 	includedirs { 
 		"src", 
