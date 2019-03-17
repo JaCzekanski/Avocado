@@ -34,7 +34,7 @@ constexpr std::array<uint8_t, 64> generateZagzig() {
 
 const std::array<uint8_t, 64> zagzig = generateZagzig();
 
-void yuvToRgb(uint32_t* output, int blockX, int blockY) {
+void MDEC::yuvToRgb(decodedBlock& output, int blockX, int blockY) {
     // YUV 4:2:0
     // Y component is at full resolution
     // Cr and Cb components are half resolution horizontally and vertically
@@ -71,24 +71,16 @@ void yuvToRgb(uint32_t* output, int blockX, int blockY) {
         }
     }
 }
+
 void MDEC::decodeMacroblocks() {
-    uint16_t* src = input.data();
+    for (auto src = input.begin(); src != input.end();) {
+        auto block = decodeMacroblock(src);
 
-    int block;
-    for (block = 0;; block++) {
-        output.resize(output.size() + 16 * 16);
-
-        uint32_t* out = output.data() + block * 16 * 16;
-        decodeMacroblock(src, out);
-
-        if (src >= input.data() + input.size() * 2) {
-            break;
-        }
+        output.insert(output.end(), block.begin(), block.end());
     }
-    printf("decoded %d blocks\n", block);
 }
 
-void MDEC::decodeMacroblock(uint16_t*& src, uint32_t* out) {
+decodedBlock MDEC::decodeMacroblock(std::vector<uint16_t>::iterator& src) {
     decodeBlock(crblk, src, colorQuantTable);
     decodeBlock(cbblk, src, colorQuantTable);
 
@@ -97,11 +89,13 @@ void MDEC::decodeMacroblock(uint16_t*& src, uint32_t* out) {
     decodeBlock(yblk[2], src, luminanceQuantTable);
     decodeBlock(yblk[3], src, luminanceQuantTable);
 
+    decodedBlock out;
     yuvToRgb(out, 0, 0);
     yuvToRgb(out, 0, 8);
     yuvToRgb(out, 8, 0);
     yuvToRgb(out, 8, 8);
 
+    return out;
     // Handle format conversion
 }
 
@@ -125,7 +119,7 @@ union RLE {
     RLE(uint16_t val) : _(val){};
 };
 
-void MDEC::decodeBlock(std::array<int16_t, 64>& blk, uint16_t*& src, const std::array<uint8_t, 64>& table) {
+void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iterator& src, const std::array<uint8_t, 64>& table) {
     blk.fill(0);
 
     // Block structure:
@@ -134,11 +128,11 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, uint16_t*& src, const std::
     // RLE compressed data - 0-63x 16bit
     // (optional) End of block (0xfe00)
 
-    // TODO: Range check
-    while (*src == 0xfe00) {
+    while (src != input.end() && *src == 0xfe00) {
         src++;  // Skip padding
     }
 
+    if (src == input.end()) return;
     DCT dct = *src++;
     int32_t current = extend_sign<9>(dct.dc);
 
@@ -157,6 +151,7 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, uint16_t*& src, const std::
             blk.at(n) = value;
         }
 
+        if (src == input.end()) break;
         RLE rle = *src++;
         current = extend_sign<9>(rle.ac);
         n += rle.zeroes + 1;

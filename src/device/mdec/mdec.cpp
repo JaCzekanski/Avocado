@@ -28,7 +28,7 @@ uint32_t MDEC::read(uint32_t address) {
         // 2:  b g r B
         // 3:    B G R  <- cycle continues
 
-        uint32_t data;
+        uint32_t data = 0;
         if (status.colorDepth == Status::ColorDepth::bit_24) {
             if (part == 0)
                 data = (output[outputPtr] & 0xffffff) | ((output[outputPtr + 1] & 0xff) << 24);
