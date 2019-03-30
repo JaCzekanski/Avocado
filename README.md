@@ -39,7 +39,7 @@ AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/s
 Despite this emulator being in early development, some 3D games can run. [Game compatibility list](https://avocado-db.czekanski.info)
 
 
-Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make audio stutter**), MDEC is missing (**black screen instead of movies**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed). Many games won't boot or crash shortly after booting.
+Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make audio stutter**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed). Many games won't boot or crash shortly after booting.
 
 ## Requirements
 - OS: Windows 7 or later, macOS 10.13 or later, Linux
