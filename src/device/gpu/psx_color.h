@@ -60,7 +60,7 @@ union PSXColor {
     }
 };
 
-inline uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b) {
+constexpr uint32_t to15bit(uint8_t r, uint8_t g, uint8_t b) {
     uint32_t newColor = 0;
     newColor |= (r & 0xf8) >> 3;
     newColor |= (g & 0xf8) << 2;
@@ -80,7 +80,7 @@ inline uint32_t to15bit(uint32_t color) {
     return c.raw;
 }
 
-inline uint32_t to24bit(uint16_t color) {
+constexpr uint32_t to24bit(uint16_t color) {
     uint32_t newColor = 0;
     newColor |= (color & 0x7c00) << 1;
     newColor |= (color & 0x3e0) >> 2;

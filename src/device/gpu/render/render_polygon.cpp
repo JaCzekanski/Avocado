@@ -5,42 +5,48 @@
 #include "texture_utils.h"
 #include "utils/macros.h"
 
+using glm::ivec2;
+using glm::ivec3;
+using glm::uvec2;
+using glm::vec3;
 using gpu::GPU;
 using gpu::Vertex;
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
-int ditherTable[4][4] = {
+const int8_t ditherTable[4][4] = {
     {-4, +0, -3, +1},  //
     {+2, -2, +3, -1},  //
     {-3, +1, -4, +0},  //
     {+3, -1, +2, -2}   //
 };
 
-int orient2d(const glm::ivec2& a, const glm::ivec2& b, const glm::ivec2& c) {
+int orient2d(const ivec2& a, const ivec2& b, const ivec2& c) {  //
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-bool isCw(const glm::ivec2 v[3]) {
-    glm::vec3 a = glm::vec3(v[0].x, v[0].y, 1);
-    glm::vec3 b = glm::vec3(v[1].x, v[1].y, 1);
-    glm::vec3 c = glm::vec3(v[2].x, v[2].y, 1);
+bool isCw(const ivec2 v[3]) {
+    vec3 a = vec3(v[0].x, v[0].y, 1);
+    vec3 b = vec3(v[1].x, v[1].y, 1);
+    vec3 c = vec3(v[2].x, v[2].y, 1);
 
-    glm::vec3 ab = b - a;
-    glm::vec3 ac = c - a;
-    glm::vec3 n = glm::cross(ab, ac);
+    vec3 ab = b - a;
+    vec3 ac = c - a;
+    vec3 n = glm::cross(ab, ac);
 
     return n.z < 0;
 }
 
-INLINE glm::ivec2 calculateTexel(glm::ivec3 s, int area, glm::ivec2 tex[3], gpu::GP0_E2 textureWindow) {
-    glm::ivec2 texel
-        = glm::ivec2((s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x) / area, (s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y) / area);
+INLINE uvec2 calculateTexel(const ivec3 s, const int area, const ivec2 tex[3], const gpu::GP0_E2 textureWindow) {
+    uvec2 texel(                                                    //
+        (s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x) / area,  //
+        (s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y) / area   //
+    );
 
     // Texture is repeated outside of 256x256 window
-    texel.x %= 256;
-    texel.y %= 256;
+    texel.x %= 256u;
+    texel.y %= 256u;
 
     // Texture masking
     // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
@@ -50,14 +56,16 @@ INLINE glm::ivec2 calculateTexel(glm::ivec3 s, int area, glm::ivec2 tex[3], gpu:
     return texel;
 }
 
-INLINE PSXColor doShading(glm::ivec3 s, int area, glm::ivec2 p, glm::vec3 color[3], int flags) {
-    glm::ivec3 outColor((s.x * color[0].r * 255 + s.y * color[1].r * 255 + s.z * color[2].r * 255) / area,  //
-                        (s.x * color[0].g * 255 + s.y * color[1].g * 255 + s.z * color[2].g * 255) / area,  //
-                        (s.x * color[0].b * 255 + s.y * color[1].b * 255 + s.z * color[2].b * 255) / area);
+INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const ivec3 color[3], const int flags) {
+    ivec3 outColor(                                                       //
+        (s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
+        (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
+        (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b) / area   //
+    );
 
     // TODO: THPS2 fading screen doesn't look as it should
     if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-        outColor += ditherTable[p.y % 4][p.x % 4];
+        outColor += ditherTable[p.y % 4u][p.x % 4u];
         outColor = glm::clamp(outColor, 0, 255);
     }
 
@@ -65,9 +73,9 @@ INLINE PSXColor doShading(glm::ivec3 s, int area, glm::ivec2 p, glm::vec3 color[
 }
 
 template <ColorDepth bits>
-INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::ivec3 s, int area, glm::vec3* color, glm::ivec2 tex[3], glm::ivec2 texPage,
-                      glm::ivec2 clut, int flags, gpu::GP0_E2 textureWindow) {
-    glm::ivec2 texel = calculateTexel(s, area, tex, textureWindow);
+INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage,
+                      const ivec2 clut, const int flags, const gpu::GP0_E2 textureWindow) {
+    uvec2 texel = calculateTexel(s, area, tex, textureWindow);
 
     PSXColor c;
     switch (bits) {
@@ -81,14 +89,20 @@ INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::ivec3 s, int area, glm::vec3*
 
     // If texture blending is enabled
     if (bits != ColorDepth::NONE && !(flags & Vertex::RawTexture)) {
-        glm::vec3 brightness;
+        vec3 brightness;
 
         if (flags & Vertex::GouroudShading) {
-            brightness = glm::vec3((s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
-                                   (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
-                                   (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b) / area);
+            // TODO: Get rid of float colors
+            vec3 fcolor[3];
+            fcolor[0] = vec3(color[0]) / 255.f;
+            fcolor[1] = vec3(color[1]) / 255.f;
+            fcolor[2] = vec3(color[2]) / 255.f;
+            brightness = vec3(                                                       //
+                (s.x * fcolor[0].r + s.y * fcolor[1].r + s.z * fcolor[2].r) / area,  //
+                (s.x * fcolor[0].g + s.y * fcolor[1].g + s.z * fcolor[2].g) / area,  //
+                (s.x * fcolor[0].b + s.y * fcolor[1].b + s.z * fcolor[2].b) / area);
         } else {  // Flat shading
-            brightness = glm::vec3(color[0]);
+            brightness = vec3(color[0]) / 255.f;
         }
 
         c = c * (brightness * 2.f);
@@ -113,41 +127,39 @@ INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::ivec3 s, int area, glm::vec3*
 }
 
 template <ColorDepth bits>
-void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3], glm::ivec2 texPage, glm::ivec2 clut, int flags,
-              gpu::GP0_E2 textureWindow) {
-    // clang-format off
-    glm::ivec2 min = glm::ivec2(
-        gpu->minDrawingX(std::min({ pos[0].x, pos[1].x, pos[2].x })),
-        gpu->minDrawingY(std::min({ pos[0].y, pos[1].y, pos[2].y }))
+INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage, const ivec2 clut,
+                     const int flags, const gpu::GP0_E2 textureWindow) {
+    const ivec2 min = ivec2(                                         //
+        gpu->minDrawingX(std::min({pos[0].x, pos[1].x, pos[2].x})),  //
+        gpu->minDrawingY(std::min({pos[0].y, pos[1].y, pos[2].y}))   //
     );
-    glm::ivec2 max = glm::ivec2(
-        gpu->maxDrawingX(std::max({ pos[0].x, pos[1].x, pos[2].x })),
-        gpu->maxDrawingY(std::max({ pos[0].y, pos[1].y, pos[2].y }))
+    const ivec2 max = ivec2(                                         //
+        gpu->maxDrawingX(std::max({pos[0].x, pos[1].x, pos[2].x})),  //
+        gpu->maxDrawingY(std::max({pos[0].y, pos[1].y, pos[2].y}))   //
     );
-    // clang-format on
 
     // https://fgiesen.wordpress.com/2013/02/10/optimizing-the-basic-rasterizer/
-    int A01 = pos[0].y - pos[1].y;
-    int B01 = pos[1].x - pos[0].x;
+    const int A01 = pos[0].y - pos[1].y;
+    const int B01 = pos[1].x - pos[0].x;
 
-    int A12 = pos[1].y - pos[2].y;
-    int B12 = pos[2].x - pos[1].x;
+    const int A12 = pos[1].y - pos[2].y;
+    const int B12 = pos[2].x - pos[1].x;
 
-    int A20 = pos[2].y - pos[0].y;
-    int B20 = pos[0].x - pos[2].x;
+    const int A20 = pos[2].y - pos[0].y;
+    const int B20 = pos[0].x - pos[2].x;
 
-    glm::ivec2 minp = glm::ivec2(min.x, min.y);
+    const ivec2 minp = ivec2(min.x, min.y);
     int w0_row = orient2d(pos[1], pos[2], minp);
     int w1_row = orient2d(pos[2], pos[0], minp);
     int w2_row = orient2d(pos[0], pos[1], minp);
 
-    int area = orient2d(pos[0], pos[1], pos[2]);
+    const int area = orient2d(pos[0], pos[1], pos[2]);
     if (area == 0) return;
 
-    glm::ivec2 p;
+    ivec2 p;
 
     for (p.y = min.y; p.y < max.y; p.y++) {
-        glm::ivec3 is = glm::ivec3(w0_row, w1_row, w2_row);
+        ivec3 is = ivec3(w0_row, w1_row, w2_row);
         for (p.x = min.x; p.x < max.x; p.x++) {
             if ((is.x | is.y | is.z) >= 0) {
                 plotPixel<bits>(gpu, p, is, area, color, tex, texPage, clut, flags, textureWindow);
@@ -165,18 +177,18 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
 
 // TODO: Render in batches
 void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
-    glm::ivec2 pos[3];
-    glm::vec3 color[3];
-    glm::ivec2 texcoord[3];
-    glm::ivec2 texpage;
-    glm::ivec2 clut;
+    ivec2 pos[3];
+    ivec3 color[3];
+    ivec2 texcoord[3];
+    ivec2 texpage;
+    ivec2 clut;
     int bits;
     int flags;
     gpu::GP0_E2 textureWindow;
     for (int j = 0; j < 3; j++) {
-        pos[j] = glm::ivec2(v[j].position[0], v[j].position[1]);
-        color[j] = glm::vec3(v[j].color[0] / 255.f, v[j].color[1] / 255.f, v[j].color[2] / 255.f);
-        texcoord[j] = glm::ivec2(v[j].texcoord[0], v[j].texcoord[1]);
+        pos[j] = ivec2(v[j].position[0], v[j].position[1]);
+        color[j] = ivec3(v[j].color[0], v[j].color[1], v[j].color[2]);
+        texcoord[j] = ivec2(v[j].texcoord[0], v[j].texcoord[1]);
     }
 
     // TODO: Remove this hack
@@ -185,8 +197,8 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
         std::swap(color[1], color[2]);
         std::swap(texcoord[1], texcoord[2]);
     }
-    texpage = glm::ivec2(v[0].texpage[0], v[0].texpage[1]);
-    clut = glm::ivec2(v[0].clut[0], v[0].clut[1]);
+    texpage = ivec2(v[0].texpage[0], v[0].texpage[1]);
+    clut = ivec2(v[0].clut[0], v[0].clut[1]);
     bits = v[0].bitcount;
     flags = v[0].flags;
     textureWindow = v[0].textureWindow;
