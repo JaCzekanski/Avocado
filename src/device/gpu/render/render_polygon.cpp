@@ -11,14 +11,12 @@ using gpu::Vertex;
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
-// clang-format off
 int ditherTable[4][4] = {
-    {-4, +0, -3, +1}, 
-    {+2, -2, +3, -1}, 
-    {-3, +1, -4, +0}, 
-    {+3, -1, +2, -2}
+    {-4, +0, -3, +1},  //
+    {+2, -2, +3, -1},  //
+    {-3, +1, -4, +0},  //
+    {+3, -1, +2, -2}   //
 };
-// clang-format on
 
 int orient2d(const glm::ivec2& a, const glm::ivec2& b, const glm::ivec2& c) {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
@@ -36,11 +34,9 @@ bool isCw(const glm::ivec2 v[3]) {
     return n.z < 0;
 }
 
-INLINE int fast_round(float n) { return static_cast<int>(n + 0.5f); }
-
-INLINE glm::ivec2 calculateTexel(glm::vec3 s, glm::ivec2 tex[3], gpu::GP0_E2 textureWindow) {
-    glm::ivec2 texel = glm::ivec2(fast_round(s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x),
-                                  fast_round(s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y));
+INLINE glm::ivec2 calculateTexel(glm::ivec3 s, int area, glm::ivec2 tex[3], gpu::GP0_E2 textureWindow) {
+    glm::ivec2 texel
+        = glm::ivec2((s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x) / area, (s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y) / area);
 
     // Texture is repeated outside of 256x256 window
     texel.x %= 256;
@@ -54,28 +50,28 @@ INLINE glm::ivec2 calculateTexel(glm::vec3 s, glm::ivec2 tex[3], gpu::GP0_E2 tex
     return texel;
 }
 
-INLINE PSXColor doShading(glm::vec3 s, glm::ivec2 p, glm::vec3* color, int flags) {
-    glm::vec3 outColor(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,  //
-                       s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,  //
-                       s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+INLINE PSXColor doShading(glm::ivec3 s, int area, glm::ivec2 p, glm::vec3 color[3], int flags) {
+    glm::ivec3 outColor((s.x * color[0].r * 255 + s.y * color[1].r * 255 + s.z * color[2].r * 255) / area,  //
+                        (s.x * color[0].g * 255 + s.y * color[1].g * 255 + s.z * color[2].g * 255) / area,  //
+                        (s.x * color[0].b * 255 + s.y * color[1].b * 255 + s.z * color[2].b * 255) / area);
 
     // TODO: THPS2 fading screen doesn't look as it should
     if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-        outColor += ditherTable[p.y % 4][p.x % 4] / 255.f;
-        outColor = glm::clamp(outColor, 0.f, 1.f);
+        outColor += ditherTable[p.y % 4][p.x % 4];
+        outColor = glm::clamp(outColor, 0, 255);
     }
 
-    return to15bit((uint8_t)(255 * outColor.r), (uint8_t)(255 * outColor.g), (uint8_t)(255 * outColor.b));
+    return to15bit(outColor.r, outColor.g, outColor.b);
 }
 
 template <ColorDepth bits>
-INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm::ivec2* tex, glm::ivec2 texPage, glm::ivec2 clut,
-                      int flags, gpu::GP0_E2 textureWindow) {
-    glm::ivec2 texel = calculateTexel(s, tex, textureWindow);
+INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::ivec3 s, int area, glm::vec3* color, glm::ivec2 tex[3], glm::ivec2 texPage,
+                      glm::ivec2 clut, int flags, gpu::GP0_E2 textureWindow) {
+    glm::ivec2 texel = calculateTexel(s, area, tex, textureWindow);
 
     PSXColor c;
     switch (bits) {
-        case ColorDepth::NONE: c = doShading(s, p, color, flags); break;
+        case ColorDepth::NONE: c = doShading(s, area, p, color, flags); break;
         case ColorDepth::BIT_4: c = tex4bit(gpu, texel, texPage, clut); break;
         case ColorDepth::BIT_8: c = tex8bit(gpu, texel, texPage, clut); break;
         case ColorDepth::BIT_16: c = tex16bit(gpu, texel, texPage); break;
@@ -88,9 +84,9 @@ INLINE void plotPixel(GPU* gpu, glm::ivec2 p, glm::vec3 s, glm::vec3* color, glm
         glm::vec3 brightness;
 
         if (flags & Vertex::GouroudShading) {
-            brightness = glm::vec3(s.x * color[0].r + s.y * color[1].r + s.z * color[2].r,  //
-                                   s.x * color[0].g + s.y * color[1].g + s.z * color[2].g,  //
-                                   s.x * color[0].b + s.y * color[1].b + s.z * color[2].b);
+            brightness = glm::vec3((s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
+                                   (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
+                                   (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b) / area);
         } else {  // Flat shading
             brightness = glm::vec3(color[0]);
         }
@@ -154,8 +150,7 @@ void triangle(GPU* gpu, glm::ivec2 pos[3], glm::vec3 color[3], glm::ivec2 tex[3]
         glm::ivec3 is = glm::ivec3(w0_row, w1_row, w2_row);
         for (p.x = min.x; p.x < max.x; p.x++) {
             if ((is.x | is.y | is.z) >= 0) {
-                glm::vec3 s = glm::vec3(is) / (float)area;
-                plotPixel<bits>(gpu, p, s, color, tex, texPage, clut, flags, textureWindow);
+                plotPixel<bits>(gpu, p, is, area, color, tex, texPage, clut, flags, textureWindow);
             }
 
             is.x += A12;
