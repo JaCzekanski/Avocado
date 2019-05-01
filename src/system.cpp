@@ -248,10 +248,39 @@ void System::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16
 void System::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
 
 void System::printFunctionInfo(int type, uint8_t number, bios::Function f) {
-    printf("  BIOS %02X(%02x): %s(", type, number, f.name);
-    for (int i = 0; i < f.argc; i++) {
-        if (i > 4) break;
-        printf("0x%x%s", cpu->reg[4 + i], i == (f.argc - 1) ? "" : ", ");
+    printf("  BIOS %1X(%02x): %s(", type, number, f.name.c_str());
+    int a = 0;
+    for (auto arg : f.args) {
+        uint32_t param = cpu->reg[4 + a];
+        if (true) {
+            printf("%s = ", arg.name.c_str());
+        }
+        switch (arg.type) {
+            case bios::Type::INT:
+            case bios::Type::POINTER: printf("0x%x", param); break;
+            case bios::Type::CHAR: printf("'%c'", param); break;
+            case bios::Type::STRING: {
+                printf("\"");
+                for (int i = 0; i < 32; i++) {
+                    uint8_t c = readMemory8(param + i);
+
+                    if (c == 0) {
+                        break;
+                    } else if (c != 0 && i == 32 - 1) {
+                        printf("...");
+                    } else {
+                        printf("%c", isprint(c) ? c : '_');
+                    }
+                }
+                printf("\"");
+                break;
+            }
+        }
+        if (a < (f.args.size() - 1)) {
+            printf(", ");
+        }
+        a++;
+        if (a > 4) break;
     }
     printf(")\n");
 }
@@ -262,6 +291,7 @@ void System::handleBiosFunction() {
     uint8_t functionNumber = cpu->reg[9];
     bool log = biosLog;
 
+    // TOOD: Refactor
     if (maskedPC == 0xA0) {
         function = bios::A0.find(functionNumber);
         if (function == bios::A0.end()) return;
@@ -270,10 +300,11 @@ void System::handleBiosFunction() {
         function = bios::B0.find(functionNumber);
         if (function == bios::B0.end()) return;
         if (function->second.callback != nullptr) log = function->second.callback(this);
+    } else if (maskedPC == 0xC0) {
+        function = bios::C0.find(functionNumber);
+        if (function == bios::C0.end()) return;
+        if (function->second.callback != nullptr) log = function->second.callback(this);
     } else {
-        if (log)
-            printf("  BIOS %02X(%02x) (0x%02x, 0x%02x, 0x%02x, 0x%02x)\n", maskedPC >> 4, functionNumber, cpu->reg[4], cpu->reg[5],
-                   cpu->reg[6], cpu->reg[7]);
         return;
     }
 
