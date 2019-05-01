@@ -262,7 +262,7 @@ void op_srav(CPU *cpu, Opcode i) {
 // JR rs
 void op_jr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
-    if (addr & 3) {
+    if (unlikely(addr & 3)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
@@ -277,7 +277,7 @@ void op_jalr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
     cpu->reg[i.rd] = cpu->PC + 8;
     cpu->invalidateSlot(i.rd);
-    if (addr & 3) {
+    if (unlikely(addr & 3)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
@@ -372,7 +372,7 @@ void op_add(CPU *cpu, Opcode i) {
     uint32_t b = cpu->reg[i.rt];
     uint32_t result = a + b;
 
-    if (!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
+    if (unlikely(!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000))) {
         exception(cpu, COP0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
@@ -394,7 +394,7 @@ void op_sub(CPU *cpu, Opcode i) {
     uint32_t b = cpu->reg[i.rt];
     uint32_t result = a - b;
 
-    if (((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
+    if (unlikely(((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000))) {
         exception(cpu, COP0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
@@ -548,7 +548,7 @@ void op_addi(CPU *cpu, Opcode i) {
     uint32_t b = i.offset;
     uint32_t result = a + b;
 
-    if (!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000)) {
+    if (unlikely(!((a ^ b) & 0x80000000) && ((result ^ a) & 0x80000000))) {
         exception(cpu, COP0::CAUSE::Exception::arithmeticOverflow);
         return;
     }
@@ -720,7 +720,7 @@ void op_lb(CPU *cpu, Opcode i) {
 // LH rt, offset(base)
 void op_lh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 1) {
+    if (unlikely(addr & 1)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
@@ -755,7 +755,7 @@ void op_lwl(CPU *cpu, Opcode i) {
 // LW rt, offset(base)
 void op_lw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 3) {
+    if (unlikely(addr & 3)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
@@ -774,7 +774,7 @@ void op_lbu(CPU *cpu, Opcode i) {
 // LHU rt, offset(base)
 void op_lhu(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 1) {
+    if (unlikely(addr & 1)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
@@ -817,7 +817,7 @@ void op_sb(CPU *cpu, Opcode i) {
 // SH rt, offset(base)
 void op_sh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 1) {
+    if (unlikely(addr & 1)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
@@ -846,7 +846,7 @@ void op_swl(CPU *cpu, Opcode i) {
 // SW rt, offset(base)
 void op_sw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-    if (addr & 3) {
+    if (unlikely(addr & 3)) {
         cpu->cop0.badVaddr = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;

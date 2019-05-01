@@ -38,7 +38,7 @@ System::System() {
 
 // Warning: This function does not check array boundaries. Make sure that address is aligned!
 template <typename T>
-INLINE T read_fast(uint8_t* device, uint32_t addr) {
+constexpr T read_fast(uint8_t* device, uint32_t addr) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     if (sizeof(T) == 1) return static_cast<T>(((uint8_t*)device)[addr]);
@@ -49,7 +49,7 @@ INLINE T read_fast(uint8_t* device, uint32_t addr) {
 
 // Warning: This function does not check array boundaries. Make sure that address is aligned!
 template <typename T>
-INLINE void write_fast(uint8_t* device, uint32_t addr, T value) {
+constexpr void write_fast(uint8_t* device, uint32_t addr, T value) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     if (sizeof(T) == 1)
@@ -61,7 +61,7 @@ INLINE void write_fast(uint8_t* device, uint32_t addr, T value) {
 }
 
 template <typename T, typename Device>
-INLINE T read_io(Device& periph, uint32_t addr) {
+constexpr T read_io(Device& periph, uint32_t addr) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     if (sizeof(T) == 1) return periph->read(addr);
@@ -72,7 +72,7 @@ INLINE T read_io(Device& periph, uint32_t addr) {
 }
 
 template <typename T, typename Device>
-INLINE void write_io(Device& periph, uint32_t addr, T data) {
+constexpr void write_io(Device& periph, uint32_t addr, T data) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     if (sizeof(T) == 1) {
@@ -89,7 +89,7 @@ INLINE void write_io(Device& periph, uint32_t addr, T data) {
 }
 
 template <typename T>
-INLINE uint32_t align_mips(uint32_t address) {
+constexpr uint32_t align_mips(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     if (sizeof(T) == 1) return address & 0x1fffffff;
@@ -98,9 +98,8 @@ INLINE uint32_t align_mips(uint32_t address) {
     return 0;
 }
 
-// TODO: constexpr
 template <uint32_t base, uint32_t size>
-INLINE bool in_range(const uint32_t addr) {
+constexpr bool in_range(const uint32_t addr) {
     return (addr >= base && addr < base + size);
 }
 
