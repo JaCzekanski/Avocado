@@ -577,6 +577,9 @@ void CDROM::cmdGetId() {
         return;
     }
 
+    CDROM_interrupt.push_back(3);
+    writeResponse(0);
+
     // No CD
     if (disc->getTrackCount() == 0) {
         CDROM_interrupt.push_back(5);
