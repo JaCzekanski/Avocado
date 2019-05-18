@@ -289,7 +289,9 @@ void op_jalr(CPU *cpu, Opcode i) {
 // Syscall
 // SYSCALL
 void op_syscall(CPU *cpu, Opcode i) {
-    if (cpu->sys->biosLog) printf("  SYSCALL(%d)\n", cpu->reg[4]);
+    if (cpu->sys->biosLog) {
+        cpu->sys->handleSyscallFunction();
+    }
     exception(cpu, COP0::CAUSE::Exception::syscall);
 }
 

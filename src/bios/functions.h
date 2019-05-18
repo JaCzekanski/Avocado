@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include "debugger/debugger.h"
 #include "system.h"
-#include "utils/string.h"
 #include "utils/log.h"
+#include "utils/string.h"
 
 namespace bios {
 
@@ -103,7 +103,7 @@ inline bool unresolvedException(System* sys) {
     auto cause = sys->cpu->cop0.cause;
     uint32_t epc = sys->cpu->cop0.epc;
 
-    log::printf("🔴[EMU] Unresolved exception⚪️: 🅱️%s❌‍⚪️ (%u), epc=🔵0x%08x⚪️, ra=🔵0x%08x\n",
+    log::printf("🔴Unresolved exception⚪️: 🅱️%s❌‍⚪️ (%u), epc=🔵0x%08x⚪️, ra=🔵0x%08x\n",
                 cause.getExceptionName(), cause.exception, epc, sys->cpu->reg[31]);
     for (uint32_t addr = epc - howManyInstructionsToDisassemble * 4; addr <= epc; addr += 4) {
         auto opcode = mips::Opcode(sys->readMemory32(addr));
@@ -115,13 +115,14 @@ inline bool unresolvedException(System* sys) {
 
         log::printf("🔵0x%08x:⚪️ %-8s %s\n", addr, ins.mnemonic.c_str(), ins.parameters.c_str());
     }
-    log::printf("🔴This is most likely bug in the Avocado, please report it.\n");
+    log::printf("🔴This is most likely bug in Avocado, please report it.\n");
     log::printf("🔴 🅱️Emulation stopped.\n");
 
     sys->state = System::State::halted;
     return false;
 }
 
+namespace {
 const std::unordered_map<uint8_t, Function> A0 = {
     {0x00, {"FileOpen(const char* file, int mode)"}},
     {0x01, {"FileSeek(FILE* file, int offset, int origin)"}},
@@ -170,7 +171,7 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x2C, {"memmove(void* dst, void* src, int len)"}},   // ;Bugged
     {0x2D, {"memcmp(void* src1, void* src2, int len)"}},  // ;Bugged
     {0x2E, {"memchr(void* ptr, char value, int num)"}},
-    {0x2F, {"rand()", noLog}},
+    {0x2F, {"rand()"}},
     {0x30, {"srand(int seed)"}},
     {0x31, {"qsort(void* base, int num, int size, void* callback)"}},
     {0x32, {"strtod(const char* str, int endptr)"}},  // ABSENT cop1 !!!
@@ -186,7 +187,7 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x3C, {"std_out_putchar(char c)", dbgOutputChar}},
     {0x3D, {"std_in_gets(void* dst)"}},
     {0x3E, {"std_out_puts(const char* src)", dbgOutputString}},
-    {0x3F, {"printf(const char* fmt)", noLog}},
+    {0x3F, {"printf(const char* fmt)"}},
     {0x40, {"SystemErrorUnresolvedException()", unresolvedException}},
     {0x41, {"LoadExeHeader(const char* filename, void* headerbuf)"}},
     {0x42, {"LoadExeFile(const char* filename, void* headerbuf)"}},
@@ -262,7 +263,7 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x08, {"OpenEvent(int class, int spec, int mode, void* func)"}},
     {0x09, {"CloseEvent(int event)"}},
     {0x0A, {"WaitEvent(int event)"}},
-    {0x0B, {"TestEvent(int event)", noLog}},
+    {0x0B, {"TestEvent(int event)"}},
     {0x0C, {"EnableEvent(int event)"}},
     {0x0D, {"DisableEvent(int event)"}},
     {0x0E, {"OpenThread(int pc, int sp_fp, int gp)"}},
@@ -274,7 +275,7 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x14, {"StopPad()"}},
     {0x15, {"OutdatedPadInitAndStart(int type, void* button_dest, int unused1, int unused2)"}},
     {0x16, {"OutdatedPadGetButtons()"}},
-    {0x17, {"ReturnFromException()", noLog}},
+    {0x17, {"ReturnFromException()"}},
     {0x18, {"SetDefaultExitFromException()"}},
     {0x19, {"SetCustomExitFromException(int addr)"}},
     {0x1A, {"SystemError()", haltSystem}},
@@ -335,7 +336,7 @@ const std::unordered_map<uint8_t, Function> B0 = {
     {0x5D, {"wait_card_status(int slot)"}},
 };
 
-const std::unordered_map<uint8_t, Function> C0 = {//
+const std::unordered_map<uint8_t, Function> C0 = {  //
     {0x00, {"EnqueueTimerAndVblankIrqs(int priority)"}},
     {0x01, {"EnqueueSyscallHandler(int priority)"}},
     {0x02, {"SysEnqIntRP(int priority, void* struc)"}},  // ;bugged, use with care
@@ -365,7 +366,16 @@ const std::unordered_map<uint8_t, Function> C0 = {//
     {0x1A, {"set_card_find_mode(int mode)"}},  // ;0=normal, 1=find deleted files
     {0x1B, {"KernelRedirect(int ttyflag)"}},   // ;PS2: ttyflag=1 causes SystemError
     {0x1C, {"AdjustA0Table()"}},
-    {0x1D, {"get_card_find_mode()"}}
-};
+    {0x1D, {"get_card_find_mode()"}}};
+};  // namespace
+
+const std::array<std::unordered_map<uint8_t, Function>, 3> tables = {{A0, B0, C0}};
+
+const std::unordered_map<uint8_t, Function> SYSCALL = {  //
+    {0x00, {"NoFunction()"}},
+    {0x01, {"EnterCriticalSection()"}},
+    {0x02, {"ExitCriticalSection()"}},
+    {0x03, {"ChangeThreadSubFunction(int addr)"}},
+    {0x04, {"DeliverEvent()"}}};
 
 };  // namespace bios

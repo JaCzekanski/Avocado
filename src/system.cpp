@@ -197,10 +197,11 @@ template <typename T>
 INLINE void System::writeMemory(uint32_t address, T data) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
+    if (unlikely(cpu->cop0.status.isolateCache)) return;
+
     uint32_t addr = align_mips<T>(address);
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        if (cpu->cop0.status.isolateCache) return;
         return write_fast<T>(ram, (addr - RAM_BASE) & (RAM_SIZE - 1), data);
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
@@ -247,8 +248,8 @@ void System::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16
 
 void System::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
 
-void System::printFunctionInfo(int type, uint8_t number, bios::Function f) {
-    printf("  BIOS %1X(%02x): %s(", type, number, f.name.c_str());
+void System::printFunctionInfo(const char* functionNum, const bios::Function& f) {
+    printf("  %s: %s(", functionNum, f.name.c_str());
     int a = 0;
     for (auto arg : f.args) {
         uint32_t param = cpu->reg[4 + a];
@@ -286,29 +287,42 @@ void System::printFunctionInfo(int type, uint8_t number, bios::Function f) {
 }
 
 void System::handleBiosFunction() {
-    std::unordered_map<uint8_t, bios::Function>::const_iterator function;
     uint32_t maskedPC = cpu->PC & 0x1FFFFF;
     uint8_t functionNumber = cpu->reg[9];
     bool log = biosLog;
 
-    // TOOD: Refactor
-    if (maskedPC == 0xA0) {
-        function = bios::A0.find(functionNumber);
-        if (function == bios::A0.end()) return;
-        if (function->second.callback != nullptr) log = function->second.callback(this);
-    } else if (maskedPC == 0xB0) {
-        function = bios::B0.find(functionNumber);
-        if (function == bios::B0.end()) return;
-        if (function->second.callback != nullptr) log = function->second.callback(this);
-    } else if (maskedPC == 0xC0) {
-        function = bios::C0.find(functionNumber);
-        if (function == bios::C0.end()) return;
-        if (function->second.callback != nullptr) log = function->second.callback(this);
-    } else {
-        return;
+    int tableNum = (maskedPC - 0xA0) / 0x10;
+    if (tableNum > 2) return;
+
+    const auto& table = bios::tables[tableNum];
+    const auto& function = table.find(functionNumber);
+
+    if (function == table.end()) return;
+    if (function->second.callback != nullptr) {
+        log = function->second.callback(this);
     }
 
-    if (log) printFunctionInfo(maskedPC >> 4, function->first, function->second);
+    if (log) {
+        std::string type = string_format("BIOS %1X(%02X)", 0xA + tableNum, functionNumber);
+        printFunctionInfo(type.c_str(), function->second);
+    }
+}
+
+void System::handleSyscallFunction() {
+    uint8_t functionNumber = cpu->reg[4];
+    bool log = biosLog;
+
+    const auto& function = bios::SYSCALL.find(functionNumber);
+    if (function == bios::SYSCALL.end()) return;
+
+    if (function->second.callback != nullptr) {
+        log = function->second.callback(this);
+    }
+
+    if (log) {
+        std::string type = string_format("SYSCALL(%01X)", functionNumber);
+        cpu->sys->printFunctionInfo(type.c_str(), function->second);
+    }
 }
 
 void System::singleStep() {

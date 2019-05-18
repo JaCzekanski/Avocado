@@ -103,6 +103,7 @@ struct System {
     INLINE void writeMemory(uint32_t address, T data);
     void singleStep();
     void handleBiosFunction();
+    void handleSyscallFunction();
 
     System();
     uint8_t readMemory8(uint32_t address);
@@ -111,7 +112,7 @@ struct System {
     void writeMemory8(uint32_t address, uint8_t data);
     void writeMemory16(uint32_t address, uint16_t data);
     void writeMemory32(uint32_t address, uint32_t data);
-    void printFunctionInfo(int type, uint8_t number, bios::Function f);
+    void printFunctionInfo(const char* functionNum, const bios::Function& f);
     void emulateFrame();
     void softReset();
 
