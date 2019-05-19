@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include "debugger/debugger.h"
 #include "system.h"
-#include "utils/log.h"
+#include "utils/logger.h"
 #include "utils/string.h"
 
 namespace bios {
@@ -103,8 +103,8 @@ inline bool unresolvedException(System* sys) {
     auto cause = sys->cpu->cop0.cause;
     uint32_t epc = sys->cpu->cop0.epc;
 
-    log::printf("🔴Unresolved exception⚪️: 🅱️%s❌‍⚪️ (%u), epc=🔵0x%08x⚪️, ra=🔵0x%08x\n",
-                cause.getExceptionName(), cause.exception, epc, sys->cpu->reg[31]);
+    logger::printf("🔴Unresolved exception⚪️: 🅱️%s❌‍⚪️ (%u), epc=🔵0x%08x⚪️, ra=🔵0x%08x\n",
+                   cause.getExceptionName(), cause.exception, epc, sys->cpu->reg[31]);
     for (uint32_t addr = epc - howManyInstructionsToDisassemble * 4; addr <= epc; addr += 4) {
         auto opcode = mips::Opcode(sys->readMemory32(addr));
         auto ins = debugger::decodeInstruction(opcode);
@@ -113,10 +113,10 @@ inline bool unresolvedException(System* sys) {
             ins.parameters += "🅱️     <---- Caused the exception";
         }
 
-        log::printf("🔵0x%08x:⚪️ %-8s %s\n", addr, ins.mnemonic.c_str(), ins.parameters.c_str());
+        logger::printf("🔵0x%08x:⚪️ %-8s %s\n", addr, ins.mnemonic.c_str(), ins.parameters.c_str());
     }
-    log::printf("🔴This is most likely bug in Avocado, please report it.\n");
-    log::printf("🔴 🅱️Emulation stopped.\n");
+    logger::printf("🔴This is most likely bug in Avocado, please report it.\n");
+    logger::printf("🔴 🅱️Emulation stopped.\n");
 
     sys->state = System::State::halted;
     return false;

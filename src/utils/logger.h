@@ -1,5 +1,5 @@
 #pragma once
 
-namespace log {
+namespace logger {
 void printf(const char* format, ...);
 }

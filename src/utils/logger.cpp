@@ -1,10 +1,10 @@
-#include "log.h"
+#include "logger.h"
 #include <array>
 #include <cstdarg>
 #include <cstdio>
 #include <regex>
 
-namespace log {
+namespace logger {
 struct Color {
     const char* emoji;
     const char* ansi;
