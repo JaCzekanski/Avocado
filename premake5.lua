@@ -142,6 +142,7 @@ project "avocado"
 		"externals/json/include",
 		"externals/stb",
 		"externals/libchdr/src",
+		"externals/filesystem/include",
 	}
 
 	links {

@@ -8,17 +8,12 @@
 #include "utils/file.h"
 #include "utils/string.h"
 
-#if defined(ANDROID)
-#elif defined(_WIN32)
-#define USE_FILESYSTEM 1
-#elif defined(__linux)
-#define USE_FILESYSTEM 1
+#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include) && __has_include(<filesystem>) && !defined(ANDROID)
+#include <filesystem>
+namespace fs = std::filesystem;
 #else
-#endif
-
-#ifdef USE_FILESYSTEM
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <ghc/filesystem.hpp>
+namespace fs = ghc::filesystem;
 #endif
 
 bool showGraphicsOptionsWindow = false;
@@ -154,7 +149,6 @@ void biosSelectionWindow() {
     static std::vector<std::string> bioses;
     static int selectedBios = 0;
 
-#ifdef USE_FILESYSTEM
     if (!biosesFound) {
         bioses.clear();
         auto dir = fs::directory_iterator("data/bios");
@@ -179,22 +173,14 @@ void biosSelectionWindow() {
             }
         }
     }
-#endif
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
     if (bioses.empty()) {
-#ifdef USE_FILESYSTEM
         ImGui::Text(
             "BIOS directory is empty.\n"
             "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
             ".bin and .rom extensions are recognised.");
-#else
-        ImGui::Text(
-            "No filesystem support on macOS, sorry :(\n"
-            "edit bios in config.json after closing this program");
-#endif
     } else {
-        ImGui::PushItemWidth(300.f);
         ImGui::ListBox(
             "", &selectedBios,
             [](void* data, int idx, const char** out_text) {
@@ -203,7 +189,6 @@ void biosSelectionWindow() {
                 return true;
             },
             (void*)&bioses, (int)bioses.size());
-        ImGui::PopItemWidth();
 
         if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < (int)bioses.size()) {
             config["bios"] = bioses[selectedBios];

@@ -26,3 +26,6 @@
 [submodule "premake/androidmk"]
 	path = premake/androidmk
 	url = https://github.com/JaCzekanski/premake-androidmk.git
+[submodule "externals/filesystem"]
+	path = externals/filesystem
+	url = https://github.com/gulrak/filesystem.git

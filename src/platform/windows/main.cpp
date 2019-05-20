@@ -269,20 +269,26 @@ int main(int argc, char** argv) {
     ImGui::StyleColorsDark();
     {
         ImGuiIO& io = ImGui::GetIO();
-        // io.Fonts->AddFontDefault();
+        ImGuiStyle& style = ImGui::GetStyle();
+
         ImFontConfig config;
         config.OversampleH = 4;
         config.OversampleV = 4;
-        io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", 16.0f, &config);
-        io.Fonts->AddFontDefault();
+        int fontSize = 16.f;
 
 #ifdef ANDROID
-        io.FontGlobalScale = 3.f;
+        fontSize = 40.f;
+        style.ScrollbarSize = 40.f;
+        style.GrabMinSize = 20.f;
+        style.TouchExtraPadding = ImVec2(10.f, 10.f);
 #endif
-    }
 
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.GrabRounding = style.FrameRounding = 6.f;
+        style.GrabRounding = 6.f;
+        style.FrameRounding = 6.f;
+
+        io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", fontSize, &config);
+        io.Fonts->AddFontDefault();
+    }
 
     Sound::play();
 
