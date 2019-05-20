@@ -3,6 +3,11 @@
 #include <string>
 #include "utils/config_observer.h"
 
+#ifdef ANDROID
+#include <android/log.h>
+#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "AVOCADO", __VA_ARGS__);
+#endif
+
 using json = nlohmann::json;
 
 namespace DefaultKeyBindings {

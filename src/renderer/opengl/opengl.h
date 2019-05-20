@@ -9,8 +9,13 @@
 
 class OpenGL {
    public:
+#ifdef USE_OPENGLES
+    const int VERSION_MAJOR = 3;
+    const int VERSION_MINOR = 0;
+#else
     const int VERSION_MAJOR = 3;
     const int VERSION_MINOR = 2;
+#endif
 
     static const int resWidth = 640;
     static const int resHeight = 480;

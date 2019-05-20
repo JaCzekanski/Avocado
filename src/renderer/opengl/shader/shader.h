@@ -1,10 +1,13 @@
 #pragma once
-#include <string>
 #include <glad/glad.h>
+#include <string>
 
 enum class ShaderType { Vertex, Fragment };
 
 class Shader {
+   public:
+    static const char* header;
+
    private:
     std::string error = "";
     std::string name;

@@ -8,7 +8,15 @@
 #include "utils/file.h"
 #include "utils/string.h"
 
-#if defined(_WIN32) || defined(__linux__)
+#if defined(ANDROID)
+#elif defined(_WIN32)
+#define USE_FILESYSTEM 1
+#elif defined(__linux)
+#define USE_FILESYSTEM 1
+#else
+#endif
+
+#ifdef USE_FILESYSTEM
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 #endif
@@ -146,7 +154,7 @@ void biosSelectionWindow() {
     static std::vector<std::string> bioses;
     static int selectedBios = 0;
 
-#if defined(_WIN32) || defined(__linux__)
+#ifdef USE_FILESYSTEM
     if (!biosesFound) {
         bioses.clear();
         auto dir = fs::directory_iterator("data/bios");
@@ -175,7 +183,7 @@ void biosSelectionWindow() {
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
     if (bioses.empty()) {
-#if defined(_WIN32) || defined(__linux__)
+#ifdef USE_FILESYSTEM
         ImGui::Text(
             "BIOS directory is empty.\n"
             "You need one of BIOS files (eg. SCPH1001.bin) placed in data/bios directory.\n"
@@ -187,13 +195,14 @@ void biosSelectionWindow() {
 #endif
     } else {
         ImGui::PushItemWidth(300.f);
-        ImGui::ListBox("", &selectedBios,
-                       [](void* data, int idx, const char** out_text) {
-                           const std::vector<std::string>* v = (std::vector<std::string>*)data;
-                           *out_text = v->at(idx).c_str();
-                           return true;
-                       },
-                       (void*)&bioses, (int)bioses.size());
+        ImGui::ListBox(
+            "", &selectedBios,
+            [](void* data, int idx, const char** out_text) {
+                const std::vector<std::string>* v = (std::vector<std::string>*)data;
+                *out_text = v->at(idx).c_str();
+                return true;
+            },
+            (void*)&bioses, (int)bioses.size());
         ImGui::PopItemWidth();
 
         if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < (int)bioses.size()) {

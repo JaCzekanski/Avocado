@@ -66,7 +66,9 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
     auto type = event.type;
 
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && event.button.clicks == 2) {
+#ifndef ANDROID
         mouseLocked = true;
+#endif
         return true;
     }
 

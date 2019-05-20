@@ -23,3 +23,6 @@
 [submodule "externals/libchdr"]
 	path = externals/libchdr
 	url = https://github.com/JaCzekanski/libchdr
+[submodule "premake/androidmk"]
+	path = premake/androidmk
+	url = https://github.com/JaCzekanski/premake-androidmk.git

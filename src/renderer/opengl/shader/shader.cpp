@@ -1,6 +1,22 @@
 #include "shader.h"
+#include <array>
 #include <vector>
 #include "utils/file.h"
+
+#ifdef USE_OPENGLES
+const char* Shader::header = R"EOF(
+#version 300 es
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+)EOF";
+#else
+const char* Shader::header = R"EOF(
+#version 150
+
+)EOF";
+#endif
 
 Shader::Shader(std::string name, ShaderType shaderType) {
     this->name = name;
@@ -20,16 +36,15 @@ bool Shader::reload() {
 
 bool Shader::compile() {
     error = name + ": ";
-    auto data = getFileContents(name);
-    data.push_back(0);
+    auto data = getFileContentsAsString(name);
 
-    GLchar const* lines[] = {(const GLchar*)&data[0], nullptr};
+    std::array<const char*, 2> lines = {{header, data.c_str()}};
 
-    if (type == ShaderType::Vertex)
+    if (type == ShaderType::Vertex) {
         shaderId = glCreateShader(GL_VERTEX_SHADER);
-    else if (type == ShaderType::Fragment)
+    } else if (type == ShaderType::Fragment) {
         shaderId = glCreateShader(GL_FRAGMENT_SHADER);
-    else {
+    } else {
         error = std::string("Wrong shader type");
         return false;
     }
@@ -38,7 +53,7 @@ bool Shader::compile() {
         return false;
     }
 
-    glShaderSource(shaderId, 1, lines, nullptr);
+    glShaderSource(shaderId, lines.size(), lines.data(), nullptr);
     glCompileShader(shaderId);
 
     GLint status;

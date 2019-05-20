@@ -594,7 +594,7 @@ void CDROM::cmdGetId() {
         writeResponse(0x90);
         for (int i = 0; i < 6; i++) writeResponse(0);
     } else {
-        // Game C
+        // Game CD
         CDROM_interrupt.push_back(2);
         writeResponse(0x02);
         writeResponse(0x00);

@@ -1,5 +1,3 @@
-#version 150
-
 in ivec2 position;
 in uvec3 color;
 in ivec2 texcoord;
@@ -22,10 +20,10 @@ uniform vec2 displayAreaPos;
 uniform vec2 displayAreaSize;
 
 void main() {
-    vec2 pos = vec2((position.x - displayAreaPos.x) / displayAreaSize.x, (position.y - displayAreaPos.y) / displayAreaSize.y);
+    vec2 pos = vec2((float(position.x) - displayAreaPos.x) / displayAreaSize.x, (float(position.y) - displayAreaPos.y) / displayAreaSize.y);
     // vec2 pos = vec2(position.x / 1024.f, position.y / 512.f);
-    fragColor = vec3(color.r / 255.f, color.g / 255.f, color.b / 255.f);
-    fragTexcoord = ivec2(texcoord.x, texcoord.y);
+    fragColor = vec3(float(color.r) / 255.f, float(color.g) / 255.f, float(color.b) / 255.f);
+    fragTexcoord = vec2(texcoord.x, texcoord.y);
     fragFlatColor = uvec3(color.r, color.g, color.b);
     fragBitcount = bitcount;
     fragClut = clut;

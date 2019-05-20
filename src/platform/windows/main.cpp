@@ -20,6 +20,8 @@
 #include "utils/string.h"
 #include "version.h"
 
+#include <unistd.h>
+
 #undef main
 
 bool running = true;
@@ -211,6 +213,9 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 }
 
 int main(int argc, char** argv) {
+#ifdef ANDROID
+    chdir("/sdcard/avocado");
+#endif
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
@@ -270,6 +275,10 @@ int main(int argc, char** argv) {
         config.OversampleV = 4;
         io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", 16.0f, &config);
         io.Fonts->AddFontDefault();
+
+#ifdef ANDROID
+        io.FontGlobalScale = 3.f;
+#endif
     }
 
     ImGuiStyle& style = ImGui::GetStyle();
@@ -347,7 +356,8 @@ int main(int argc, char** argv) {
                 SDL_free(event.drop.file);
                 loadFile(sys, path);
             }
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+            if (event.type == SDL_WINDOWEVENT
+                && (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED || event.window.event == SDL_WINDOWEVENT_RESIZED)) {
                 opengl.width = event.window.data1;
                 opengl.height = event.window.data2;
             }

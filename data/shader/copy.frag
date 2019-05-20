@@ -1,5 +1,3 @@
-#version 150
-
 in vec2 fragTexcoord;
 out vec4 outColor;
 uniform sampler2D vram;

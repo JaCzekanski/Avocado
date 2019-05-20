@@ -44,6 +44,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_sdl_gl3.h"
+#include "renderer/opengl/shader/shader.h"
 
 // SDL,GL3W
 #include <SDL.h>
@@ -57,7 +58,7 @@ static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
 static char*        g_ClipboardTextData = NULL;
 
 // OpenGL data
-static char         g_GlslVersion[32] = "#version 150";
+
 static GLuint       g_FontTexture = 0;
 static int          g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0;
 static int          g_AttribLocationTex = 0, g_AttribLocationProjMtx = 0;
@@ -86,7 +87,7 @@ void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
     GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
     GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
-    GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
+//    GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
     GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
     GLint last_scissor_box[4]; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
     GLenum last_blend_src_rgb; glGetIntegerv(GL_BLEND_SRC_RGB, (GLint*)&last_blend_src_rgb);
@@ -107,7 +108,7 @@ void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Setup viewport, orthographic projection matrix
     glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
@@ -180,7 +181,7 @@ void ImGui_ImplSdlGL3_RenderDrawData(ImDrawData* draw_data)
     if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
     if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
     if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
+//    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
     glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
     glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
 }
@@ -300,8 +301,8 @@ bool ImGui_ImplSdlGL3_CreateDeviceObjects()
         "	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
         "}\n";
 
-    const GLchar* vertex_shader_with_version[2] = { g_GlslVersion, vertex_shader };
-    const GLchar* fragment_shader_with_version[2] = { g_GlslVersion, fragment_shader };
+    const GLchar* vertex_shader_with_version[2] = { Shader::header, vertex_shader };
+    const GLchar* fragment_shader_with_version[2] = { Shader::header, fragment_shader };
 
     g_ShaderHandle = glCreateProgram();
     g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
@@ -360,13 +361,6 @@ void    ImGui_ImplSdlGL3_InvalidateDeviceObjects()
 
 bool    ImGui_ImplSdlGL3_Init(SDL_Window* window, const char* glsl_version)
 {
-    // Store GLSL version string so we can refer to it later in case we recreate shaders. Note: GLSL version is NOT the same as GL version. Leave this to NULL if unsure.
-    if (glsl_version == NULL)
-        glsl_version = "#version 150";
-    IM_ASSERT((int)strlen(glsl_version) + 2 < IM_ARRAYSIZE(g_GlslVersion));
-    strcpy(g_GlslVersion, glsl_version);
-    strcat(g_GlslVersion, "\n");
-
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;   // We can honor GetMouseCursor() values (optional)
@@ -442,9 +436,11 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
 
     // Setup display size (every frame to accommodate for window resizing)
     int w, h;
-    int display_w, display_h;
+    static int display_w = 0, display_h = 0;
     SDL_GetWindowSize(window, &w, &h);
-    SDL_GL_GetDrawableSize(window, &display_w, &display_h);
+    // if (display_w == 0 || display_h == 0) { // web optimization
+        SDL_GL_GetDrawableSize(window, &display_w, &display_h);
+    // }
     io.DisplaySize = ImVec2((float)w, (float)h);
     io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
 

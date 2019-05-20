@@ -1,10 +1,15 @@
 include "premake/tools.lua"
+require "./premake/androidmk"
 
 workspace "Avocado"    
 	configurations { "debug", "release" }
 	platforms {"x86", "x64"}
     startproject "avocado"
-    defaultplatform "x86"
+	defaultplatform "x86"
+	
+ndkabi "arm64-v8a"
+ndkstl "c++_static"
+ndkplatform "android-24"
 
 newoption {
 	trigger = "disable-load-delay-slots",
@@ -24,7 +29,8 @@ filter "options:enable-io-log"
 filter {}
 	language "c++"
 	cppdialect "C++17"
-	defines { 'BUILD_ARCH="%{cfg.platform}"' }
+	defines { 'BUILD_ARCH="%{cfg.system}"' }
+	exceptionhandling "On"
 
 filter "platforms:x86"
 	architecture "x32"
@@ -38,13 +44,17 @@ filter "system:macosx"
 		['ALWAYS_SEARCH_USER_PATHS'] = {'YES'}
 	}
 
+filter "system:android"
+	defines { "USE_OPENGLES"}
 
 filter "kind:*App"
 	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
 
 filter {"kind:*App", "platforms:x86"}
 	targetdir "build/%{cfg.buildcfg}"
-
+	
+filter {"kind:*App", "system:android"}
+	targetdir "build/%{cfg.buildcfg}"
 
 filter "configurations:Debug"
 	defines { "DEBUG" }
@@ -186,8 +196,7 @@ project "avocado"
 		linkoptions {getOutput("sdl2-config --libs")}
 		
 
-	filter {"system:macosx", "not options:headless"}
-	    kind "WindowedApp"
+	filter {"system:macosx"}
 		files { 
 			"src/imgui/**.*",
 			"src/renderer/opengl/**.*",
@@ -199,6 +208,29 @@ project "avocado"
 		}
 		buildoptions {getOutput("sdl2-config --cflags")}
 		linkoptions {getOutput("sdl2-config --libs")}
+	
+	filter {"system:android"}
+		files { 
+			"src/imgui/**.*",
+			"src/renderer/opengl/**.*",
+			"src/platform/windows/**.*",
+		}
+		links {
+			"glad",
+			"imgui",
+			"GLESv1_CM",
+			"GLESv2",
+			"GLESv3",
+			"log",
+		}
+
+		amk_includes {
+			"externals/SDL2/Android.mk",
+		}
+
+		amk_sharedlinks {
+			"SDL2",
+		}
 
 project "avocado_test"
 	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
@@ -221,6 +253,9 @@ project "avocado_test"
 		"core"
 	}
 
+	-- filter {"system:android"}
+	-- 	kind "SharedLib"
+
 project "avocado_autotest"
 	uuid "fcc880bc-c6fe-4b2b-80dc-d247345a1274"
 	kind "ConsoleApp"
@@ -240,3 +275,6 @@ project "avocado_autotest"
 	links {
 		"core"
 	}
+
+	-- filter {"system:android"}
+	-- 	kind "SharedLib"
