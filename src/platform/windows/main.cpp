@@ -20,7 +20,9 @@
 #include "utils/string.h"
 #include "version.h"
 
+#ifdef ANDROID
 #include <unistd.h>
+#endif
 
 #undef main
 
