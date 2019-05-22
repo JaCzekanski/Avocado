@@ -17,7 +17,12 @@ union CounterMode {
         resetAtVblankAndPauseOutside = 2,
         pauseUntilVblankAndFreerun = 3
     };
-    enum class SyncMode2 : uint16_t { stopCounter = 0, freeRun = 1, stopCounter_ = 2, freeRun_ = 3 };
+    enum class SyncMode2 : uint16_t {  //
+        stopCounter = 0,
+        freeRun = 1,
+        freeRun_ = 2,
+        stopCounter_ = 3
+    };
 
     enum class ResetToZero : uint16_t { whenFFFF = 0, whenTarget = 1 };
     enum class IrqRepeatMode : uint16_t { oneShot = 0, repeatedly = 1 };
