@@ -60,6 +60,7 @@ void renderImgui(System* sys) {
     if (showGui) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Open")) gui::file::openFile();
                 if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;
                 ImGui::EndMenu();
             }
@@ -128,6 +129,7 @@ void renderImgui(System* sys) {
         }
 
         // File
+        gui::file::displayWindows();
 
         // Debug
         if (gteRegistersEnabled) gteRegistersWindow(sys->cpu->gte);

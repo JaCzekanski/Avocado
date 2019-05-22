@@ -9,4 +9,5 @@ project "imgui"
 	}
 	files { 
 		"../externals/imgui/*.cpp",
+		"../externals/imgui/misc/cpp/*.cpp",
 	}
