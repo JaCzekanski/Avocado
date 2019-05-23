@@ -13,6 +13,8 @@ class SdlInputManager : public InputManager {
     void fixControllerId(SDL_Event& event);
 
    public:
+    bool mouseCaptured = false;
+    bool keyboardCaptured = false;
     bool mouseLocked = false;
     bool waitingForKeyPress = false;
     Key lastPressedKey;

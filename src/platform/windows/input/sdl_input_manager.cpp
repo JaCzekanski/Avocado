@@ -65,18 +65,19 @@ void SdlInputManager::newFrame() {
 bool SdlInputManager::handleEvent(SDL_Event& event) {
     auto type = event.type;
 
-    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && event.button.clicks == 2) {
+    if ((!mouseCaptured || waitingForKeyPress) && event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT
+        && event.button.clicks == 2) {
 #ifndef ANDROID
         mouseLocked = true;
 #endif
         return true;
     }
 
-    if (type == SDL_MOUSEBUTTONDOWN || type == SDL_MOUSEBUTTONUP) {
+    if ((!mouseCaptured || waitingForKeyPress) && (type == SDL_MOUSEBUTTONDOWN || type == SDL_MOUSEBUTTONUP)) {
         return handleKey(Key::mouseButton(event.button), AnalogValue(type == SDL_MOUSEBUTTONDOWN));
     }
 
-    if (type == SDL_MOUSEMOTION) {
+    if ((!mouseCaptured || waitingForKeyPress) && type == SDL_MOUSEMOTION) {
         Key key;
 
         mouseX += event.motion.xrel;
@@ -121,7 +122,7 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
         }
     }
 
-    if (type == SDL_KEYDOWN || type == SDL_KEYUP) {
+    if ((!keyboardCaptured || waitingForKeyPress) && (type == SDL_KEYDOWN || type == SDL_KEYUP)) {
         return handleKey(Key::keyboard(event.key.keysym.sym), AnalogValue(type == SDL_KEYDOWN));
     }
 

@@ -31,6 +31,7 @@ filter {}
 	cppdialect "C++17"
 	defines { 'BUILD_ARCH="%{cfg.system}"' }
 	exceptionhandling "On"
+	rtti "On"
 
 filter "platforms:x86"
 	architecture "x32"
@@ -104,6 +105,7 @@ project "core"
 		"externals/json/include",
 		"externals/miniz",
 		"externals/libchdr/src",
+        "externals/EventBus/lib/include",
 	}
 
 	files { 
@@ -143,6 +145,7 @@ project "avocado"
 		"externals/stb",
 		"externals/libchdr/src",
 		"externals/filesystem/include",
+        "externals/EventBus/lib/include",
 	}
 
 	links {

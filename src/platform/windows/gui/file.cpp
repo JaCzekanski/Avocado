@@ -14,8 +14,6 @@ namespace fs = std::filesystem;
 namespace fs = ghc::filesystem;
 #endif
 
-extern bool doHardReset;
-
 namespace gui::file {
 bool showHidden = false;
 bool openFileWindow = false;
@@ -110,11 +108,9 @@ void openFile() {
             } else if (f.exists()) {
                 std::string ext = f.path().extension();
                 std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
-                printf("Opening %s\n", f.path().c_str());
                 if (ext == ".iso" || ext == ".cue" || ext == ".bin" || ext == ".img" || ext == ".chd") {
-                    config["iso"] = f.path().string();
+                    bus.notify(Event::File::Load{f.path(), true});
                     openFileWindow = false;
-                    doHardReset = true;
                 }
             }
         }

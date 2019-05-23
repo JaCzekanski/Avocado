@@ -99,6 +99,7 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         sys->cdrom->disc = std::move(disc);
         sys->cdrom->setShell(false);
         printf("File %s loaded\n", filenameExt.c_str());
+        toast(string_format("%s loaded", filenameExt.c_str()));
     }
 }
 
@@ -255,6 +256,21 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<System> sys = hardReset();
 
+    int busToken = bus.listen<Event::File::Load>([&](auto e) {
+        if (e.reset) {
+            sys = hardReset();
+        }
+        loadFile(sys, e.file);
+    });
+
+    bool exitProgram = false;
+    bus.listen<Event::File::Exit>(busToken, [&](auto) { exitProgram = true; });
+
+    bus.listen<Event::System::SoftReset>(busToken, [&](auto) { sys->softReset(); });
+
+    bool doHardReset = false;
+    bus.listen<Event::System::HardReset>(busToken, [&](auto) { doHardReset = true; });
+
     // If argument given - open that file (same as drag and drop)
     if (argc > 1) {
         loadFile(sys, argv[1]);
@@ -292,6 +308,8 @@ int main(int argc, char** argv) {
         io.Fonts->AddFontDefault();
     }
 
+    initGui();
+
     Sound::play();
 
     if (!isEmulatorConfigured())
@@ -317,6 +335,9 @@ int main(int argc, char** argv) {
         while (newEvent || SDL_PollEvent(&event)) {
             ImGui_ImplSdlGL3_ProcessEvent(&event);
 
+            inputManager->keyboardCaptured = ImGui::GetIO().WantCaptureKeyboard;
+            inputManager->mouseCaptured = ImGui::GetIO().WantCaptureMouse;
+
             newEvent = false;
             if (inputManager->handleEvent(event)) continue;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
@@ -324,7 +345,7 @@ int main(int argc, char** argv) {
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
             }
-            if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+            if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     running = false;
                 }
@@ -399,10 +420,13 @@ int main(int argc, char** argv) {
     saveMemoryCards(sys, true);
     saveConfigFile(CONFIG_NAME);
 
+    bus.unlistenAll(busToken);
+    deinitGui();
     Sound::close();
     ImGui_ImplSdlGL3_Shutdown();
     ImGui::DestroyContext();
     InputManager::setInstance(nullptr);
+    opengl.deinit();
     opengl.~OpenGL();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

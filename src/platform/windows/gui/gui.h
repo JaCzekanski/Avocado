@@ -5,6 +5,7 @@
 #include "system.h"
 
 void initGui();
+void deinitGui();
 void renderImgui(System* sys);
 extern bool showGui;
 extern int vramTextureId;
@@ -14,5 +15,3 @@ extern bool gteLogEnabled;
 extern bool gpuLogEnabled;
 extern bool singleFrame;
 extern bool showIo;
-extern bool exitProgram;
-extern bool doHardReset;  // TODO: Use event bus

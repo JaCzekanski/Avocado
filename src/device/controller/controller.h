@@ -17,6 +17,7 @@ namespace controller {
 enum class DeviceSelected { None, Controller, MemoryCard };
 
 class Controller {
+    int busToken;
     System* sys;
 
     DeviceSelected deviceSelected;

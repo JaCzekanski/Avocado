@@ -29,3 +29,6 @@
 [submodule "externals/filesystem"]
 	path = externals/filesystem
 	url = https://github.com/gulrak/filesystem.git
+[submodule "externals/EventBus"]
+	path = externals/EventBus
+	url = https://github.com/gelldur/EventBus.git

@@ -11,12 +11,12 @@ const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",      
                             "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
 
 GPU::GPU() {
-    configObserver.registerCallback(Event::Gpu, [&]() { reload(); });
+    busToken = bus.listen<Event::Config::Graphics>([&](auto) { reload(); });
     reload();
     reset();
 }
 
-GPU::~GPU() { configObserver.unregisterCallback(Event::Gpu); }
+GPU::~GPU() { bus.unlistenAll(busToken); }
 
 void GPU::reload() {
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();

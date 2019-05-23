@@ -180,8 +180,6 @@ const json defaultConfig = {
 };
 // clang-format on
 
-ConfigObserver configObserver;
-
 json config = defaultConfig;
 
 json fixObject(json oldconfig, json newconfig) {

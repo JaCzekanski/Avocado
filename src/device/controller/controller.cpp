@@ -41,7 +41,7 @@ void Controller::handleByte(uint8_t byte) {
 }
 
 Controller::Controller(System* sys) : sys(sys) {
-    configObserver.registerCallback(Event::Controller, [&]() { reload(); });
+    busToken = bus.listen<Event::Config::Controller>([&](auto) { reload(); });
 
     reload();
 
@@ -50,7 +50,7 @@ Controller::Controller(System* sys) : sys(sys) {
     }
 }
 
-Controller::~Controller() { configObserver.unregisterCallback(Event::Controller); }
+Controller::~Controller() { bus.unlistenAll(busToken); }
 void Controller::reload() {
     auto createDevice = [](int num) -> std::unique_ptr<peripherals::AbstractDevice> {
         num += 1;

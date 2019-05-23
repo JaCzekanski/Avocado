@@ -26,6 +26,8 @@ class GPU {
     friend class ::Render;
     friend class ::OpenGL;
 
+    int busToken;
+
     // TODO: Comment private fields
     int startX = 0;
     int startY = 0;

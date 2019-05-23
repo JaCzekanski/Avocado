@@ -102,6 +102,7 @@ struct GTE {
     std::vector<GTE_ENTRY> log;
 
    private:
+    int busToken;
     constexpr std::array<uint8_t, 0x101> generateUnrTable() {
         std::array<uint8_t, 0x101> table = {{0}};
         for (int i = 0; i < (int)table.size(); i++) {

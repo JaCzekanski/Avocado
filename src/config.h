@@ -1,7 +1,7 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include <string>
-#include "utils/config_observer.h"
+#include "utils/event.h"
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -31,8 +31,6 @@ void saveConfigFile(const char* configName);
 void loadConfigFile(const char* configName);
 
 bool isEmulatorConfigured();
-
-extern ConfigObserver configObserver;
 
 namespace ControllerType {
 extern const std::string NONE;

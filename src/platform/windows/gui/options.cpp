@@ -50,7 +50,7 @@ void graphicsOptionsWindow() {
 
         config["options"]["graphics"]["resolution"]["width"] = width;
         config["options"]["graphics"]["resolution"]["height"] = height;
-        configObserver.notify(Event::Graphics);
+        bus.notify(Event::Config::Graphics{});
     };
 
     // Load
@@ -79,8 +79,7 @@ void graphicsOptionsWindow() {
     ImGui::SameLine();
     if (ImGui::Combo("##rendering_mode", &selectedRenderingMode, renderingModes.data(), renderingModes.size())) {
         config["options"]["graphics"]["rendering_mode"] = static_cast<RenderingMode>(selectedRenderingMode + 1);
-        configObserver.notify(Event::Graphics);
-        configObserver.notify(Event::Gpu);
+        bus.notify(Event::Config::Graphics{});
     }
 
     if (selectedRenderingMode != 0) {
@@ -116,7 +115,7 @@ void graphicsOptionsWindow() {
     bool filtering = config["options"]["graphics"]["filtering"];
     if (ImGui::Checkbox("Filtering", &filtering)) {
         config["options"]["graphics"]["filtering"] = filtering;
-        configObserver.notify(Event::Graphics);
+        bus.notify(Event::Config::Graphics{});
     }
     bool widescreen = config["options"]["graphics"]["widescreen"];
     if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
@@ -124,21 +123,21 @@ void graphicsOptionsWindow() {
         if (!widescreen) {
             config["options"]["graphics"]["forceWidescreen"] = false;
         }
-        configObserver.notify(Event::Gte);
+        bus.notify(Event::Config::Gte{});
     }
 
     if (widescreen) {
         bool forceWidescreen = config["options"]["graphics"]["forceWidescreen"];
         if (ImGui::Checkbox("Force widescreen in 3d (hack)", &forceWidescreen)) {
             config["options"]["graphics"]["forceWidescreen"] = forceWidescreen;
-            configObserver.notify(Event::Gte);
+            bus.notify(Event::Config::Gte{});
         }
     }
 
     bool vsync = config["options"]["graphics"]["vsync"];
     if (ImGui::Checkbox("VSync", &vsync)) {
         config["options"]["graphics"]["vsync"] = vsync;
-        configObserver.notify(Event::Graphics);
+        bus.notify(Event::Config::Graphics{});
     }
 
     ImGui::End();
@@ -195,7 +194,7 @@ void biosSelectionWindow() {
 
             biosesFound = false;
             showBiosWindow = false;
-            doHardReset = true;
+            bus.notify(Event::System::HardReset{});
         }
     }
     ImGui::End();
@@ -322,7 +321,7 @@ void controllerSetupWindow() {
     ImGui::PushItemWidth(-1);
     if (ImGui::Combo("##type", &typePos, types.data(), (int)types.size())) {
         config["controller"][std::to_string(selectedController)]["type"] = types[typePos];
-        configObserver.notify(Event::Controller);
+        bus.notify(Event::Config::Controller{});
     }
     ImGui::PopItemWidth();
 

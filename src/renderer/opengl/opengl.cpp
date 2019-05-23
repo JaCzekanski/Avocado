@@ -19,10 +19,12 @@ bool OpenGL::init() {
     // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
 
-    configObserver.registerCallback(Event::Graphics, [&]() { setup(); });
+    busToken = bus.listen<Event::Config::Graphics>([&](auto) { setup(); });
 
     return true;
 }
+
+void OpenGL::deinit() { bus.unlistenAll(busToken); }
 
 bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress) != 0; }
 

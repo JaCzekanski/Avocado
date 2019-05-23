@@ -56,6 +56,7 @@ static Uint64       g_Time = 0;
 static bool         g_MousePressed[3] = { false, false, false };
 static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
 static char*        g_ClipboardTextData = NULL;
+static bool         g_KeyboardEnabled = false;
 
 // OpenGL data
 
@@ -487,6 +488,21 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
         {
             SDL_SetCursor(g_MouseCursors[cursor] ? g_MouseCursors[cursor] : g_MouseCursors[ImGuiMouseCursor_Arrow]);
             SDL_ShowCursor(1);
+        }
+    }
+    
+    bool showKeyboard = ImGui::GetIO().WantTextInput;
+    if (showKeyboard) {
+        if (!g_KeyboardEnabled) {
+            g_KeyboardEnabled = true;
+            printf("SDL_StartTextInput");
+            SDL_StartTextInput();
+        }
+    } else if (!showKeyboard) {
+        if (g_KeyboardEnabled) {
+            g_KeyboardEnabled = false;
+            printf("SDL_StopTextInput");
+            SDL_StopTextInput();
         }
     }
 

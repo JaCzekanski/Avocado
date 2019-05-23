@@ -28,6 +28,7 @@ class OpenGL {
     float aspect = RATIO_4_3;
 
     bool init();
+    void deinit();
     bool setup();
     void render(gpu::GPU* gpu);
 
@@ -35,6 +36,7 @@ class OpenGL {
     GLuint getVramTextureId() const { return vramTex->get(); }
 
    private:
+    int busToken = -1;
     struct BlitStruct {
         float pos[2];
         float tex[2];

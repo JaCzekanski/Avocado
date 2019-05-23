@@ -2,11 +2,11 @@
 #include "config.h"
 
 GTE::GTE() : unrTable(generateUnrTable()) {
-    configObserver.registerCallback(Event::Gte, [&]() { reload(); });
+    busToken = bus.listen<Event::Config::Gte>([&](auto) { reload(); });
     reload();
 }
 
-GTE::~GTE() { configObserver.unregisterCallback(Event::Gte); }
+GTE::~GTE() { bus.unlistenAll(busToken); }
 
 void GTE::reload() { widescreenHack = config["options"]["graphics"]["forceWidescreen"]; }
 

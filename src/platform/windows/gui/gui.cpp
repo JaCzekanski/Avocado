@@ -33,8 +33,6 @@ bool gteLogEnabled = false;
 bool gpuLogEnabled = false;
 bool singleFrame = false;
 bool showIo = false;
-bool exitProgram = false;
-bool doHardReset = false;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
@@ -56,12 +54,25 @@ void aboutWindow() {
 
 extern void ImGui::ShowDemoWindow(bool* p_open);
 
+int busToken;
+int toastTimer = 0;
+std::string toastMessage;
+
+void initGui() {
+    busToken = bus.listen<Event::Gui::Toast>([](auto e) {
+        toastMessage = e.message;
+        toastTimer = 2000;
+    });
+}
+
+void deinitGui() { bus.unlistenAll(busToken); }
+
 void renderImgui(System* sys) {
     if (showGui) {
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open")) gui::file::openFile();
-                if (ImGui::MenuItem("Exit", "Esc")) exitProgram = true;
+                if (ImGui::MenuItem("Exit", "Esc")) bus.notify(Event::File::Exit{});
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Emulation")) {
@@ -72,8 +83,8 @@ void renderImgui(System* sys) {
                         sys->state = System::State::pause;
                     }
                 }
-                if (ImGui::MenuItem("Soft reset", "F2")) sys->softReset();
-                if (ImGui::MenuItem("Hard reset", "Shift+F2")) doHardReset = true;
+                if (ImGui::MenuItem("Soft reset", "F2")) bus.notify(Event::System::SoftReset{});
+                if (ImGui::MenuItem("Hard reset", "Shift+F2")) bus.notify(Event::System::HardReset{});
 
                 const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
                 if (ImGui::MenuItem(shellStatus, "F3")) {
@@ -171,6 +182,15 @@ void renderImgui(System* sys) {
         }
 
         ImGui::EndPopup();
+    }
+
+    if (toastTimer > 0) {
+        ImGui::OpenPopup("##toast");
+        if (ImGui::BeginPopup("##toast")) {
+            ImGui::TextUnformatted(toastMessage.c_str());
+            ImGui::EndPopup();
+        }
+        toastTimer--;
     }
 
     ImGui::Render();
