@@ -8,6 +8,9 @@ export ARTIFACT=avocado-$OS-$DATE-$COMMIT
 export CC="ccache clang"
 export CXX="ccache clang++"
 
+# Configure cache
+ccache --set-config=sloppiness=pch_defines,time_macros
+
 # Generate Makefile
 premake5 gmake
 
@@ -31,5 +34,6 @@ cp -r data $ARTIFACT/
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
 rm -r $ARTIFACT/data/asm
 
-mkdir -p upload
-tar -zcf upload/$ARTIFACT.tar.gz $ARTIFACT
+export UPLOAD_DIR=$DATE-$COMMIT
+mkdir -p upload/$UPLOAD_DIR
+tar -zcf upload/$UPLOAD_DIR/$ARTIFACT.tar.gz $ARTIFACT

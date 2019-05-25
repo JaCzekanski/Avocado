@@ -9,8 +9,10 @@ export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT.apk
 export ASSETSDIR=android/app/src/main/assets
 export TARGETDIR=android/app/build/outputs/apk/debug
-
 export NDK_CCACHE="$(which ccache)"
+
+# Configure cache
+ccache --set-config=sloppiness=pch_defines,time_macros
 
 # Generate Makefile
 premake5 --os=android androidmk
@@ -35,5 +37,6 @@ popd
 # No test suite for Android right now
 
 # Package
-mkdir -p upload
-cp $TARGETDIR/app-debug.apk upload/$ARTIFACT
+export UPLOAD_DIR=$DATE-$COMMIT
+mkdir -p upload/$UPLOAD_DIR
+cp $TARGETDIR/app-debug.apk upload/$UPLOAD_DIR/$ARTIFACT

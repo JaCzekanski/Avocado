@@ -1,32 +1,43 @@
 language: cpp
 matrix:
   include:
-    - name: "Linux Clang6"
-      os: linux
-      sudo: required
-      dist: trusty
-      cache: ccache
-      install: "./.travis/linux/pull-container.sh"
-      script: "./.travis/linux/run-container.sh"
-      after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
-      after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
-    - name: "Android"
-      os: linux
-      sudo: required
-      dist: trusty
-      cache: ccache
-      install: "./.travis/android/pull-container.sh"
-      script: "./.travis/android/run-container.sh"
-      after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
-      after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
-    - name: "macOS"
-      os: osx
-      osx_image: xcode10.1
-      cache: ccache
-      install: "./.travis/macos/install-dependencies.sh"
-      script: "./.travis/macos/build.sh"
-      after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
-      after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
-    
+  - name: Linux Clang6
+    os: linux
+    sudo: required
+    dist: trusty
+    cache: ccache
+    install: "./.travis/linux/pull-container.sh"
+    script: "./.travis/linux/run-container.sh"
+    after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
+    after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
+  - name: Android
+    os: linux
+    sudo: required
+    dist: trusty
+    cache: ccache
+    install: "./.travis/android/pull-container.sh"
+    script: "./.travis/android/run-container.sh"
+    after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
+    after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
+  - name: macOS
+    os: osx
+    osx_image: xcode10.1
+    cache: ccache
+    install: "./.travis/macos/install-dependencies.sh"
+    script: "./.travis/macos/build.sh"
+    after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
+    after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
 notifications:
-  - email: false
+- email: false
+deploy:
+  provider: s3
+  bucket: "avocado-build"
+  region: us-east-2
+  local_dir: upload 
+  skip_cleanup: true
+  on:
+    all_branches: true
+  secret_access_key:
+    secure: A+A/qeIsqVp8YlYCqo19TDXmFaGHYzjaMLNmILPtK+D1o5mjlG4DyTQTgCi3nESu/I+2aBhHTbhJX+JSabX/pogGtGJSnfLd8VmxSNSvCBd6pZ2pczjQoC4ufeR87LjAS63JnGZLIBORDY6o+bKUrs1kLQclEfCeieH5sBW/1Em0Ec1amY3uKZP6MA1biaI3iSRbRGzCisWdjcIpF6vOILiG3w4Xpx+hTMSJPn72/kd3dVilHGyWnQkZDYbj6LB5CT4p42xnbM3B5HkBvykYeeqQSskVqM0y1gtTF/3JmjVnW4jB7pUQVpfCyzEOF23zQkoivlwBpMJBpcTa2fYfcjb0vDPu8ELtg5IZ1WPXyXCh/IAXkD0qTUjuNjlYHVNIUlWj2FXevyLUxDoBAgPA+4POkt9p6072gIATBPrd9Ajr48yDrYLVG41AWUT9FNUW5FHZaBsg6sJSEwMkBjpyQFp9+2ufgMTrcBIMFayDXLpvZGPy4uyS4Iu/Lts5KkG780DYva7kKZwxmpo5tlVwn11ndaYwgd9H2a+wgPGmw/1yAkWocV6XS7dq5cl7jcOJ6AmqtCyqixxtQk6zK7ylmwPuV3YGsOltgLJ5sA4g4G/9849HYKAs4Tv/q4xr3y8QnlBSUAUtXjdJ2KOzu8uYpPzBrNnFdHJBxENq7u+G+5A=
+  access_key_id:
+    secure: PK4Fr5SfsLBo9bIM2gpwgI6bCJx8RwjD4fRCoAIXzVu65ggx+GKWpPQmcNo13TZcRAnknSxUzj6uPCHvySzZqvTOP0rT8X975/k8V6VSdEDUabwtfK+mHIfKas4We5oxmbIH3Pij8TIPrLKPfXU+wR34ScLOGEmzCYYapb4KoRjBoNZz+zWrtA/eUSoHnHk3DgUxojXd3FbKjUbyIcXHmFC3fY9wglRNyLtWgVInQRh8haEFNZv85DdiOcm6KD7QkQ6QmLaug1QGOHLYnHLM9BouhjEsu09AtG6VrbseGXe2Gsb1yUiyJjIUvTPiy/Z6b52/aS00HE2cFlqSunH79bZ+ef5WftQMOMscV436O3wCUdXSIjfWUQBIhreycV4095kahsZZfY8O/NsyVXs2ls4bLW8vHS5r5KHu/aghKLLGfJFiENuCrMDU7+SPP/7PfZduG38kn8Jmdi1AeZ6BbMP4gdO5TMpxChsjvsJQ4C9VmVpJz9l203NieZAV43stpRxVWnNo6I5L/dyitZixPvPVfoAVXwXJnFNN2lOMg222U8KZLa68z0KR2SIw9hpgoU7H0RFwlwGNwSsYmdxjC6q5DST5ipq+ObyeLx7BQlJl3XqAgcjgvA9LTllfdJUIfXCl4b2/gGSH9tv6VZuBv4Yw/9XY1b3mtzQyz3LOGpQ=
