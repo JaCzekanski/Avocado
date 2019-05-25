@@ -32,7 +32,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 Build   | Status | Download
 --------|--------|---------
 Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
-Travis CI (macOS) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
+Travis CI (macOS) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado) | Comming soon ...
+Travis CI (Android) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado) | Comming soon ...
 AppVeyor (Windows x86) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x86 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3DWin32)
 AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x64 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3Dx64)
 

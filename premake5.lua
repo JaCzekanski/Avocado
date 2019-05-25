@@ -201,6 +201,7 @@ project "avocado"
 		
 
 	filter {"system:macosx"}
+	    kind "WindowedApp"
 		files { 
 			"src/imgui/**.*",
 			"src/renderer/opengl/**.*",

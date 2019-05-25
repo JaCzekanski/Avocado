@@ -1,6 +1,8 @@
 #!/bin/bash -ex
 # Run by run-container.sh, builds Avocado in Docker container and runs tests
 
+cd /home/build
+
 export OS=linux64
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
@@ -8,8 +10,6 @@ export ARTIFACT=avocado-$OS-$DATE-$COMMIT
 
 export CC="ccache clang-6.0 -fcolor-diagnostics"
 export CXX="ccache clang++-6.0 -fcolor-diagnostics"
-
-cd /home/build
 
 # Download SDL2
 apt update

@@ -10,6 +10,15 @@ matrix:
       script: "./.travis/linux/run-container.sh"
       after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
       after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
+    - name: "Android"
+      os: linux
+      sudo: required
+      dist: trusty
+      cache: ccache
+      install: "./.travis/android/pull-container.sh"
+      script: "./.travis/android/run-container.sh"
+      after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
+      after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
     - name: "macOS"
       os: osx
       osx_image: xcode10.1
