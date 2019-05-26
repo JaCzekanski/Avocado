@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 # Run by run-container.sh, builds Avocado in Docker container and runs tests
 
 cd /home/build
@@ -10,6 +10,7 @@ export ARTIFACT=avocado-$OS-$DATE-$COMMIT.apk
 export ASSETSDIR=android/app/src/main/assets
 export TARGETDIR=android/app/build/outputs/apk/debug
 export NDK_CCACHE="$(which ccache)"
+export UPLOAD_DIR=$DATE-$COMMIT
 
 # Configure cache
 ccache --set-config=sloppiness=pch_defines,time_macros
@@ -36,7 +37,6 @@ popd
 # Tests
 # No test suite for Android right now
 
-# Package
-export UPLOAD_DIR=$DATE-$COMMIT
+# Package and prepare upload artifact
 mkdir -p upload/$UPLOAD_DIR
 cp $TARGETDIR/app-debug.apk upload/$UPLOAD_DIR/$ARTIFACT
