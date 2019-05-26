@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 # Run by run-container.sh, builds Avocado in Docker container and runs tests
 
 cd /home/build
@@ -7,10 +7,10 @@ export OS=android
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT.apk
-export ASSETSDIR=android/app/src/main/assets
-export TARGETDIR=android/app/build/outputs/apk/debug
-export NDK_CCACHE="$(which ccache)"
+export ASSETS_DIR=android/app/src/main/assets
+export TARGET_DIR=android/app/build/outputs/apk/debug
 export UPLOAD_DIR=$DATE-$COMMIT
+export NDK_CCACHE="$(which ccache)"
 
 # Configure cache
 ccache --set-config=sloppiness=pch_defines,time_macros
@@ -19,9 +19,9 @@ ccache --set-config=sloppiness=pch_defines,time_macros
 premake5 --os=android androidmk
 
 # Copy data to assets folder to embed it into .apk file
-cp -r data $ASSETSDIR
-find $ASSETSDIR -type f -name .gitignore -exec rm {} \;
-rm -r $ASSETSDIR/data/asm
+cp -r data $ASSETS_DIR
+find $ASSETS_DIR -type f -name .gitignore -exec rm {} \;
+rm -r $ASSETS_DIR/data/asm
 
 # Build
 pushd android
@@ -39,4 +39,4 @@ popd
 
 # Package and prepare upload artifact
 mkdir -p upload/$UPLOAD_DIR
-cp $TARGETDIR/app-debug.apk upload/$UPLOAD_DIR/$ARTIFACT
+cp $TARGET_DIR/app-debug.apk upload/$UPLOAD_DIR/$ARTIFACT

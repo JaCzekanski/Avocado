@@ -20,7 +20,9 @@
 #include "utils/string.h"
 #include "version.h"
 
-#ifdef ANDROID
+#ifdef _WIN32
+#include <direct.h>
+#else
 #include <unistd.h>
 #endif
 
@@ -216,9 +218,18 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 }
 
 int main(int argc, char** argv) {
+    std::string workingDirectory = ".";
 #ifdef ANDROID
-    chdir("/sdcard/avocado");
+    workingDirectory = "/sdcard/avocado";  // TODO: Use Envoiroment.getExternalStorageDirectory();
+#else
+    {
+        char* basePath = SDL_GetBasePath();
+        workingDirectory = basePath;
+        SDL_free(basePath);
+    }
 #endif
+    chdir(workingDirectory.c_str());
+
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {

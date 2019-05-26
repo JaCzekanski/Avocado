@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 # Run by run-container.sh, builds Avocado in Docker container and runs tests
 
 cd /home/build
@@ -8,7 +8,6 @@ export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT
 export UPLOAD_DIR=$DATE-$COMMIT
-
 export CC="ccache clang-6.0 -fcolor-diagnostics"
 export CXX="ccache clang++-6.0 -fcolor-diagnostics"
 
@@ -23,7 +22,7 @@ apt install -y --no-install-recommends libsdl2-dev
 premake5 gmake
 
 # Build
-time make config=release_x64 -j4
+make config=release_x64 -j4
 ccache -s
 
 # Tests
@@ -33,14 +32,13 @@ wget -nv https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/ra
 ./build/release_x64/avocado_autotest gte_valid_0xc0ffee_50.log
 
 # Package
-mkdir -p artifact
-cp build/release_x64/avocado artifact/avocado
-cp -r data artifact/
+mkdir -p $ARTIFACT
+cp build/release_x64/avocado $ARTIFACT/avocado
+cp -r data $ARTIFACT/
 
 # Remove .gitignore and asm dir
-find artifact -type f -name .gitignore -exec rm {} \;
-rm -r artifact/data/asm
+find $ARTIFACT -type f -name .gitignore -exec rm {} \;
+rm -r $ARTIFACT/data/asm
 
-# Prepare upload artifact
 mkdir -p upload/$UPLOAD_DIR
-tar -zcf upload/$UPLOAD_DIR/$ARTIFACT.tar.gz artifact
+tar -zcf upload/$UPLOAD_DIR/$ARTIFACT.tar.gz $ARTIFACT

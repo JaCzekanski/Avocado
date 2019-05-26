@@ -3,11 +3,11 @@ package info.czekanski.avocado;
 import org.libsdl.app.SDLActivity;
 
 public class MainActivity extends SDLActivity {
-    @Override 
+    @Override
     protected String[] getLibraries() {
         return new String[] {
-            "SDL2",
-            "avocado"
+                "SDL2",
+                "avocado"
         };
     }
 
