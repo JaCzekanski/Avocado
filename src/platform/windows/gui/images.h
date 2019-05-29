@@ -1,6 +1,6 @@
 #pragma once
+#include <opengl.h>
 #include <string>
-#include <glad/glad.h>
 
 #ifdef __APPLE__
 #include <experimental/optional>

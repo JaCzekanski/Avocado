@@ -26,7 +26,13 @@ bool OpenGL::init() {
 
 void OpenGL::deinit() { bus.unlistenAll(busToken); }
 
-bool OpenGL::loadExtensions() { return gladLoadGLLoader(SDL_GL_GetProcAddress) != 0; }
+bool OpenGL::loadExtensions() {
+#ifdef __glad_h_
+    return gladLoadGLLoader(SDL_GL_GetProcAddress) != 0;
+#else
+    return true;
+#endif
+}
 
 bool OpenGL::loadShaders() {
     // PS1 GPU in Shader simulation
@@ -58,12 +64,14 @@ bool OpenGL::setup() {
         return false;
     }
 
+#ifdef __glad_h_
     // Check actual version of OpenGL context
     if (GLVersion.major * 10 + GLVersion.minor < VERSION_MAJOR * 10 + VERSION_MINOR) {
         printf("Unable to initialize OpenGL context for version %d.%d (got %d.%d)\n", VERSION_MAJOR, VERSION_MINOR, GLVersion.major,
                GLVersion.minor);
         return false;
     }
+#endif
 
     if (!loadShaders()) return false;
 
@@ -98,9 +106,11 @@ bool OpenGL::setup() {
     blitBuffer = std::make_unique<Buffer>(makeBlitBuf().size() * sizeof(BlitStruct));
 
     // Try native texture
+#ifdef GL_UNSIGNED_SHORT_1_5_5_5_REV
     vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, false);
+#endif
 
-    if (vramTex->isCreated()) {
+    if (vramTex && vramTex->isCreated()) {
         supportNativeTexture = true;
     } else {
         // Use compability mode
@@ -240,6 +250,16 @@ void OpenGL::update24bitTexture(gpu::GPU* gpu) {
     vramTex->update(vramUnpacked.data());
 }
 
+constexpr std::array<float, 32> generateFloatLUT() {
+    std::array<float, 32> lut = {{0}};
+    for (int i = 0; i < 32; i++) {
+        lut[i] = i / 31.f;
+    }
+    return lut;
+}
+
+const std::array<float, 32> floatLUT = generateFloatLUT();
+
 void OpenGL::updateVramTexture(gpu::GPU* gpu) {
     if (supportNativeTexture) {
         vramTex->update(gpu->vram.data());
@@ -257,10 +277,10 @@ void OpenGL::updateVramTexture(gpu::GPU* gpu) {
         for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
             PSXColor c = gpu->vram[y * gpu::VRAM_WIDTH + x];
 
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = c.r / 31.f;
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = c.g / 31.f;
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = c.b / 31.f;
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = (float)c.k;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = floatLUT[c.r];
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = floatLUT[c.g];
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = floatLUT[c.b];
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = floatLUT[c.k * 31];
         }
     }
     vramTex->update(vramUnpacked.data());

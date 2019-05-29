@@ -1,5 +1,5 @@
 #pragma once
-#include <glad/glad.h>
+#include <opengl.h>
 #include <string>
 
 enum class ShaderType { Vertex, Fragment };

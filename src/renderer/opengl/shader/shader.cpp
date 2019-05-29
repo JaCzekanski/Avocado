@@ -4,16 +4,14 @@
 #include "utils/file.h"
 
 #ifdef USE_OPENGLES
-const char* Shader::header = R"EOF(
-#version 300 es
+const char* Shader::header = R"EOF(#version 300 es
 #ifdef GL_ES
 precision mediump float;
 #endif
 
 )EOF";
 #else
-const char* Shader::header = R"EOF(
-#version 150
+const char* Shader::header = R"EOF(#version 150
 
 )EOF";
 #endif

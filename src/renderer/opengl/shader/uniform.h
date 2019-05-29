@@ -1,6 +1,6 @@
 #pragma once
+#include <opengl.h>
 #include <tuple>
-#include "glad/glad.h"
 
 class Uniform {
     GLuint id;

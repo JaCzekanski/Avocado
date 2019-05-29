@@ -1,5 +1,5 @@
 #pragma once
-#include <glad/glad.h>
+#include <opengl.h>
 #include <unordered_map>
 #include <vector>
 #include "attribute.h"

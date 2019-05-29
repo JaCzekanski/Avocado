@@ -49,7 +49,7 @@
 // SDL,GL3W
 #include <SDL.h>
 #include <SDL_syswm.h>
-#include <glad/glad.h>
+#include <opengl.h>
 
 // SDL data
 static Uint64       g_Time = 0;
@@ -439,9 +439,12 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
     int w, h;
     static int display_w = 0, display_h = 0;
     SDL_GetWindowSize(window, &w, &h);
-    // if (display_w == 0 || display_h == 0) { // web optimization
+#ifdef __EMSCRIPTEN
+    if (display_w == 0 || display_h == 0) // web optimization
+#endif
+    {
         SDL_GL_GetDrawableSize(window, &display_w, &display_h);
-    // }
+    }
     io.DisplaySize = ImVec2((float)w, (float)h);
     io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
 

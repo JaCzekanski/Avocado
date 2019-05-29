@@ -1,5 +1,5 @@
 #pragma once
-#include <glad/glad.h>
+#include <opengl.h>
 #include <memory>
 #include "device/gpu/gpu.h"
 #include "shader/buffer.h"
