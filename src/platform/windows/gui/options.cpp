@@ -1,20 +1,13 @@
 #include "options.h"
 #include <imgui.h>
 #include "config.h"
+#include "filesystem.h"
 #include "gui.h"
 #include "images.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "utils/file.h"
 #include "utils/string.h"
-
-#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include) && __has_include(<filesystem>) && !defined(ANDROID)
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <ghc/filesystem.hpp>
-namespace fs = ghc::filesystem;
-#endif
 
 bool showGraphicsOptionsWindow = false;
 bool showBiosWindow = false;

@@ -4,15 +4,8 @@
 #include <algorithm>
 #include <cmath>
 #include "config.h"
+#include "filesystem.h"
 #include "utils/string.h"
-
-#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include) && __has_include(<filesystem>) && !defined(ANDROID)
-#include <filesystem>
-namespace fs = std::filesystem;
-#else
-#include <ghc/filesystem.hpp>
-namespace fs = ghc::filesystem;
-#endif
 
 namespace gui::file {
 bool showHidden = false;
@@ -51,7 +44,7 @@ void openFile() {
                 if (lhs.path().filename() == "..") return true;
                 if (rhs.path().filename() == "..") return false;
 
-                if (lhs.is_directory() != rhs.is_directory()) return lhs.is_directory() > rhs.is_directory();
+                if (fs::is_directory(lhs) != fs::is_directory(rhs)) return fs::is_directory(lhs) > fs::is_directory(rhs);
 
                 return lhs < rhs;
                 // return false;
@@ -93,7 +86,7 @@ void openFile() {
         auto filename = f.path().filename().string();
         ImVec4 color = ImVec4(1.0, 1.0, 1.0, 1.0);
 
-        if (f.is_directory()) {
+        if (fs::is_directory(f)) {
             color = ImVec4(0.34, 0.54, 0.56, 1.0);
         }
         if (filename[0] == '.' && filename != "..") {
@@ -102,13 +95,13 @@ void openFile() {
 
         ImGui::PushStyleColor(ImGuiCol_Text, color);
         if (ImGui::Selectable(filename.c_str(), false, ImGuiSelectableFlags_SpanAllColumns)) {
-            if (f.is_directory()) {
+            if (fs::is_directory(f)) {
                 currentDirectory = f.path();
                 readDirectory = true;
-            } else if (f.exists()) {
+            } else if (fs::exists(f)) {
                 std::string ext = f.path().extension();
                 std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
-                if (ext == ".iso" || ext == ".cue" || ext == ".bin" || ext == ".img" || ext == ".chd") {
+                if (ext == ".iso" || ext == ".cue" || ext == ".bin" || ext == ".img" || ext == ".chd" || ext == ".exe" || ext == ".psexe") {
                     bus.notify(Event::File::Load{f.path(), true});
                     openFileWindow = false;
                 }
@@ -118,8 +111,8 @@ void openFile() {
 
         ImGui::NextColumn();
 
-        if (!f.is_directory()) {
-            std::string fileSize = formatFileSize(f.file_size());
+        if (!fs::is_directory(f)) {
+            std::string fileSize = formatFileSize(fs::is_directory(f));
 
             ImVec2 size = ImGui::CalcTextSize(fileSize.c_str());
             size.x += 8;

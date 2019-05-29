@@ -185,11 +185,12 @@ void renderImgui(System* sys) {
     }
 
     if (toastTimer > 0) {
-        ImGui::OpenPopup("##toast");
-        if (ImGui::BeginPopup("##toast")) {
-            ImGui::TextUnformatted(toastMessage.c_str());
-            ImGui::EndPopup();
-        }
+        // TODO: Do not use popup!
+        //        ImGui::OpenPopup("##toast");
+        //        if (ImGui::BeginPopup("##toast")) {
+        //            ImGui::TextUnformatted(toastMessage.c_str());
+        //            ImGui::EndPopup();
+        //        }
         toastTimer--;
     }
 
