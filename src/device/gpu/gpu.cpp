@@ -114,8 +114,8 @@ void GPU::cmdFillRectangle(uint8_t command) {
 
     cmd = Command::None;
 
-    // HACK: clean screen when using hw renderer (render rectangle instead of modifying VRAM directlys)
-    cmdRectangle(RectangleArgs(0x60));
+    // HACK: clean screen when using hw renderer (render rectangle instead of modifying VRAM directly)
+    // cmdRectangle(RectangleArgs(0x60));
 }
 
 void GPU::cmdPolygon(PolygonArgs arg) {
