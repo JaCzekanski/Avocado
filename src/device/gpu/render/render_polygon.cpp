@@ -203,6 +203,12 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     flags = v[0].flags;
     textureWindow = v[0].textureWindow;
 
+    // Skip rendering when distence between vertices is bigger than 1023x511
+    for (int j = 0; j < 3; j++) {
+        if (abs(pos[j].x - pos[(j + 1) % 3].x) >= 1024) return;
+        if (abs(pos[j].y - pos[(j + 1) % 3].y) >= 512) return;
+    }
+
     if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
     if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
     if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);

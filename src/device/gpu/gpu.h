@@ -51,10 +51,9 @@ class GPU {
     bool odd = false;
     int frames = 0;
 
-    GP0_E1 gp0_e1;
-
     // TODO: Move Debug GUI stuff to class and befriend it
    public:
+    GP0_E1 gp0_e1;
     // GP0(0xe3)
     // GP0(0xe4)
     Rect<int16_t> drawingArea;

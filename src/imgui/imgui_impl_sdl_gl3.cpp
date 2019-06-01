@@ -498,13 +498,11 @@ void ImGui_ImplSdlGL3_NewFrame(SDL_Window* window)
     if (showKeyboard) {
         if (!g_KeyboardEnabled) {
             g_KeyboardEnabled = true;
-            printf("SDL_StartTextInput");
             SDL_StartTextInput();
         }
     } else if (!showKeyboard) {
         if (g_KeyboardEnabled) {
             g_KeyboardEnabled = false;
-            printf("SDL_StopTextInput");
             SDL_StopTextInput();
         }
     }

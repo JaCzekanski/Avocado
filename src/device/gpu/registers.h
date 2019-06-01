@@ -90,8 +90,6 @@ union GP1_08 {
         normal = 0,
         r386 = 1,
     };
-    enum class TexturePageColors : uint8_t { bit4 = 0, bit8 = 1, bit15 = 2 };
-    enum class DrawingToDisplayArea : uint8_t { prohibited = 0, allowed = 1 };
     enum class ReverseFlag : uint8_t { normal = 0, distorted = 1 };
     struct {
         HorizontalResolution horizontalResolution1 : 2;

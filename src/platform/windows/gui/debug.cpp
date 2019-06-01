@@ -21,6 +21,15 @@ struct Watch {
 };
 std::vector<Watch> watches = {{0x1F801070, 2, "ISTAT"}, {0x1F801074, 2, "IMASK"}};
 
+struct Area {
+    std::string name;
+    ImVec2 pos;
+    ImVec2 size;
+};
+
+float blinkTimer = 0.f;
+std::vector<Area> vramAreas;
+
 const char *mapIo(uint32_t address) {
     address -= 0x1f801000;
 
@@ -202,6 +211,7 @@ void gteLogWindow(System *sys) {
 }
 
 void gpuLogWindow(System *sys) {
+    vramAreas.clear();
     if (!gpuLogEnabled) {
         return;
     }
@@ -211,24 +221,31 @@ void gpuLogWindow(System *sys) {
         textureImage = std::make_unique<Texture>(512, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false);
         textureUnpacked.resize(512 * 512 * 4);
     }
+
     ImGui::Begin("GPU Log", &gpuLogEnabled, ImVec2(300, 400));
 
     ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+    // TODO: Find last values
+    gpu::GP0_E1 last_e1 = sys->gpu->gp0_e1;
+    int16_t last_offset_x = sys->gpu->drawingOffsetX;
+    int16_t last_offset_y = sys->gpu->drawingOffsetY;
 
     int renderTo = -1;
     ImGuiListClipper clipper((int)sys->gpu.get()->gpuLogList.size());
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto &entry = sys->gpu.get()->gpuLogList[i];
+            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "%4d cmd: 0x%02x  %s", i, entry.command, gpu::CommandStr[(int)entry.cmd]);
+            bool isHovered = ImGui::IsItemHovered();
 
-            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "cmd: 0x%02x  %s", entry.command, gpu::CommandStr[(int)entry.cmd]);
-
-            if (ImGui::IsItemHovered()) {
+            if (isHovered) {
                 renderTo = i;
             }
 
-            if (nodeOpen) {
+            // Analyze
+            if (isHovered || nodeOpen) {
                 bool showArguments = true;
                 float color[3];
                 color[0] = (entry.args[0] & 0xff) / 255.f;
@@ -254,42 +271,83 @@ void gpuLogWindow(System *sys) {
                     int16_t x = extend_sign<10>(arguments[1] & 0xffff);
                     int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
 
-                    std::string flags;
-                    if (arg.semiTransparency) flags += "semi-transparent, ";
-                    if (arg.isTextureMapped) flags += "textured, ";
-                    if (!arg.isRawTexture) flags += "color-blended, ";
-                    ImGui::Text("Flags: %s", flags.c_str());
-                    ImGui::Text("Pos: %dx%d", x, y);
-                    ImGui::Text("size: %dx%d", w, h);
+                    x += last_offset_x;
+                    y += last_offset_y;
 
-                    ImGui::NewLine();
-                    ImGui::Text("Color: ");
-                    ImGui::SameLine();
-                    ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+                    if (nodeOpen) {
+                        std::string flags;
+                        if (arg.semiTransparency) flags += "semi-transparent, ";
+                        if (arg.isTextureMapped) flags += "textured, ";
+                        if (!arg.isRawTexture) flags += "color-blended, ";
+                        ImGui::Text("Flags: %s", flags.c_str());
+                        ImGui::Text("Pos: %dx%d", x, y);
+                        ImGui::Text("size: %dx%d", w, h);
+
+                        ImGui::NewLine();
+                        ImGui::Text("Color: ");
+                        ImGui::SameLine();
+                        ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+                    }
+
+                    vramAreas.push_back({string_format("Rectangle %d", i), ImVec2(x, y), ImVec2(w, h)});
 
                     if (arg.isTextureMapped) {
                         int texX = arguments[2] & 0xff;
                         int texY = (arguments[2] & 0xff00) >> 8;
                         int clutX = ((arguments[2] >> 16) & 0x3f) * 16;
                         int clutY = ((arguments[2] >> 22) & 0x1ff);
-                        ImGui::NewLine();
-                        ImGui::Text("Texture: ");
-                        ImGui::Text("Pos:  %dx%d", texX, texY);
-                        ImGui::Text("CLUT: %dx%d", clutX, clutY);
-                        // ImGui::SameLine();
-                        // ImGui::Image()
+                        int clutColors;
+                        int textureWidth;
+                        int textureBits;
+
+                        if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit4) {
+                            clutColors = 16;
+                            textureWidth = w / 4;
+                            textureBits = 4;
+                        } else if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit8) {
+                            clutColors = 256;
+                            textureWidth = w / 2;
+                            textureBits = 8;
+                        } else {
+                            clutColors = 0;
+                            textureWidth = w;
+                            textureBits = 16;
+                        }
+
+                        texX += last_e1.texturePageBaseX * 64;
+                        texY += last_e1.texturePageBaseY * 256;
+
+                        std::string textureInfo = string_format("Texture (%d bit)", textureBits);
+
+                        if (nodeOpen) {
+                            ImGui::NewLine();
+                            ImGui::Text("%s: ", textureInfo.c_str());
+                            ImGui::Text("Pos:  %dx%d", texX, texY);
+                            ImGui::Text("CLUT: %dx%d", clutX, clutY);
+                            // ImGui::SameLine();
+                            // ImGui::Image()
+                            // TODO: Render texture
+                        }
+
+                        vramAreas.push_back({textureInfo, ImVec2(texX, texY), ImVec2(textureWidth, h)});
+
+                        if (clutColors != 0) {
+                            vramAreas.push_back({"CLUT", ImVec2(clutX, clutY), ImVec2(clutColors, 1)});
+                        }
                     }
 
                     showArguments = false;
                 }
 
-                if (showArguments) {
-                    // Render arguments
-                    for (auto &arg : entry.args) {
-                        ImGui::Text("- 0x%08x", arg);
+                if (nodeOpen) {
+                    if (showArguments) {
+                        // Render arguments
+                        for (auto &arg : entry.args) {
+                            ImGui::Text("- 0x%08x", arg);
+                        }
                     }
+                    ImGui::TreePop();
                 }
-                ImGui::TreePop();
             }
         }
     }
@@ -427,16 +485,53 @@ void vramWindow(gpu::GPU *gpu) {
     }
     vramImage->update(vramUnpacked.data());
 
-    auto defaultSize = ImVec2(1024, 512 + 32);
+    blinkTimer += 0.0025 * M_PI;
+    ImColor blinkColor = ImColor::HSV(blinkTimer, 1.f, 1.f, 0.75f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0, 0.0, 0.0, 1.0));
 
-    ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
-    auto currentSize = ImGui::GetWindowSize();
-    currentSize.y -= 32;
+    auto defaultSize = ImVec2(1024, 512 + ImGui::GetItemsLineHeightWithSpacing() * 2);
+    ImGui::SetNextWindowSizeConstraints(
+        ImVec2(defaultSize.x / 2, defaultSize.y / 2), ImVec2(defaultSize.x * 2, defaultSize.y * 2),
+        [](ImGuiSizeCallbackData *data) { data->DesiredSize.y = (data->DesiredSize.x / 2) + ImGui::GetItemsLineHeightWithSpacing() * 2; });
 
+    ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
+
+    auto currentSize = ImGui::GetWindowContentRegionMax();
+    currentSize.y = currentSize.x / 2;
+
+    ImVec2 cursorPos = ImGui::GetCursorScreenPos();
     ImGui::Image((ImTextureID)(uintptr_t)vramImage->get(), currentSize);
-    ImGui::End();
+
+    if (ImGui::Button("Original size")) {
+        ImGui::SetWindowSize(defaultSize);
+    }
+
     ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+
+    float scale = currentSize.x / defaultSize.x;
+
+    ImDrawList *drawList = ImGui::GetWindowDrawList();
+    for (auto area : vramAreas) {
+        ImVec2 a, b;
+        a.x = cursorPos.x + area.pos.x * scale;
+        a.y = cursorPos.y + area.pos.y * scale;
+
+        b.x = cursorPos.x + (area.pos.x + area.size.x) * scale;
+        b.y = cursorPos.y + (area.pos.y + area.size.y) * scale;
+
+        drawList->AddRectFilled(a, b, blinkColor, 0.f, 0);
+
+        if (ImGui::IsMouseHoveringRect(a, b)) {
+            ImGui::BeginTooltip();
+            ImGui::Text(area.name.c_str());
+            ImGui::EndTooltip();
+        }
+    }
+
+    ImGui::End();
 }
 
 std::string formatOpcode(mips::Opcode &opcode) {

@@ -1,5 +1,5 @@
-#include "render.h"
 #include <algorithm>
+#include "render.h"
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
@@ -9,6 +9,10 @@ void Render::drawLine(gpu::GPU* gpu, const int16_t x[2], const int16_t y[2], con
     int y0 = y[0] + gpu->drawingOffsetY;
     int x1 = x[1] + gpu->drawingOffsetX;
     int y1 = y[1] + gpu->drawingOffsetY;
+
+    // Skip rendering when distence between vertices is bigger than 1023x511
+    if (abs(x0 - x1) >= 1024) return;
+    if (abs(y0 - y1) >= 512) return;
 
     bool steep = false;
     if (std::abs(x0 - x1) < std::abs(y0 - y1)) {
