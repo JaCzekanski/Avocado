@@ -205,6 +205,12 @@ void gpuLogWindow(System *sys) {
     if (!gpuLogEnabled) {
         return;
     }
+    static std::unique_ptr<Texture> textureImage;
+    static std::vector<uint8_t> textureUnpacked;
+    if (!textureImage) {
+        textureImage = std::make_unique<Texture>(512, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false);
+        textureUnpacked.resize(512 * 512 * 4);
+    }
     ImGui::Begin("GPU Log", &gpuLogEnabled, ImVec2(300, 400));
 
     ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
@@ -223,9 +229,65 @@ void gpuLogWindow(System *sys) {
             }
 
             if (nodeOpen) {
-                // Render arguments
-                for (auto &arg : entry.args) {
-                    ImGui::Text("- 0x%08x", arg);
+                bool showArguments = true;
+                float color[3];
+                color[0] = (entry.args[0] & 0xff) / 255.f;
+                color[1] = ((entry.args[0] >> 8) & 0xff) / 255.f;
+                color[2] = ((entry.args[0] >> 16) & 0xff) / 255.f;
+
+                uint8_t command = entry.command;
+                auto arguments = entry.args;
+                if (command >= 0x20 && command < 0x40) {
+                    auto arg = gpu::PolygonArgs(command);
+                } else if (command >= 0x40 && command < 0x60) {
+                    auto arg = gpu::LineArgs(command);
+                } else if (command >= 0x60 && command < 0x80) {
+                    auto arg = gpu::RectangleArgs(command);
+                    int16_t w = arg.getSize();
+                    int16_t h = arg.getSize();
+
+                    if (arg.size == 0) {
+                        w = extend_sign<10>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
+                        h = extend_sign<10>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
+                    }
+
+                    int16_t x = extend_sign<10>(arguments[1] & 0xffff);
+                    int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
+
+                    std::string flags;
+                    if (arg.semiTransparency) flags += "semi-transparent, ";
+                    if (arg.isTextureMapped) flags += "textured, ";
+                    if (!arg.isRawTexture) flags += "color-blended, ";
+                    ImGui::Text("Flags: %s", flags.c_str());
+                    ImGui::Text("Pos: %dx%d", x, y);
+                    ImGui::Text("size: %dx%d", w, h);
+
+                    ImGui::NewLine();
+                    ImGui::Text("Color: ");
+                    ImGui::SameLine();
+                    ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+
+                    if (arg.isTextureMapped) {
+                        int texX = arguments[2] & 0xff;
+                        int texY = (arguments[2] & 0xff00) >> 8;
+                        int clutX = ((arguments[2] >> 16) & 0x3f) * 16;
+                        int clutY = ((arguments[2] >> 22) & 0x1ff);
+                        ImGui::NewLine();
+                        ImGui::Text("Texture: ");
+                        ImGui::Text("Pos:  %dx%d", texX, texY);
+                        ImGui::Text("CLUT: %dx%d", clutX, clutY);
+                        // ImGui::SameLine();
+                        // ImGui::Image()
+                    }
+
+                    showArguments = false;
+                }
+
+                if (showArguments) {
+                    // Render arguments
+                    for (auto &arg : entry.args) {
+                        ImGui::Text("- 0x%08x", arg);
+                    }
                 }
                 ImGui::TreePop();
             }
