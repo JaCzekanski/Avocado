@@ -5,6 +5,7 @@
 #include "debugger/debugger.h"
 #include "gui.h"
 #include "imgui/imgui_memory_editor.h"
+#include "renderer/opengl/shader/texture.h"
 #include "utils/file.h"
 #include "utils/string.h"
 
@@ -343,13 +344,37 @@ void ioLogWindow(System *sys) {
 #endif
 }
 
-void vramWindow() {
+void vramWindow(gpu::GPU *gpu) {
+    static std::unique_ptr<Texture> vramImage;
+    static std::vector<uint8_t> vramUnpacked;
+    if (!vramImage) {
+        vramImage = std::make_unique<Texture>(gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false);
+        vramUnpacked.resize(gpu::VRAM_WIDTH * gpu::VRAM_HEIGHT * 4);
+    }
+
+    // Update texture
+    for (int y = 0; y < gpu::VRAM_HEIGHT; y++) {
+        for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
+            PSXColor c = gpu->vram[y * gpu::VRAM_WIDTH + x];
+
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = c.r << 3;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = c.g << 3;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = c.b << 3;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = 0xff;
+        }
+    }
+    vramImage->update(vramUnpacked.data());
+
     auto defaultSize = ImVec2(1024, 512 + 32);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0, 0.0, 0.0, 1.0));
+
     ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
     auto currentSize = ImGui::GetWindowSize();
     currentSize.y -= 32;
-    ImGui::Image((ImTextureID)(uintptr_t)vramTextureId, currentSize);
+
+    ImGui::Image((ImTextureID)(uintptr_t)vramImage->get(), currentSize);
     ImGui::End();
+    ImGui::PopStyleColor();
 }
 
 std::string formatOpcode(mips::Opcode &opcode) {

@@ -118,9 +118,6 @@ bool OpenGL::setup() {
         supportNativeTexture = false;
     }
 
-    extern int vramTextureId;
-    vramTextureId = vramTex->get();
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glUseProgram(0);

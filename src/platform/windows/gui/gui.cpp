@@ -16,7 +16,7 @@ void ioLogWindow(System* sys);
 void gteLogWindow(System* sys);
 void gpuLogWindow(System* sys);
 void ioWindow(System* sys);
-void vramWindow();
+void vramWindow(gpu::GPU* gpu);
 void disassemblyWindow(System* sys);
 void breakpointsWindow(System* sys);
 void watchWindow(System* sys);
@@ -26,7 +26,6 @@ void spuWindow(spu::SPU* spu);
 
 bool showGui = true;
 
-int vramTextureId = 0;
 bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
 bool gteLogEnabled = false;
@@ -116,7 +115,7 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
                 ImGui::MenuItem("IO", nullptr, &showIo);
                 ImGui::MenuItem("Memory", nullptr, &showRamWindow);
-                ImGui::MenuItem("Video memory", nullptr, &showVramWindow);
+                ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
                 ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
                 ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
                 ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
@@ -149,7 +148,7 @@ void renderImgui(System* sys) {
         if (gpuLogEnabled) gpuLogWindow(sys);
         if (showIo) ioWindow(sys);
         if (showRamWindow) ramWindow(sys);
-        if (showVramWindow) vramWindow();
+        if (showVramWindow) vramWindow(sys->gpu.get());
         if (showDisassemblyWindow) disassemblyWindow(sys);
         if (showBreakpointsWindow) breakpointsWindow(sys);
         if (showWatchWindow) watchWindow(sys);

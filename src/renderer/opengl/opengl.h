@@ -32,9 +32,6 @@ class OpenGL {
     bool setup();
     void render(gpu::GPU* gpu);
 
-    // Debug
-    GLuint getVramTextureId() const { return vramTex->get(); }
-
    private:
     int busToken = -1;
     struct BlitStruct {

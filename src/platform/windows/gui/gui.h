@@ -8,7 +8,6 @@ void initGui();
 void deinitGui();
 void renderImgui(System* sys);
 extern bool showGui;
-extern int vramTextureId;
 extern bool gteRegistersEnabled;
 extern bool ioLogEnabled;
 extern bool gteLogEnabled;
