@@ -1,16 +1,22 @@
 version: '{branch}-{build}'
 
 clone_depth: 1
-os:
-  - Visual Studio 2017
 
 environment:
   PREMAKE_VERSION: 5.0.0-alpha13
   SDL_VERSION: 2.0.9
   matrix:
-  - TOOLSET: vs2017
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    TOOLSET: vs2017
     platform: Win32
-  - TOOLSET: vs2017
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    TOOLSET: vs2017
+    platform: x64
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
+    TOOLSET: vs2019
+    platform: Win32
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
+    TOOLSET: vs2019
     platform: x64
 
 before_build:
