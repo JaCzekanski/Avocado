@@ -526,7 +526,7 @@ void vramWindow(gpu::GPU *gpu) {
 
         if (ImGui::IsMouseHoveringRect(a, b)) {
             ImGui::BeginTooltip();
-            ImGui::Text(area.name.c_str());
+            ImGui::TextUnformatted(area.name.c_str());
             ImGui::EndTooltip();
         }
     }

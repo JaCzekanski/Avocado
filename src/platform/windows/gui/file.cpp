@@ -11,12 +11,13 @@ namespace gui::file {
 bool showHidden = false;
 bool openFileWindow = false;
 bool readDirectory = false;
-std::string currentDirectory;
+std::string pathInput = "";
+fs::path path;
 std::vector<fs::directory_entry> files;
 
 void openFile() {
     if (!openFileWindow) {
-        currentDirectory = "";
+        path = fs::current_path();
         readDirectory = true;
     }
 
@@ -24,39 +25,39 @@ void openFile() {
         readDirectory = false;
         files.clear();
 
-        if (currentDirectory == "") {
-            currentDirectory = fs::current_path();
+        if (!fs::exists(path)) {
+            path = fs::current_path();
         }
 
-        if (fs::exists(currentDirectory)) {
-            currentDirectory = fs::canonical(currentDirectory);
-            auto path = fs::path(currentDirectory);
+        path = fs::canonical(path);
 
-            auto it = fs::directory_iterator(path, fs::directory_options::skip_permission_denied);
+        auto it = fs::directory_iterator(path, fs::directory_options::skip_permission_denied);
 
-            files.push_back(fs::directory_entry(path / ".."));
-            for (auto& f : it) {
-                if (!showHidden && f.path().filename().string()[0] == '.') continue;
-                files.push_back(f);
-            }
-            std::sort(files.begin(), files.end(), [](const fs::directory_entry& lhs, const fs::directory_entry& rhs) -> bool {
-                // true if lhs is less than rhs
-                if (lhs.path().filename() == "..") return true;
-                if (rhs.path().filename() == "..") return false;
-
-                if (fs::is_directory(lhs) != fs::is_directory(rhs)) return fs::is_directory(lhs) > fs::is_directory(rhs);
-
-                return lhs < rhs;
-                // return false;
-            });
+        files.push_back(fs::directory_entry(path / ".."));
+        for (auto& f : it) {
+            if (!showHidden && f.path().filename().string()[0] == '.') continue;
+            files.push_back(f);
         }
+        std::sort(files.begin(), files.end(), [](const fs::directory_entry& lhs, const fs::directory_entry& rhs) -> bool {
+            // true if lhs is less than rhs
+            if (lhs.path().filename() == "..") return true;
+            if (rhs.path().filename() == "..") return false;
+
+            if (fs::is_directory(lhs) != fs::is_directory(rhs)) return fs::is_directory(lhs) > fs::is_directory(rhs);
+
+            return lhs < rhs;
+            // return false;
+        });
+
+        pathInput = path.string();
     }
 
     openFileWindow = true;
     ImGui::Begin("Open file", &openFileWindow, ImVec2(400.f, 300.f), ImGuiWindowFlags_NoCollapse);
 
-    if (ImGui::InputText("Directory", &currentDirectory, ImGuiInputTextFlags_EnterReturnsTrue)) {
+    if (ImGui::InputText("Directory", &pathInput, ImGuiInputTextFlags_EnterReturnsTrue)) {
         readDirectory = true;  // Load new directory
+        path = fs::path(pathInput);
     }
     if (ImGui::Checkbox("Show hidden files", &showHidden)) {
         readDirectory = true;
@@ -96,13 +97,13 @@ void openFile() {
         ImGui::PushStyleColor(ImGuiCol_Text, color);
         if (ImGui::Selectable(filename.c_str(), false, ImGuiSelectableFlags_SpanAllColumns)) {
             if (fs::is_directory(f)) {
-                currentDirectory = f.path();
+                path = f.path();
                 readDirectory = true;
             } else if (fs::exists(f)) {
-                std::string ext = f.path().extension();
+                std::string ext = f.path().extension().string();
                 std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
                 if (ext == ".iso" || ext == ".cue" || ext == ".bin" || ext == ".img" || ext == ".chd" || ext == ".exe" || ext == ".psexe") {
-                    bus.notify(Event::File::Load{f.path(), true});
+                    bus.notify(Event::File::Load{f.path().string(), true});
                     openFileWindow = false;
                 }
             }
