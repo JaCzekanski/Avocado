@@ -34,8 +34,10 @@ Build   | Status | Download
 Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
 Travis CI (macOS) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado) | Comming soon ...
 Travis CI (Android) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado) | Comming soon ...
-AppVeyor (Windows x86) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x86 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3DWin32)
-AppVeyor (Windows x64) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [Windows x64 - develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+TOOLSET%3Dvs2017%2C+platform%3Dx64)
+AppVeyor (Windows 64-bit, Visual Studio 2019) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | **[develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2019+Preview%2C+TOOLSET%3Dvs2017%2C+platform%3Dx64)**
+AppVeyor (Windows 32-bit, Visual Studio 2019) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2019+Preview%2C+TOOLSET%3Dvs2017%2C+platform%3DWin32)
+AppVeyor (Windows 64-bit, Visual Studio 2017) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2017%2C+TOOLSET%3Dvs2017%2C+platform%3Dx64)
+AppVeyor (Windows 32-bit, Visual Studio 2017) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2017%2C+TOOLSET%3Dvs2017%2C+platform%3DWin32)
 
 Despite this emulator being in early development, some 3D games can run. [Game compatibility list](https://avocado-db.czekanski.info)
 
@@ -90,6 +92,7 @@ Requirements:
 - [Premake5](https://premake.github.io/download.html)
 - [SDL2 dev library](https://www.libsdl.org/download-2.0.php)
 
+First build: 
 ```
 > git clone https://github.com/JaCzekanski/Avocado.git
 > cd Avocado
@@ -101,11 +104,20 @@ Requirements:
 
 See appveyor.yml in case of problems.
 
+Update:
+```
+> git pull && git submodule update --init --recursive
+> premake5 vs2017
+
+# Open Visual Studio solution and build it
+```
+
 ### Linux
 Requirements:
 - Clang6 or newer
 - [Premake5](https://premake.github.io/download.html)
 
+First build: 
 ```
 > sudo apt update
 > sudo apt install libsdl2-dev
@@ -121,12 +133,20 @@ Requirements:
 
 See .travis/linux/build.sh in case of problems.
 
+Update:
+```
+> git pull && git submodule update --init --recursive
+> premake5 gmake
+> make config=release_x64 -j4
+```
+
 ### macOS
 Requirements:
 - XCode
 - [Premake5](https://premake.github.io/download.html)
 - [Brew](https://brew.sh)
 
+First build:
 ```
 > brew update
 > brew install sdl2
@@ -141,6 +161,13 @@ Requirements:
 ```
 
 See .travis/macos/build.sh in case of problems.
+
+Update:
+```
+> git pull && git submodule update --init --recursive
+> premake5 gmake
+> make config=release_x64 -j4
+```
 
 ## Bugs
 
