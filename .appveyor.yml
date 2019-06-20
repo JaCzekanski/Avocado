@@ -13,10 +13,10 @@ environment:
     TOOLSET: vs2017
     platform: x64
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
-    TOOLSET: vs2019
+    TOOLSET: vs2017
     platform: Win32
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
-    TOOLSET: vs2019
+    TOOLSET: vs2017
     platform: x64
 
 before_build:

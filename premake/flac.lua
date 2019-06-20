@@ -43,3 +43,12 @@ project "flac"
         "HAVE_STDINT_H", 
         "HAVE_STDLIB_H",
     }
+    
+    filter "system:windows" 
+        disablewarnings { 
+            "4018", -- 'expression' : signed/unsigned mismatch
+            "4244", -- 'conversion' conversion from 'type1' to 'type2', possible loss of data
+            "4267", -- 'var' : conversion from 'size_t' to 'type', possible loss of data
+            "4334", -- 'operator' : result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+            "4996", -- The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: new_name.
+        }

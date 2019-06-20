@@ -21,3 +21,10 @@ project "chdr"
         "lzma",
         "flac",
     }
+
+    filter "system:windows" 
+        disablewarnings { 
+            "4018", -- 'expression' : signed/unsigned mismatch
+            "4244", -- 'conversion' conversion from 'type1' to 'type2', possible loss of data
+            "4267", -- 'var' : conversion from 'size_t' to 'type', possible loss of data
+        }
