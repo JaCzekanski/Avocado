@@ -12,15 +12,15 @@ void Program::destroy() {
 }
 
 bool Program::load() {
-    if (!fileExists(name + ".frag") || !fileExists(name + ".vert")) {
+    if (!fileExists(name)) {
         error = std::string("File doesn't exists.");
         return false;
     }
 
     std::vector<Shader> newShaders;
 
-    newShaders.push_back(Shader(name + ".frag", ShaderType::Fragment));
-    newShaders.push_back(Shader(name + ".vert", ShaderType::Vertex));
+    newShaders.push_back(Shader(name, ShaderType::Fragment));
+    newShaders.push_back(Shader(name, ShaderType::Vertex));
 
     GLuint id = link(newShaders);
     if (id == 0) return false;

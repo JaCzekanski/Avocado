@@ -36,21 +36,21 @@ bool OpenGL::loadExtensions() {
 
 bool OpenGL::loadShaders() {
     // PS1 GPU in Shader simulation
-    renderShader = std::make_unique<Program>("data/shader/render");
+    renderShader = std::make_unique<Program>("data/shader/render.shader");
     if (!renderShader->load()) {
         printf("[GL] Cannot load render shader: %s\n", renderShader->getError().c_str());
         return false;
     }
 
     // Draw/Blit texture to framebuffer (with PS1 clipping and other modifiers)
-    blitShader = std::make_unique<Program>("data/shader/blit");
+    blitShader = std::make_unique<Program>("data/shader/blit.shader");
     if (!blitShader->load()) {
         printf("[GL] Cannot load blit shader: %s\n", blitShader->getError().c_str());
         return false;
     }
 
     // Copy texture to texture
-    copyShader = std::make_unique<Program>("data/shader/copy");
+    copyShader = std::make_unique<Program>("data/shader/copy.shader");
     if (!copyShader->load()) {
         printf("[GL] Cannot load copy shader: %s\n", copyShader->getError().c_str());
         return false;

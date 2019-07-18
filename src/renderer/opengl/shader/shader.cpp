@@ -16,6 +16,18 @@ const char* Shader::header = R"EOF(#version 150
 )EOF";
 #endif
 
+const char* vertexCommon = R"EOF(
+#define VERTEX_SHADER
+#define SHARED out
+)EOF";
+
+const char* fragmentCommon = R"EOF(
+#define FRAGMENT_SHADER
+#define SHARED in
+
+out vec4 outColor;
+)EOF";
+
 Shader::Shader(std::string name, ShaderType shaderType) {
     this->name = name;
     this->type = shaderType;
@@ -36,7 +48,7 @@ bool Shader::compile() {
     error = name + ": ";
     auto data = getFileContentsAsString(name);
 
-    std::array<const char*, 2> lines = {{header, data.c_str()}};
+    std::array<const char*, 3> lines = {{header, (type == ShaderType::Vertex) ? vertexCommon : fragmentCommon, data.c_str()}};
 
     if (type == ShaderType::Vertex) {
         shaderId = glCreateShader(GL_VERTEX_SHADER);

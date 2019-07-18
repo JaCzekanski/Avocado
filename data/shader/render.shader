@@ -1,13 +1,5 @@
-in vec3 fragColor;
-in vec2 fragTexcoord;
-flat in uvec3 fragFlatColor;
-flat in uint fragBitcount;
-flat in ivec2 fragClut;
-flat in ivec2 fragTexpage;
-flat in uint fragFlags;
-flat in uint fragTextureWindow;
-
-out vec4 outColor;
+uniform vec2 displayAreaPos;
+uniform vec2 displayAreaSize;
 
 uniform sampler2D vram;
 
@@ -29,6 +21,44 @@ const uint BplusFby4 = 3u;
 const float W = 1024.f;
 const float H = 512.f;
 
+SHARED vec3 fragColor;
+SHARED vec2 fragTexcoord;
+flat SHARED uvec3 fragFlatColor;
+flat SHARED uint fragBitcount;
+flat SHARED ivec2 fragClut;
+flat SHARED ivec2 fragTexpage;
+flat SHARED uint fragFlags;
+flat SHARED uint fragTextureWindow;
+
+#ifdef VERTEX_SHADER
+in ivec2 position;
+in uvec3 color;
+in ivec2 texcoord;
+in uint bitcount;
+in ivec2 clut;
+in ivec2 texpage;
+in uint flags;
+in uint textureWindow;
+
+void main() {
+    vec2 pos = vec2((float(position.x) - displayAreaPos.x) / displayAreaSize.x, (float(position.y) - displayAreaPos.y) / displayAreaSize.y);
+    // vec2 pos = vec2(position.x / 1024.f, position.y / 512.f);
+    fragColor = vec3(float(color.r) / 255.f, float(color.g) / 255.f, float(color.b) / 255.f);
+    fragTexcoord = vec2(texcoord.x, texcoord.y);
+    fragFlatColor = uvec3(color.r, color.g, color.b);
+    fragBitcount = bitcount;
+    fragClut = clut;
+    fragTexpage = texpage;
+    fragFlags = flags;
+    fragTextureWindow = textureWindow;
+
+    // Change 0-1 space to OpenGL -1 - 1
+    gl_Position = vec4(pos.x * 2.f - 1.f, (1.f - pos.y) * 2.f - 1.f, 0.0, 1.0);
+}
+#endif
+
+
+#ifdef FRAGMENT_SHADER
 uint internalToPsxColor(vec4 c) {
     uint a = uint(floor(c.a + 0.5));
     uint r = uint(floor(c.r * 31.0 + 0.5));
@@ -138,3 +168,4 @@ void main() {
 
     outColor = color;
 }
+#endif
