@@ -215,6 +215,8 @@ void CPU::debuggerWindow(System* sys) {
             } else if (!disasm.valid) {
                 comment = "; invalid instruction";
                 color = IM_COL32(255, 255, 255, 64);
+            } else if (disasm.opcode.opcode == 0) {  // NOP
+                color = IM_COL32(255, 255, 255, 64);
             }
             ImGui::PushStyleColor(ImGuiCol_Text, color);
 
@@ -271,7 +273,7 @@ void CPU::debuggerWindow(System* sys) {
     goToAddr = 0;
 
     if (ImGui::InputText("##addr", addrInputBuffer, 32, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
-        if (sscanf(addrInputBuffer, "%llx", &goToAddr) == 1) {
+        if (sscanf(addrInputBuffer, "%x", &goToAddr) == 1) {
             goToAddr = (goToAddr - base) / 4;
             doScroll = true;
             debugger::followPC = false;
