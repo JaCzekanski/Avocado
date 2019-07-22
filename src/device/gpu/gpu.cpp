@@ -4,6 +4,7 @@
 #include "config.h"
 #include "render/render.h"
 #include "utils/logic.h"
+#include "utils/macros.h"
 
 namespace gpu {
 
@@ -67,9 +68,16 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     Vertex v[3];
     for (int i : {0, 1, 2}) {
-        v[i] = {Vertex::Type::Polygon,  {x[i], y[i]}, {c[i].r, c[i].g, c[i].b},
-                {t.uv[i].x, t.uv[i].y}, bitcount,     {clutX, clutY},
-                {baseX, baseY},         flags,        gp0_e2};
+        v[i] = {Vertex::Type::Polygon,
+                {x[i], y[i]},
+                {c[i].r, c[i].g, c[i].b},
+                {t.uv[i].x, t.uv[i].y},
+                bitcount,
+                {clutX, clutY},
+                {baseX, baseY},
+                flags,
+                gp0_e2,
+                gp0_e6};
         vertices.push_back(v[i]);
     }
     if (softwareRendering) {
@@ -78,9 +86,16 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
     if (isQuad) {
         for (int i : {1, 2, 3}) {
-            v[i - 1] = {Vertex::Type::Polygon,  {x[i], y[i]}, {c[i].r, c[i].g, c[i].b},
-                        {t.uv[i].x, t.uv[i].y}, bitcount,     {clutX, clutY},
-                        {baseX, baseY},         flags,        gp0_e2};
+            v[i - 1] = {Vertex::Type::Polygon,
+                        {x[i], y[i]},
+                        {c[i].r, c[i].g, c[i].b},
+                        {t.uv[i].x, t.uv[i].y},
+                        bitcount,
+                        {clutX, clutY},
+                        {baseX, baseY},
+                        flags,
+                        gp0_e2,
+                        gp0_e6};
             vertices.push_back(v[i - 1]);
         }
         if (softwareRendering) {
@@ -277,17 +292,29 @@ void GPU::cmdCpuToVram1(uint8_t command) {
     currentArgument = 0;
 }
 
+void GPU::maskedWrite(int x, int y, uint16_t value) {
+    uint16_t mask = gp0_e6.setMaskWhileDrawing << 15;
+    x %= VRAM_WIDTH;
+    y %= VRAM_HEIGHT;
+
+    if (unlikely(gp0_e6.checkMaskBeforeDraw)) {
+        if (VRAM[y][x] & 0x8000) return;
+    }
+
+    VRAM[y][x] = value | mask;
+}
+
 void GPU::cmdCpuToVram2(uint8_t command) {
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
-    VRAM[currY % VRAM_HEIGHT][currX++ % VRAM_WIDTH] = byte & 0xffff;
+    maskedWrite(currX++, currY, byte & 0xffff);
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
     }
 
-    VRAM[currY % VRAM_HEIGHT][currX++ % VRAM_WIDTH] = (byte >> 16) & 0xffff;
+    maskedWrite(currX++, currY, (byte >> 16) & 0xffff);
     if (currX >= endX) {
         currX = startX;
         if (++currY >= endY) cmd = Command::None;
@@ -332,7 +359,8 @@ void GPU::cmdVramToVram(uint8_t command) {
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            VRAM[(dstY + y) % VRAM_HEIGHT][(dstX + x) % VRAM_WIDTH] = VRAM[(srcY + y) % VRAM_HEIGHT][(srcX + x) % VRAM_WIDTH];
+            uint16_t src = VRAM[(srcY + y) % VRAM_HEIGHT][(srcX + x) % VRAM_WIDTH];
+            maskedWrite(dstX + x, dstY + y, src);
         }
     }
 
@@ -561,7 +589,7 @@ void GPU::writeGP1(uint32_t data) {
         } else if (argument == 4) {
             GPUREAD = (drawingArea.bottom << 10) | drawingArea.right;
         } else if (argument == 5) {
-            GPUREAD = (drawingOffsetY << 11) | drawingOffsetX;
+            GPUREAD = ((drawingOffsetY & 0x7ff) << 11) | (drawingOffsetX & 0x7ff);
         } else if (argument == 7) {
             GPUREAD = 2;  // GPU Version
         } else if (argument == 8) {

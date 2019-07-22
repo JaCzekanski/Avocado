@@ -74,7 +74,13 @@ INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const iv
 
 template <ColorDepth bits>
 INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage,
-                      const ivec2 clut, const int flags, const gpu::GP0_E2 textureWindow) {
+                      const ivec2 clut, const int flags, const gpu::GP0_E2 textureWindow, const gpu::GP0_E6 maskSettings) {
+    // Check mask bit
+    if (unlikely(maskSettings.checkMaskBeforeDraw)) {
+        PSXColor bg = VRAM[p.y][p.x];
+        if (bg.k) return;
+    }
+
     uvec2 texel = calculateTexel(s, area, tex, textureWindow);
 
     PSXColor c;
@@ -108,13 +114,11 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
         c = c * (brightness * 2.f);
     }
 
-    // TODO: Mask support
-
     if ((flags & Vertex::SemiTransparency) && ((bits != ColorDepth::NONE && c.k) || (bits == ColorDepth::NONE))) {
         using Transparency = gpu::GP0_E1::SemiTransparency;
 
-        PSXColor bg = VRAM[p.y][p.x];
         auto transparency = (Transparency)((flags & 0x60) >> 5);
+        PSXColor bg = VRAM[p.y][p.x];
         switch (transparency) {
             case Transparency::Bby2plusFby2: c = bg / 2.f + c / 2.f; break;
             case Transparency::BplusF: c = bg + c; break;
@@ -123,12 +127,14 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
         }
     }
 
+    c.k |= maskSettings.setMaskWhileDrawing;
+
     VRAM[p.y][p.x] = c.raw;
 }
 
 template <ColorDepth bits>
 INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage, const ivec2 clut,
-                     const int flags, const gpu::GP0_E2 textureWindow) {
+                     const int flags, const gpu::GP0_E2 textureWindow, const gpu::GP0_E6 maskSettings) {
     const ivec2 min = ivec2(                                         //
         gpu->minDrawingX(std::min({pos[0].x, pos[1].x, pos[2].x})),  //
         gpu->minDrawingY(std::min({pos[0].y, pos[1].y, pos[2].y}))   //
@@ -162,7 +168,7 @@ INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const i
         ivec3 is = ivec3(w0_row, w1_row, w2_row);
         for (p.x = min.x; p.x < max.x; p.x++) {
             if ((is.x | is.y | is.z) >= 0) {
-                plotPixel<bits>(gpu, p, is, area, color, tex, texPage, clut, flags, textureWindow);
+                plotPixel<bits>(gpu, p, is, area, color, tex, texPage, clut, flags, textureWindow, maskSettings);
             }
 
             is.x += A12;
@@ -185,6 +191,7 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     int bits;
     int flags;
     gpu::GP0_E2 textureWindow;
+    gpu::GP0_E6 maskSettings;
     for (int j = 0; j < 3; j++) {
         pos[j] = ivec2(v[j].position[0], v[j].position[1]);
         color[j] = ivec3(v[j].color[0], v[j].color[1], v[j].color[2]);
@@ -202,6 +209,7 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     bits = v[0].bitcount;
     flags = v[0].flags;
     textureWindow = v[0].textureWindow;
+    maskSettings = v[0].maskSettings;
 
     // Skip rendering when distence between vertices is bigger than 1023x511
     for (int j = 0; j < 3; j++) {
@@ -209,8 +217,8 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
         if (abs(pos[j].y - pos[(j + 1) % 3].y) >= 512) return;
     }
 
-    if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
-    if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
-    if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
-    if (bits == 16) triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow);
+    if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    if (bits == 16) triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
 }

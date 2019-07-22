@@ -111,6 +111,7 @@ class GPU {
     void writeGP1(uint32_t data);
 
     void reload();
+    void maskedWrite(int x, int y, uint16_t value);
 
    public:
     GP0_E2 gp0_e2;

@@ -225,6 +225,7 @@ struct Vertex {
     int texpage[2];  // texture page position
     int flags;
     GP0_E2 textureWindow;
+    GP0_E6 maskSettings;
 
     /**
      * 0b76543210
