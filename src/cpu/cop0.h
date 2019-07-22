@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "device/device.h"
 
 struct COP0 {
@@ -119,15 +120,33 @@ struct COP0 {
         STATUS() : _reg(0) {}
     };
 
-    uint32_t bpc = 0;       // r3
-    uint32_t bda = 0;       // r5
-    uint32_t jumpdest = 0;  // r6
-    DCIC dcic;              // r7
-    uint32_t badVaddr = 0;  // r8
-    uint32_t bdam = 0;      // r9
-    uint32_t bpcm = 0;      // r11
-    STATUS status;          // r12
-    CAUSE cause;            // r13
-    uint32_t epc = 0;       // r14
-    uint32_t revId = 2;     // r15
+    uint32_t bpc = 0;   // r3  - Breakpoint Program Counter
+    uint32_t bda = 0;   // r5  - Breakpoint Data Address
+    uint32_t tar = 0;   // r6  - Target Address
+                        /** When the cause of an exception is in the branch delay slot (BD Bit in the Cause Register is set to one),
+                         * execution resumes either at the target of the branch or at the EPC + 8.
+                         * If the branch was taken, the BT Bit is set in the Cause Register to one and loads the branch target address in the TAR Register.
+                         * The exception handler needs only to load this address into a register and jump to that location.
+                         *
+                         * source: L64360 datasheet
+                         */
+    DCIC dcic;          // r7  - Debug and Cache Invalidate Control
+    uint32_t bada = 0;  // r8  - Bad Address
+    uint32_t bdam = 0;  // r9  - Breakpoint Data Address Mask
+    uint32_t bpcm = 0;  // r11 - Breakpoint Program Counter Mask
+    STATUS status;      // r12 - Status
+    CAUSE cause;        // r13 - Cause
+    uint32_t epc = 0;   // r14 - Exception Program Counter
+                        /* In most cases, the EPC Register contains the address of the instruction that caused
+                         * the exception. However, when the exception instruction resides in a branch
+                         * delay slot, the Cause Register’s BD Bit is set to one to indicate that the EPC
+                         * Register contains the address of the immediately preceding branch or jump instruction.
+                         *
+                         * source: L64360 datasheet
+                         */
+    uint32_t prid = 2;  // r15 - Processor Revision Identifier
+
+    std::pair<uint32_t, bool> read(int reg);
+    void write(int reg, uint32_t value);
+    void returnFromException();
 };

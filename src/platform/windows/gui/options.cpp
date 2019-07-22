@@ -193,7 +193,7 @@ void biosSelectionWindow() {
     ImGui::End();
 }
 
-void drawImage(const optional<Image> image, float w = 0.f, float h = 0.f) {
+void drawImage(const std::optional<Image> image, float w = 0.f, float h = 0.f) {
     if (auto img = image) {
         ImVec2 size;
 
@@ -234,7 +234,7 @@ void button(int controller, std::string button, const char* tooltip = nullptr) {
     }
     ImGui::SameLine();
 
-    optional<Image> image = {};
+    std::optional<Image> image = {};
     std::string deviceIndex = "";
 
     if (key.rfind("keyboard") == 0) {

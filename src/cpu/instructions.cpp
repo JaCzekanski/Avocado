@@ -263,7 +263,7 @@ void op_srav(CPU *cpu, Opcode i) {
 void op_jr(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs];
     if (unlikely(addr & 3)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -278,7 +278,7 @@ void op_jalr(CPU *cpu, Opcode i) {
     cpu->reg[i.rd] = cpu->PC + 8;
     cpu->invalidateSlot(i.rd);
     if (unlikely(addr & 3)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -621,20 +621,10 @@ void op_cop0(CPU *cpu, Opcode i) {
         case 0: {
             // Move from co-processor zero (to cpu reg)
             // MFC0 rt, cop0.rd
-            uint32_t val = 0;
-            switch (i.rd) {
-                case 3: val = cpu->cop0.bpc; break;
-                case 5: val = cpu->cop0.bda; break;
-                case 6: val = cpu->cop0.jumpdest; break;
-                case 7: val = cpu->cop0.dcic._reg; break;
-                case 8: val = cpu->cop0.badVaddr; break;
-                case 9: val = cpu->cop0.bdam; break;
-                case 11: val = cpu->cop0.bpcm; break;
-                case 12: val = cpu->cop0.status._reg; break;
-                case 13: val = cpu->cop0.cause._reg; break;
-                case 14: val = cpu->cop0.epc; break;
-                case 15: val = cpu->cop0.revId; break;
-                default: exception(cpu, COP0::CAUSE::Exception::reservedInstruction); return;
+            auto [val, throwException] = cpu->cop0.read(i.rd);
+            if (throwException) {
+                exception(cpu, COP0::CAUSE::Exception::reservedInstruction);
+                return;
             }
             cpu->loadDelaySlot(i.rt, val);
             break;
@@ -643,35 +633,13 @@ void op_cop0(CPU *cpu, Opcode i) {
         case 4:
             // Move to co-processor zero (from cpu reg)
             // MTC0 rt, cop0.rd
-            switch (i.rd) {
-                case 3: cpu->cop0.bpc = cpu->reg[i.rt]; break;
-                case 5: cpu->cop0.bda = cpu->reg[i.rt]; break;
-                case 7: cpu->cop0.dcic._reg = cpu->reg[i.rt]; break;
-                case 9: cpu->cop0.bdam = cpu->reg[i.rt]; break;
-                case 11: cpu->cop0.bpcm = cpu->reg[i.rt]; break;
-                case 12:
-                    if (cpu->reg[i.rt] & (1 << 17)) {
-                        // printf("Panic, SwC not handled\n");
-                        // cpu->state = CPU::State::halted;
-                    }
-                    cpu->cop0.status._reg = cpu->reg[i.rt];
-                    break;
-                case 13:
-                    cpu->cop0.cause._reg &= ~0x300;
-                    cpu->cop0.cause._reg |= (cpu->reg[i.rt] & 0x300);
-                    break;
-                default: break;
-            }
+            cpu->cop0.write(i.rd, cpu->reg[i.rt]);
             break;
 
         case 16:
             // Restore from exception
             // RFE
-            cpu->cop0.status.interruptEnable = cpu->cop0.status.previousInterruptEnable;
-            cpu->cop0.status.mode = cpu->cop0.status.previousMode;
-
-            cpu->cop0.status.previousInterruptEnable = cpu->cop0.status.oldInterruptEnable;
-            cpu->cop0.status.previousMode = cpu->cop0.status.oldMode;
+            cpu->cop0.returnFromException();
             break;
 
         default: exception(cpu, COP0::CAUSE::Exception::reservedInstruction); break;
@@ -723,7 +691,7 @@ void op_lb(CPU *cpu, Opcode i) {
 void op_lh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (unlikely(addr & 1)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -758,7 +726,7 @@ void op_lwl(CPU *cpu, Opcode i) {
 void op_lw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (unlikely(addr & 3)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -777,7 +745,7 @@ void op_lbu(CPU *cpu, Opcode i) {
 void op_lhu(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (unlikely(addr & 1)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
@@ -820,7 +788,7 @@ void op_sb(CPU *cpu, Opcode i) {
 void op_sh(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (unlikely(addr & 1)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
@@ -849,7 +817,7 @@ void op_swl(CPU *cpu, Opcode i) {
 void op_sw(CPU *cpu, Opcode i) {
     uint32_t addr = cpu->reg[i.rs] + i.offset;
     if (unlikely(addr & 3)) {
-        cpu->cop0.badVaddr = addr;
+        cpu->cop0.bada = addr;
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }

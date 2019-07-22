@@ -29,16 +29,16 @@ bool followPC = true;
         "bpc",       // r3
         "cop0r4?",   // r4
         "bda",       // r5
-        "jumpdest",  // r6
+        "tar",       // r6
         "dcic",      // r7
-        "badVaddr",  // r8
+        "bada",      // r8
         "bdam",      // r9
         "cop0r10?",  // r10
         "bpcm",      // r11
         "status",    // r12
         "cause",     // r13
         "epc",       // r14
-        "revId",     // r15
+        "prid",      // r15
     };
 
     std::array<const char*, 64> cop2RegNames = {
