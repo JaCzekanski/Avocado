@@ -2,6 +2,38 @@
 #include "device/device.h"
 
 struct COP0 {
+    // cop0r7 DCIC - breakpoint control
+    union DCIC {
+        struct {
+            uint32_t breakpointHit : 1;
+            uint32_t codeBreakpointHit : 1;
+            uint32_t dataBreakpointHit : 1;
+            uint32_t dataReadBreakpointHit : 1;
+            uint32_t dataWriteBreakpointHit : 1;
+            uint32_t jumpBreakpointHit : 1;
+            uint32_t : 6;  // not used
+
+            uint32_t jumpRedirection : 2;  // 0 - disabled, 1..3 - enabled
+
+            uint32_t : 2;  // Unknown
+            uint32_t : 7;  // not used
+
+            uint32_t superMasterEnable1 : 1;  // bits 24..29
+
+            uint32_t breakOnCode : 1;
+            uint32_t breakOnData : 1;
+            uint32_t breakOnDataRead : 1;
+            uint32_t breakOnDataWrite : 1;
+            uint32_t breakOnJump : 1;
+
+            uint32_t masterEnableBreakAnyJump : 1;
+            uint32_t masterEnableBreakpoints : 1;  // bits 24..27
+            uint32_t superMasterEnable2 : 1;       // bits 24..29
+        };
+
+        uint32_t _reg;
+        DCIC() : _reg(0) {}
+    };
     // cop0r13 cause, ro, bit8-9 are rw
     union CAUSE {
         enum class Exception : uint32_t {
@@ -90,7 +122,7 @@ struct COP0 {
     uint32_t bpc = 0;       // r3
     uint32_t bda = 0;       // r5
     uint32_t jumpdest = 0;  // r6
-    uint32_t dcic = 0;      // r7
+    DCIC dcic;              // r7
     uint32_t badVaddr = 0;  // r8
     uint32_t bdam = 0;      // r9
     uint32_t bpcm = 0;      // r11

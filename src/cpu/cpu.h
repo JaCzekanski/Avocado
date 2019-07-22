@@ -73,6 +73,10 @@ struct CPU {
         bool enabled = true;
         int hitCount = 0;
         bool hit = false;
+        bool singleTime = false;
+
+        Breakpoint() = default;
+        Breakpoint(bool singleTime) : singleTime(singleTime) {}
     };
     std::unordered_map<uint32_t, Breakpoint> breakpoints;
 };

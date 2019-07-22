@@ -202,16 +202,22 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
         deltaFrames = 0;
         fpsTime = 0.0;
 
-        // TODO: Move this part outside method
-        std::string gameName = "No CD";
-        if (sys->cdrom->disc) {
-            gameName = getFilename(sys->cdrom->disc->getFile());
+        std::string title = "";
+        if (mouseLocked) {
+            title += "Press Alt to unlock mouse | ";
         }
 
-        std::string title = string_format("Avocado %s | %s | FPS: %.0f (%0.2f ms) %s", BUILD_STRING, gameName.c_str(), fps,
-                                          (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
-        if (mouseLocked) {
-            title = "Press Alt to unlock mouse | " + title;
+        title += "Avocado";
+
+        if (sys->cdrom->disc) {
+            auto gameName = getFilename(sys->cdrom->disc->getFile());
+            title += " | " + gameName;
+        }
+
+        title += string_format(" | FPS: %.0f (%0.2f ms) %s", fps, (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
+
+        if (sys->state == System::State::pause) {
+            title += " | paused";
         }
         SDL_SetWindowTitle(window, title.c_str());
     }

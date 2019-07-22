@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include "config.h"
 #include "cpu/gte/gte.h"
+#include "debug/cpu/cpu.h"
 #include "debug/gpu/gpu.h"
 #include "debug/kernel/kernel.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
@@ -17,8 +18,6 @@ void gteLogWindow(System* sys);
 void gpuLogWindow(System* sys);
 void ioWindow(System* sys);
 void vramWindow(gpu::GPU* gpu);
-void disassemblyWindow(System* sys);
-void breakpointsWindow(System* sys);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
 void cdromWindow(System* sys);
@@ -35,14 +34,14 @@ bool showIo = false;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
-bool showDisassemblyWindow = false;
-bool showBreakpointsWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
 bool showCdromWindow = false;
 bool showSpuWindow = false;
 
 bool showAboutWindow = false;
+
+gui::debug::cpu::CPU cpuDebug;
 
 void aboutWindow() {
     ImGui::Begin("About", &showAboutWindow);
@@ -116,8 +115,8 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("IO", nullptr, &showIo);
                 ImGui::MenuItem("Memory", nullptr, &showRamWindow);
                 ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
-                ImGui::MenuItem("Debugger", nullptr, &showDisassemblyWindow);
-                ImGui::MenuItem("Breakpoints", nullptr, &showBreakpointsWindow);
+                ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
+                ImGui::MenuItem("Breakpoints", nullptr, &cpuDebug.breakpointsWindowOpen);
                 ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
                 ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
                 ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
@@ -149,13 +148,13 @@ void renderImgui(System* sys) {
         if (showIo) ioWindow(sys);
         if (showRamWindow) ramWindow(sys);
         if (showVramWindow) vramWindow(sys->gpu.get());
-        if (showDisassemblyWindow) disassemblyWindow(sys);
-        if (showBreakpointsWindow) breakpointsWindow(sys);
         if (showWatchWindow) watchWindow(sys);
         if (showCdromWindow) cdromWindow(sys);
         if (showKernelWindow) kernelWindow(sys);
         if (showGpuWindow) gpuWindow(sys);
         if (showSpuWindow) spuWindow(sys->spu.get());
+
+        cpuDebug.displayWindows(sys);
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();

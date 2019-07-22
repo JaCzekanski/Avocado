@@ -41,5 +41,6 @@ union Opcode {
     int16_t offset;        // IType signed immediate (relative address)
 
     Opcode(uint32_t v) : opcode(v) {}
+    Opcode() : opcode(0) {}
 };
-};
+};  // namespace mips

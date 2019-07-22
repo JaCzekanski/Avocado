@@ -619,14 +619,14 @@ void op_lui(CPU *cpu, Opcode i) {
 void op_cop0(CPU *cpu, Opcode i) {
     switch (i.rs) {
         case 0: {
-            // Move from co-processor zero
-            // MFC0 rd, <nn>
+            // Move from co-processor zero (to cpu reg)
+            // MFC0 rt, cop0.rd
             uint32_t val = 0;
             switch (i.rd) {
                 case 3: val = cpu->cop0.bpc; break;
                 case 5: val = cpu->cop0.bda; break;
                 case 6: val = cpu->cop0.jumpdest; break;
-                case 7: val = cpu->cop0.dcic; break;
+                case 7: val = cpu->cop0.dcic._reg; break;
                 case 8: val = cpu->cop0.badVaddr; break;
                 case 9: val = cpu->cop0.bdam; break;
                 case 11: val = cpu->cop0.bpcm; break;
@@ -641,12 +641,12 @@ void op_cop0(CPU *cpu, Opcode i) {
         }
 
         case 4:
-            // Move to co-processor zero
-            // MTC0 rs, <nn>
+            // Move to co-processor zero (from cpu reg)
+            // MTC0 rt, cop0.rd
             switch (i.rd) {
                 case 3: cpu->cop0.bpc = cpu->reg[i.rt]; break;
                 case 5: cpu->cop0.bda = cpu->reg[i.rt]; break;
-                case 7: cpu->cop0.dcic = cpu->reg[i.rt]; break;
+                case 7: cpu->cop0.dcic._reg = cpu->reg[i.rt]; break;
                 case 9: cpu->cop0.bdam = cpu->reg[i.rt]; break;
                 case 11: cpu->cop0.bpcm = cpu->reg[i.rt]; break;
                 case 12:
@@ -692,19 +692,19 @@ void op_cop2(CPU *cpu, Opcode i) {
 
     if (i.rs == 0x00) {
         // Move data from co-processor two
-        // MFC2 rt, <nn>
+        // MFC2 rt, cop2.<nn>
         cpu->loadDelaySlot(i.rt, cpu->gte.read(i.rd));
     } else if (i.rs == 0x02) {
         // Move control from co-processor two
-        // CFC2 rt, <nn>
+        // CFC2 rt, cop2.<nn + 32>
         cpu->loadDelaySlot(i.rt, cpu->gte.read(i.rd + 32));
     } else if (i.rs == 0x04) {
         // Move data to co-processor two
-        // MTC2 rt, <nn>
+        // MTC2 rt, cop2.<nn>
         cpu->gte.write(i.rd, cpu->reg[i.rt]);
     } else if (i.rs == 0x06) {
         // Move control to co-processor two
-        // CTC2 rt, <nn>
+        // CTC2 rt, cop2.<nn + 32>
         cpu->gte.write(i.rd + 32, cpu->reg[i.rt]);
     } else {
         invalid(cpu, i);
