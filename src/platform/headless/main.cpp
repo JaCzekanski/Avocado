@@ -16,10 +16,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!cpu->loadExpansion("data/asm/bootstrap.bin")) {
-        printf("cannot load expansion!\n");
-        return 1;
-    }
+    // Breakpoint on BIOS Shell execution
+    cpu->breakpoints.emplace(0x80030000, mips::CPU::Breakpoint(true));
 
     cpu->biosLog = false;
     cpu->debugOutput = false;

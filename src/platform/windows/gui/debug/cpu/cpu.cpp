@@ -340,13 +340,13 @@ void CPU::breakpointsWindow(System* sys) {
     if (showPopup) ImGui::OpenPopup("Add breakpoint");
 
     if (ImGui::BeginPopupModal("Add breakpoint", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        char addressInput[10];
+        static char addressInput[10];
         uint32_t address;
         ImGui::Text("Address: ");
         ImGui::SameLine();
 
         ImGui::PushItemWidth(80);
-        if (ImGui::InputText("", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)
+        if (ImGui::InputText("", addressInput, 10, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)
             && sscanf(addressInput, "%x", &address) == 1) {
             sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
             ImGui::CloseCurrentPopup();

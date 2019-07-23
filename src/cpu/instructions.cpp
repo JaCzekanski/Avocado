@@ -178,10 +178,6 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
         cpu->cop0.epc = cpu->exceptionPC;
     }
 
-    // if (cause == Exception::breakpoint) {
-    //     cpu->cop0.dcic.breakpointHit = true;
-    // }
-
     if (cpu->exceptionIsInBranchDelay) {
         cpu->cop0.epc -= 4;
         cpu->cop0.cause.branchDelay = true;
@@ -196,9 +192,13 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
     cpu->setPC(cpu->cop0.status.getHandlerAddress());
 }
 
-void dummy(CPU *cpu, Opcode i) {}
+void dummy(CPU *cpu, Opcode i) {
+    UNUSED(cpu);
+    UNUSED(i);
+}
 
 void invalid(CPU *cpu, Opcode i) {
+    UNUSED(i);
     // printf("Invalid opcode at 0x%08x: 0x%08x\n", cpu->PC, i.opcode);
     // cpu->sys->state = System::State::halted;
 
@@ -271,6 +271,7 @@ void op_jalr(CPU *cpu, Opcode i) {
 // Syscall
 // SYSCALL
 void op_syscall(CPU *cpu, Opcode i) {
+    UNUSED(i);
     if (cpu->sys->biosLog) {
         cpu->sys->handleSyscallFunction();
     }
@@ -279,7 +280,10 @@ void op_syscall(CPU *cpu, Opcode i) {
 
 // Break
 // BREAK
-void op_break(CPU *cpu, Opcode i) { exception(cpu, COP0::CAUSE::Exception::breakpoint); }
+void op_break(CPU *cpu, Opcode i) {
+    UNUSED(i);
+    exception(cpu, COP0::CAUSE::Exception::breakpoint);
+}
 
 // Move From Hi
 // MFHI rd
@@ -794,6 +798,7 @@ void op_swc2(CPU *cpu, Opcode i) {
 
 // BREAKPOINT
 void op_breakpoint(CPU *cpu, Opcode i) {
+    UNUSED(i);
     cpu->sys->state = System::State::halted;
     cpu->setPC(cpu->nextPC);
 }

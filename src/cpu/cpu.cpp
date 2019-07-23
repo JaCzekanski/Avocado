@@ -8,13 +8,11 @@ namespace mips {
 CPU::CPU(System* sys) : sys(sys), _opcode(0) {
     setPC(0xBFC00000);
     inBranchDelay = false;
-    for (int i = 0; i < 32; i++) reg[i] = 0;
+    for (auto& r : reg) r = 0;
     hi = 0;
     lo = 0;
 
-    for (int i = 0; i < 2; i++) {
-        slots[i].reg = 0;
-    }
+    for (auto& slot : slots) slot.reg = 0;
 }
 
 void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
@@ -57,14 +55,6 @@ void CPU::saveStateForException() {
 }
 
 bool CPU::handleBreakpoints() {
-    // HACK: Following code does NOT follow specification, it is only used for fastboot hack.
-    if (cop0.dcic.breakOnCode && PC == cop0.bpc) {
-        cop0.dcic.codeBreakpointHit = 1;
-        cop0.dcic.breakpointHit = 1;
-        cop0.dcic.breakOnCode = 0;
-        sys->state = System::State::pause;
-        return true;
-    }
     if (!breakpoints.empty()) {
         auto bp = breakpoints.find(PC);
         if (bp != breakpoints.end() && bp->second.enabled) {
@@ -88,8 +78,6 @@ bool CPU::handleBreakpoints() {
 
 bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
-        reg[0] = 0;
-
         // HACK: BIOS hooks
         uint32_t maskedPc = PC & 0x1FFFFF;
         if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) sys->handleBiosFunction();

@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <string>
-#include "bios/exe_bootstrap.h"
 #include "config.h"
 #include "disc/format/chd_format.h"
 #include "disc/format/cue_parser.h"
@@ -34,7 +33,9 @@ void bootstrap(std::unique_ptr<System>& sys) {
     Sound::clearBuffer();
     sys = std::make_unique<System>();
     sys->loadBios(config["bios"]);
-    sys->loadExpansion(exe_bootstrap);
+
+    // Breakpoint on BIOS Shell execution
+    sys->cpu->breakpoints.emplace(0x80030000, mips::CPU::Breakpoint(true));
 
     // Execute BIOS till breakpoint hit (shell is about to be executed)
     while (sys->state == System::State::run) sys->emulateFrame();
@@ -234,7 +235,7 @@ int main(int argc, char** argv) {
         SDL_free(basePath);
     }
 #endif
-    chdir(workingDirectory.c_str());
+    // chdir(workingDirectory.c_str());
 
     loadConfigFile(CONFIG_NAME);
 

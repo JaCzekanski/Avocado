@@ -36,9 +36,8 @@ mkdir -p $ARTIFACT
 cp build/release_x64/avocado $ARTIFACT/avocado
 cp -r data $ARTIFACT/
 
-# Remove .gitignore and asm dir
+# Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
-rm -r $ARTIFACT/data/asm
 
 mkdir -p upload/$UPLOAD_DIR
 tar -zcf upload/$UPLOAD_DIR/$ARTIFACT.tar.gz $ARTIFACT

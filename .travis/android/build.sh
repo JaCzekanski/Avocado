@@ -21,7 +21,6 @@ premake5 --os=android androidmk
 # Copy data to assets folder to embed it into .apk file
 cp -r data $ASSETS_DIR
 find $ASSETS_DIR -type f -name .gitignore -exec rm {} \;
-rm -r $ASSETS_DIR/data/asm
 
 # Build
 pushd android

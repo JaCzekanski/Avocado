@@ -42,7 +42,7 @@ r31     ra    - return address
 */
 
 struct LoadSlot {
-    uint32_t reg;
+    uint32_t reg : 5;
     uint32_t data;
     uint32_t prevData;
 };
@@ -82,6 +82,7 @@ struct CPU {
     }
 
     INLINE void loadAndInvalidate(int r, uint32_t data) {
+        if (r == 0) return;
         reg[r] = data;
         invalidateSlot(r);
     }

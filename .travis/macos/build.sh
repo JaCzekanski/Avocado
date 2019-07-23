@@ -24,9 +24,8 @@ cp -r build/release_x64/avocado.app $ARTIFACT/avocado.app
 mkdir -p $ARTIFACT/avocado.app/Contents/Resources
 cp -r data $ARTIFACT/avocado.app/Contents/Resources
 
-# Remove .gitignore and asm dir
+# Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
-rm -r $ARTIFACT/avocado.app/Contents/Resources/data/asm
 
 # Prepare upload artifact
 mkdir -p upload/$UPLOAD_DIR
