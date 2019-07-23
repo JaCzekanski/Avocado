@@ -11,7 +11,6 @@ CPU::CPU(System* sys) : sys(sys), _opcode(0) {
     for (int i = 0; i < 32; i++) reg[i] = 0;
     hi = 0;
     lo = 0;
-    exception = false;
 
     for (int i = 0; i < 2; i++) {
         slots[i].reg = 0;
@@ -57,6 +56,36 @@ void CPU::saveStateForException() {
     branchTaken = false;
 }
 
+bool CPU::handleBreakpoints() {
+    // HACK: Following code does NOT follow specification, it is only used for fastboot hack.
+    if (cop0.dcic.breakOnCode && PC == cop0.bpc) {
+        cop0.dcic.codeBreakpointHit = 1;
+        cop0.dcic.breakpointHit = 1;
+        cop0.dcic.breakOnCode = 0;
+        sys->state = System::State::pause;
+        return true;
+    }
+    if (!breakpoints.empty()) {
+        auto bp = breakpoints.find(PC);
+        if (bp != breakpoints.end() && bp->second.enabled) {
+            if (bp->second.singleTime) {
+                breakpoints.erase(bp);
+                sys->state = System::State::pause;
+                return true;
+            }
+            if (!bp->second.hit) {
+                bp->second.hitCount++;
+                bp->second.hit = true;
+                sys->state = System::State::pause;
+
+                return true;
+            }
+            bp->second.hit = false;
+        }
+    }
+    return false;
+}
+
 bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
@@ -69,32 +98,7 @@ bool CPU::executeInstructions(int count) {
 
         checkForInterrupts();
 
-        // HACK: Following code does NOT follow specification, it is only used for fastboot hack.
-        if (cop0.dcic.breakOnCode && PC == cop0.bpc) {
-            cop0.dcic.codeBreakpointHit = 1;
-            cop0.dcic.breakpointHit = 1;
-            cop0.dcic.breakOnCode = 0;
-            sys->state = System::State::pause;
-            return false;
-        }
-        if (!breakpoints.empty()) {
-            auto bp = breakpoints.find(PC);
-            if (bp != breakpoints.end() && bp->second.enabled) {
-                if (bp->second.singleTime) {
-                    breakpoints.erase(bp);
-                    sys->state = System::State::pause;
-                    return false;
-                }
-                if (!bp->second.hit) {
-                    bp->second.hitCount++;
-                    bp->second.hit = true;
-                    sys->state = System::State::pause;
-
-                    return false;
-                }
-                bp->second.hit = false;
-            }
-        }
+        if (handleBreakpoints()) return false;
 
         _opcode = Opcode(sys->readMemory32(PC));
         const auto& op = instructions::OpcodeTable[_opcode.op];
@@ -104,11 +108,6 @@ bool CPU::executeInstructions(int count) {
         op.instruction(this, _opcode);
 
         moveLoadDelaySlots();
-
-        if (exception) {
-            exception = false;
-            return true;
-        }
 
         if (sys->state != System::State::run) return false;
     }

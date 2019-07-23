@@ -414,7 +414,6 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     cpu->reg[29] = exe.s_addr + exe.s_size;
     cpu->reg[30] = exe.s_addr + exe.s_size;
 
-    cpu->exception = false;
     cpu->inBranchDelay = false;
 
     return true;

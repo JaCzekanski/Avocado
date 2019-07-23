@@ -40,7 +40,6 @@ bool loadExe(System* sys, const std::vector<uint8_t>& _exe, PsfType type) {
         sys->cpu->reg[29] = exe.s_addr;
         if (sys->cpu->reg[29] == 0) sys->cpu->reg[29] = 0x801ffff0;
 
-        sys->cpu->exception = false;
         sys->cpu->inBranchDelay = false;
     }
 

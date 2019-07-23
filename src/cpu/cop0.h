@@ -142,6 +142,14 @@ struct COP0 {
             mode = COP0::STATUS::Mode::kernel;
         }
 
+        uint32_t getHandlerAddress() const {
+            if (bootExceptionVectors == BootExceptionVectors::rom) {
+                return 0xbfc00180;
+            } else {
+                return 0x80000080;
+            }
+        }
+
         uint32_t _reg;
         STATUS() : _reg(0) {}
     };

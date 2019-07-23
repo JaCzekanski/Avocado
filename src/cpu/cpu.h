@@ -55,16 +55,16 @@ struct CPU {
     uint32_t exceptionIsInBranchDelay;
     uint32_t exceptionIsBranchTaken;
 
-    uint32_t PC;      // Address to be executed
-    uint32_t nextPC;  // Next address to be executed
-    bool inBranchDelay;
-    bool branchTaken;
+    uint32_t PC;                    // Address to be executed
+    uint32_t nextPC;                // Next address to be executed
+    bool inBranchDelay;             // Is CPU currently in Branch Delay slot
+    bool branchTaken;               // If CPU is in Branch Delay slot, was the branch taken
+    std::array<LoadSlot, 2> slots;  // Load Delay slots
+
     std::array<uint32_t, REGISTER_COUNT> reg;
     COP0 cop0;
     GTE gte;
     uint32_t hi, lo;
-    bool exception;
-    std::array<LoadSlot, 2> slots;
     System* sys;
     Opcode _opcode;
 
@@ -95,6 +95,7 @@ struct CPU {
     }
 
     void saveStateForException();
+    bool handleBreakpoints();
     bool executeInstructions(int count);
 
     struct Breakpoint {

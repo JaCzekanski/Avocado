@@ -193,15 +193,7 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
         cpu->cop0.tar = cpu->PC;
     }
 
-    uint32_t vectorAddress;
-    if (cpu->cop0.status.bootExceptionVectors == COP0::STATUS::BootExceptionVectors::rom) {
-        vectorAddress = 0xbfc00180;
-    } else {
-        vectorAddress = 0x80000080;
-    }
-
-    cpu->setPC(vectorAddress);
-    cpu->exception = true;
+    cpu->setPC(cpu->cop0.status.getHandlerAddress());
 }
 
 void dummy(CPU *cpu, Opcode i) {}
