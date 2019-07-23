@@ -39,6 +39,7 @@ void COP0::write(int reg, uint32_t value) {
             cause.interruptPending |= (value & 0x300) >> 8;
             // TODO: Check software interrupt [psxtest_cpx: Interrupts]
             break;
+        case 14: epc = value; break;
         default: break;
     }
 }

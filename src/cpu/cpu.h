@@ -5,6 +5,7 @@
 #include "cpu/cop0.h"
 #include "cpu/gte/gte.h"
 #include "opcode.h"
+#include "utils/macros.h"
 
 struct System;
 
@@ -49,9 +50,15 @@ struct LoadSlot {
 struct CPU {
     static const int REGISTER_COUNT = 32;
 
-    uint32_t PC;
-    uint32_t jumpPC;
-    bool shouldJump;
+    // Saved state for exception handling
+    uint32_t exceptionPC;
+    uint32_t exceptionIsInBranchDelay;
+    uint32_t exceptionIsBranchTaken;
+
+    uint32_t PC;      // Address to be executed
+    uint32_t nextPC;  // Next address to be executed
+    bool inBranchDelay;
+    bool branchTaken;
     std::array<uint32_t, REGISTER_COUNT> reg;
     COP0 cop0;
     GTE gte;
@@ -63,10 +70,31 @@ struct CPU {
 
     CPU(System* sys);
     void checkForInterrupts();
-    void moveLoadDelaySlots();
-    void invalidateSlot(uint32_t r);
-
     void loadDelaySlot(uint32_t r, uint32_t data);
+    void moveLoadDelaySlots();
+    INLINE void invalidateSlot(uint32_t r) {
+#ifdef ENABLE_LOAD_DELAY_SLOTS
+        // TODO: Remove branching in delay slots to improve performance
+        if (slots[0].reg == r) {
+            slots[0].reg = 0;
+        }
+#endif
+    }
+
+    INLINE void loadAndInvalidate(int r, uint32_t data) {
+        reg[r] = data;
+        invalidateSlot(r);
+    }
+    INLINE void jump(uint32_t address) {
+        nextPC = address;
+        branchTaken = true;
+    }
+    INLINE void setPC(uint32_t address) {
+        PC = address;
+        nextPC = address + 4;
+    }
+
+    void saveStateForException();
     bool executeInstructions(int count);
 
     struct Breakpoint {

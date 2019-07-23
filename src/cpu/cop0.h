@@ -57,8 +57,17 @@ struct COP0 {
             uint32_t interruptPending : 8;
             uint32_t : 12;
             uint32_t coprocessorNumber : 2;  // If coprocessor caused the exception
-            uint32_t branchDelayTaken : 1;
-            uint32_t isInDelaySlot : 1;
+            uint32_t branchTaken : 1;        /** When the branchDelay bit is set, the branchTaken Bit determines whether or not the
+                                              * branch is taken. A value of one in branchTaken indicates that the branch is
+                                              * taken. The Target Address Register holds the return address.
+                                              *
+                                              * source: L64360 datasheet
+                                              */
+            uint32_t branchDelay : 1;        /** CPU sets this bit to one to indicate that the last exception
+                                              * was taken while executing in a branch delay slot.
+                                              *
+                                              * source: L64360 datasheet
+                                              */
         };
 
         const char* getExceptionName() const {
@@ -75,6 +84,12 @@ struct COP0 {
                 case Exception::arithmeticOverflow: return "arithmeticOverflow";
                 default: return "unknown";
             }
+        }
+
+        void clearForException() {
+            auto _interruptPending = interruptPending;
+            _reg = 0;
+            interruptPending = _interruptPending;
         }
 
         uint32_t _reg;
@@ -115,6 +130,17 @@ struct COP0 {
             Bit cop2Enable : 1;
             Bit cop3Enable : 1;
         };
+
+        void enterException() {
+            oldInterruptEnable = previousInterruptEnable;
+            oldMode = previousMode;
+
+            previousInterruptEnable = interruptEnable;
+            previousMode = mode;
+
+            interruptEnable = false;
+            mode = COP0::STATUS::Mode::kernel;
+        }
 
         uint32_t _reg;
         STATUS() : _reg(0) {}

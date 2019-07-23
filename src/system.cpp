@@ -388,8 +388,8 @@ void System::emulateFrame() {
 
 void System::softReset() {
     printf("Soft reset\n");
-    cpu->PC = 0xBFC00000;
-    cpu->shouldJump = false;
+    cpu->setPC(0xBFC00000);
+    cpu->inBranchDelay = false;
     state = State::run;
 }
 
@@ -409,14 +409,13 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
         writeMemory8(exe.t_addr + i, _exe[0x800 + i]);
     }
 
-    cpu->PC = exe.pc0;
+    cpu->setPC(exe.pc0);
     cpu->reg[28] = exe.gp0;
     cpu->reg[29] = exe.s_addr + exe.s_size;
     cpu->reg[30] = exe.s_addr + exe.s_size;
 
     cpu->exception = false;
-    cpu->shouldJump = false;
-    cpu->jumpPC = 0;
+    cpu->inBranchDelay = false;
 
     return true;
 }

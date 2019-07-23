@@ -6,9 +6,8 @@
 
 namespace mips {
 CPU::CPU(System* sys) : sys(sys), _opcode(0) {
-    PC = 0xBFC00000;
-    jumpPC = 0;
-    shouldJump = false;
+    setPC(0xBFC00000);
+    inBranchDelay = false;
     for (int i = 0; i < 32; i++) reg[i] = 0;
     hi = 0;
     lo = 0;
@@ -49,18 +48,25 @@ void CPU::moveLoadDelaySlots() {
 #endif
 }
 
-void CPU::invalidateSlot(uint32_t r) {
-#ifdef ENABLE_LOAD_DELAY_SLOTS
-    // TODO: Remove branching in delay slots to improve performance
-    if (slots[0].reg == r) {
-        slots[0].reg = 0;
-    }
-#endif
+void CPU::saveStateForException() {
+    exceptionPC = PC;
+    exceptionIsInBranchDelay = inBranchDelay;
+    exceptionIsBranchTaken = branchTaken;
+
+    inBranchDelay = false;
+    branchTaken = false;
 }
 
 bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
         reg[0] = 0;
+
+        // HACK: BIOS hooks
+        uint32_t maskedPc = PC & 0x1FFFFF;
+        if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) sys->handleBiosFunction();
+
+        saveStateForException();
+
         checkForInterrupts();
 
         // HACK: Following code does NOT follow specification, it is only used for fastboot hack.
@@ -91,9 +97,9 @@ bool CPU::executeInstructions(int count) {
         }
 
         _opcode = Opcode(sys->readMemory32(PC));
-
-        bool isJumpCycle = shouldJump;
         const auto& op = instructions::OpcodeTable[_opcode.op];
+
+        setPC(nextPC);
 
         op.instruction(this, _opcode);
 
@@ -105,16 +111,6 @@ bool CPU::executeInstructions(int count) {
         }
 
         if (sys->state != System::State::run) return false;
-        if (isJumpCycle) {
-            PC = jumpPC & 0xFFFFFFFC;
-            jumpPC = 0;
-            shouldJump = false;
-
-            uint32_t maskedPc = PC & 0x1FFFFF;
-            if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) sys->handleBiosFunction();
-        } else {
-            PC += 4;
-        }
     }
     return true;
 }

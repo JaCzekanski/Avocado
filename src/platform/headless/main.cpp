@@ -1,9 +1,9 @@
-#include <cstdio>
-#include <string>
-#include <memory>
 #include <cassert>
-#include "utils/file.h"
+#include <cstdio>
+#include <memory>
+#include <string>
 #include "mips.h"
+#include "utils/file.h"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
     cpu->state = mips::CPU::State::run;
     cpu->debugOutput = false;
-    cpu->PC = cpu->readMemory32(0x1f000000);
+    cpu->setPC(cpu->readMemory32(0x1f000000));
 
     while (cpu->state == mips::CPU::State::run) {
         cpu->emulateFrame();
