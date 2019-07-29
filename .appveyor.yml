@@ -19,6 +19,7 @@ environment:
     TOOLSET: vs2017
     platform: x64
 
+# TODO: Move to PowerShell script
 before_build:
   - git submodule update --init --recursive
 
@@ -43,11 +44,18 @@ configuration:
 build:
   project: avocado.sln
 
+# TODO: Move to PowerShell script
 after_build:
-  # Premake renames x86 to Win32 - undo that
-  - ps: if ($env:platform -eq "Win32") { $env:platform = "x86" } 
+  - ps: if ($env:platform -eq "Win32") { $env:OS = "windows32" } 
+  - ps: if ($env:platform -eq "x64") { $env:OS = "windows64" } 
+  - ps: $env:DATE=date +%Y%m%d
+  - ps: $env:COMMIT=git rev-parse --short=7 HEAD
+  - ps: $env:ARTIFACT="avocado-$($env:OS)-$($env:DATE)-$($env:COMMIT).zip"
 
   - mkdir artifact
+
+  # Premake renames x86 to Win32 - undo that
+  - ps: if ($env:platform -eq "Win32") { $env:platform = "x86" } 
 
   # copy avocado.exe, SDL2.dll and data directory
   - ps: $env:TARGETDIR = "build\$($env:CONFIGURATION)"
@@ -57,12 +65,14 @@ after_build:
   - ps: Copy-Item externals\SDL2\lib\$env:platform\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
 
-  # remove .gitignore and asm directory
+  # remove .gitignore
   - ps: Get-ChildItem -Path artifact\data -Include *.gitignore -Recurse | foreach { $_.Delete()}
-  - ps: Remove-Item artifact\data\asm\ -recurse
 
   # make zip archive
   - 7z a avocado.zip %APPVEYOR_BUILD_FOLDER%\artifact\.
+
+  - mkdir upload
+  - ps: Copy-Item avocado.zip -Destination upload/$env:ARTIFACT
 
 test_script:
   - .\%TARGETDIR%\avocado_test.exe --success -r junit > test-result.xml || ver > nul
@@ -81,3 +91,6 @@ on_failure:
 artifacts:
   - path: avocado.zip
     name: avocado
+
+deploy_script:
+  - bash ./.travis/deploy.sh %DEPLOY_KEY% upload/

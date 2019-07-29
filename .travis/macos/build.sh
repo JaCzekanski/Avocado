@@ -5,7 +5,6 @@ export OS=macos
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT
-export UPLOAD_DIR=$DATE-$COMMIT
 
 # Configure cache
 brew install ccache
@@ -28,5 +27,5 @@ cp -r data $ARTIFACT/avocado.app/Contents/Resources
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
 
 # Prepare upload artifact
-mkdir -p upload/$UPLOAD_DIR
-zip -r upload/$UPLOAD_DIR/$ARTIFACT.zip $ARTIFACT
+mkdir -p upload
+zip -r upload/$ARTIFACT.zip $ARTIFACT

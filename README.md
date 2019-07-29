@@ -29,11 +29,13 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Status
 
+Full list: [Avocado Builds](https://avocado-builds.czekanski.info)
+
 Build   | Status | Download
 --------|--------|---------
-Travis CI (Linux) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado)  
-Travis CI (macOS) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado) | Comming soon ...
-Travis CI (Android) | [![Build Status](https://travis-ci.org/JaCzekanski/Avocado.svg?branch=develop)](https://travis-ci.org/JaCzekanski/Avocado) | Comming soon ...
+Travis CI (Linux) | [![Build Status](https://avocado-builds.czekanski.info/status/linux64)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/linux64)
+Travis CI (macOS) | [![Build Status](https://avocado-builds.czekanski.info/status/macos)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/macos)
+Travis CI (Android) | [![Build Status](https://avocado-builds.czekanski.info/status/android)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/android)
 AppVeyor (Windows 64-bit, Visual Studio 2019) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | **[develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2019+Preview%2C+TOOLSET%3Dvs2017%2C+platform%3Dx64)**
 AppVeyor (Windows 32-bit, Visual Studio 2019) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2019+Preview%2C+TOOLSET%3Dvs2017%2C+platform%3DWin32)
 AppVeyor (Windows 64-bit, Visual Studio 2017) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2017%2C+TOOLSET%3Dvs2017%2C+platform%3Dx64)

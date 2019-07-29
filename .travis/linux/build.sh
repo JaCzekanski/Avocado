@@ -7,7 +7,6 @@ export OS=linux64
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT
-export UPLOAD_DIR=$DATE-$COMMIT
 export CC="ccache clang-6.0 -fcolor-diagnostics"
 export CXX="ccache clang++-6.0 -fcolor-diagnostics"
 
@@ -39,5 +38,5 @@ cp -r data $ARTIFACT/
 # Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
 
-mkdir -p upload/$UPLOAD_DIR
-tar -zcf upload/$UPLOAD_DIR/$ARTIFACT.tar.gz $ARTIFACT
+mkdir -p upload
+tar -zcf upload/$ARTIFACT.tar.gz $ARTIFACT
