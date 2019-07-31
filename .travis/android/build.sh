@@ -8,7 +8,7 @@ export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT.apk
 export ASSETS_DIR=android/app/src/main/assets
-export TARGET_DIR=android/app/build/outputs/apk/debug
+export TARGET_DIR=android/app/build/outputs/apk/release
 export NDK_CCACHE="$(which ccache)"
 
 # Configure cache
@@ -28,8 +28,8 @@ pushd android
 NDK_PROJECT_PATH=`pwd`/app ndk-build PM5_CONFIG=release_x64 -j4 avocado NDK_DEBUG=0
 ccache -s
 
-# Java code (debug for now)
-./gradlew assembleDebug
+# Java code
+./gradlew assembleRelease
 popd
 
 # Tests
@@ -37,4 +37,4 @@ popd
 
 # Package and prepare upload artifact
 mkdir -p upload
-cp $TARGET_DIR/app-debug.apk upload/$ARTIFACT
+cp $TARGET_DIR/app-release.apk upload/$ARTIFACT
