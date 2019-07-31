@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
         SDL_free(basePath);
     }
 #endif
-    // chdir(workingDirectory.c_str());
+    chdir(workingDirectory.c_str());
 
     loadConfigFile(CONFIG_NAME);
 
