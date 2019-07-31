@@ -23,12 +23,6 @@ find $ASSETS_DIR -type f -name .gitignore -exec rm {} \;
 
 # Build
 pushd android
-
-# Native code
-NDK_PROJECT_PATH=`pwd`/app ndk-build PM5_CONFIG=release_x64 -j4 avocado NDK_DEBUG=0
-ccache -s
-
-# Java code
 ./gradlew assembleRelease
 popd
 

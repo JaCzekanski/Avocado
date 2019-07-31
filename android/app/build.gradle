@@ -1,7 +1,8 @@
 apply plugin: 'com.android.application'
 
 def signingPassword = System.getenv("keystore_password")
-def signingEnabled = System.getenv("CI") == "true"
+def signingEnabled = signingPassword != null
+println "App signing: $signingEnabled"
 
 android {
     compileSdkVersion 28
@@ -13,12 +14,9 @@ android {
         versionName "0.1.0"
         externalNativeBuild {
             ndkBuild {
-                arguments 'PM5_CONFIG=release_x64 NDK_DEBUG=0'
-                targets "libavocado.so"
+                arguments 'PM5_CONFIG=release_x64', '-j4'
+                targets "avocado"
             }
-        }
-        ndk {
-            abiFilters "x86_64", "arm64-v8a"
         }
     }
     signingConfigs {
@@ -39,18 +37,20 @@ android {
             if (signingEnabled) {
                 signingConfig signingConfigs.release
             }
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
+        }
+        debug {
+            ndk {
+                abiFilters "x86_64"
+            }
         }
     }
     
-
-//    externalNativeBuild {
-//        ndkBuild {
-//            path 'jni/Android.mk'
-//        }
-//    }
-    sourceSets{
-        main {
-            jniLibs.srcDirs = ['obj/local']
+    externalNativeBuild {
+        ndkBuild {
+            path 'jni/Android.mk'
         }
     }
 }

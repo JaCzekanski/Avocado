@@ -6,7 +6,6 @@ matrix:
     sudo: required
     dist: trusty
     cache: ccache
-    install: "./.travis/linux/pull-container.sh"
     script: "./.travis/linux/run-container.sh"
     after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
     after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
@@ -16,7 +15,6 @@ matrix:
     dist: trusty
     cache: ccache
     before_install: openssl aes-256-cbc -K $encrypted_7333c7dd5b15_key -iv $encrypted_7333c7dd5b15_iv -in android/avocado.keystore.enc -out android/avocado.keystore -d
-    install: "./.travis/android/pull-container.sh"
     script: "./.travis/android/run-container.sh"
     after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
     after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
@@ -30,7 +28,7 @@ matrix:
     after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
 
 notifications:
-- email: false
+  email: false
 
 deploy:
   provider: script

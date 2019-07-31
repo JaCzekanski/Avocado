@@ -7,7 +7,7 @@ workspace "Avocado"
     startproject "avocado"
 	defaultplatform "x86"
 	
-ndkabi "arm64-v8a"
+ndkabi "arm64-v8a armeabi-v7a"
 ndkstl "c++_static"
 ndkplatform "android-24"
 

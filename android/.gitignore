@@ -147,3 +147,4 @@ fastlane/README.md
 
 
 app/obj
+app/.externalNativeBuild/
