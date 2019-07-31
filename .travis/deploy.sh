@@ -5,6 +5,11 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
+if [[ ! -z "${SKIP_DEPLOY}" ]]; then
+    echo "Skipping deploy"
+    exit 0
+fi
+
 URL=https://avocado-builds.czekanski.info/api/upload
 FILES=""
 

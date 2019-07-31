@@ -33,13 +33,13 @@ Full list: [Avocado Builds](https://avocado-builds.czekanski.info)
 
 Build   | Status | Download
 --------|--------|---------
-Travis CI (Linux) | [![Build Status](https://avocado-builds.czekanski.info/status/linux64)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/linux64)
-Travis CI (macOS) | [![Build Status](https://avocado-builds.czekanski.info/status/macos)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/macos)
-Travis CI (Android) | [![Build Status](https://avocado-builds.czekanski.info/status/android)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/android)
-AppVeyor (Windows 64-bit, Visual Studio 2019) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | **[develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2019+Preview%2C+TOOLSET%3Dvs2017%2C+platform%3Dx64)**
-AppVeyor (Windows 32-bit, Visual Studio 2019) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2019+Preview%2C+TOOLSET%3Dvs2017%2C+platform%3DWin32)
-AppVeyor (Windows 64-bit, Visual Studio 2017) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2017%2C+TOOLSET%3Dvs2017%2C+platform%3Dx64)
-AppVeyor (Windows 32-bit, Visual Studio 2017) | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://ci.appveyor.com/api/projects/JaCzekanski/avocado/artifacts/avocado.zip?branch=develop&job=Environment%3A+APPVEYOR_BUILD_WORKER_IMAGE%3DVisual+Studio+2017%2C+TOOLSET%3Dvs2017%2C+platform%3DWin32)
+Linux | [![Build Status](https://avocado-builds.czekanski.info/status/linux64)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/linux64)
+macOS | [![Build Status](https://avocado-builds.czekanski.info/status/macos)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/macos)
+Android | [![Build Status](https://avocado-builds.czekanski.info/status/android)](https://travis-ci.org/JaCzekanski/Avocado) | [develop](https://avocado-builds.czekanski.info/latest/android)
+Windows 64-bit, Visual Studio 2019 | [![Build status](https://avocado-builds.czekanski.info/status/windows64)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | **[develop](https://avocado-builds.czekanski.info/latest/windows64)**
+Windows 32-bit, Visual Studio 2019 | [![Build status](https://avocado-builds.czekanski.info/status/windows32)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) | [develop](https://avocado-builds.czekanski.info/latest/windows32)
+Windows 64-bit, Visual Studio 2017 | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) |
+Windows 32-bit, Visual Studio 2017 | [![Build status](https://ci.appveyor.com/api/projects/status/h1cs3bj1vhskjxgx/branch/develop?svg=true)](https://ci.appveyor.com/project/JaCzekanski/avocado/branch/develop) |
 
 Despite this emulator being in early development, some 3D games can run. [Game compatibility list](https://avocado-db.czekanski.info)
 

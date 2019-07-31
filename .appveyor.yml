@@ -7,9 +7,11 @@ environment:
   SDL_VERSION: 2.0.9
   matrix:
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    SKIP_DEPLOY: skip
     TOOLSET: vs2017
     platform: Win32
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    SKIP_DEPLOY: skip
     TOOLSET: vs2017
     platform: x64
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
