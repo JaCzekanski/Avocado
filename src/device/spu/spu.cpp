@@ -1,7 +1,7 @@
 #include "spu.h"
 #include <array>
 #include <vector>
-#include "device/cdrom.h"
+#include "device/cdrom/cdrom.h"
 #include "interpolation.h"
 #include "reverb.h"
 #include "sound/adpcm.h"

@@ -1,5 +1,5 @@
 #include "dma3_channel.h"
-#include "device/cdrom.h"
+#include "device/cdrom/cdrom.h"
 #include "utils/file.h"
 
 namespace device::dma::dmaChannel {

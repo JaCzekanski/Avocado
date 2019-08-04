@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "cpu/cpu.h"
-#include "device/cdrom.h"
+#include "device/cdrom/cdrom.h"
 #include "device/controller/controller.h"
 #include "device/dma/dma.h"
 #include "device/expansion2.h"

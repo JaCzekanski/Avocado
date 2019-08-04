@@ -1,8 +1,7 @@
 #pragma once
-#include <deque>
 #include <memory>
-#include "device.h"
 #include "disc/disc.h"
+#include "fifo.h"
 
 struct System;
 
@@ -100,9 +99,9 @@ class CDROM {
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
-    std::deque<uint8_t> CDROM_params;
-    std::deque<uint8_t> CDROM_response;
-    std::deque<uint8_t> CDROM_interrupt;
+    fifo<16, uint8_t> CDROM_params;
+    fifo<16, uint8_t> CDROM_response;
+    fifo<16, uint8_t> CDROM_interrupt;
 
     Mode mode;
     Filter filter;
@@ -140,16 +139,15 @@ class CDROM {
     void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {
-        if (CDROM_response.size() >= 16) {
+        if (CDROM_response.full()) {
             return;
         }
-        CDROM_response.push_back(byte);
+        CDROM_response.add(byte);
         status.responseFifoEmpty = 1;
     }
 
     uint8_t readParam() {
-        uint8_t param = CDROM_params.front();
-        CDROM_params.pop_front();
+        uint8_t param = CDROM_params.get();
 
         status.parameterFifoEmpty = CDROM_params.empty();
         status.parameterFifoFull = 1;
@@ -157,7 +155,7 @@ class CDROM {
         return param;
     }
 
-    void debugLog(const char* cmd);
+    std::string dumpFifo(const fifo<16, uint8_t> f);
 
    public:
     uint8_t volumeLeftToLeft = 0;
@@ -186,7 +184,7 @@ class CDROM {
     bool getShell() const { return stat.getShell(); }
     void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
-        CDROM_interrupt.push_back(1);
+        CDROM_interrupt.add(1);
         writeResponse(stat._reg);
     }
 };
