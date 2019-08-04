@@ -19,8 +19,8 @@ CDROM::CDROM(System* sys) : sys(sys) {
 
 void CDROM::step() {
     status.transmissionBusy = 0;
-    if (!CDROM_interrupt.empty()) {
-        if ((interruptEnable & 7) & (CDROM_interrupt.peek() & 7)) {
+    if (!interruptQueue.empty()) {
+        if ((interruptEnable & 7) & (interruptQueue.peek() & 7)) {
             sys->interrupt->trigger(interrupt::CDROM);
         }
     }
@@ -50,7 +50,7 @@ void CDROM::step() {
 
                 int track = disc->getTrackByPosition(pos);
 
-                CDROM_interrupt.add(1);
+                postInterrupt(1);
                 writeResponse(stat._reg);           // stat
                 writeResponse(bcd::toBcd(track));   // track
                 writeResponse(0x01);                // index
@@ -145,7 +145,7 @@ void CDROM::step() {
 
 uint8_t CDROM::read(uint32_t address) {
     if (address == 0) {  // CD Status
-        // status.transmissionBusy = !CDROM_interrupt.empty();
+        // status.transmissionBusy = !interruptQueue.empty();
         if (verbose == 2) printf("CDROM: R STATUS: 0x%02x\n", status._reg);
         return status._reg;
     }
@@ -171,8 +171,8 @@ uint8_t CDROM::read(uint32_t address) {
         }
         if (status.index == 1 || status.index == 3) {  // Interrupt flags
             uint8_t _status = 0b11100000;
-            if (!CDROM_interrupt.empty()) {
-                _status |= CDROM_interrupt.peek() & 7;
+            if (!interruptQueue.empty()) {
+                _status |= interruptQueue.peek() & 7;
             }
             if (verbose == 2) printf("CDROM: R INTF: 0x%02x\n", _status);
             return _status;
@@ -231,62 +231,54 @@ std::string CDROM::dumpFifo(const fifo<16, uint8_t> f) {
 }
 
 void CDROM::handleCommand(uint8_t cmd) {
-    CDROM_interrupt.clear();
+    interruptQueue.clear();
     CDROM_response.clear();
-    if (cmd == 0x01)
-        cmdGetstat();
-    else if (cmd == 0x02)
-        cmdSetloc();
-    else if (cmd == 0x03)
-        cmdPlay();
-    else if (cmd == 0x06)
-        cmdReadN();
-    else if (cmd == 0x07)
-        cmdMotorOn();
-    else if (cmd == 0x1b)
-        cmdReadS();
-    else if (cmd == 0x0e)
-        cmdSetmode();
-    else if (cmd == 0x08)
-        cmdStop();
-    else if (cmd == 0x09)
-        cmdPause();
-    else if (cmd == 0x0b)
-        cmdMute();
-    else if (cmd == 0x0c)
-        cmdDemute();
-    else if (cmd == 0x0d)
-        cmdSetFilter();
-    else if (cmd == 0x10)
-        cmdGetlocL();
-    else if (cmd == 0x11)
-        cmdGetlocP();
-    else if (cmd == 0x12)
-        cmdSetSession();
-    else if (cmd == 0x13)
-        cmdGetTN();
-    else if (cmd == 0x14)
-        cmdGetTD();
-    else if (cmd == 0x15)
-        cmdSeekL();
-    else if (cmd == 0x16)
-        cmdSeekP();
-    else if (cmd == 0x0a)
-        cmdInit();
-    else if (cmd == 0x19)
-        cmdTest();
-    else if (cmd == 0x1A)
-        cmdGetId();
-    else if (cmd == 0x1e)
-        cmdReadTOC();
-    else if (cmd >= 0x50 && cmd <= 0x56)
-        cmdUnlock();
-    else {
-        printf("Unimplemented cmd 0x%x!\n", cmd);
-        CDROM_interrupt.add(5);
-        writeResponse(0x11);
-        writeResponse(0x40);
+    switch (cmd) {
+        case 0x01: cmdGetstat(); break;
+        case 0x02: cmdSetloc(); break;
+        case 0x03: cmdPlay(); break;
+        // Missing 0x04 cmdForward
+        // Missing 0x05 cmdBackward
+        case 0x06: cmdReadN(); break;
+        case 0x07: cmdMotorOn(); break;
+        case 0x08: cmdStop(); break;
+        case 0x09: cmdPause(); break;
+        case 0x0a: cmdInit(); break;
+        case 0x0b: cmdMute(); break;
+        case 0x0c: cmdDemute(); break;
+        case 0x0d: cmdSetFilter(); break;
+        case 0x0e: cmdSetmode(); break;
+        // Missing 0x0f cmdGetparam
+        case 0x10: cmdGetlocL(); break;
+        case 0x11: cmdGetlocP(); break;
+        case 0x12: cmdSetSession(); break;
+        case 0x13: cmdGetTN(); break;
+        case 0x14: cmdGetTD(); break;
+        case 0x15: cmdSeekL(); break;
+        case 0x16: cmdSeekP(); break;
+        // Missing 0x17 ???
+        // Missing 0x18 ???
+        case 0x19: cmdTest(); break;
+        case 0x1a: cmdGetId(); break;
+        case 0x1b: cmdReadS(); break;
+        // Missing 0x1c cmdReset
+        // Missing 0x1d cmdGetQ
+        case 0x1e: cmdReadTOC(); break;
+        case 0x50:
+        case 0x51:
+        case 0x52:
+        case 0x53:
+        case 0x54:
+        case 0x55:
+        case 0x56: cmdUnlock(); break;
+        default:
+            printf("[CDROM] Unimplemented cmd 0x%x, please report this game/software on project page.\n", cmd);
+            postInterrupt(5);
+            writeResponse(0x11);
+            writeResponse(0x40);
+            break;
     }
+
     CDROM_params.clear();
     status.parameterFifoEmpty = 1;
     status.parameterFifoFull = 1;
@@ -339,8 +331,8 @@ void CDROM::write(uint32_t address, uint8_t data) {
             status.parameterFifoFull = 1;
         }
 
-        if (!CDROM_interrupt.empty()) {
-            CDROM_interrupt.get();
+        if (!interruptQueue.empty()) {
+            interruptQueue.get();
         }
         if (verbose == 2) printf("CDROM: W INTF: 0x%02x\n", data);
         return;

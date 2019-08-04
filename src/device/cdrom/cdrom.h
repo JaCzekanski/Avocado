@@ -1,4 +1,5 @@
 #pragma once
+#include <deque>
 #include <memory>
 #include "disc/disc.h"
 #include "fifo.h"
@@ -101,7 +102,7 @@ class CDROM {
     uint8_t interruptEnable = 0;
     fifo<16, uint8_t> CDROM_params;
     fifo<16, uint8_t> CDROM_response;
-    fifo<16, uint8_t> CDROM_interrupt;
+    fifo<16, uint8_t> interruptQueue;
 
     Mode mode;
     Filter filter;
@@ -155,6 +156,12 @@ class CDROM {
         return param;
     }
 
+    void postInterrupt(int irq) {
+        assert(irq <= 7);
+
+        interruptQueue.add(irq);
+    }
+
     std::string dumpFifo(const fifo<16, uint8_t> f);
 
    public:
@@ -184,7 +191,7 @@ class CDROM {
     bool getShell() const { return stat.getShell(); }
     void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
-        CDROM_interrupt.add(1);
+        postInterrupt(1);
         writeResponse(stat._reg);
     }
 };

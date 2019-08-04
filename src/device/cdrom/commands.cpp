@@ -5,7 +5,7 @@
 namespace device {
 namespace cdrom {
 void CDROM::cmdGetstat() {
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdGetstat -> 0x%02x\n", CDROM_response[0]);
@@ -18,7 +18,7 @@ void CDROM::cmdSetloc() {
 
     seekSector = sector + (second * 75) + (minute * 60 * 75);
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdSetloc(min = %d, sec = %d, sect = %d)\n", minute, second, sector);
@@ -43,7 +43,7 @@ void CDROM::cmdPlay() {
 
     stat.setMode(StatusCode::Mode::Playing);
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdPlay (pos: %s)\n", pos.toString().c_str());
@@ -54,7 +54,7 @@ void CDROM::cmdReadN() {
 
     stat.setMode(StatusCode::Mode::Reading);
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdReadN\n");
@@ -63,10 +63,10 @@ void CDROM::cmdReadN() {
 void CDROM::cmdMotorOn() {
     stat.motor = 1;
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdMotorOn\n");
@@ -76,29 +76,29 @@ void CDROM::cmdStop() {
     stat.setMode(StatusCode::Mode::None);
     stat.motor = 0;
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdStop\n");
 }
 
 void CDROM::cmdPause() {
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::None);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdPause\n");
 }
 
 void CDROM::cmdInit() {
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     stat.motor = 1;
@@ -106,7 +106,7 @@ void CDROM::cmdInit() {
 
     mode._reg = 0;
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdInit\n");
@@ -114,7 +114,7 @@ void CDROM::cmdInit() {
 
 void CDROM::cmdMute() {
     mute = true;
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdMute\n");
@@ -122,7 +122,7 @@ void CDROM::cmdMute() {
 
 void CDROM::cmdDemute() {
     mute = false;
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdDemute\n");
@@ -131,7 +131,7 @@ void CDROM::cmdDemute() {
 void CDROM::cmdSetFilter() {
     filter.file = readParam();
     filter.channel = readParam();
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdSetFilter(file = 0x%02x, ch = 0x%02x)\n", filter.file, filter.channel);
@@ -142,7 +142,7 @@ void CDROM::cmdSetmode() {
 
     mode._reg = setmode;
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdSetmode(0x%02x)\n", setmode);
@@ -151,10 +151,10 @@ void CDROM::cmdSetmode() {
 void CDROM::cmdSetSession() {
     uint8_t session = readParam();
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdSetSession(0x%02x)\n", session);
@@ -163,12 +163,12 @@ void CDROM::cmdSetSession() {
 void CDROM::cmdSeekP() {
     readSector = seekSector;
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::Seeking);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::None);
@@ -178,12 +178,12 @@ void CDROM::cmdSeekP() {
 
 void CDROM::cmdGetlocL() {
     if (trackType != disc::TrackType::DATA || rawSector.empty()) {
-        CDROM_interrupt.add(5);
+        postInterrupt(5);
         writeResponse(0x80);
         return;
     }
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(rawSector[12]);  // minute (track)
     writeResponse(rawSector[13]);  // second (track)
     writeResponse(rawSector[14]);  // sector (track)
@@ -211,7 +211,7 @@ void CDROM::cmdGetlocP() {
     int track = disc->getTrackByPosition(pos);
     auto posInTrack = pos - disc->getTrackStart(track);
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(bcd::toBcd(track));          // track
     writeResponse(0x01);                       // index
     writeResponse(bcd::toBcd(posInTrack.mm));  // minute (track)
@@ -227,7 +227,7 @@ void CDROM::cmdGetlocP() {
 }
 
 void CDROM::cmdGetTN() {
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
     writeResponse(bcd::toBcd(0x01));
     writeResponse(bcd::toBcd(disc->getTrackCount()));
@@ -239,7 +239,7 @@ void CDROM::cmdGetTN() {
 
 void CDROM::cmdGetTD() {
     int track = readParam();
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
     if (track == 0)  // end of last track
     {
@@ -271,12 +271,12 @@ void CDROM::cmdGetTD() {
 void CDROM::cmdSeekL() {
     readSector = seekSector;
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::Seeking);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdSeekL\n");
@@ -286,18 +286,18 @@ void CDROM::cmdTest() {
     uint8_t opcode = readParam();
     if (opcode == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
     {
-        CDROM_interrupt.add(3);
+        postInterrupt(3);
         writeResponse(0x94);
         writeResponse(0x09);
         writeResponse(0x19);
         writeResponse(0xc0);
     } else if (opcode == 0x03) {  // Force motor off, used in swap
         stat.motor = 0;
-        CDROM_interrupt.add(3);
+        postInterrupt(3);
         writeResponse(stat._reg);
     } else {
         printf("Unimplemented test CDROM opcode (0x%x)!\n", opcode);
-        CDROM_interrupt.add(5);
+        postInterrupt(5);
     }
 
     if (verbose) {
@@ -308,31 +308,31 @@ void CDROM::cmdTest() {
 void CDROM::cmdGetId() {
     // Shell open
     if (stat.getShell()) {
-        CDROM_interrupt.add(5);
+        postInterrupt(5);
         writeResponse(0x11);
         writeResponse(0x80);
         return;
     }
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     // No CD
     if (disc->getTrackCount() == 0) {
-        CDROM_interrupt.add(5);
+        postInterrupt(5);
         writeResponse(0x08);
         writeResponse(0x40);
         for (int i = 0; i < 6; i++) writeResponse(0);
     }
     // Audio CD
     else if (disc->read(disc::Position(0, 2, 0)).second == disc::TrackType::AUDIO) {
-        CDROM_interrupt.add(5);
+        postInterrupt(5);
         writeResponse(0x0a);
         writeResponse(0x90);
         for (int i = 0; i < 6; i++) writeResponse(0);
     } else {
         // Game CD
-        CDROM_interrupt.add(2);
+        postInterrupt(2);
         writeResponse(0x02);
         writeResponse(0x00);
         writeResponse(0x20);
@@ -355,17 +355,17 @@ void CDROM::cmdReadS() {
     audio.second.clear();
     stat.setMode(StatusCode::Mode::Reading);
 
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdReadS\n");
 }
 
 void CDROM::cmdReadTOC() {
-    CDROM_interrupt.add(3);
+    postInterrupt(3);
     writeResponse(stat._reg);
 
-    CDROM_interrupt.add(2);
+    postInterrupt(2);
     writeResponse(stat._reg);
 
     if (verbose) printf("CDROM: cmdReadTOC\n");
@@ -373,7 +373,7 @@ void CDROM::cmdReadTOC() {
 
 void CDROM::cmdUnlock() {
     // Semi implemented
-    CDROM_interrupt.add(5);
+    postInterrupt(5);
     writeResponse(0x11);
     writeResponse(0x40);
 
