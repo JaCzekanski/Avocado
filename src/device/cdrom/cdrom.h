@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <deque>
 #include <memory>
 #include "disc/disc.h"
