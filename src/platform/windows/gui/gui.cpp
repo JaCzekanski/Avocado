@@ -5,6 +5,7 @@
 #include "debug/cpu/cpu.h"
 #include "debug/gpu/gpu.h"
 #include "debug/kernel/kernel.h"
+#include "debug/timers/timers.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
 #include "platform/windows/input/key.h"
@@ -16,7 +17,6 @@ void gteRegistersWindow(GTE& gte);
 void ioLogWindow(System* sys);
 void gteLogWindow(System* sys);
 void gpuLogWindow(System* sys);
-void ioWindow(System* sys);
 void vramWindow(gpu::GPU* gpu);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
@@ -30,7 +30,6 @@ bool ioLogEnabled = false;
 bool gteLogEnabled = false;
 bool gpuLogEnabled = false;
 bool singleFrame = false;
-bool showIo = false;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
@@ -42,6 +41,7 @@ bool showSpuWindow = false;
 bool showAboutWindow = false;
 
 gui::debug::cpu::CPU cpuDebug;
+gui::debug::timers::Timers timersDebug;
 
 void aboutWindow() {
     ImGui::Begin("About", &showAboutWindow);
@@ -112,7 +112,8 @@ void renderImgui(System* sys) {
                 ImGui::Separator();
 
                 ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
-                ImGui::MenuItem("IO", nullptr, &showIo);
+                ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
+                ;
                 ImGui::MenuItem("Memory", nullptr, &showRamWindow);
                 ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
                 ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
@@ -145,7 +146,6 @@ void renderImgui(System* sys) {
         if (ioLogEnabled) ioLogWindow(sys);
         if (gteLogEnabled) gteLogWindow(sys);
         if (gpuLogEnabled) gpuLogWindow(sys);
-        if (showIo) ioWindow(sys);
         if (showRamWindow) ramWindow(sys);
         if (showVramWindow) vramWindow(sys->gpu.get());
         if (showWatchWindow) watchWindow(sys);
@@ -154,6 +154,7 @@ void renderImgui(System* sys) {
         if (showGpuWindow) gpuWindow(sys);
         if (showSpuWindow) spuWindow(sys->spu.get());
 
+        timersDebug.displayWindows(sys);
         cpuDebug.displayWindows(sys);
 
         // Options

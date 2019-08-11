@@ -65,11 +65,11 @@ union CounterMode {
 };
 }  // namespace timer
 
-template <int which>
 class Timer {
+   public:
     const int baseAddress = 0x1f801100;
 
-   public:
+    int which;
     Reg16 current;
     timer::CounterMode mode;
     Reg16 target;
@@ -92,7 +92,7 @@ class Timer {
     }
 
    public:
-    Timer(System* sys);
+    Timer(System* sys, int which);
     void step() { step(1); }
     void step(int cycles);
     uint8_t read(uint32_t address);

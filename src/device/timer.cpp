@@ -3,11 +3,9 @@
 
 using namespace timer;
 
-template <int which>
-Timer<which>::Timer(System* sys) : sys(sys) {}
+Timer::Timer(System* sys, int which) : which(which), sys(sys) {}
 
-template <int which>
-void Timer<which>::step(int cycles) {
+void Timer::step(int cycles) {
     if (paused) return;
     cnt += cycles;
 
@@ -66,8 +64,7 @@ void Timer<which>::step(int cycles) {
     current._reg = (uint16_t)tval;
 }
 
-template <int which>
-void Timer<which>::checkIrq() {
+void Timer::checkIrq() {
     if (mode.irqPulseMode == CounterMode::IrqPulseMode::toggle) {
         mode.interruptRequest = !mode.interruptRequest;
     } else {
@@ -83,8 +80,7 @@ void Timer<which>::checkIrq() {
     mode.interruptRequest = true;  // low only for few cycles
 }
 
-template <int which>
-uint8_t Timer<which>::read(uint32_t address) {
+uint8_t Timer::read(uint32_t address) {
     if (address < 2) {
         return current.read(address);
     }
@@ -102,8 +98,7 @@ uint8_t Timer<which>::read(uint32_t address) {
     return 0;
 }
 
-template <int which>
-void Timer<which>::write(uint32_t address, uint8_t data) {
+void Timer::write(uint32_t address, uint8_t data) {
     if (address < 2) {
         current.write(address, data);
     } else if (address >= 4 && address < 6) {
@@ -142,7 +137,3 @@ void Timer<which>::write(uint32_t address, uint8_t data) {
         target.write(address - 8, data);
     }
 }
-
-template class Timer<0>;
-template class Timer<1>;
-template class Timer<2>;

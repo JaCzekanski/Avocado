@@ -402,39 +402,6 @@ void gpuLogWindow(System *sys) {
     }
 }
 
-void ioWindow(System *sys) {
-    if (!showIo) {
-        return;
-    }
-    ImGui::Begin("IO", &showIo, ImVec2(300, 200));
-
-    ImGui::Columns(1, nullptr, false);
-    ImGui::Text("Timer 0");
-
-    ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", sys->timer0->current._reg);
-    dumpRegister("target", sys->timer0->target._reg);
-    dumpRegister("mode", sys->timer0->mode._reg);
-
-    ImGui::Columns(1, nullptr, false);
-    ImGui::Text("Timer 1");
-
-    ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", sys->timer1->current._reg);
-    dumpRegister("target", sys->timer1->target._reg);
-    dumpRegister("mode", sys->timer1->mode._reg);
-
-    ImGui::Columns(1, nullptr, false);
-    ImGui::Text("Timer 2");
-
-    ImGui::Columns(2, nullptr, false);
-    dumpRegister("current", sys->timer2->current._reg);
-    dumpRegister("target", sys->timer2->target._reg);
-    dumpRegister("mode", sys->timer2->mode._reg);
-
-    ImGui::End();
-}
-
 void ioLogWindow(System *sys) {
 #ifdef ENABLE_IO_LOG
     if (!ioLogEnabled) {

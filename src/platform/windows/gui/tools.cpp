@@ -15,13 +15,14 @@ void Columns(const std::vector<std::string>& list, int col_num) {
     };
 
     ImGui::Columns(col_num, nullptr, true);
+    for (int c = 0; c < col_num; c++) {
+        ImGui::SetColumnWidth(c, columnsWidth[c]);
+    }
+
     for (auto item : list) {
         column(item);
     }
 
-    for (int c = 0; c < col_num; c++) {
-        ImGui::SetColumnWidth(c, columnsWidth[c]);
-    }
     ImGui::Columns(1);
 }
 };  // namespace gui::tools

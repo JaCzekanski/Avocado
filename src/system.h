@@ -93,9 +93,7 @@ struct System {
     std::unique_ptr<MemoryControl> memoryControl;
     std::unique_ptr<spu::SPU> spu;
     std::unique_ptr<Serial> serial;
-    std::unique_ptr<Timer<0>> timer0;
-    std::unique_ptr<Timer<1>> timer1;
-    std::unique_ptr<Timer<2>> timer2;
+    std::array<std::unique_ptr<Timer>, 3> timer;
 
     template <typename T>
     INLINE T readMemory(uint32_t address);

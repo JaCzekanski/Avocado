@@ -27,9 +27,9 @@ System::System() {
     interrupt = std::make_unique<Interrupt>(this);
     memoryControl = std::make_unique<MemoryControl>();
     serial = std::make_unique<Serial>();
-    timer0 = std::make_unique<Timer<0>>(this);
-    timer1 = std::make_unique<Timer<1>>(this);
-    timer2 = std::make_unique<Timer<2>>(this);
+    for (int t : {0, 1, 2}) {
+        timer[t] = std::make_unique<Timer>(this, t);
+    }
 
     debugOutput = config["debug"]["log"]["system"].get<int>();
     biosLog = config["debug"]["log"]["bios"];
@@ -161,9 +161,9 @@ INLINE T System::readMemory(uint32_t address) {
     READ_IO(0x1f801060, 0x1f801064, memoryControl);
     READ_IO(0x1f801070, 0x1f801078, interrupt);
     READ_IO(0x1f801080, 0x1f801100, dma);
-    READ_IO(0x1f801100, 0x1f801110, timer0);
-    READ_IO(0x1f801110, 0x1f801120, timer1);
-    READ_IO(0x1f801120, 0x1f801130, timer2);
+    READ_IO(0x1f801100, 0x1f801110, timer[0]);
+    READ_IO(0x1f801110, 0x1f801120, timer[1]);
+    READ_IO(0x1f801120, 0x1f801130, timer[2]);
     READ_IO(0x1f801800, 0x1f801804, cdrom);
     READ_IO32(0x1f801810, 0x1f801818, gpu);
     READ_IO32(0x1f801820, 0x1f801828, mdec);
@@ -203,9 +203,9 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     WRITE_IO(0x1f801060, 0x1f801064, memoryControl);
     WRITE_IO(0x1f801070, 0x1f801078, interrupt);
     WRITE_IO(0x1f801080, 0x1f801100, dma);
-    WRITE_IO(0x1f801100, 0x1f801110, timer0);
-    WRITE_IO(0x1f801110, 0x1f801120, timer1);
-    WRITE_IO(0x1f801120, 0x1f801130, timer2);
+    WRITE_IO(0x1f801100, 0x1f801110, timer[0]);
+    WRITE_IO(0x1f801110, 0x1f801120, timer[1]);
+    WRITE_IO(0x1f801120, 0x1f801130, timer[2]);
     WRITE_IO(0x1f801800, 0x1f801804, cdrom);
     WRITE_IO32(0x1f801810, 0x1f801818, gpu);
     WRITE_IO32(0x1f801820, 0x1f801828, mdec);
@@ -318,9 +318,9 @@ void System::singleStep() {
 
     dma->step();
     cdrom->step();
-    timer0->step(3);
-    timer1->step(3);
-    timer2->step(3);
+    timer[0]->step(3);
+    timer[1]->step(3);
+    timer[2]->step(3);
     controller->step();
     spu->step(cdrom.get());
 
@@ -346,9 +346,9 @@ void System::emulateFrame() {
 
         dma->step();
         cdrom->step();
-        timer0->step(systemCycles);
-        timer1->step(systemCycles);
-        timer2->step(systemCycles);
+        timer[0]->step(systemCycles);
+        timer[1]->step(systemCycles);
+        timer[2]->step(systemCycles);
 
         static float spuCounter = 0;
         // TODO: Yey, magic numbers!
@@ -370,15 +370,15 @@ void System::emulateFrame() {
             return;  // frame emulated
         }
 
-        if (gpu->gpuLine >= gpu::LINE_VBLANK_START_NTSC) {
-            if (timer1->mode.syncEnabled) {
-                auto mode1 = static_cast<timer::CounterMode::SyncMode1>(timer1->mode.syncMode);
+        if (gpu->gpuLine > gpu::LINE_VBLANK_START_NTSC) {
+            if (timer[1]->mode.syncEnabled) {
+                auto mode1 = static_cast<timer::CounterMode::SyncMode1>(timer[1]->mode.syncMode);
                 using modes = timer::CounterMode::SyncMode1;
                 if (mode1 == modes::resetAtVblank || mode1 == modes::resetAtVblankAndPauseOutside) {
-                    timer1->current._reg = 0;
+                    timer[1]->current._reg = 0;
                 } else if (mode1 == modes::pauseUntilVblankAndFreerun) {
-                    timer1->paused = false;
-                    timer1->mode.syncEnabled = false;
+                    timer[1]->paused = false;
+                    timer[1]->mode.syncEnabled = false;
                 }
             }
         }
