@@ -73,48 +73,60 @@ INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const iv
 }
 
 template <ColorDepth bits>
+INLINE PSXColor fetchTex(GPU* gpu, uvec2 texel, const ivec2 texPage, const ivec2 clut) {
+    if constexpr (bits == ColorDepth::BIT_4) {
+        return tex4bit(gpu, texel, texPage, clut);
+    } else if constexpr (bits == ColorDepth::BIT_8) {
+        return tex8bit(gpu, texel, texPage, clut);
+    } else if constexpr (bits == ColorDepth::BIT_16) {
+        return tex16bit(gpu, texel, texPage);
+    } else {
+        static_assert(true, "Invalid ColorDepth parameter");
+    }
+}
+
+template <ColorDepth bits>
 INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage,
                       const ivec2 clut, const int flags, const gpu::GP0_E2 textureWindow, const gpu::GP0_E6 maskSettings) {
-    // Check mask bit
     if (unlikely(maskSettings.checkMaskBeforeDraw)) {
         PSXColor bg = VRAM[p.y][p.x];
         if (bg.k) return;
     }
 
-    uvec2 texel = calculateTexel(s, area, tex, textureWindow);
+    constexpr bool isTextured = bits != ColorDepth::NONE;
+    const bool isSemiTransparent = flags & Vertex::SemiTransparency;
+    const bool isBlended = !(flags & Vertex::RawTexture);
 
     PSXColor c;
-    switch (bits) {
-        case ColorDepth::NONE: c = doShading(s, area, p, color, flags); break;
-        case ColorDepth::BIT_4: c = tex4bit(gpu, texel, texPage, clut); break;
-        case ColorDepth::BIT_8: c = tex8bit(gpu, texel, texPage, clut); break;
-        case ColorDepth::BIT_16: c = tex16bit(gpu, texel, texPage); break;
-    }
+    if constexpr (bits == ColorDepth::NONE) {
+        c = doShading(s, area, p, color, flags);
+    } else {
+        uvec2 texel = calculateTexel(s, area, tex, textureWindow);
+        c = fetchTex<bits>(gpu, texel, texPage, clut);
+        if (c.raw == 0x0000) return;
 
-    if ((bits != ColorDepth::NONE || (flags & Vertex::SemiTransparency)) && c.raw == 0x0000) return;
+        if (isBlended) {
+            vec3 brightness;
 
-    // If texture blending is enabled
-    if (bits != ColorDepth::NONE && !(flags & Vertex::RawTexture)) {
-        vec3 brightness;
+            if (flags & Vertex::GouroudShading) {
+                // TODO: Get rid of float colors
+                vec3 fcolor[3];
+                fcolor[0] = vec3(color[0]) / 255.f;
+                fcolor[1] = vec3(color[1]) / 255.f;
+                fcolor[2] = vec3(color[2]) / 255.f;
+                brightness = vec3(                                                       //
+                    (s.x * fcolor[0].r + s.y * fcolor[1].r + s.z * fcolor[2].r) / area,  //
+                    (s.x * fcolor[0].g + s.y * fcolor[1].g + s.z * fcolor[2].g) / area,  //
+                    (s.x * fcolor[0].b + s.y * fcolor[1].b + s.z * fcolor[2].b) / area);
+            } else {  // Flat shading
+                brightness = vec3(color[0]) / 255.f;
+            }
 
-        if (flags & Vertex::GouroudShading) {
-            // TODO: Get rid of float colors
-            vec3 fcolor[3];
-            fcolor[0] = vec3(color[0]) / 255.f;
-            fcolor[1] = vec3(color[1]) / 255.f;
-            fcolor[2] = vec3(color[2]) / 255.f;
-            brightness = vec3(                                                       //
-                (s.x * fcolor[0].r + s.y * fcolor[1].r + s.z * fcolor[2].r) / area,  //
-                (s.x * fcolor[0].g + s.y * fcolor[1].g + s.z * fcolor[2].g) / area,  //
-                (s.x * fcolor[0].b + s.y * fcolor[1].b + s.z * fcolor[2].b) / area);
-        } else {  // Flat shading
-            brightness = vec3(color[0]) / 255.f;
+            c = c * (brightness * 2.f);
         }
-
-        c = c * (brightness * 2.f);
     }
 
-    if ((flags & Vertex::SemiTransparency) && ((bits != ColorDepth::NONE && c.k) || (bits == ColorDepth::NONE))) {
+    if (isSemiTransparent && (!isTextured || c.k)) {
         using Transparency = gpu::GP0_E1::SemiTransparency;
 
         auto transparency = (Transparency)((flags & 0x60) >> 5);
