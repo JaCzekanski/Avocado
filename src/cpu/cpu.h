@@ -52,8 +52,8 @@ struct CPU {
 
     // Saved state for exception handling
     uint32_t exceptionPC;
-    uint32_t exceptionIsInBranchDelay;
-    uint32_t exceptionIsBranchTaken;
+    bool exceptionIsInBranchDelay;
+    bool exceptionIsBranchTaken;
 
     uint32_t PC;                    // Address to be executed
     uint32_t nextPC;                // Next address to be executed

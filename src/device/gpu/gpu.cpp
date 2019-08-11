@@ -198,7 +198,7 @@ void GPU::cmdLine(LineArgs arg) {
             if (arg.semiTransparency) flags |= Vertex::Flags::SemiTransparency;
             if (arg.gouroudShading) flags |= Vertex::Flags::GouroudShading;
             for (int i : {0, 1}) {
-                Vertex v = {Vertex::Type::Line, {x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2};
+                Vertex v = {Vertex::Type::Line, {x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2, gp0_e6};
                 vertices.push_back(v);
             }
         }

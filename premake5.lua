@@ -25,6 +25,32 @@ newoption {
 filter "options:enable-io-log"
 	defines "ENABLE_IO_LOG"
 
+newoption {
+    trigger = "asan",
+    description = "Build with Address Sanitizer enabled"
+}
+filter "options:asan"
+	symbols "On"
+    buildoptions {"-fsanitize=address"}
+	linkoptions {"-fsanitize=address"}
+	
+newoption {
+    trigger = "msan",
+    description = "Build with Memory Sanitizer enabled"
+}
+filter "options:msan"
+	symbols "On"
+    buildoptions {"-fsanitize=memory"}
+	linkoptions {"-fsanitize=memory"}
+	
+newoption {
+    trigger = "ubsan",
+    description = "Build with Undefined Behaviour Sanitizer enabled"
+}
+filter "options:ubsan"
+	symbols "On"
+    buildoptions {"-fsanitize=undefined"}
+    linkoptions {"-fsanitize=undefined"}
 
 filter {}
 	language "c++"

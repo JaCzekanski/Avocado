@@ -39,9 +39,9 @@ bool isCw(const ivec2 v[3]) {
 }
 
 INLINE uvec2 calculateTexel(const ivec3 s, const int area, const ivec2 tex[3], const gpu::GP0_E2 textureWindow) {
-    uvec2 texel(                                                    //
-        (s.x * tex[0].x + s.y * tex[1].x + s.z * tex[2].x) / area,  //
-        (s.x * tex[0].y + s.y * tex[1].y + s.z * tex[2].y) / area   //
+    uvec2 texel(                                                                               //
+        ((int64_t)s.x * tex[0].x + (int64_t)s.y * tex[1].x + (int64_t)s.z * tex[2].x) / area,  //
+        ((int64_t)s.x * tex[0].y + (int64_t)s.y * tex[1].y + (int64_t)s.z * tex[2].y) / area   //
     );
 
     // Texture is repeated outside of 256x256 window
