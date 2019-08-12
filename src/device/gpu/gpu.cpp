@@ -490,8 +490,8 @@ void GPU::writeGP0(uint32_t data) {
             drawingArea.bottom = (arguments[0] & 0xffc00) >> 10;
         } else if (command == 0xe5) {
             // Drawing offset
-            drawingOffsetX = extend_sign<11>(arguments[0] & 0x7ff);
-            drawingOffsetY = extend_sign<11>((arguments[0] >> 11) & 0x7ff);
+            drawingOffsetX = extend_sign<10>(arguments[0] & 0x7ff);
+            drawingOffsetY = extend_sign<10>((arguments[0] >> 11) & 0x7ff);
         } else if (command == 0xe6) {
             // Mask bit setting
             gp0_e6._reg = arguments[0];
