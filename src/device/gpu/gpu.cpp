@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
+#include "rectangle.h"
 #include "render/render.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
@@ -22,6 +23,7 @@ GPU::~GPU() { bus.unlistenAll(busToken); }
 void GPU::reload() {
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
     softwareRendering = (mode & RenderingMode::SOFTWARE) != 0;
+    hardwareRendering = (mode & RenderingMode::HARDWARE) != 0;
 }
 
 void GPU::reset() {
@@ -101,6 +103,58 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
         if (softwareRendering) {
             Render::drawTriangle(this, v);
         }
+    }
+}
+
+void GPU::drawRectangle(const Rectangle& rect) {
+    if (hardwareRendering) {
+        int x[4], y[4];
+        glm::ivec2 uv[4];
+
+        x[0] = rect.pos.x;
+        y[0] = rect.pos.y;
+
+        x[1] = rect.pos.x + rect.size.x;
+        y[1] = rect.pos.y;
+
+        x[2] = rect.pos.x;
+        y[2] = rect.pos.y + rect.size.y;
+
+        x[3] = rect.pos.x + rect.size.x;
+        y[3] = rect.pos.y + rect.size.y;
+
+        uv[0].x = rect.uv.x;
+        uv[0].y = rect.uv.y;
+
+        uv[1].x = rect.uv.x + rect.size.x;
+        uv[1].y = rect.uv.y;
+
+        uv[2].x = rect.uv.x;
+        uv[2].y = rect.uv.y + rect.size.y;
+
+        uv[3].x = rect.uv.x + rect.size.x;
+        uv[3].y = rect.uv.y + rect.size.y;
+
+        int flags = 0;
+
+        Vertex v[6];
+        for (int i : {0, 1, 2, 1, 2, 3}) {
+            v[i] = {Vertex::Type::Polygon,
+                    {x[i], y[i]},
+                    {rect.color.r, rect.color.g, rect.color.b},
+                    {uv[i].x, uv[i].y},
+                    rect.bits,
+                    {rect.clut.x, rect.clut.y},
+                    {rect.texpage.x, rect.texpage.y},
+                    flags,
+                    gp0_e2,
+                    gp0_e6};
+            vertices.push_back(v[i]);
+        }
+    }
+
+    if (softwareRendering) {
+        Render::drawRectangle(this, rect);
     }
 }
 
@@ -209,6 +263,15 @@ void GPU::cmdLine(LineArgs arg) {
 }
 
 void GPU::cmdRectangle(RectangleArgs arg) {
+    /* Rectangle command format
+    arg[0] = cmd + color      (0xCCBB GGRR)
+    arg[1] = pos              (0xYYYY XXXX)
+    arg[2] = Palette + tex UV (0xCLUT VVUU) (*if textured)
+    arg[3] = size             (0xHHHH WWWW) (*if variable size) */
+    using vec2 = glm::ivec2;
+    using vec3 = glm::ivec3;
+    using Bits = gpu::GP0_E1::TexturePageColors;
+
     int16_t w = arg.getSize();
     int16_t h = arg.getSize();
 
@@ -220,52 +283,42 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     int16_t x = extend_sign<10>(arguments[1] & 0xffff);
     int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
 
-    int16_t _x[4];
-    int16_t _y[4];
-    RGB _c[4];
+    Rectangle rect;
+    rect.pos = vec2(x, y);
+    rect.size = vec2(w, h);
+    rect.color = vec3((arguments[0]) & 0xff, (arguments[0] >> 8) & 0xff, (arguments[0] >> 16) & 0xff);
 
-    _x[0] = x;
-    _y[0] = y;
-
-    _x[1] = x + w;
-    _y[1] = y;
-
-    _x[2] = x;
-    _y[2] = y + h;
-
-    _x[3] = x + w;
-    _y[3] = y + h;
-
-    _c[0].raw = arguments[0];
-    _c[1].raw = arguments[0];
-    _c[2].raw = arguments[0];
-    _c[3].raw = arguments[0];
-    TextureInfo tex;
+    if (!arg.isTextureMapped)
+        rect.bits = 0;
+    else if (gp0_e1.texturePageColors == Bits::bit4)
+        rect.bits = 4;
+    else if (gp0_e1.texturePageColors == Bits::bit8)
+        rect.bits = 8;
+    else if (gp0_e1.texturePageColors == Bits::bit15)
+        rect.bits = 16;
+    rect.isSemiTransparent = arg.semiTransparency;
+    rect.isRawTexture = arg.isRawTexture;
 
     if (arg.isTextureMapped) {
-        int texX = arguments[2] & 0xff;
-        int texY = (arguments[2] & 0xff00) >> 8;
+        union Argument2 {
+            struct {
+                uint32_t u : 8;
+                uint32_t v : 8;
+                uint32_t clutX : 6;
+                uint32_t clutY : 9;
+                uint32_t : 1;
+            };
+            uint32_t _raw;
+            Argument2(uint32_t arg) : _raw(arg) {}
+        };
+        Argument2 p = arguments[2];
 
-        tex.palette = arguments[2];
-        tex.texpage = (gp0_e1._reg << 16);
-
-        tex.uv[0].x = texX;
-        tex.uv[0].y = texY;
-
-        tex.uv[1].x = texX + w;
-        tex.uv[1].y = texY;
-
-        tex.uv[2].x = texX;
-        tex.uv[2].y = texY + h;
-
-        tex.uv[3].x = texX + w;
-        tex.uv[3].y = texY + h;
+        rect.uv = vec2(p.u, p.v);
+        rect.clut = vec2(p.clutX * 16, p.clutY);
+        rect.texpage = vec2(gp0_e1.texturePageBaseX * 64, gp0_e1.texturePageBaseY * 256);
     }
-    int flags = 0;
-    if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
-    if (arg.isRawTexture) flags |= Vertex::RawTexture;
 
-    drawPolygon(_x, _y, _c, tex, true, arg.isTextureMapped, flags);
+    drawRectangle(rect);
 
     cmd = Command::None;
 }

@@ -37,9 +37,24 @@ bool isCw(const ivec2 v[3]) {
 
     return n.z < 0;
 }
+INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const ivec3 color[3], const int flags) {
+    ivec3 outColor(                                                       //
+        (s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
+        (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
+        (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b) / area   //
+    );
 
-INLINE uvec2 calculateTexel(const ivec3 s, const int area, const ivec2 tex[3], const gpu::GP0_E2 textureWindow) {
-    uvec2 texel(                                                                               //
+    // TODO: THPS2 fading screen doesn't look as it should
+    if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
+        outColor += ditherTable[p.y & 3u][p.x & 3u];
+        outColor = glm::clamp(outColor, 0, 255);
+    }
+
+    return to15bit(outColor.r, outColor.g, outColor.b);
+}
+
+INLINE glm::uvec2 calculateTexel(const glm::ivec3 s, const int area, const glm::ivec2 tex[3], const gpu::GP0_E2 textureWindow) {
+    glm::uvec2 texel(                                                                          //
         ((int64_t)s.x * tex[0].x + (int64_t)s.y * tex[1].x + (int64_t)s.z * tex[2].x) / area,  //
         ((int64_t)s.x * tex[0].y + (int64_t)s.y * tex[1].y + (int64_t)s.z * tex[2].y) / area   //
     );
@@ -54,35 +69,6 @@ INLINE uvec2 calculateTexel(const ivec3 s, const int area, const ivec2 tex[3], c
     texel.y = (texel.y & ~(textureWindow.maskY * 8)) | ((textureWindow.offsetY & textureWindow.maskY) * 8);
 
     return texel;
-}
-
-INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const ivec3 color[3], const int flags) {
-    ivec3 outColor(                                                       //
-        (s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
-        (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
-        (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b) / area   //
-    );
-
-    // TODO: THPS2 fading screen doesn't look as it should
-    if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
-        outColor += ditherTable[p.y % 4u][p.x % 4u];
-        outColor = glm::clamp(outColor, 0, 255);
-    }
-
-    return to15bit(outColor.r, outColor.g, outColor.b);
-}
-
-template <ColorDepth bits>
-INLINE PSXColor fetchTex(GPU* gpu, uvec2 texel, const ivec2 texPage, const ivec2 clut) {
-    if constexpr (bits == ColorDepth::BIT_4) {
-        return tex4bit(gpu, texel, texPage, clut);
-    } else if constexpr (bits == ColorDepth::BIT_8) {
-        return tex8bit(gpu, texel, texPage, clut);
-    } else if constexpr (bits == ColorDepth::BIT_16) {
-        return tex16bit(gpu, texel, texPage);
-    } else {
-        static_assert(true, "Invalid ColorDepth parameter");
-    }
 }
 
 template <ColorDepth bits>
@@ -124,6 +110,7 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
 
             c = c * (brightness * 2.f);
         }
+        // TODO: Textured polygons are not dithered
     }
 
     if (isSemiTransparent && (!isTextured || c.k)) {
@@ -147,6 +134,9 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
 template <ColorDepth bits>
 INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage, const ivec2 clut,
                      const int flags, const gpu::GP0_E2 textureWindow, const gpu::GP0_E6 maskSettings) {
+    const int area = orient2d(pos[0], pos[1], pos[2]);
+    if (area == 0) return;
+
     const ivec2 min = ivec2(                                         //
         gpu->minDrawingX(std::min({pos[0].x, pos[1].x, pos[2].x})),  //
         gpu->minDrawingY(std::min({pos[0].y, pos[1].y, pos[2].y}))   //
@@ -167,12 +157,10 @@ INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const i
     const int B20 = pos[0].x - pos[2].x;
 
     const ivec2 minp = ivec2(min.x, min.y);
+
     int w0_row = orient2d(pos[1], pos[2], minp);
     int w1_row = orient2d(pos[2], pos[0], minp);
     int w2_row = orient2d(pos[0], pos[1], minp);
-
-    const int area = orient2d(pos[0], pos[1], pos[2]);
-    if (area == 0) return;
 
     ivec2 p;
 
@@ -229,8 +217,12 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
         if (abs(pos[j].y - pos[(j + 1) % 3].y) >= 512) return;
     }
 
-    if (bits == 0) triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
-    if (bits == 4) triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
-    if (bits == 8) triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
-    if (bits == 16) triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    if (bits == 0)
+        triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    else if (bits == 4)
+        triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    else if (bits == 8)
+        triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    else if (bits == 16)
+        triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
 }

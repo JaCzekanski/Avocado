@@ -1,6 +1,5 @@
 #pragma once
 #include <algorithm>
-#include <glm/glm.hpp>
 
 template <typename T>
 T clamp(T number, size_t range) {

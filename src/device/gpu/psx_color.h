@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <glm/glm.hpp>
 #include "utils/math.h"
 
 union RGB {
@@ -23,6 +24,12 @@ union PSXColor {
 
     PSXColor() : raw(0) {}
     PSXColor(uint16_t color) : raw(color) {}
+    PSXColor(uint8_t r, uint8_t g, uint8_t b) {
+        this->r = r >> 3;
+        this->g = g >> 3;
+        this->b = b >> 3;
+        this->k = 0;
+    }
 
     PSXColor operator+(const PSXColor& rhs) {
         r = std::min(r + rhs.r, 31);

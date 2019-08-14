@@ -7,6 +7,7 @@
 
 #define VRAM ((uint16_t(*)[VRAM_WIDTH])vram.data())
 
+struct Rectangle;
 struct System;
 class Render;
 class OpenGL;
@@ -94,6 +95,7 @@ class GPU {
     std::vector<Vertex> vertices;
 
     bool softwareRendering;
+    bool hardwareRendering;
 
     void reset();
     void cmdFillRectangle(uint8_t command);
@@ -106,6 +108,7 @@ class GPU {
     void cmdVramToVram(uint8_t command);
 
     void drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isQuad = false, bool textured = false, int flags = 0);
+    void drawRectangle(const Rectangle& rect);
 
     void writeGP0(uint32_t data);
     void writeGP1(uint32_t data);
