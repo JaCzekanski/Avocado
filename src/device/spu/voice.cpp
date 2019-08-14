@@ -1,4 +1,5 @@
 #include "voice.h"
+#include <cmath>
 #include "sound/adpcm.h"
 #include "utils/math.h"
 
@@ -61,7 +62,7 @@ void Voice::processEnvelope() {
             cycles *= 4;
         }
         if (e.direction == Dir::Decrease) {
-            step = static_cast<int>(static_cast<float>(step) * std::ceil(static_cast<float>(adsrVolume._reg) / static_cast<float>(0x8000)));
+            step = (int)(ceilf((float)adsrVolume._reg / (float)0x8000) * (float)step);
         }
     }
 

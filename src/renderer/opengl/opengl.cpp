@@ -1,10 +1,9 @@
 #include "opengl.h"
 #include <SDL.h>
 #include <algorithm>
-#include "config.h"
-#include "device/gpu/gpu.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
+#include "config.h"
 #include "utils/string.h"
 
 bool OpenGL::init() {

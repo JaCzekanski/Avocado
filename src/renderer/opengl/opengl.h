@@ -1,12 +1,11 @@
 #pragma once
 #include <opengl.h>
 #include <memory>
+#include "device/gpu/gpu.h"
 #include "shader/buffer.h"
 #include "shader/framebuffer.h"
 #include "shader/program.h"
 #include "shader/texture.h"
-
-class gpu::GPU;
 
 class OpenGL {
    public:

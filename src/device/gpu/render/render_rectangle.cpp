@@ -1,4 +1,4 @@
-#include "device/gpu/rectangle.h"
+#include "../primitive.h"
 #include "render.h"
 #include "texture_utils.h"
 #include "utils/macros.h"
@@ -26,7 +26,7 @@ INLINE glm::uvec2 calculateTexel(glm::ivec2 tex, const gpu::GP0_E2 textureWindow
 }
 
 template <ColorDepth bits>
-INLINE void rectangle(GPU* gpu, const Rectangle& rect) {
+INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     // Extract common GPU state
     using Transparency = gpu::GP0_E1::SemiTransparency;
     const auto transparency = gpu->gp0_e1.semiTransparency;
@@ -102,7 +102,7 @@ INLINE void rectangle(GPU* gpu, const Rectangle& rect) {
         }
     }
 }
-void Render::drawRectangle(gpu::GPU* gpu, const Rectangle& rect) {
+void Render::drawRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
     if (rect.bits == 0) {
         rectangle<ColorDepth::NONE>(gpu, rect);
     } else if (rect.bits == 4) {

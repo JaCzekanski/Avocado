@@ -205,10 +205,16 @@ project "avocado"
 		}
 
 	filter {"system:windows", "not options:headless", "platforms:x86"}
-		libdirs "externals/SDL2/lib/x86"
+		libdirs {
+			"externals/SDL2/lib/x86",
+			"externals/SDL2/VisualC/Win32/Release",
+		}
 		
 	filter {"system:windows", "not options:headless", "platforms:x64"}
-		libdirs "externals/SDL2/lib/x64"
+		libdirs {
+			"externals/SDL2/lib/x64",
+			"externals/SDL2/VisualC/x64/Release",
+		}
 
 
 	filter {"system:linux", "not options:headless"}

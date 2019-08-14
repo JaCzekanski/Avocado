@@ -2,7 +2,6 @@
 #include <cassert>
 #include <cstdio>
 #include "config.h"
-#include "rectangle.h"
 #include "render/render.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
@@ -106,7 +105,7 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
     }
 }
 
-void GPU::drawRectangle(const Rectangle& rect) {
+void GPU::drawRectangle(const primitive::Rect& rect) {
     if (hardwareRendering) {
         int x[4], y[4];
         glm::ivec2 uv[4];
@@ -283,7 +282,7 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     int16_t x = extend_sign<10>(arguments[1] & 0xffff);
     int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
 
-    Rectangle rect;
+    primitive::Rect rect;
     rect.pos = vec2(x, y);
     rect.size = vec2(w, h);
     rect.color = vec3((arguments[0]) & 0xff, (arguments[0] >> 8) & 0xff, (arguments[0] >> 16) & 0xff);

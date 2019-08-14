@@ -1,7 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
 
-struct Rectangle {
+namespace primitive {
+struct Rect {
     glm::ivec2 pos;
     glm::ivec2 size;
     glm::ivec3 color;
@@ -16,3 +17,4 @@ struct Rectangle {
     glm::ivec2 texpage;  // Texture page position in VRAM (from GP0_E1)
     glm::ivec2 clut;     // Texture palette position in VRAM
 };
+}  // namespace primitives
