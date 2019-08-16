@@ -85,6 +85,7 @@ struct Field {
     std::string bits;
     std::string name;
     std::string value;
+    bool active = true;
 };
 
 void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
@@ -131,7 +132,9 @@ void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
             ImGui::TextUnformatted(f.name.c_str());
             ImGui::NextColumn();
 
-            ImGui::TextUnformatted(f.value.c_str());
+            ImVec4 color(1, 1, 1, 1);
+            if (!f.active) color.w = 0.25;
+            ImGui::TextColored(color, f.value.c_str());
             ImGui::NextColumn();
         }
 
@@ -151,13 +154,23 @@ void Timers::timersWindow(System* sys) {
     ImGui::Columns(3);
     for (auto* timer : timers) {
         int which = timer->which;
+        const bool syncEnabled = timer->mode.syncEnabled;
+        const bool resetAfterTarget = timer->mode.resetToZero == timer::CounterMode::ResetToZero::whenTarget;
+        const bool irqWhenTarget = timer->mode.irqWhenTarget;
+        const bool irqOneShot = timer->mode.irqRepeatMode == timer::CounterMode::IrqRepeatMode::oneShot;
+        const bool irqPulseMode = timer->mode.irqPulseMode == timer::CounterMode::IrqPulseMode::shortPulse;
+        const auto clockSource = getClockSource(timer);
+
         ImGui::Text("Timer%d", which);
         ImGui::Text("Value:  0x%04x", timer->current._reg);
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("0x%08x", timer->baseAddress + which * 0x10 + 0);
         }
 
-        ImGui::Text("Target: 0x%04x", timer->target._reg);
+        ImVec4 color(1, 1, 1, 1);
+        if (!irqWhenTarget && !resetAfterTarget) color.w = 0.25;
+
+        ImGui::TextColored(color, "Target: 0x%04x", timer->target._reg);
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("0x%08x", timer->baseAddress + which * 0x10 + 8);
         }
@@ -168,18 +181,17 @@ void Timers::timersWindow(System* sys) {
         }
 
         const std::vector<Field> fields = {
-            {"0", "Sync", timer->mode.syncEnabled ? "On" : "Off"},
-            {"1-2", "SyncMode", getSyncMode(timer)},
-            {"3", "Reset counter", timer->mode.resetToZero == timer::CounterMode::ResetToZero::whenFFFF ? "after 0xffff" : "after target"},
-            {"4", "IRQ on target", timer->mode.irqWhenTarget ? "On" : "Off"},
-            {"5", "IRQ on 0xFFFF", timer->mode.irqWhenFFFF ? "On" : "Off"},
-            {"6", "IRQ repeat mode",
-             timer->mode.irqRepeatMode == timer::CounterMode::IrqRepeatMode::repeatedly ? "Repeatedly" : "One-shot"},
-            {"7", "IRQ pulse mode", timer->mode.irqPulseMode == timer::CounterMode::IrqPulseMode::toggle ? "Toggle bit10" : "Pulse bit10"},
-            {"8-9", "Clock source", getClockSource(timer)},
-            {"10", "IRQ request", timer->mode.interruptRequest ? "No" : "Pending"},
-            {"11", "Reached target", timer->mode.reachedTarget ? "Yes" : "No"},
-            {"12", "Reached 0xFFFF", timer->mode.reachedFFFF ? "Yes" : "No"},
+            {"0", "Sync", syncEnabled ? "On" : "Off", syncEnabled},
+            {"1-2", "SyncMode", getSyncMode(timer), syncEnabled},
+            {"3", "Reset counter", resetAfterTarget ? "after target" : "after 0xffff", resetAfterTarget},
+            {"4", "IRQ on target", timer->mode.irqWhenTarget ? "On" : "Off", (bool)timer->mode.irqWhenTarget},
+            {"5", "IRQ on 0xFFFF", timer->mode.irqWhenFFFF ? "On" : "Off", (bool)timer->mode.irqWhenFFFF},
+            {"6", "IRQ repeat mode", irqOneShot ? "One-shot" : "Repeatedly", !irqOneShot},
+            {"7", "IRQ pulse mode", irqPulseMode ? "Pulse bit10" : "Toggle bit10", !irqPulseMode},
+            {"8-9", "Clock source", clockSource, clockSource.compare("Sysclock") != 0},
+            {"10", "IRQ request", timer->mode.interruptRequest ? "No" : "Pending", (bool)!timer->mode.interruptRequest},
+            {"11", "Reached target", timer->mode.reachedTarget ? "Yes" : "No", (bool)timer->mode.reachedTarget},
+            {"12", "Reached 0xFFFF", timer->mode.reachedFFFF ? "Yes" : "No", (bool)timer->mode.reachedFFFF},
         };
 
         drawRegisterFields(string_format("flags##timer%d", which).c_str(), fields);
