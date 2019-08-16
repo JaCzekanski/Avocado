@@ -105,6 +105,26 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
     }
 }
 
+void GPU::drawLine(const primitive::Line& line) {
+    if (hardwareRendering) {
+        auto p = line.pos;
+        auto c = line.color;
+        int flags = 0;
+
+        if (line.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
+        if (line.gouroudShading) flags |= Vertex::Flags::GouroudShading;
+
+        vertices.push_back(
+            {Vertex::Type::Line, {p[0].x, p[0].y}, {c[0].r, c[0].g, c[0].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2, gp0_e6});
+        vertices.push_back(
+            {Vertex::Type::Line, {p[1].x, p[1].y}, {c[1].r, c[1].g, c[1].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2, gp0_e6});
+    }
+
+    if (softwareRendering) {
+        Render::drawLine(this, line);
+    }
+}
+
 void GPU::drawRectangle(const primitive::Rect& rect) {
     if (hardwareRendering) {
         int x[4], y[4];
@@ -218,44 +238,35 @@ void GPU::cmdPolygon(PolygonArgs arg) {
 // fixme: handle multiline with > 15 lines (arguments array hold only 31 elements)
 void GPU::cmdLine(LineArgs arg) {
     int ptr = 1;
-    int16_t x[2] = {}, y[2] = {};
-    RGB c[2] = {};
-
     int lineCount = (!arg.polyLine) ? 1 : 15;
+
+    primitive::Line line;
+    line.isSemiTransparent = arg.semiTransparency;
+    line.gouroudShading = arg.gouroudShading;
+
     for (int i = 0; i < lineCount; i++) {
-        if (arguments[ptr] == 0x50005000 || arguments[ptr] == 0x55555555) break;
+        if ((arguments[ptr] & 0xf000f000) == 0x50005000) break;
+
         if (i == 0) {
-            x[0] = extend_sign<10>(arguments[ptr] & 0xffff);
-            y[0] = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
-            c[0].raw = (arguments[0] & 0xffffff);
+            line.pos[0].x = extend_sign<10>(arguments[ptr] & 0xffff);
+            line.pos[0].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+            line.color[0].raw = (arguments[0] & 0xffffff);
         } else {
-            x[0] = x[1];
-            y[0] = y[1];
-            c[0] = c[1];
+            line.pos[0] = line.pos[1];
+            line.pos[0] = line.pos[1];
+            line.color[0] = line.color[1];
         }
 
         if (arg.gouroudShading) {
-            c[1].raw = arguments[ptr++];
+            line.color[1].raw = arguments[ptr++];
         } else {
-            c[1].raw = (arguments[0] & 0xffffff);
+            line.color[1].raw = (arguments[0] & 0xffffff);
         }
 
-        x[1] = (arguments[ptr] & 0xffff);
-        y[1] = (arguments[ptr++] & 0xffff0000) >> 16;
+        line.pos[1].x = extend_sign<10>((arguments[ptr] & 0xffff));
+        line.pos[1].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
 
-        // No transparency support
-        // No Gouroud Shading
-
-        {
-            int flags = 0;
-            if (arg.semiTransparency) flags |= Vertex::Flags::SemiTransparency;
-            if (arg.gouroudShading) flags |= Vertex::Flags::GouroudShading;
-            for (int i : {0, 1}) {
-                Vertex v = {Vertex::Type::Line, {x[i], y[i]}, {c[i].r, c[i].g, c[i].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2, gp0_e6};
-                vertices.push_back(v);
-            }
-        }
-        Render::drawLine(this, x, y, c);
+        drawLine(line);
     }
 
     cmd = Command::None;
@@ -268,7 +279,6 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     arg[2] = Palette + tex UV (0xCLUT VVUU) (*if textured)
     arg[3] = size             (0xHHHH WWWW) (*if variable size) */
     using vec2 = glm::ivec2;
-    using vec3 = glm::ivec3;
     using Bits = gpu::GP0_E1::TexturePageColors;
 
     int16_t w = arg.getSize();
@@ -285,16 +295,17 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     primitive::Rect rect;
     rect.pos = vec2(x, y);
     rect.size = vec2(w, h);
-    rect.color = vec3((arguments[0]) & 0xff, (arguments[0] >> 8) & 0xff, (arguments[0] >> 16) & 0xff);
+    rect.color.raw = (arguments[0] & 0xffffff);
 
-    if (!arg.isTextureMapped)
+    if (!arg.isTextureMapped) {
         rect.bits = 0;
-    else if (gp0_e1.texturePageColors == Bits::bit4)
+    } else if (gp0_e1.texturePageColors == Bits::bit4) {
         rect.bits = 4;
-    else if (gp0_e1.texturePageColors == Bits::bit8)
+    } else if (gp0_e1.texturePageColors == Bits::bit8) {
         rect.bits = 8;
-    else if (gp0_e1.texturePageColors == Bits::bit15)
+    } else if (gp0_e1.texturePageColors == Bits::bit15) {
         rect.bits = 16;
+    }
     rect.isSemiTransparent = arg.semiTransparency;
     rect.isRawTexture = arg.isRawTexture;
 
@@ -571,7 +582,7 @@ void GPU::writeGP0(uint32_t data) {
 
     if (currentArgument < argumentCount) {
         arguments[currentArgument++] = data;
-        if (argumentCount == MAX_ARGS && (data == 0x50005000 || data == 0x55555555)) argumentCount = currentArgument;
+        if (argumentCount == MAX_ARGS && (data & 0xf000f000) == 0x50005000) argumentCount = currentArgument;
         if (currentArgument != argumentCount) return;
     }
 

@@ -81,7 +81,7 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
                 if (c.raw == 0x0000) continue;
 
                 if (isBlended) {
-                    vec3 brightness = vec3(rect.color) / 255.f;
+                    vec3 brightness = vec3(rect.color.r, rect.color.g, rect.color.b) / 255.f;
                     c = c * (brightness * 2.f);
                 }
             }

@@ -1,11 +1,12 @@
 #pragma once
 #include <glm/glm.hpp>
+#include "psx_color.h"
 
 namespace primitive {
 struct Rect {
     glm::ivec2 pos;
     glm::ivec2 size;
-    glm::ivec3 color;
+    RGB color;
 
     // Flags
     int bits;
@@ -17,4 +18,13 @@ struct Rect {
     glm::ivec2 texpage;  // Texture page position in VRAM (from GP0_E1)
     glm::ivec2 clut;     // Texture palette position in VRAM
 };
-}  // namespace primitives
+
+struct Line {
+    glm::ivec2 pos[2];
+    RGB color[2];
+
+    // Flags
+    bool isSemiTransparent;
+    bool gouroudShading;
+};
+}  // namespace primitive

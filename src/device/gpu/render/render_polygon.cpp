@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include "device/gpu/psx_color.h"
+#include "dither.h"
 #include "render.h"
 #include "texture_utils.h"
 #include "utils/macros.h"
@@ -14,13 +15,6 @@ using gpu::Vertex;
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
-
-const int8_t ditherTable[4][4] = {
-    {-4, +0, -3, +1},  //
-    {+2, -2, +3, -1},  //
-    {-3, +1, -4, +0},  //
-    {+3, -1, +2, -2}   //
-};
 
 int orient2d(const ivec2& a, const ivec2& b, const ivec2& c) {  //
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);

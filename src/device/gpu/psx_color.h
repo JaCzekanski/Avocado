@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include "utils/math.h"
 
+// Union for storing 24bit color (used in GPU commands)
 union RGB {
     struct {
         uint8_t r;
@@ -13,6 +14,10 @@ union RGB {
     uint32_t raw;
 };
 
+RGB operator*(const RGB& lhs, const float rhs);
+RGB operator+(const RGB& lhs, const RGB& rhs);
+
+// Union for storing 15bit color + mask bit (native VRAM format)
 union PSXColor {
     struct {
         uint16_t r : 5;
