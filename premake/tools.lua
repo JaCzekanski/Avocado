@@ -3,7 +3,11 @@ function generateVersionFile()
 	local branch = getSingleLineOutput('git symbolic-ref --short -q HEAD')
 	local commit = getSingleLineOutput('git rev-parse --short=7 HEAD')
 	local date = os.date("!%Y-%m-%d %H:%M:%S")
+	local releaseBuild = false
 
+	if os.getenv("CI") ~= nil then 
+		releaseBuild = true
+	end
 	if os.getenv("APPVEYOR") == "True" then
 		branch = os.getenv("APPVEYOR_REPO_BRANCH")
 	end
@@ -28,6 +32,9 @@ function generateVersionFile()
 	f:write(string.format('#define BUILD_COMMIT "%s"\n', commit))
 	f:write(string.format('#define BUILD_DATE "%s"\n', date))
 	f:write(string.format('#define BUILD_STRING "%s"\n', versionString))
+	if releaseBuild == true then 
+		f:write('#define BUILD_IS_RELEASE true\n')
+	end
 	f:close()
 end
 

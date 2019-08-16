@@ -224,23 +224,33 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
     }
 }
 
-int main(int argc, char** argv) {
+void fatalError(const std::string& error) {
+    fprintf(stderr, "[FATAL] %s", error.c_str());
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Avocado", error.c_str(), nullptr);
+}
+
+void changeWorkingDirectory() {
     std::string workingDirectory = ".";
 #ifdef ANDROID
-    workingDirectory = "/sdcard/avocado";  // TODO: Use Envoiroment.getExternalStorageDirectory();
+    // TODO: Use Envoiroment.getExternalStorageDirectory();
+    workingDirectory = "/sdcard/avocado";
 #else
-    {
-        char* basePath = SDL_GetBasePath();
-        workingDirectory = basePath;
-        SDL_free(basePath);
-    }
+    char* basePath = SDL_GetBasePath();
+    workingDirectory = basePath;
+    SDL_free(basePath);
 #endif
     chdir(workingDirectory.c_str());
+}
+
+int main(int argc, char** argv) {
+#ifdef BUILD_IS_RELEASE
+    changeWorkingDirectory();
+#endif
 
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
-        printf("Cannot init SDL (%s)\n", SDL_GetError());
+        fatalError(string_format("Cannot init SDL (%s)", SDL_GetError()));
         return 1;
     }
 
@@ -248,25 +258,25 @@ int main(int argc, char** argv) {
 
     OpenGL opengl;
     if (!opengl.init()) {
-        printf("Cannot initialize OpenGL\n");
+        fatalError("Cannot initialize OpenGL");
         return 1;
     }
 
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr) {
-        printf("Cannot create window (%s)\n", SDL_GetError());
+        fatalError(string_format("Cannot create window (%s)", SDL_GetError()));
         return 1;
     }
 
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (glContext == nullptr) {
-        printf("Cannot create OpenGL context (%s)\n", SDL_GetError());
+        fatalError(string_format("Cannot create OpenGL context (%s)", SDL_GetError()));
         return 1;
     }
 
     if (!opengl.setup()) {
-        printf("Cannot setup graphics\n");
+        fatalError("Cannot setup graphics");
         return 1;
     }
 
