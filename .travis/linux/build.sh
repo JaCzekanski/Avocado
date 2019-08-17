@@ -7,8 +7,8 @@ export OS=linux64
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT
-export CC="ccache clang-6.0 -fcolor-diagnostics"
-export CXX="ccache clang++-6.0 -fcolor-diagnostics"
+export CC="ccache cc -fcolor-diagnostics"
+export CXX="ccache c++ -fcolor-diagnostics"
 
 # Configure cache
 ccache --set-config=sloppiness=pch_defines,time_macros
