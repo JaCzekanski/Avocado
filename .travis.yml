@@ -23,7 +23,7 @@ matrix:
     script: "./.travis/android/run-container.sh"
   - name: macOS
     os: osx
-    osx_image: xcode10.1
+    osx_image: xcode11
     install: "./.travis/macos/install-dependencies.sh"
     script: "./.travis/macos/build.sh"
 

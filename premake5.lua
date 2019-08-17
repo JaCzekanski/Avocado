@@ -99,6 +99,13 @@ filter "action:gmake"
 		"-Wextra",
 	}
 
+filter "action:vs*"
+	defines "_CRT_SECURE_NO_WARNINGS"
+	
+filter "action:xcode*"
+	buildoptions "-fvisibility=hidden"
+	linkoptions "-fvisibility=hidden"
+	
 filter "kind:*App"
 	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
 
@@ -120,11 +127,8 @@ filter "configurations:Release"
 
 filter {"configurations:Release"}
 	if os.getenv("CI") == true then
-	flags { "LinkTimeOptimization" }
+		flags { "LinkTimeOptimization" }
 	end
-
-filter "action:vs*"
-	defines "_CRT_SECURE_NO_WARNINGS"
 
 include "premake/chdr.lua"
 include "premake/flac.lua"
