@@ -14,8 +14,8 @@ export CXX="ccache clang++-6.0 -fcolor-diagnostics"
 ccache --set-config=sloppiness=pch_defines,time_macros
 
 # Download SDL2
-apt update
-apt install -y --no-install-recommends libsdl2-dev
+apt -qq update 
+apt -qq install -y --no-install-recommends libsdl2-dev > /dev/null
 
 # Generate Makefile
 premake5 gmake

@@ -61,7 +61,6 @@ filter {}
 	defines { 'BUILD_ARCH="%{cfg.system}"' }
 	exceptionhandling "On"
 	rtti "On"
-	warnings "Extra"
 
 filter "system:windows"
 	platforms {"x86", "x64"}
@@ -93,6 +92,12 @@ filter "platforms:x64"
 filter "platforms:arm"
 	architecture "arm"
 	vectorextensions "NEON"
+
+filter "action:gmake"
+	buildoptions { 
+		"-Wall",
+		"-Wextra",
+	}
 
 filter "kind:*App"
 	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
