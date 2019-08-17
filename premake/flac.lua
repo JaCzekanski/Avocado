@@ -52,3 +52,9 @@ project "flac"
             "4334", -- 'operator' : result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
             "4996", -- The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: new_name.
         }
+        
+    filter "system:linux or system:macosx or system:android"
+        disablewarnings {
+            "unused-parameter",
+            "unused-function",
+        }

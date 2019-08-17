@@ -1,7 +1,7 @@
 #include "texture.h"
 
 Texture::Texture(int width, int height, GLint internalFormat, GLint dataFormat, GLenum type, bool filter)
-    : width(width), height(height), internalFormat(internalFormat), dataFormat(dataFormat), type(type), success(false) {
+    : width(width), height(height), dataFormat(dataFormat), type(type), success(false) {
     GLint lastTexture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &lastTexture);
 

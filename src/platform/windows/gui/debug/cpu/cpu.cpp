@@ -95,7 +95,7 @@ void CPU::debuggerWindow(System* sys) {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         const int col_num = 4;
         std::vector<float> columnsWidth(col_num);
-        int n = 0;
+        unsigned int n = 0;
 
         auto column = [&](const char* reg, uint32_t val) {
             auto width = glyphSize * 13 + 8;

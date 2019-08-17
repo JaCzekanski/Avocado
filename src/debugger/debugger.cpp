@@ -118,17 +118,17 @@ bool Instruction::isBranch() const {
     return false;
 }
 
-std::string reg(int n) {
+std::string reg(unsigned int n) {
     if (mapRegisterNames) return regNames[n];
     return string_format("r%d", n);
 }
 
-std::string cop0reg(int n) {
+std::string cop0reg(unsigned int n) {
     if (mapRegisterNames && n < cop0RegNames.size()) return cop0RegNames.at(n);
     return string_format("cop0r%d", n);
 }
 
-std::string cop2reg(int n) {
+std::string cop2reg(unsigned int n) {
     if (mapRegisterNames && n < cop2RegNames.size()) return cop2RegNames.at(n);
     return string_format("cop2r%d", n);
 }

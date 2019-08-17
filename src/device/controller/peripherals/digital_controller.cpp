@@ -54,6 +54,7 @@ uint8_t DigitalController::handle(uint8_t byte) {
 }
 
 uint8_t DigitalController::handleRead(uint8_t byte) {
+    (void)byte;
     switch (state) {
         case 2: state++; return 0x5a;
         case 3: state++; return ~buttons._byte[0];

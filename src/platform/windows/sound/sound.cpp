@@ -10,6 +10,8 @@ namespace {
 SDL_AudioDeviceID dev = 0;
 
 void audioCallback(void* userdata, Uint8* raw_stream, int len) {
+    (void)userdata;
+
     for (int i = 0; i < len; i++) raw_stream[i] = 0;
 
     std::unique_lock<std::mutex> lock(Sound::audioMutex);

@@ -337,7 +337,7 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
         int lastType = gpu::Vertex::Type::Polygon;
         int begin = 0;
         int count = 0;
-        for (int i = 0; i < (int)buffer.size(); i++) {
+        for (size_t i = 0; i < buffer.size(); i++) {
             ++count;
             int type = buffer[i].type;
 

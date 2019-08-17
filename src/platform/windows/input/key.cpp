@@ -117,7 +117,7 @@ Key::Key(std::string& s) {
             event = event.substr(1);
 
             auto a = SDL_GameControllerGetAxisFromString(event.c_str());
-            if (a != SDL_CONTROLLER_BUTTON_INVALID) {
+            if (a != SDL_CONTROLLER_AXIS_INVALID) {
                 type = Type::ControllerMove;
                 controller.id = which;
                 controller.axis = a;

@@ -89,11 +89,11 @@ struct Field {
 };
 
 void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
-    const int colNum = 3;
+    const size_t colNum = 3;
     ImVec2 charSize = ImGui::CalcTextSize("_");
-    std::vector<int> columnsWidth(colNum);
+    std::vector<unsigned int> columnsWidth(colNum);
 
-    for (int i = 0; i < fields.size(); i++) {
+    for (size_t i = 0; i < fields.size(); i++) {
         auto& f = fields[i];
         if (f.bits.size() > columnsWidth[0]) {
             columnsWidth[0] = f.bits.size();
@@ -121,7 +121,7 @@ void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
     if (ImGui::BeginChild(name, windowSize, true)) {
         ImGui::Columns(3, name, true);
 
-        for (int i = 0; i < colNum; i++) {
+        for (size_t i = 0; i < colNum; i++) {
             ImGui::SetColumnWidth(i, columnsWidth[i] * charSize.x + spacing.x);
         }
 
@@ -134,7 +134,7 @@ void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
 
             ImVec4 color(1, 1, 1, 1);
             if (!f.active) color.w = 0.25;
-            ImGui::TextColored(color, f.value.c_str());
+            ImGui::TextColored(color, "%s", f.value.c_str());
             ImGui::NextColumn();
         }
 

@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include "config.h"
 #include "cpu/gte/gte.h"
+#include "debug/cdrom/cdrom.h"
 #include "debug/cpu/cpu.h"
 #include "debug/gpu/gpu.h"
 #include "debug/kernel/kernel.h"
@@ -20,7 +21,6 @@ void gpuLogWindow(System* sys);
 void vramWindow(gpu::GPU* gpu);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
-void cdromWindow(System* sys);
 void spuWindow(spu::SPU* spu);
 
 bool showGui = true;
@@ -35,11 +35,11 @@ bool notInitializedWindowShown = false;
 bool showVramWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
-bool showCdromWindow = false;
 bool showSpuWindow = false;
 
 bool showAboutWindow = false;
 
+gui::debug::cdrom::Cdrom cdromDebug;
 gui::debug::cpu::CPU cpuDebug;
 gui::debug::timers::Timers timersDebug;
 
@@ -119,7 +119,7 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
                 ImGui::MenuItem("Breakpoints", nullptr, &cpuDebug.breakpointsWindowOpen);
                 ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
-                ImGui::MenuItem("CDROM", nullptr, &showCdromWindow);
+                ImGui::MenuItem("CDROM", nullptr, &cdromDebug.cdromWindowOpen);
                 ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
                 ImGui::MenuItem("GPU", nullptr, &showGpuWindow);
                 ImGui::MenuItem("SPU", nullptr, &showSpuWindow);
@@ -149,13 +149,13 @@ void renderImgui(System* sys) {
         if (showRamWindow) ramWindow(sys);
         if (showVramWindow) vramWindow(sys->gpu.get());
         if (showWatchWindow) watchWindow(sys);
-        if (showCdromWindow) cdromWindow(sys);
         if (showKernelWindow) kernelWindow(sys);
         if (showGpuWindow) gpuWindow(sys);
         if (showSpuWindow) spuWindow(sys->spu.get());
 
-        timersDebug.displayWindows(sys);
+        cdromDebug.displayWindows(sys);
         cpuDebug.displayWindows(sys);
+        timersDebug.displayWindows(sys);
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();

@@ -1,9 +1,9 @@
 #include "tools.h"
 
 namespace gui::tools {
-void Columns(const std::vector<std::string>& list, int col_num) {
+void Columns(const std::vector<std::string>& list, size_t col_num) {
     std::vector<float> columnsWidth(col_num);
-    int n = 0;
+    size_t n = 0;
 
     auto column = [&](const std::string& str) {
         ImVec2 size = ImGui::CalcTextSize(str.c_str());
@@ -15,7 +15,7 @@ void Columns(const std::vector<std::string>& list, int col_num) {
     };
 
     ImGui::Columns(col_num, nullptr, true);
-    for (int c = 0; c < col_num; c++) {
+    for (size_t c = 0; c < col_num; c++) {
         ImGui::SetColumnWidth(c, columnsWidth[c]);
     }
 

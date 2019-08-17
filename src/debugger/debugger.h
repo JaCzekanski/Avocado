@@ -14,6 +14,6 @@ struct Instruction {
 
 extern bool mapRegisterNames;
 extern bool followPC;
-std::string reg(int n);
+std::string reg(unsigned int n);
 Instruction decodeInstruction(mips::Opcode& i);
 };  // namespace debugger

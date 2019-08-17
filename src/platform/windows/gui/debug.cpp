@@ -255,8 +255,10 @@ void gpuLogWindow(System *sys) {
                 auto arguments = entry.args;
                 if (command >= 0x20 && command < 0x40) {
                     auto arg = gpu::PolygonArgs(command);
+                    (void)arg;  // TODO: Parse Polygon commands
                 } else if (command >= 0x40 && command < 0x60) {
                     auto arg = gpu::LineArgs(command);
+                    (void)arg;  // TODO: Parse Line commands
                 } else if (command >= 0x60 && command < 0x80) {
                     auto arg = gpu::RectangleArgs(command);
                     int16_t w = arg.getSize();

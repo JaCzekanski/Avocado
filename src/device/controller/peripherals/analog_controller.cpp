@@ -82,6 +82,7 @@ uint8_t AnalogController::handle(uint8_t byte) {
 }
 
 uint8_t AnalogController::handleReadAnalog(uint8_t byte) {
+    (void)byte;
     switch (state) {
         case 2: state++; return 0x5a;
         case 3: state++; return ~buttons._byte[0];
@@ -152,6 +153,7 @@ uint8_t AnalogController::handleSetLed(uint8_t byte) {
 }
 
 uint8_t AnalogController::handleLedStatus(uint8_t byte) {
+    (void)byte;
     switch (state) {
         case 2: state++; return 0x5a;
         case 3: state++; return 1;
@@ -220,6 +222,7 @@ uint8_t AnalogController::handleUnknown46(uint8_t byte) {
 }
 
 uint8_t AnalogController::handleUnknown47(uint8_t byte) {
+    (void)byte;
     switch (state) {
         case 2: state++; return 0x5a;
         case 3: state++; return 0;

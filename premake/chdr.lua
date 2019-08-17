@@ -28,3 +28,10 @@ project "chdr"
             "4244", -- 'conversion' conversion from 'type1' to 'type2', possible loss of data
             "4267", -- 'var' : conversion from 'size_t' to 'type', possible loss of data
         }
+
+    filter "system:linux or system:macosx or system:android"
+        disablewarnings {
+            "unused-parameter",
+            "unused-function",
+            "sign-compare",
+        }

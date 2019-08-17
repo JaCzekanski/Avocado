@@ -87,9 +87,9 @@ void CDROM::step() {
                 return;
             }
 
-            uint8_t minute = rawSector[12];
-            uint8_t second = rawSector[13];
-            uint8_t frame = rawSector[14];
+            // uint8_t minute = rawSector[12];
+            // uint8_t second = rawSector[13];
+            // uint8_t frame = rawSector[14];
             uint8_t mode = rawSector[15];
 
             uint8_t file = rawSector[16];

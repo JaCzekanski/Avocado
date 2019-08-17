@@ -5,7 +5,6 @@ class Texture {
     GLuint id;
     int width;
     int height;
-    GLint internalFormat;
     GLint dataFormat;
     GLenum type;
 

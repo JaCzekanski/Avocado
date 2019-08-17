@@ -236,7 +236,7 @@ void System::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32
 
 void System::printFunctionInfo(const char* functionNum, const bios::Function& f) {
     printf("  %s: %s(", functionNum, f.name.c_str());
-    int a = 0;
+    unsigned int a = 0;
     for (auto arg : f.args) {
         uint32_t param = cpu->reg[4 + a];
         if (true) {
