@@ -79,6 +79,7 @@ struct System {
     uint8_t expansion[EXPANSION_SIZE];
 
     bool debugOutput = true;  // Print BIOS logs
+    bool biosLoaded = false;
 
     // Devices
     std::unique_ptr<mips::CPU> cpu;
@@ -113,6 +114,7 @@ struct System {
     void printFunctionInfo(const char* functionNum, const bios::Function& f);
     void emulateFrame();
     void softReset();
+    bool isSystemReady();
 
     // Helpers
     int biosLog = 0;

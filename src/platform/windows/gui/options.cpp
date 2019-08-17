@@ -141,29 +141,33 @@ void biosSelectionWindow() {
     static std::vector<std::string> bioses;
     static int selectedBios = 0;
 
-    if (!biosesFound) {
-        bioses.clear();
-        auto dir = fs::directory_iterator("data/bios");
-        for (auto& e : dir) {
-            if (!fs::is_regular_file(e)) continue;
+    try {
+        if (!biosesFound) {
+            bioses.clear();
+            auto dir = fs::directory_iterator("data/bios");
+            for (auto& e : dir) {
+                if (!fs::is_regular_file(e)) continue;
 
-            auto path = e.path().string();
-            auto ext = getExtension(path);
-            std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+                auto path = e.path().string();
+                auto ext = getExtension(path);
+                std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
-            if (ext == "bin" || ext == "rom") {
-                bioses.push_back(path);
+                if (ext == "bin" || ext == "rom") {
+                    bioses.push_back(path);
+                }
+            }
+            biosesFound = true;
+
+            int i = 0;
+            for (auto it = bioses.begin(); it != bioses.end(); ++it, ++i) {
+                if (*it == config["bios"]) {
+                    selectedBios = i;
+                    break;
+                }
             }
         }
-        biosesFound = true;
-
-        int i = 0;
-        for (auto it = bioses.begin(); it != bioses.end(); ++it, ++i) {
-            if (*it == config["bios"]) {
-                selectedBios = i;
-                break;
-            }
-        }
+    } catch (fs::filesystem_error& err) {
+        printf("%s", err.what());
     }
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
@@ -183,7 +187,13 @@ void biosSelectionWindow() {
             (void*)&bioses, (int)bioses.size());
 
         if (ImGui::Button("Select", ImVec2(-1, 0)) && selectedBios < (int)bioses.size()) {
-            config["bios"] = bioses[selectedBios];
+            std::string biosPath = bioses[selectedBios];
+// SDL treats relative paths (not starting with /) as relative to app internal storage path
+// Storing path as absolute is needed for file to be found
+#ifdef ANDROID
+            biosPath = fs::absolute(biosPath).string();
+#endif
+            config["bios"] = biosPath;
 
             biosesFound = false;
             showBiosWindow = false;

@@ -227,12 +227,12 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 void fatalError(const std::string& error) {
     fprintf(stderr, "[FATAL] %s", error.c_str());
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Avocado", error.c_str(), nullptr);
+    SDL_Quit();
 }
 
 void changeWorkingDirectory() {
     std::string workingDirectory = ".";
 #ifdef ANDROID
-    // TODO: Use Envoiroment.getExternalStorageDirectory();
     workingDirectory = "/sdcard/avocado";
 #else
     char* basePath = SDL_GetBasePath();
@@ -320,6 +320,7 @@ int main(int argc, char** argv) {
         ImFontConfig config;
         config.OversampleH = 4;
         config.OversampleV = 4;
+        config.FontDataOwnedByAtlas = false;
         int fontSize = 16.f;
 
 #ifdef ANDROID
@@ -332,7 +333,8 @@ int main(int argc, char** argv) {
         style.GrabRounding = 6.f;
         style.FrameRounding = 6.f;
 
-        io.Fonts->AddFontFromFileTTF("data/assets/roboto-mono.ttf", fontSize, &config);
+        auto font = getFileContents("data/assets/roboto-mono.ttf");
+        io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
         io.Fonts->AddFontDefault();
     }
 
@@ -340,7 +342,7 @@ int main(int argc, char** argv) {
 
     Sound::play();
 
-    if (!isEmulatorConfigured())
+    if (!sys->isSystemReady())
         sys->state = System::State::stop;
     else
         sys->state = System::State::run;

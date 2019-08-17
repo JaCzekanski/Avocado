@@ -393,6 +393,8 @@ void System::softReset() {
     state = State::run;
 }
 
+bool System::isSystemReady() { return biosLoaded; }
+
 bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     if (_exe.empty()) return false;
     assert(_exe.size() >= 0x800);
@@ -435,6 +437,7 @@ bool System::loadBios(std::string path) {
 
     std::copy(_bios.begin(), _bios.end(), bios);
     state = State::run;
+    biosLoaded = true;
     return true;
 }
 

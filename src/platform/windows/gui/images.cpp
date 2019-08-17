@@ -12,7 +12,14 @@ std::unordered_map<std::string, std::optional<Image>> images;
 
 std::optional<Image> loadImage(const std::string& file) {
     int w, h, bit;
-    auto data = stbi_load(file.c_str(), &w, &h, &bit, 4);
+
+    auto rawdata = getFileContents(file);
+    if (rawdata.empty()) {
+        printf("[Error] Cannot load %s\n", getFilenameExt(file).c_str());
+        return {};
+    }
+
+    auto data = stbi_load_from_memory(rawdata.data(), rawdata.size(), &w, &h, &bit, 4);
     if (data == nullptr) {
         printf("[Error] Cannot load %s\n", getFilenameExt(file).c_str());
         return {};
