@@ -153,6 +153,7 @@ uint8_t MemoryCard::handleWrite(uint8_t byte) {
 }
 
 uint8_t MemoryCard::handleId(uint8_t byte) {
+    (void)byte;
     if (verbose >= 1) printf("[MEMCARD] Unsupported ID command\n");
     command = Command::None;
     return 0xff;

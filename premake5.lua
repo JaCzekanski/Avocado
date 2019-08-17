@@ -1,13 +1,16 @@
 include "premake/tools.lua"
 require "./premake/androidmk"
 
+-- Windows support 32bit and 64bit versions
+-- Linux - as well
+-- MacOS is 64bit only
+-- Android has ARM architecture - Android studio decides on ABI
+-- Web - single architecture
+
 workspace "Avocado"    
 	configurations { "debug", "release" }
-	platforms {"x86", "x64"}
     startproject "avocado"
-	defaultplatform "x86"
 	
-ndkabi "arm64-v8a armeabi-v7a"
 ndkstl "c++_static"
 ndkplatform "android-24"
 
@@ -58,21 +61,38 @@ filter {}
 	defines { 'BUILD_ARCH="%{cfg.system}"' }
 	exceptionhandling "On"
 	rtti "On"
+	warnings "Extra"
 
-filter "platforms:x86"
-	architecture "x32"
+filter "system:windows"
+	platforms {"x86", "x64"}
+	defaultplatform "x64"
 
-filter "platforms:x64"
-	architecture "x64"
-	vectorextensions "AVX"
+filter "system:linux"
+	platforms {"x86", "x64"}
+	defaultplatform "x64"
 
 filter "system:macosx"
+	platforms {"x64"}
+	defaultplatform "x64"
 	xcodebuildsettings {
 		['ALWAYS_SEARCH_USER_PATHS'] = {'YES'}
 	}
 
 filter "system:android"
+	platforms {"arm"}
 	defines { "USE_OPENGLES"}
+	
+filter "platforms:x86"
+	architecture "x32"
+	vectorextensions "SSE3"
+
+filter "platforms:x64"
+	architecture "x64"
+	vectorextensions "SSE3"
+
+filter "platforms:arm"
+	architecture "arm"
+	vectorextensions "NEON"
 
 filter "kind:*App"
 	targetdir "build/%{cfg.buildcfg}_%{cfg.platform}"
@@ -93,25 +113,13 @@ filter "configurations:Release"
 	flags { "MultiProcessorCompile" }
 	optimize "Full"
 
-filter {"configurations:Release", "system:windows or system:macosx"}
+filter {"configurations:Release"}
 	if os.getenv("CI") == true then
 	flags { "LinkTimeOptimization" }
 	end
 
 filter "action:vs*"
 	defines "_CRT_SECURE_NO_WARNINGS"
-
-filter {"action:vs*", "configurations:Release"}
-	staticruntime "On"
-    flags {
-		"LinkTimeOptimization",
-	}
-
-filter "action:gmake"
-	buildoptions { 
-		"-Wall",
-		"-Wextra",
-	}
 
 include "premake/chdr.lua"
 include "premake/flac.lua"

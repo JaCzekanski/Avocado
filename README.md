@@ -49,7 +49,7 @@ Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make aud
 ## Requirements
 - OS: Windows 7 or later, macOS 10.13 or later, Linux
 - GPU: Graphics card supporting **OpenGL 3.2**
-- CPU: [AVX compatible x64 processor](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#CPUs_with_AVX) or any x86 processor
+- CPU: [SSE3 compatible (CPUs after 2004)](https://en.wikipedia.org/wiki/SSE3#CPUs_with_SSE3) x64 or x86 processor
 
 ### Notes
 Avocado focuses on supporting relatively modern hardware (2010 and forwards) and non-legacy OSes. 

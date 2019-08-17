@@ -12,7 +12,7 @@ void DMAChannel::step() {}
 
 uint32_t DMAChannel::readDevice() { return 0; }
 
-void DMAChannel::writeDevice(uint32_t data) {}
+void DMAChannel::writeDevice(uint32_t data) { (void)data; }
 
 const char* DMAChannel::name() {
     switch (channel) {

@@ -14,7 +14,7 @@ android {
         versionName "0.1.0"
         externalNativeBuild {
             ndkBuild {
-                arguments 'PM5_CONFIG=release_x64', '-j4'
+                arguments 'PM5_CONFIG=release_arm', '-j4'
                 targets "avocado"
             }
         }
