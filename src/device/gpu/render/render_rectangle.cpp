@@ -89,10 +89,10 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
             if (rect.isSemiTransparent && (!isTextured || c.k)) {
                 PSXColor bg = VRAM[y][x];
                 switch (transparency) {
-                    case Transparency::Bby2plusFby2: c = bg / 2.f + c / 2.f; break;
+                    case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
                     case Transparency::BplusF: c = bg + c; break;
                     case Transparency::BminusF: c = bg - c; break;
-                    case Transparency::BplusFby4: c = bg + c / 4.f; break;
+                    case Transparency::BplusFby4: c = bg + (c >> 2); break;
                 }
             }
 

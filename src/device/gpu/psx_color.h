@@ -57,10 +57,17 @@ union PSXColor {
         return *this;
     }
 
-    PSXColor operator/(const float& rhs) {
+    PSXColor operator/(const int& rhs) {
         r = (uint16_t)(r / rhs);
         g = (uint16_t)(g / rhs);
         b = (uint16_t)(b / rhs);
+        return *this;
+    }
+
+    PSXColor operator>>(const int& sh) {
+        r >>= sh;
+        g >>= sh;
+        b >>= sh;
         return *this;
     }
 

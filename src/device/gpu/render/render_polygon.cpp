@@ -32,6 +32,10 @@ bool isCw(const ivec2 v[3]) {
     return n.z < 0;
 }
 INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const ivec3 color[3], const int flags) {
+    if (!(flags & Vertex::GouroudShading)) {
+        return to15bit(color[0].r, color[0].g, color[0].b);
+    }
+
     ivec3 outColor(                                                       //
         (s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
         (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
@@ -74,6 +78,7 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
     }
 
     constexpr bool isTextured = bits != ColorDepth::NONE;
+    const bool isGouroudShaded = flags & Vertex::GouroudShading;
     const bool isSemiTransparent = flags & Vertex::SemiTransparency;
     const bool isBlended = !(flags & Vertex::RawTexture);
 
@@ -88,7 +93,7 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
         if (isBlended) {
             vec3 brightness;
 
-            if (flags & Vertex::GouroudShading) {
+            if (isGouroudShaded) {
                 // TODO: Get rid of float colors
                 vec3 fcolor[3];
                 fcolor[0] = vec3(color[0]) / 255.f;
@@ -113,10 +118,10 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
         auto transparency = (Transparency)((flags & 0x60) >> 5);
         PSXColor bg = VRAM[p.y][p.x];
         switch (transparency) {
-            case Transparency::Bby2plusFby2: c = bg / 2.f + c / 2.f; break;
+            case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
             case Transparency::BplusF: c = bg + c; break;
             case Transparency::BminusF: c = bg - c; break;
-            case Transparency::BplusFby4: c = bg + c / 4.f; break;
+            case Transparency::BplusFby4: c = bg + (c >> 2); break;
         }
     }
 
