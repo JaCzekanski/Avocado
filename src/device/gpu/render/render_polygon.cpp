@@ -125,6 +125,8 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
     VRAM[p.y][p.x] = c.raw;
 }
 
+static bool isTopLeft(const ivec2 e) { return e.y < 0 || (e.y == 0 && e.x < 0); }
+
 template <ColorDepth bits>
 INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage, const ivec2 clut,
                      const int flags, const gpu::GP0_E2 textureWindow, const gpu::GP0_E6 maskSettings) {
@@ -141,37 +143,45 @@ INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const i
     );
 
     // https://fgiesen.wordpress.com/2013/02/10/optimizing-the-basic-rasterizer/
-    const int A01 = pos[0].y - pos[1].y;
-    const int B01 = pos[1].x - pos[0].x;
 
-    const int A12 = pos[1].y - pos[2].y;
-    const int B12 = pos[2].x - pos[1].x;
+    // Delta constants
+    const ivec2 D01(pos[1].x - pos[0].x, pos[0].y - pos[1].y);
+    const ivec2 D12(pos[2].x - pos[1].x, pos[1].y - pos[2].y);
+    const ivec2 D20(pos[0].x - pos[2].x, pos[2].y - pos[0].y);
 
-    const int A20 = pos[2].y - pos[0].y;
-    const int B20 = pos[0].x - pos[2].x;
+    // Fill rule
+    const int bias[3] = {
+        isTopLeft(D12) ? -1 : 0,  //
+        isTopLeft(D20) ? -1 : 0,  //
+        isTopLeft(D01) ? -1 : 0   //
+    };
 
-    const ivec2 minp = ivec2(min.x, min.y);
-
-    int w0_row = orient2d(pos[1], pos[2], minp);
-    int w1_row = orient2d(pos[2], pos[0], minp);
-    int w2_row = orient2d(pos[0], pos[1], minp);
+    // Calculate half-space values for first pixel
+    int CY[3] = {
+        orient2d(pos[1], pos[2], min) + bias[0],  //
+        orient2d(pos[2], pos[0], min) + bias[1],  //
+        orient2d(pos[0], pos[1], min) + bias[2]   //
+    };
 
     ivec2 p;
-
     for (p.y = min.y; p.y < max.y; p.y++) {
-        ivec3 is = ivec3(w0_row, w1_row, w2_row);
+        ivec3 CX = ivec3(CY[0], CY[1], CY[2]);
+
         for (p.x = min.x; p.x < max.x; p.x++) {
-            if ((is.x | is.y | is.z) >= 0) {
-                plotPixel<bits>(gpu, p, is, area, color, tex, texPage, clut, flags, textureWindow, maskSettings);
+            if ((CX[0] | CX[1] | CX[2]) > 0) {
+                // Bias is subtracted to remove error from texture sampling.
+                // I don't like this, but haven't found other solution that would fix this issue.
+                ivec3 s(CX[0] - bias[0], CX[1] - bias[1], CX[2] - bias[2]);
+                plotPixel<bits>(gpu, p, s, area, color, tex, texPage, clut, flags, textureWindow, maskSettings);
             }
 
-            is.x += A12;
-            is.y += A20;
-            is.z += A01;
+            CX[0] += D12.y;
+            CX[1] += D20.y;
+            CX[2] += D01.y;
         }
-        w0_row += B12;
-        w1_row += B20;
-        w2_row += B01;
+        CY[0] += D12.x;
+        CY[1] += D20.x;
+        CY[2] += D01.x;
     }
 }
 
@@ -211,12 +221,13 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
         if (abs(pos[j].y - pos[(j + 1) % 3].y) >= 512) return;
     }
 
-    if (bits == 0)
+    if (bits == 0) {
         triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
-    else if (bits == 4)
+    } else if (bits == 4) {
         triangle<ColorDepth::BIT_4>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
-    else if (bits == 8)
+    } else if (bits == 8) {
         triangle<ColorDepth::BIT_8>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
-    else if (bits == 16)
+    } else if (bits == 16) {
         triangle<ColorDepth::BIT_16>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
+    }
 }
