@@ -353,7 +353,7 @@ int main(int argc, char** argv) {
     SDL_Event event;
     while (running && !exitProgram) {
         bool newEvent = false;
-        if (sys->state != System::State::run && !windowFocused) {
+        if (sys->state != System::State::run) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
