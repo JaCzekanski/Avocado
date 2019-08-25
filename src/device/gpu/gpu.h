@@ -142,6 +142,8 @@ class GPU {
     std::array<uint16_t, VRAM_WIDTH * VRAM_HEIGHT> prevVram{};
 
     void clear() { vertices.clear(); }
+
+    void dumpVram();
 };
 
 }  // namespace gpu

@@ -382,6 +382,7 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_r) {
                     sys->dumpRam();
                     sys->spu->dumpRam();
+                    sys->gpu->dumpVram();
                 }
                 if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_F2) {

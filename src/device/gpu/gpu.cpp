@@ -3,6 +3,7 @@
 #include <cstdio>
 #include "config.h"
 #include "render/render.h"
+#include "utils/file.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
 
@@ -708,4 +709,9 @@ bool GPU::insideDrawingArea(int x, int y) const {
 
 bool GPU::isNtsc() { return gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
 
+void GPU::dumpVram() {
+    std::vector<uint8_t> vram;
+    vram.assign(this->vram.begin(), this->vram.end());
+    putFileContents("vram.bin", vram);
+}
 }  // namespace gpu
