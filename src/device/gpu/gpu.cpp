@@ -46,60 +46,32 @@ void GPU::reset() {
     gp0_e6._reg = 0;
 }
 
-void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isQuad, bool textured, int flags) {
-    int baseX = 0, baseY = 0, clutX = 0, clutY = 0, bitcount = 0;
+void GPU::drawTriangle(const primitive::Triangle& triangle) {
+    if (hardwareRendering) {
+        int flags = 0;
+        if (triangle.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
+        if (triangle.isRawTexture) flags |= Vertex::Flags::RawTexture;
+        if (gp0_e1.dither24to15) flags |= Vertex::Flags::Dithering;
+        if (triangle.gouroudShading) flags |= Vertex::Flags::GouroudShading;
+        flags |= static_cast<int>(triangle.transparency) << 5;
 
-    for (int i = 0; i < (isQuad ? 4 : 3); i++) {
-        x[i] += drawingOffsetX;
-        y[i] += drawingOffsetY;
+        for (int i : {0, 1, 2}) {
+            auto& v = triangle.v[i];
+            vertices.push_back({Vertex::Type::Polygon,
+                                {v.pos.x + drawingOffsetX, v.pos.y + drawingOffsetY},
+                                {v.color.r, v.color.g, v.color.b},
+                                {v.uv.x, v.uv.y},
+                                triangle.bits,
+                                {triangle.clut.x, triangle.clut.y},
+                                {triangle.texpage.x, triangle.texpage.y},
+                                flags,
+                                gp0_e2,
+                                gp0_e6});
+        }
     }
 
-    if (textured) {
-        clutX = t.getClutX();
-        clutY = t.getClutY();
-        baseX = t.getBaseX();
-        baseY = t.getBaseY();
-        bitcount = t.getBitcount();
-        flags |= ((int)t.semiTransparencyBlending()) << 5;
-    } else {
-        flags |= ((int)gp0_e1.semiTransparency) << 5;
-    }
-
-    Vertex v[3];
-    for (int i : {0, 1, 2}) {
-        v[i] = {Vertex::Type::Polygon,
-                {x[i], y[i]},
-                {c[i].r, c[i].g, c[i].b},
-                {t.uv[i].x, t.uv[i].y},
-                bitcount,
-                {clutX, clutY},
-                {baseX, baseY},
-                flags,
-                gp0_e2,
-                gp0_e6};
-        vertices.push_back(v[i]);
-    }
     if (softwareRendering) {
-        Render::drawTriangle(this, v);
-    }
-
-    if (isQuad) {
-        for (int i : {1, 2, 3}) {
-            v[i - 1] = {Vertex::Type::Polygon,
-                        {x[i], y[i]},
-                        {c[i].r, c[i].g, c[i].b},
-                        {t.uv[i].x, t.uv[i].y},
-                        bitcount,
-                        {clutX, clutY},
-                        {baseX, baseY},
-                        flags,
-                        gp0_e2,
-                        gp0_e6};
-            vertices.push_back(v[i - 1]);
-        }
-        if (softwareRendering) {
-            Render::drawTriangle(this, v);
-        }
+        Render::drawTriangle(this, triangle);
     }
 }
 
@@ -241,29 +213,53 @@ void GPU::cmdFillRectangle(uint8_t command) {
 
 void GPU::cmdPolygon(PolygonArgs arg) {
     int ptr = 1;
-    int16_t x[4], y[4];
-    RGB c[4] = {};
-    TextureInfo tex;
-    for (int i = 0; i < arg.getVertexCount(); i++) {
-        x[i] = extend_sign<10>(arguments[ptr] & 0xffff);
-        y[i] = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
 
-        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) c[i].raw = arguments[0] & 0xffffff;
+    primitive::Triangle::Vertex v[4];
+    TextureInfo tex;
+
+    for (int i = 0; i < arg.getVertexCount(); i++) {
+        v[i].pos.x = extend_sign<10>(arguments[ptr] & 0xffff);
+        v[i].pos.y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+
+        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
             if (i == 0) tex.palette = arguments[ptr];
             if (i == 1) tex.texpage = arguments[ptr];
-            tex.uv[i].x = arguments[ptr] & 0xff;
-            tex.uv[i].y = (arguments[ptr] >> 8) & 0xff;
+            v[i].uv.x = arguments[ptr] & 0xff;
+            v[i].uv.y = (arguments[ptr] >> 8) & 0xff;
             ptr++;
         }
-        if (arg.gouroudShading && i < arg.getVertexCount() - 1) c[i + 1].raw = arguments[ptr++];
+        if (arg.gouroudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
     }
-    int flags = 0;
-    if (arg.semiTransparency) flags |= Vertex::SemiTransparency;
-    if (arg.isRawTexture) flags |= Vertex::RawTexture;
-    if (arg.gouroudShading) flags |= Vertex::GouroudShading;
-    if (gp0_e1.dither24to15) flags |= Vertex::Dithering;
-    drawPolygon(x, y, c, tex, arg.isQuad, arg.isTextureMapped, flags);
+
+    primitive::Triangle triangle;
+
+    for (int i : {0, 1, 2}) triangle.v[i] = v[i];
+
+    triangle.bits = 0;
+    triangle.isSemiTransparent = arg.semiTransparency;
+    triangle.transparency = gp0_e1.semiTransparency;
+    triangle.isRawTexture = arg.isRawTexture;
+    triangle.gouroudShading = arg.gouroudShading;
+
+    if (arg.isTextureMapped) {
+        triangle.bits = tex.getBitcount();
+        triangle.texpage.x = tex.getBaseX();
+        triangle.texpage.y = tex.getBaseY();
+        triangle.clut.x = tex.getClutX();
+        triangle.clut.y = tex.getClutY();
+        triangle.transparency = tex.semiTransparencyBlending();
+    }
+
+    triangle.assureCcw();
+    drawTriangle(triangle);
+
+    if (arg.isQuad) {
+        for (int i : {1, 2, 3}) triangle.v[i - 1] = v[i];
+
+        triangle.assureCcw();
+        drawTriangle(triangle);
+    }
 
     cmd = Command::None;
 }

@@ -28,7 +28,7 @@ INLINE glm::uvec2 calculateTexel(glm::ivec2 tex, const gpu::GP0_E2 textureWindow
 template <ColorDepth bits>
 INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     // Extract common GPU state
-    using Transparency = gpu::GP0_E1::SemiTransparency;
+    using Transparency = gpu::SemiTransparency;
     const auto transparency = gpu->gp0_e1.semiTransparency;
     const bool checkMaskBeforeDraw = gpu->gp0_e6.checkMaskBeforeDraw;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;

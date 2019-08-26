@@ -363,7 +363,7 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
 #endif
 
     // Unbatched render
-    using Transparency = gpu::GP0_E1::SemiTransparency;
+    using Transparency = gpu::SemiTransparency;
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     if (transparency) {

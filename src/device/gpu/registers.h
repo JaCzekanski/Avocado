@@ -1,5 +1,6 @@
 #pragma once
 #include "device/device.h"
+#include "semi_transparency.h"
 
 namespace gpu {
 
@@ -8,12 +9,6 @@ const int MAX_ARGS = 32;
 
 // Draw Mode setting
 union GP0_E1 {
-    enum class SemiTransparency : uint32_t {
-        Bby2plusFby2 = 0,  // B/2+F/2
-        BplusF = 1,        // B+F
-        BminusF = 2,       // B-F
-        BplusFby4 = 3      // B+F/4
-    };
     enum class TexturePageColors : uint32_t { bit4 = 0, bit8 = 1, bit15 = 2 };
     enum class DrawingToDisplayArea : uint32_t { prohibited = 0, allowed = 1 };
     struct {
@@ -248,12 +243,8 @@ struct TextureInfo {
 
     int getClutX() const { return ((palette & 0x003f0000) >> 16) * 16; }
     int getClutY() const { return ((palette & 0x7fc00000) >> 22); }
-    int getBaseX() const {
-        return ((texpage & 0x0f0000) >> 16) * 64;  // N * 64
-    }
-    int getBaseY() const {
-        return ((texpage & 0x100000) >> 20) * 256;  // N * 256
-    }
+    int getBaseX() const { return ((texpage & 0x0f0000) >> 16) * 64; }   // N * 64
+    int getBaseY() const { return ((texpage & 0x100000) >> 20) * 256; }  // N * 256
     int getBitcount() const {
         int depth = (texpage & 0x1800000) >> 23;
         switch (depth) {
@@ -265,7 +256,7 @@ struct TextureInfo {
         }
     }
 
-    GP0_E1::SemiTransparency semiTransparencyBlending() const { return (GP0_E1::SemiTransparency)((texpage & 0x600000) >> 21); }
+    SemiTransparency semiTransparencyBlending() const { return (SemiTransparency)((texpage & 0x600000) >> 21); }
 };
 
 // Debug/rewind

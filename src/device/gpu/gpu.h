@@ -106,7 +106,7 @@ class GPU {
     void cmdVramToCpu(uint8_t command);
     void cmdVramToVram(uint8_t command);
 
-    void drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool isQuad = false, bool textured = false, int flags = 0);
+    void drawTriangle(const primitive::Triangle& triangle);
     void drawLine(const primitive::Line& line);
     void drawRectangle(const primitive::Rect& rect);
 

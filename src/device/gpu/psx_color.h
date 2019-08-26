@@ -4,6 +4,7 @@
 #include "utils/macros.h"
 #include "utils/math.h"
 
+#undef RGB  // Some header is adding this macro on Windows
 // Union for storing 24bit color (used in GPU commands)
 union RGB {
     struct {
@@ -13,6 +14,8 @@ union RGB {
         uint8_t _;
     };
     uint32_t raw;
+
+    RGB() : raw(0) {}
 };
 
 RGB operator*(const RGB& lhs, const float rhs);

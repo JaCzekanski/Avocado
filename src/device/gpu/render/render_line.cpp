@@ -7,7 +7,7 @@
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
 void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
-    using Transparency = gpu::GP0_E1::SemiTransparency;
+    using Transparency = gpu::SemiTransparency;
     const auto transparency = gpu->gp0_e1.semiTransparency;
     const bool checkMaskBeforeDraw = gpu->gp0_e6.checkMaskBeforeDraw;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
