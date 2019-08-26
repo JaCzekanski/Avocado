@@ -36,11 +36,13 @@ INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const iv
         return to15bit(color[0].r, color[0].g, color[0].b);
     }
 
-    ivec3 outColor(                                                       //
-        (s.x * color[0].r + s.y * color[1].r + s.z * color[2].r) / area,  //
-        (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g) / area,  //
-        (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b) / area   //
+    ivec3 outColor(                                                //
+        (s.x * color[0].r + s.y * color[1].r + s.z * color[2].r),  //
+        (s.x * color[0].g + s.y * color[1].g + s.z * color[2].g),  //
+        (s.x * color[0].b + s.y * color[1].b + s.z * color[2].b)   //
     );
+
+    outColor /= area;
 
     // TODO: THPS2 fading screen doesn't look as it should
     if (flags & Vertex::Dithering && !(flags & Vertex::RawTexture)) {
@@ -52,10 +54,12 @@ INLINE PSXColor doShading(const ivec3 s, const int area, const ivec2 p, const iv
 }
 
 INLINE glm::uvec2 calculateTexel(const glm::ivec3 s, const int area, const glm::ivec2 tex[3], const gpu::GP0_E2 textureWindow) {
-    glm::uvec2 texel(                                                                          //
-        ((int64_t)s.x * tex[0].x + (int64_t)s.y * tex[1].x + (int64_t)s.z * tex[2].x) / area,  //
-        ((int64_t)s.x * tex[0].y + (int64_t)s.y * tex[1].y + (int64_t)s.z * tex[2].y) / area   //
+    glm::uvec2 texel(                                                                   //
+        ((int64_t)s.x * tex[0].x + (int64_t)s.y * tex[1].x + (int64_t)s.z * tex[2].x),  //
+        ((int64_t)s.x * tex[0].y + (int64_t)s.y * tex[1].y + (int64_t)s.z * tex[2].y)   //
     );
+
+    texel /= area;
 
     // Texture is repeated outside of 256x256 window
     texel.x %= 256u;
@@ -99,10 +103,12 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
                 fcolor[0] = vec3(color[0]) / 255.f;
                 fcolor[1] = vec3(color[1]) / 255.f;
                 fcolor[2] = vec3(color[2]) / 255.f;
-                brightness = vec3(                                                       //
-                    (s.x * fcolor[0].r + s.y * fcolor[1].r + s.z * fcolor[2].r) / area,  //
-                    (s.x * fcolor[0].g + s.y * fcolor[1].g + s.z * fcolor[2].g) / area,  //
-                    (s.x * fcolor[0].b + s.y * fcolor[1].b + s.z * fcolor[2].b) / area);
+                brightness = vec3(                                                //
+                    (s.x * fcolor[0].r + s.y * fcolor[1].r + s.z * fcolor[2].r),  //
+                    (s.x * fcolor[0].g + s.y * fcolor[1].g + s.z * fcolor[2].g),  //
+                    (s.x * fcolor[0].b + s.y * fcolor[1].b + s.z * fcolor[2].b)   //
+                );
+                brightness /= area;
             } else {  // Flat shading
                 brightness = vec3(color[0]) / 255.f;
             }
@@ -146,6 +152,10 @@ INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const i
         gpu->maxDrawingX(std::max({pos[0].x, pos[1].x, pos[2].x})),  //
         gpu->maxDrawingY(std::max({pos[0].y, pos[1].y, pos[2].y}))   //
     );
+
+    // Skip rendering when distence between vertices is bigger than 1023x511
+    const ivec2 size = max - min;
+    if (size.x >= 1024 || size.y >= 512) return;
 
     // https://fgiesen.wordpress.com/2013/02/10/optimizing-the-basic-rasterizer/
 
@@ -219,12 +229,6 @@ void Render::drawTriangle(GPU* gpu, Vertex v[3]) {
     flags = v[0].flags;
     textureWindow = v[0].textureWindow;
     maskSettings = v[0].maskSettings;
-
-    // Skip rendering when distence between vertices is bigger than 1023x511
-    for (int j = 0; j < 3; j++) {
-        if (abs(pos[j].x - pos[(j + 1) % 3].x) >= 1024) return;
-        if (abs(pos[j].y - pos[(j + 1) % 3].y) >= 512) return;
-    }
 
     if (bits == 0) {
         triangle<ColorDepth::NONE>(gpu, pos, color, texcoord, texpage, clut, flags, textureWindow, maskSettings);
