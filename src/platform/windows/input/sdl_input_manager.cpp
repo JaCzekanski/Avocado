@@ -120,6 +120,10 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
                 }
                 break;
         }
+        if ((event.key.keysym.mod & KMOD_ALT) && event.key.keysym.sym == SDLK_RETURN) {
+            bus.notify(Event::Gui::ToggleFullscreen{});
+            return true;
+        }
     }
 
     if ((!keyboardCaptured || waitingForKeyPress) && (type == SDL_KEYDOWN || type == SDL_KEYUP)) {

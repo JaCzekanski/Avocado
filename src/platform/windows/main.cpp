@@ -299,6 +299,14 @@ int main(int argc, char** argv) {
     bool doHardReset = false;
     bus.listen<Event::System::HardReset>(busToken, [&](auto) { doHardReset = true; });
 
+    bus.listen<Event::Gui::ToggleFullscreen>(busToken, [&](auto) {
+        if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+            SDL_SetWindowFullscreen(window, 0);
+        } else {
+            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        }
+    });
+
     // If argument given - open that file (same as drag and drop)
     if (argc > 1) {
         loadFile(sys, argv[1]);

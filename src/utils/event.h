@@ -28,6 +28,7 @@ namespace Gui {
 struct Toast {
     std::string message;
 };
+struct ToggleFullscreen {};
 }  // namespace Gui
 };  // namespace Event
 
