@@ -1,0 +1,35 @@
+name: CI
+
+on: [push]
+
+jobs:
+  linux_clang6:
+    name: "Linux Clang6"
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - run: ./.travis/linux/run-container.sh 6
+    
+  linux_clang8:
+    name: "Linux Clang8"
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - run: ./.travis/linux/run-container.sh 8
+    
+  android:
+    name: "Android"
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - run: ./.travis/android/run-container.sh
+    
+  macos:
+    name: "macOS"
+    runs-on: macOS-10.14
+    steps:
+    - uses: actions/checkout@v1
+    - run: ./.travis/macos/install-dependencies.sh
+    - run: ./.travis/macos/build.sh
+    
+# TODO: Add Windows
