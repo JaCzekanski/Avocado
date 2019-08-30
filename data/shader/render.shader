@@ -149,16 +149,18 @@ void main() {
     if (((fragFlags & SemiTransparency) == SemiTransparency)
         && ((fragBitcount != BIT_NONE && color.a != 0.f) || (fragBitcount == BIT_NONE))) {
         uint transparency = (fragFlags & 0x60u) >> 5;
-        if (transparency == Bby2plusFby2)
+        if (transparency == Bby2plusFby2) {
+            // Works ok, (benchmark.exe, not ok: skullmonkeys)
             color.a = 0.5f;
-        else if (transparency == BplusF) {
+        } else if (transparency == BplusF) {
+            // Works ok (Tekken 3 Sword glow)
             color.a = 0.5f;
         } else if (transparency == BminusF) {
-            color.r = -color.r;
-            color.g = -color.g;
-            color.b = -color.b;
             color.a = 0.5f;
         } else if (transparency == BplusFby4) {
+            color.r = 0;
+            color.g = 0;
+            color.b = 1.f;
             color.a = 0.25f;
         }
         // color.a = 0.5f;

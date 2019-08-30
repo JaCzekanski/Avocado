@@ -42,6 +42,7 @@ class OpenGL {
     const int bufferSize = 100000;
 
     bool hardwareRendering;
+    bool transparency;
 
     std::unique_ptr<Program> renderShader;
     std::unique_ptr<Buffer> renderBuffer;

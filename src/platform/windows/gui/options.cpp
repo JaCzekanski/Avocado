@@ -103,13 +103,14 @@ void graphicsOptionsWindow() {
             }
             ImGui::PopItemWidth();
         }
+
+        bool transparency = config["options"]["graphics"]["transparency"];
+        if (ImGui::Checkbox("Transparency", &transparency)) {
+            config["options"]["graphics"]["transparency"] = transparency;
+            bus.notify(Event::Config::Graphics{});
+        }
     }
 
-    bool filtering = config["options"]["graphics"]["filtering"];
-    if (ImGui::Checkbox("Filtering", &filtering)) {
-        config["options"]["graphics"]["filtering"] = filtering;
-        bus.notify(Event::Config::Graphics{});
-    }
     bool widescreen = config["options"]["graphics"]["widescreen"];
     if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
         config["options"]["graphics"]["widescreen"] = widescreen;

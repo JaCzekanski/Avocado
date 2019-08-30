@@ -152,7 +152,7 @@ const json defaultConfig = {
     {"options", {
         {"graphics", {
             {"rendering_mode", RenderingMode::SOFTWARE},
-            {"filtering", false},
+            {"transparency", true},
             {"widescreen", false},
             {"forceWidescreen", false},
             {"resolution", {
