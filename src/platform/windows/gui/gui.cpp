@@ -113,7 +113,7 @@ void renderImgui(System* sys) {
 
                 ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
                 ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
-                ;
+
                 ImGui::MenuItem("Memory", nullptr, &showRamWindow);
                 ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
                 ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
@@ -123,6 +123,13 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
                 ImGui::MenuItem("GPU", nullptr, &showGpuWindow);
                 ImGui::MenuItem("SPU", nullptr, &showSpuWindow);
+
+                ImGui::Separator();
+                if (ImGui::MenuItem("Dump state")) {
+                    sys->dumpRam();
+                    sys->spu->dumpRam();
+                    sys->gpu->dumpVram();
+                }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Options")) {

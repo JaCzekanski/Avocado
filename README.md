@@ -81,7 +81,6 @@ To load a .cue/.bin/.img/.chd file just drag and drop it.
 - **Shift-F2** - hard reset
 - **F7** - single frame
 - **Tab** - disable framelimiting
-- **Q** - toggle full VRAM preview
 
 Configure controls under Options->Controller menu.
 

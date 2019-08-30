@@ -1,6 +1,3 @@
-// Uncomment for leak detection
-// #include <vld.h>
-
 #include <SDL.h>
 #include <algorithm>
 #include <cstdio>
@@ -391,20 +388,14 @@ int main(int argc, char** argv) {
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
             }
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
-                if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    running = false;
-                }
-                if (event.key.keysym.sym == SDLK_r) {
-                    sys->dumpRam();
-                    sys->spu->dumpRam();
-                    sys->gpu->dumpVram();
-                }
+                if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
                 if (event.key.keysym.sym == SDLK_F2) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
                         sys = hardReset();
-                    } else
+                    } else {
                         sys->softReset();
+                    }
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
                     printf("Shell toggle\n");
