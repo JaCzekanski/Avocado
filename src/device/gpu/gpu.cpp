@@ -108,7 +108,12 @@ void GPU::drawPolygon(int16_t x[4], int16_t y[4], RGB c[4], TextureInfo t, bool 
 
 void GPU::drawLine(const primitive::Line& line) {
     if (hardwareRendering) {
-        auto p = line.pos;
+        glm::ivec2 p[2];
+        for (int i = 0; i < 2; i++) {
+            p[i] = line.pos[i];
+            p[i].x += drawingOffsetX;
+            p[i].y += drawingOffsetY;
+        }
         auto c = line.color;
         int flags = 0;
 
@@ -128,20 +133,24 @@ void GPU::drawLine(const primitive::Line& line) {
 
 void GPU::drawRectangle(const primitive::Rect& rect) {
     if (hardwareRendering) {
+        glm::ivec2 p;
         int x[4], y[4];
         glm::ivec2 uv[4];
 
-        x[0] = rect.pos.x;
-        y[0] = rect.pos.y;
+        p.x = rect.pos.x + drawingOffsetX;
+        p.y = rect.pos.y + drawingOffsetY;
 
-        x[1] = rect.pos.x + rect.size.x;
-        y[1] = rect.pos.y;
+        x[0] = p.x;
+        y[0] = p.y;
 
-        x[2] = rect.pos.x;
-        y[2] = rect.pos.y + rect.size.y;
+        x[1] = p.x + rect.size.x;
+        y[1] = p.y;
 
-        x[3] = rect.pos.x + rect.size.x;
-        y[3] = rect.pos.y + rect.size.y;
+        x[2] = p.x;
+        y[2] = p.y + rect.size.y;
+
+        x[3] = p.x + rect.size.x;
+        y[3] = p.y + rect.size.y;
 
         uv[0].x = rect.uv.x;
         uv[0].y = rect.uv.y;
@@ -156,6 +165,8 @@ void GPU::drawRectangle(const primitive::Rect& rect) {
         uv[3].y = rect.uv.y + rect.size.y;
 
         int flags = 0;
+        if (rect.isRawTexture) flags |= Vertex::Flags::RawTexture;
+        if (rect.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
 
         Vertex v[6];
         for (int i : {0, 1, 2, 1, 2, 3}) {
