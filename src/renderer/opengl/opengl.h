@@ -39,7 +39,7 @@ class OpenGL {
         float tex[2];
     };
 
-    const int bufferSize = 1024 * 1024;
+    const int bufferSize = 100000;
 
     bool hardwareRendering;
 

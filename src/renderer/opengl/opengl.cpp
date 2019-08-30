@@ -284,72 +284,53 @@ void OpenGL::updateVramTexture(gpu::GPU* gpu) {
 
 void OpenGL::renderVertices(gpu::GPU* gpu) {
     static glm::vec2 lastPos;
+    auto& buffer = gpu->vertices;
+    if (buffer.empty()) {
+        return;
+    }
 
     int areaX = lastPos.x;
     int areaY = lastPos.y;
     int areaW = gpu->gp1_08.getHorizontalResoulution();
     int areaH = gpu->gp1_08.getVerticalResoulution();
 
-    // TODO: Synchronize frames (which is being rendered and which is being drawn)
-    // Mark vram dirty to prevent unnecessary copying
-    // Implement double buffering in opengl in shaders
-
-    // 1. Copy previous Screen state (VRAM to render framebuffer)
-    copyShader->use();
-
-    // Reuse renderBuffer
-    renderBuffer->bind();
-    std::vector<BlitStruct> bb = makeBlitBuf(areaX, areaY, areaW, areaH, true);
-
-    blitBuffer->bind();
-    blitBuffer->update(bb.size() * sizeof(BlitStruct), bb.data());
-    bindBlitAttributes();
-
-    vramTex->bind(0);
-    copyShader->getUniform("vram").i(0);
-
+    // Simulate GPU in Shader (skip if no entries in renderlist)
     glViewport(0, 0, renderWidth, renderHeight);
     renderFramebuffer->bind();
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    renderShader->use();
+    renderBuffer->bind();
+    renderBuffer->update(sizeof(gpu::Vertex) * buffer.size(), buffer.data());
+    bindRenderAttributes();
 
-    // 2. Simulate GPU in Shader (skip if no entries in renderlist)
-    auto& buffer = gpu->vertices;
-    if (!buffer.empty()) {
-        renderShader->use();
-        renderBuffer->bind();
-        renderBuffer->update(sizeof(gpu::Vertex) * buffer.size(), buffer.data());
-        bindRenderAttributes();
+    // Set uniforms
+    vramTex->bind(0);
+    renderShader->getUniform("vram").i(0);
+    renderShader->getUniform("displayAreaPos").f(areaX, areaY);
+    renderShader->getUniform("displayAreaSize").f(areaW, areaH);
 
-        // Set uniforms
-        vramTex->bind(0);
-        renderShader->getUniform("vram").i(0);
-        renderShader->getUniform("displayAreaPos").f(areaX, areaY);
-        renderShader->getUniform("displayAreaSize").f(areaW, areaH);
+    // Render
+    auto mapType = [](int type) {
+        if (type == gpu::Vertex::Type::Line)
+            return GL_LINES;
+        else
+            return GL_TRIANGLES;
+    };
+    int lastType = gpu::Vertex::Type::Polygon;
+    int begin = 0;
+    int count = 0;
+    for (size_t i = 0; i < buffer.size(); i++) {
+        ++count;
+        int type = buffer[i].type;
 
-        // Render
-        auto mapType = [](int type) {
-            if (type == gpu::Vertex::Type::Line)
-                return GL_LINES;
-            else
-                return GL_TRIANGLES;
-        };
-        int lastType = gpu::Vertex::Type::Polygon;
-        int begin = 0;
-        int count = 0;
-        for (size_t i = 0; i < buffer.size(); i++) {
-            ++count;
-            int type = buffer[i].type;
+        if (i == 0 || (lastType == type && i < buffer.size() - 1)) continue;
 
-            if (i == 0 || (lastType == type && i < buffer.size() - 1)) continue;
+        if (lastType != buffer[i].type) count--;
+        glDrawArrays(mapType(lastType), begin, count);
 
-            if (lastType != buffer[i].type) count--;
-            glDrawArrays(mapType(lastType), begin, count);
-
-            lastType = type;
-            begin = begin + count;
-            count = 1;
-        }
+        lastType = type;
+        begin = begin + count;
+        count = 1;
     }
     lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
 

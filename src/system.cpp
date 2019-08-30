@@ -351,8 +351,14 @@ void System::emulateFrame() {
         timer[2]->step(systemCycles);
 
         static float spuCounter = 0;
-        // TODO: Yey, magic numbers!
-        spuCounter += (float)systemCycles / 1.575f / (float)0x300;
+
+        float magicNumber = 1.575f;
+        if (!gpu->isNtsc()) {
+            // Hack to prevent crackling audio on PAL games
+            // Note - this overclocks SPU clock, bugs might appear.
+            magicNumber *= 50.f / 60.f;
+        }
+        spuCounter += (float)systemCycles / magicNumber / (float)0x300;
         if (spuCounter >= 1.f) {
             spu->step(cdrom.get());
             spuCounter -= 1.0f;

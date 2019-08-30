@@ -214,8 +214,30 @@ void GPU::cmdFillRectangle(uint8_t command) {
 
     cmd = Command::None;
 
-    // HACK: clean screen when using hw renderer (render rectangle instead of modifying VRAM directly)
-    // cmdRectangle(RectangleArgs(0x60));
+    if (hardwareRendering) {
+        glm::ivec2 p[4] = {{startX, startY}, {endX, startY}, {startX, endY}, {endX, endY}};
+
+        RGB c;
+        c.raw = arguments[0];
+
+        GP0_E2 e2;
+        GP0_E6 e6;
+
+        Vertex v[6];
+        for (int i : {0, 1, 2, 1, 2, 3}) {
+            v[i] = {Vertex::Type::Polygon,
+                    {p[i].x, p[i].y},
+                    {c.r, c.g, c.b},
+                    {0, 0},  // UV: 0
+                    0,       // Bits: 0
+                    {0, 0},  // clut: 0
+                    {0, 0},  // texPage: 0
+                    0,       // Flags: 0
+                    e2,      // gp0_e2: 0
+                    e6};     // gp0_e6: 0, no mask
+            vertices.push_back(v[i]);
+        }
+    }
 }
 
 void GPU::cmdPolygon(PolygonArgs arg) {
