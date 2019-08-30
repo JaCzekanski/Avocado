@@ -107,23 +107,30 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
 }
 
 void saveMemoryCards(std::unique_ptr<System>& sys, bool force = false) {
-    if (!force && !sys->controller->card[0]->dirty) return;
+    auto saveMemoryCard = [&](int slot) {
+        if (!force && !sys->controller->card[slot]->dirty) return;
 
-    std::string pathCard1 = config["memoryCard"]["1"];
-    if (pathCard1.empty()) {
-        printf("[INFO] No memory card 1 path in config, skipping save\n");
-        return;
-    }
+        auto configEntry = config["memoryCard"][std::to_string(slot + 1)];
+        std::string pathCard = configEntry.is_null() ? "" : configEntry;
 
-    auto& data = sys->controller->card[0]->data;
-    auto output = std::vector<uint8_t>(data.begin(), data.end());
+        if (pathCard.empty()) {
+            printf("[INFO] No memory card %d path in config, skipping save\n", slot + 1);
+            return;
+        }
 
-    if (!putFileContents(pathCard1, output)) {
-        printf("[INFO] Unable to save memory card 1 to %s\n", getFilenameExt(pathCard1).c_str());
-        return;
-    }
+        auto& data = sys->controller->card[slot]->data;
+        auto output = std::vector<uint8_t>(data.begin(), data.end());
 
-    printf("[INFO] Saved memory card 1 to %s\n", getFilenameExt(pathCard1).c_str());
+        if (!putFileContents(pathCard, output)) {
+            printf("[INFO] Unable to save memory card %d to %s\n", slot + 1, getFilenameExt(pathCard).c_str());
+            return;
+        }
+
+        printf("[INFO] Saved memory card %d to %s\n", slot + 1, getFilenameExt(pathCard).c_str());
+    };
+
+    saveMemoryCard(0);
+    saveMemoryCard(1);
 }
 
 std::unique_ptr<System> hardReset() {
