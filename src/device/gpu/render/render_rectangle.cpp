@@ -67,8 +67,8 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     int x, y, u, v;
     for (y = min.y, v = uv.y; y < max.y; y++, v += vStep) {
         for (x = min.x, u = uv.x; x < max.x; x++, u += uStep) {
+            PSXColor bg = VRAM[y][x];
             if (unlikely(checkMaskBeforeDraw)) {
-                PSXColor bg = VRAM[y][x];
                 if (bg.k) continue;
             }
 
@@ -87,7 +87,6 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
             }
 
             if (rect.isSemiTransparent && (!isTextured || c.k)) {
-                PSXColor bg = VRAM[y][x];
                 switch (transparency) {
                     case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
                     case Transparency::BplusF: c = bg + c; break;
@@ -96,7 +95,7 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
                 }
             }
 
-            c.k |= setMaskWhileDrawing;
+            c.k |= bg.k | setMaskWhileDrawing;
 
             VRAM[y][x] = c.raw;
         }

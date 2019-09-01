@@ -76,8 +76,9 @@ INLINE glm::uvec2 calculateTexel(const glm::ivec3 s, const int area, const glm::
 template <ColorDepth bits>
 INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, const ivec3 color[3], const ivec2 tex[3], const ivec2 texPage,
                       const ivec2 clut, const int flags, const gpu::GP0_E2 textureWindow, const gpu::GP0_E6 maskSettings) {
+    PSXColor bg = VRAM[p.y][p.x];
+
     if (unlikely(maskSettings.checkMaskBeforeDraw)) {
-        PSXColor bg = VRAM[p.y][p.x];
         if (bg.k) return;
     }
 
@@ -122,7 +123,6 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
         using Transparency = gpu::GP0_E1::SemiTransparency;
 
         auto transparency = (Transparency)((flags & 0x60) >> 5);
-        PSXColor bg = VRAM[p.y][p.x];
         switch (transparency) {
             case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
             case Transparency::BplusF: c = bg + c; break;
@@ -131,7 +131,7 @@ INLINE void plotPixel(GPU* gpu, const ivec2 p, const ivec3 s, const int area, co
         }
     }
 
-    c.k |= maskSettings.setMaskWhileDrawing;
+    c.k |= bg.k | maskSettings.setMaskWhileDrawing;
 
     VRAM[p.y][p.x] = c.raw;
 }

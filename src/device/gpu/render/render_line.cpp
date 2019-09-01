@@ -59,8 +59,8 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
     };
 
     auto putPixel = [&](int x, int y, RGB fullColor) {
+        PSXColor bg = VRAM[y][x];
         if (unlikely(checkMaskBeforeDraw)) {
-            PSXColor bg = VRAM[y][x];
             if (bg.k) return;
         }
 
@@ -75,7 +75,6 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
 
         // TODO: This code repeats 3 times, make it more generic
         if (line.isSemiTransparent) {
-            PSXColor bg = VRAM[y][x];
             switch (transparency) {
                 case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
                 case Transparency::BplusF: c = bg + c; break;
@@ -84,7 +83,7 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
             }
         }
 
-        c.k |= setMaskWhileDrawing;
+        c.k |= bg.k | setMaskWhileDrawing;
 
         VRAM[y][x] = c.raw;
     };
