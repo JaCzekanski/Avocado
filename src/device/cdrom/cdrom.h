@@ -114,6 +114,8 @@ class CDROM {
 
     StatusCode stat;
 
+    int scexCounter = 0;
+
     void cmdGetstat();
     void cmdSetloc();
     void cmdPlay();

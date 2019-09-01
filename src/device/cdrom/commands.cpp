@@ -284,17 +284,29 @@ void CDROM::cmdSeekL() {
 
 void CDROM::cmdTest() {
     uint8_t opcode = readParam();
-    if (opcode == 0x20)  // Get CDROM BIOS date/version (yy,mm,dd,ver)
-    {
+    if (opcode == 0x03) {  // Force motor off, used in swap
+        stat.motor = 0;
+        postInterrupt(3);
+        writeResponse(stat._reg);
+    } else if (opcode == 0x04) {  // Read SCEx string
+        stat.motor = 1;
+        scexCounter = 0;
+        postInterrupt(3);
+        writeResponse(stat._reg);
+
+        if (readSector < 1024) {
+            scexCounter++;
+        }
+    } else if (opcode == 0x05) {  // Get SCEx counters
+        postInterrupt(3);
+        writeResponse(scexCounter);
+        writeResponse(scexCounter);
+    } else if (opcode == 0x20) {  // Get CDROM BIOS date/version (yy,mm,dd,ver)
         postInterrupt(3);
         writeResponse(0x94);
         writeResponse(0x09);
         writeResponse(0x19);
         writeResponse(0xc0);
-    } else if (opcode == 0x03) {  // Force motor off, used in swap
-        stat.motor = 0;
-        postInterrupt(3);
-        writeResponse(stat._reg);
     } else {
         printf("Unimplemented test CDROM opcode (0x%x)!\n", opcode);
         postInterrupt(5);
