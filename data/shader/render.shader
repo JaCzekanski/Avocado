@@ -158,8 +158,8 @@ void main() {
         } else if (transparency == BminusF) {
             color.a = 0.5f;
         } else if (transparency == BplusFby4) {
-            color.r = 0;
-            color.g = 0;
+            color.r = 0.f;
+            color.g = 0.f;
             color.b = 1.f;
             color.a = 0.25f;
         }
