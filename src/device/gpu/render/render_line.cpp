@@ -22,7 +22,7 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
 
     // TODO: Clip line in drawRectangle
 
-    // Skip rendering when distence between vertices is bigger than 1023x511
+    // Skip rendering when distance between vertices is bigger than 1023x511
     if (abs(x0 - x1) >= 1024) return;
     if (abs(y0 - y1) >= 512) return;
 

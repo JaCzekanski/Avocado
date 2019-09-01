@@ -144,18 +144,27 @@ INLINE void triangle(GPU* gpu, const ivec2 pos[3], const ivec3 color[3], const i
     const int area = orient2d(pos[0], pos[1], pos[2]);
     if (area == 0) return;
 
-    const ivec2 min = ivec2(                                         //
-        gpu->minDrawingX(std::min({pos[0].x, pos[1].x, pos[2].x})),  //
-        gpu->minDrawingY(std::min({pos[0].y, pos[1].y, pos[2].y}))   //
+    ivec2 min(                                     //
+        std::min({pos[0].x, pos[1].x, pos[2].x}),  //
+        std::min({pos[0].y, pos[1].y, pos[2].y})   //
     );
-    const ivec2 max = ivec2(                                         //
-        gpu->maxDrawingX(std::max({pos[0].x, pos[1].x, pos[2].x})),  //
-        gpu->maxDrawingY(std::max({pos[0].y, pos[1].y, pos[2].y}))   //
+    ivec2 max(                                     //
+        std::max({pos[0].x, pos[1].x, pos[2].x}),  //
+        std::max({pos[0].y, pos[1].y, pos[2].y})   //
     );
 
     // Skip rendering when distence between vertices is bigger than 1023x511
     const ivec2 size = max - min;
     if (size.x >= 1024 || size.y >= 512) return;
+
+    min = ivec2(                  //
+        gpu->minDrawingX(min.x),  //
+        gpu->minDrawingY(min.y)   //
+    );
+    max = ivec2(                  //
+        gpu->maxDrawingX(max.x),  //
+        gpu->maxDrawingY(max.t)   //
+    );
 
     // https://fgiesen.wordpress.com/2013/02/10/optimizing-the-basic-rasterizer/
 

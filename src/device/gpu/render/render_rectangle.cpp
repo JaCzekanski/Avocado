@@ -36,6 +36,8 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     const bool isBlended = !rect.isRawTexture;
     constexpr bool isTextured = bits != ColorDepth::NONE;
 
+    if (rect.size.x >= 1024 || rect.size.y >= 512) return;
+
     const ivec2 pos(                       //
         rect.pos.x + gpu->drawingOffsetX,  //
         rect.pos.y + gpu->drawingOffsetY   //

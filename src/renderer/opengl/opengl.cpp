@@ -420,6 +420,24 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
         auto type = mapType(buffer[i].type);
         int count = type == GL_TRIANGLES ? 3 : 2;
 
+        // Skip rendering when distance between vertices is bigger than 1023x511
+        bool skipRender = false;
+        for (int j = 0; j < count; j++) {
+            auto& v0 = buffer[i + j];
+            auto& v1 = buffer[i + ((j + 1) % count)];
+            int x = abs(v0.position[0] - v1.position[0]);
+            int y = abs(v0.position[1] - v1.position[1]);
+            if (x >= 1024 || y >= 1024) {
+                skipRender = true;
+                break;
+            }
+        }
+
+        if (skipRender) {
+            i += count;
+            continue;
+        }
+
         if (transparency && buffer[i].flags & gpu::Vertex::SemiTransparency) {
             auto semi = static_cast<Transparency>((buffer[i].flags >> 5) & 3);
             if (semi == Transparency::Bby2plusFby2) {
