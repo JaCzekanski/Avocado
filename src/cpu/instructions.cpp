@@ -163,6 +163,18 @@ std::array<PrimaryInstruction, 64> SpecialTable = {{
 
 void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
     using Exception = COP0::CAUSE::Exception;
+
+    // Hardware quirk:
+    // If COP2 opcode is executed when interrupt occures
+    // COP0 set EPC to the same opcode causing it to execute twice
+    // HACK: Delay interrupts if current opcode is GTE command
+    if (cause == Exception::interrupt) {
+        Opcode i(cpu->sys->readMemory32(cpu->exceptionPC));
+        if (i.op == 18) {  // COP2 opcode
+            return;
+        }
+    }
+
     cpu->cop0.cause.clearForException();
     cpu->cop0.cause.exception = cause;
 
