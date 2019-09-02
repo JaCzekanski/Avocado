@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <string>
 
 namespace disc {
@@ -19,4 +20,13 @@ struct Position {
     bool operator>=(const Position& p) const;
     bool operator<(const Position& p) const;
 };
-}  // namespace utils
+}  // namespace disc
+
+namespace std {
+template <>
+struct hash<disc::Position> {
+    std::size_t operator()(const disc::Position& p) const {
+        return ((p.mm ^ (p.ss << 1)) >> 1) ^ (p.ff << 1);  //
+    }
+};
+}  // namespace std

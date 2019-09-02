@@ -1,17 +1,15 @@
 #include "cue.h"
 
 namespace disc {
-    namespace format {
-std::string Cue::getFile() const {
-    return file;
-}
+namespace format {
+std::string Cue::getFile() const { return file; }
 
 Position Cue::getDiskSize() const {
     int frames = 0;
     for (auto t : tracks) {
         frames += t.frames;
     }
-    return Position::fromLba(frames) + Position{0,2,0};
+    return Position::fromLba(frames) + Position{0, 2, 0};
 }
 
 size_t Cue::getTrackCount() const { return tracks.size(); }
@@ -94,7 +92,9 @@ std::unique_ptr<Cue> Cue::fromBin(const char* file) {
     cue->file = file;
     cue->tracks.push_back(t);
 
+    cue->loadSubchannel(file);
+
     return cue;
 }
-    }
-}  // namespace utils
+}  // namespace format
+}  // namespace disc

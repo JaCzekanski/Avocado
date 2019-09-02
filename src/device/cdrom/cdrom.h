@@ -183,6 +183,7 @@ class CDROM {
 
     disc::TrackType trackType;
     std::unique_ptr<disc::Disc> disc;
+    disc::SubchannelQ lastQ;
     bool mute = false;
 
     CDROM(System* sys);

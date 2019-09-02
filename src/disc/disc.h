@@ -1,7 +1,9 @@
 #pragma once
 #include <cstdint>
+#include <unordered_map>
 #include <vector>
 #include "position.h"
+#include "subchannel_q.h"
 
 namespace disc {
 enum class TrackType { DATA, AUDIO, INVALID };
@@ -19,5 +21,13 @@ struct Disc {
     virtual Position getTrackStart(int track) const = 0;
     virtual Position getTrackLength(int track) const = 0;
     virtual Position getDiskSize() const = 0;
+
+    SubchannelQ getSubQ(Position pos);
+    bool loadSubchannel(const std::string& path);
+
+   private:
+    std::unordered_map<Position, SubchannelQ> modifiedQ;
+    bool loadLsd(const std::vector<uint8_t>& lsd);
+    bool loadSbi(const std::vector<uint8_t>& sbi);
 };
 }  // namespace disc

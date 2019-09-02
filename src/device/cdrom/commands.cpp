@@ -206,20 +206,15 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    auto pos = disc::Position::fromLba(readSector);
-
-    int track = disc->getTrackByPosition(pos);
-    auto posInTrack = pos - disc->getTrackStart(track);
-
     postInterrupt(3);
-    writeResponse(bcd::toBcd(track));          // track
-    writeResponse(0x01);                       // index
-    writeResponse(bcd::toBcd(posInTrack.mm));  // minute (track)
-    writeResponse(bcd::toBcd(posInTrack.ss));  // second (track)
-    writeResponse(bcd::toBcd(posInTrack.ff));  // sector (track)
-    writeResponse(bcd::toBcd(pos.mm));         // minute (disc)
-    writeResponse(bcd::toBcd(pos.ss));         // second (disc)
-    writeResponse(bcd::toBcd(pos.ff));         // sector (disc)
+    writeResponse(lastQ.data[0]);  // track
+    writeResponse(lastQ.data[1]);  // index
+    writeResponse(lastQ.data[2]);  // minute (track)
+    writeResponse(lastQ.data[3]);  // second (track)
+    writeResponse(lastQ.data[4]);  // sector (track)
+    writeResponse(lastQ.data[6]);  // minute (disc)
+    writeResponse(lastQ.data[7]);  // second (disc)
+    writeResponse(lastQ.data[8]);  // sector (disc)
 
     if (verbose) {
         printf("CDROM: cmdGetlocP -> (%s)\n", dumpFifo(CDROM_response).c_str());
@@ -238,33 +233,34 @@ void CDROM::cmdGetTN() {
 }
 
 void CDROM::cmdGetTD() {
-    int track = readParam();
-    postInterrupt(3);
-    writeResponse(stat._reg);
-    if (track == 0)  // end of last track
-    {
-        auto diskSize = disc->getDiskSize();
-        if (verbose) printf("GetTD(0): minute: %d, second: %d\n", diskSize.mm, diskSize.ss);
+    int track = bcd::toBinary(readParam());
 
+    if (track == 0) {  // end of last track
+        auto diskSize = disc->getDiskSize();
+
+        postInterrupt(3);
+        writeResponse(stat._reg);
         writeResponse(bcd::toBcd(diskSize.mm));
         writeResponse(bcd::toBcd(diskSize.ss));
-    } else {  // Start of n track
-        if (track > (int)disc->getTrackCount()) {
-            // Error
-            return;
-        }
-
+    } else if (track <= disc->getTrackCount()) {  // Start of n track
         auto start = disc->getTrackStart(track);
 
-        if (verbose) printf("GetTD(%d): minute: %d, second: %d\n", track, start.mm, start.ss);
+        postInterrupt(3);
+        writeResponse(stat._reg);
         writeResponse(bcd::toBcd(start.mm));
         writeResponse(bcd::toBcd(start.ss));
+    } else {  // error
+        postInterrupt(5);
+        writeResponse(0x10);
+
+        if (verbose) {
+            printf("GetTD(0x%02x): error\n", track);
+        }
+        return;
     }
 
     if (verbose) {
-        printf("CDROM: cmdGetTD(0x%02x) -> ", track);
-        dumpFifo(CDROM_response);
-        printf("\n");
+        printf("CDROM: cmdGetTD(0x%02x) -> (%s)\n", track, dumpFifo(CDROM_response).c_str());
     }
 }
 

@@ -13,6 +13,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
+*2.09.2019* - Anti-Modchip and LibCrypt protected games support
+
 *13.03.2019* - merged MDEC (video decoder) support
 
 *8.12.2018* - created Compatibility list webapp
@@ -72,6 +74,8 @@ Press the **Start** button (Enter by default) to fastboot, or **R2** (keypad *) 
 You can run the included Playstation firmware replacement *Caetla* with the **Select** button (Right shift) then run the .exe directly from the disk.
 
 To load a .cue/.bin/.img/.chd file just drag and drop it.
+
+PAL games with LibCrypt protection need additional subchannel info - download proper file .SBI or .LSD file from [Redump](http://redump.org/discs/system/psx/), place it in the same folder as game image and make sure has identical name as .cue/.bin/... file.
 
 ## Controls
 

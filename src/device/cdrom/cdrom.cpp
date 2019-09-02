@@ -32,6 +32,10 @@ void CDROM::step() {
 
         auto pos = disc::Position::fromLba(readSector);
         std::tie(rawSector, trackType) = disc->read(pos);
+        auto q = disc->getSubQ(pos);
+        if (q.validCrc()) {
+            this->lastQ = q;
+        }
         readSector++;
 
         if (trackType == disc::TrackType::AUDIO && stat.play) {

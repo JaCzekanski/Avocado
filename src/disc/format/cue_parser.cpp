@@ -4,7 +4,7 @@
 #include "utils/string.h"
 
 namespace disc {
-    namespace format{
+namespace format {
 bool CueParser::parseFile(std::string& line) {
     std::smatch matches;
     regex_search(line, matches, regexFile);
@@ -180,7 +180,10 @@ std::unique_ptr<Cue> CueParser::parse(const char* path) {
     }
 
     if (cue.getTrackCount() == 0) return {};
+
+    cue.loadSubchannel(path);
+
     return std::make_unique<Cue>(cue);
 }
-    };
-}  // namespace utils
+};  // namespace format
+}  // namespace disc

@@ -76,6 +76,8 @@ std::unique_ptr<Chd> Chd::open(const std::string& path) {
         chd->tracks.push_back(track);
     }
 
+    chd->loadSubchannel(path);
+
     return chd;
 }
 
