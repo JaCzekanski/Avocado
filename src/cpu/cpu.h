@@ -96,7 +96,8 @@ struct CPU {
     }
 
     void saveStateForException();
-    bool handleBreakpoints();
+    void handleHardwareBreakpoints();
+    bool handleSoftwareBreakpoints();
     bool executeInstructions(int count);
 
     struct Breakpoint {

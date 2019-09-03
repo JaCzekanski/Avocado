@@ -201,7 +201,12 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
         cpu->cop0.tar = cpu->PC;
     }
 
-    cpu->setPC(cpu->cop0.status.getHandlerAddress());
+    uint32_t handlerAddress = cpu->cop0.status.getHandlerAddress();
+    if (cause == Exception::breakpoint) {
+        handlerAddress -= 0x40;
+    }
+
+    cpu->setPC(handlerAddress);
 }
 
 void dummy(CPU *cpu, Opcode i) {

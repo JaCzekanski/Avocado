@@ -54,7 +54,17 @@ void CPU::saveStateForException() {
     branchTaken = false;
 }
 
-bool CPU::handleBreakpoints() {
+void CPU::handleHardwareBreakpoints() {
+    if (cop0.dcic.codeBreakpointEnabled()) {
+        if (((PC ^ cop0.bpcm) & cop0.bpc) == 0) {
+            cop0.dcic.codeBreakpointHit = 1;
+            cop0.dcic.breakpointHit = 1;
+            instructions::exception(this, COP0::CAUSE::Exception::breakpoint);
+        }
+    }
+}
+
+bool CPU::handleSoftwareBreakpoints() {
     if (!breakpoints.empty()) {
         auto bp = breakpoints.find(PC);
         if (bp != breakpoints.end() && bp->second.enabled) {
@@ -83,10 +93,10 @@ bool CPU::executeInstructions(int count) {
         if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) sys->handleBiosFunction();
 
         saveStateForException();
-
         checkForInterrupts();
+        handleHardwareBreakpoints();
 
-        if (handleBreakpoints()) return false;
+        if (handleSoftwareBreakpoints()) return false;
 
         _opcode = Opcode(sys->readMemory32(PC));
         const auto& op = instructions::OpcodeTable[_opcode.op];

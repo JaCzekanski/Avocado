@@ -32,6 +32,8 @@ struct COP0 {
             uint32_t superMasterEnable2 : 1;       // bits 24..29
         };
 
+        inline bool codeBreakpointEnabled() { return masterEnableBreakpoints && superMasterEnable1 && superMasterEnable2 && breakOnCode; }
+
         uint32_t _reg;
         DCIC() : _reg(0) {}
     };
