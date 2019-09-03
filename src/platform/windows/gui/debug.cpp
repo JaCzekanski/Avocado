@@ -1,4 +1,5 @@
 #include <imgui.h>
+#include <magic_enum.hpp>
 #include <nlohmann/json.hpp>
 #include <vector>
 #include "../../../cpu/gte/gte.h"
@@ -236,7 +237,8 @@ void gpuLogWindow(System *sys) {
     while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto &entry = sys->gpu.get()->gpuLogList[i];
-            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "%4d cmd: 0x%02x  %s", i, entry.command, gpu::CommandStr[(int)entry.cmd]);
+            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i, "%4d cmd: 0x%02x  %s", i, entry.command,
+                                            std::string(magic_enum::enum_name(entry.cmd)).c_str());
             bool isHovered = ImGui::IsItemHovered();
 
             if (isHovered) {
@@ -372,7 +374,7 @@ void gpuLogWindow(System *sys) {
 
             for (size_t i = 0; i < gpuLog.size(); i++) {
                 auto e = gpuLog[i];
-                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", gpu::CommandStr[(int)e.cmd]}, {"args", e.args}});
+                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", magic_enum::enum_name(e.cmd)}, {"args", e.args}});
             }
 
             putFileContents(string_format("%s.json", filename), j.dump(2));

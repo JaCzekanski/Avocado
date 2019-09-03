@@ -8,10 +8,6 @@
 #include "utils/macros.h"
 
 namespace gpu {
-
-const char* CommandStr[] = {"None",           "FillRectangle",  "Polygon",       "Line",           "Rectangle",
-                            "CopyCpuToVram1", "CopyCpuToVram2", "CopyVramToCpu", "CopyVramToVram", "Extra"};
-
 GPU::GPU() {
     busToken = bus.listen<Event::Config::Graphics>([&](auto) { reload(); });
     reload();

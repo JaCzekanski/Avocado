@@ -1,5 +1,6 @@
 #include "timers.h"
 #include <imgui.h>
+#include <magic_enum.hpp>
 #include <numeric>
 #include "platform/windows/gui/tools.h"
 #include "system.h"
@@ -7,78 +8,28 @@
 
 namespace gui::debug::timers {
 
+#define ENUM_NAME(x) (std::string(magic_enum::enum_name(x)))
+
 std::string getSyncMode(Timer* timer) {
-    int which = timer->which;
     timer::CounterMode mode = timer->mode;
 
-    if (which == 0) {
-        using modes = timer::CounterMode::SyncMode0;
-        auto mode0 = static_cast<modes>(mode.syncMode);
-
-        switch (mode0) {
-            case modes::pauseDuringHblank: return "pauseDuringHblank";
-            case modes::resetAtHblank: return "resetAtHblank";
-            case modes::resetAtHblankAndPauseOutside: return "resetAtHblankAndPauseOutside";
-            case modes::pauseUntilHblankAndFreerun: return "pauseUntilHblankAndFreerun";
-        }
+    switch (timer->which) {
+        case 0: return ENUM_NAME(static_cast<timer::CounterMode::SyncMode0>(mode.syncMode));
+        case 1: return ENUM_NAME(static_cast<timer::CounterMode::SyncMode1>(mode.syncMode));
+        case 2: return ENUM_NAME(static_cast<timer::CounterMode::SyncMode2>(mode.syncMode));
+        default: return "";
     }
-    if (which == 1) {
-        using modes = timer::CounterMode::SyncMode1;
-        auto mode1 = static_cast<modes>(mode.syncMode);
-
-        switch (mode1) {
-            case modes::pauseDuringVblank: return "pauseDuringVblank";
-            case modes::resetAtVblank: return "resetAtVblank";
-            case modes::resetAtVblankAndPauseOutside: return "resetAtVblankAndPauseOutside";
-            case modes::pauseUntilVblankAndFreerun: return "pauseUntilVblankAndFreerun";
-        }
-    }
-    if (which == 2) {
-        using modes = timer::CounterMode::SyncMode2;
-        auto mode2 = static_cast<modes>(mode.syncMode);
-
-        switch (mode2) {
-            case modes::stopCounter:
-            case modes::stopCounter_: return "stopCounter";
-            case modes::freeRun:
-            case modes::freeRun_: return "freeRun";
-        }
-    }
-    return "";
 }
 
 std::string getClockSource(Timer* timer) {
-    int which = timer->which;
     timer::CounterMode mode = timer->mode;
-    if (which == 0) {
-        using modes = timer::CounterMode::ClockSource0;
-        auto clock = static_cast<modes>(mode.clockSource & 1);
 
-        if (clock == modes::dotClock) {
-            return "Dotclock";
-        } else {
-            return "Sysclock";
-        }
-    } else if (which == 1) {
-        using modes = timer::CounterMode::ClockSource1;
-        auto clock = static_cast<modes>(mode.clockSource & 1);
-
-        if (clock == modes::hblank) {
-            return "HBlank";
-        } else {
-            return "Sysclock";
-        }
-    } else if (which == 2) {
-        using modes = timer::CounterMode::ClockSource2;
-        auto clock = static_cast<modes>((mode.clockSource >> 1) & 1);
-
-        if (clock == modes::systemClock_8) {
-            return "Sysclock/8";
-        } else {
-            return "Sysclock";
-        }
+    switch (timer->which) {
+        case 0: return ENUM_NAME(static_cast<timer::CounterMode::ClockSource0>(mode.clockSource & 1));
+        case 1: return ENUM_NAME(static_cast<timer::CounterMode::ClockSource1>(mode.clockSource & 1));
+        case 2: return ENUM_NAME(static_cast<timer::CounterMode::ClockSource2>((mode.clockSource >> 1) & 1));
+        default: return "";
     }
-    return "";
 }
 
 struct Field {

@@ -14,8 +14,6 @@ class OpenGL;
 
 namespace gpu {
 
-extern const char* CommandStr[];
-
 const int VRAM_WIDTH = 1024;
 const int VRAM_HEIGHT = 512;
 

@@ -32,3 +32,6 @@
 [submodule "externals/EventBus"]
 	path = externals/EventBus
 	url = https://github.com/gelldur/EventBus.git
+[submodule "externals/magic_enum"]
+	path = externals/magic_enum
+	url = https://github.com/Neargye/magic_enum.git

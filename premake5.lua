@@ -148,7 +148,8 @@ project "core"
 		"externals/json/include",
 		"externals/miniz",
 		"externals/libchdr/src",
-        "externals/EventBus/lib/include",
+		"externals/EventBus/lib/include",
+		"externals/magic_enum/include",
 	}
 
 	files { 
@@ -189,6 +190,7 @@ project "avocado"
 		"externals/libchdr/src",
 		"externals/filesystem/include",
         "externals/EventBus/lib/include",
+		"externals/magic_enum/include",
 	}
 
 	links {
