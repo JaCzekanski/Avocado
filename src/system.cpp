@@ -283,7 +283,10 @@ void System::handleBiosFunction() {
     const auto& table = bios::tables[tableNum];
     const auto& function = table.find(functionNumber);
 
-    if (function == table.end()) return;
+    if (function == table.end()) {
+        printf("  BIOS %1X(%02X): Unknown function!\n", 0xA + tableNum, functionNumber);
+        return;
+    }
     if (function->second.callback != nullptr) {
         log = function->second.callback(this);
     }

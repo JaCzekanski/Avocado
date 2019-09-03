@@ -42,7 +42,7 @@ struct Function {
             auto delim = sArg.find_last_of(' ');
 
             if (delim == std::string::npos) {
-                throw std::runtime_error("Invalid parameter without type");
+                throw std::runtime_error(string_format("%s -> Invalid parameter without type", prototype.c_str()).c_str());
             }
 
             auto sType = trim(sArg.substr(0, delim));
@@ -95,6 +95,13 @@ inline bool dbgOutputString(System* sys) {
 
 inline bool haltSystem(System* sys) {
     sys->state = System::State::halted;
+    return true;
+}
+
+inline bool forceTTYOn(System* sys) {
+    (void)sys;
+    // Uncomment to enable TTY redirection
+    // sys->cpu->reg[4] = 1;
     return true;
 }
 
@@ -248,7 +255,27 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x9D, {"GetConf(int numb_EvCB, int numb_TCB, void* stacktop_dst)"}},
     {0x9E, {"SetCdromIrqAutoAbort(int type, int flag)"}},
     {0x9F, {"SetMemSize(int size)"}},
-    {0xA1, {"BootFailed()", haltSystem}},  // Called when booting CD fails
+    {0xA0, {"WarmBoot()"}},
+    {0xA1, {"SystemErrorBootOrDiskFailure(char type, int errorcode)", haltSystem}},  // Called when booting CD fails
+    {0xA2, {"EnqueueCdIntr()"}},
+    {0xA3, {"DequeueCdIntr()"}},
+    {0xA4, {"CdGetLbn(const char* filename)"}},
+    {0xA5, {"CdReadSector(int count, int sector, void* buffer)"}},
+    {0xA6, {"CdGetStatus()"}},
+    {0xA7, {"bu_callback_okay()"}},
+    {0xA8, {"bu_callback_err_write()"}},
+    {0xA9, {"bu_callback_err_busy()"}},
+    {0xAA, {"bu_callback_err_eject()"}},
+    {0xAB, {"_card_info(int port)"}},
+    {0xAC, {"_card_async_load_directory(int port)"}},
+    {0xAD, {"set_card_auto_format(int flag)"}},
+    {0xAE, {"bu_callback_err_prev_write()"}},
+    {0xAF, {"card_write_test(int port)"}},
+    {0xB0, {"return_0()"}},
+    {0xB1, {"return_0()"}},
+    {0xB2, {"ioabort_raw(int param)"}},
+    {0xB3, {"return_0()"}},
+    {0xB4, {"GetSystemInfo(int index)"}},
 };
 
 const std::unordered_map<uint8_t, Function> B0 = {
@@ -355,7 +382,7 @@ const std::unordered_map<uint8_t, Function> C0 = {  //
     {0x0F, {"return_0()"}},  //               ;DTL-H2000: dev_sio_open
     {0x10, {"return_0()"}},  //               ;DTL-H2000: dev_sio_in_out
     {0x11, {"return_0()"}},  //               ;DTL-H2000: dev_sio_ioctl
-    {0x12, {"InstallDevices(int ttyflag)"}},
+    {0x12, {"InstallDevices(int ttyflag)", forceTTYOn}},
     {0x13, {"FlushStdInOutPut()"}},
     {0x14, {"return 0()"}},  //               ;DTL-H2000: SystemError
     {0x15, {"tty_cdevinput(int circ, char c)"}},

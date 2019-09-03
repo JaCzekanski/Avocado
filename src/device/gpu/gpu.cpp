@@ -190,6 +190,8 @@ void GPU::drawRectangle(const primitive::Rect& rect) {
 }
 
 void GPU::cmdFillRectangle(uint8_t command) {
+    (void)command;
+
     // I'm sorry, but it appears that C++ doesn't have local functions.
     struct mask {
         constexpr static int startX(int x) { return x & 0x3f0; }
@@ -375,6 +377,8 @@ struct MaskCopy {
 };
 
 void GPU::cmdCpuToVram1(uint8_t command) {
+    (void)command;
+
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdCpuToVram1: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -402,6 +406,8 @@ void GPU::maskedWrite(int x, int y, uint16_t value) {
 }
 
 void GPU::cmdCpuToVram2(uint8_t command) {
+    (void)command;
+
     uint32_t byte = arguments[0];
 
     // TODO: ugly code
@@ -421,6 +427,8 @@ void GPU::cmdCpuToVram2(uint8_t command) {
 }
 
 void GPU::cmdVramToCpu(uint8_t command) {
+    (void)command;
+
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cmdVramToCpu: Suspicious arg0: 0x%x\n", arguments[0]);
     }
@@ -434,6 +442,8 @@ void GPU::cmdVramToCpu(uint8_t command) {
 }
 
 void GPU::cmdVramToVram(uint8_t command) {
+    (void)command;
+
     if ((arguments[0] & 0x00ffffff) != 0) {
         printf("cpuVramToVram: Suspicious arg0: 0x%x, breaking!!!\n", arguments[0]);
         cmd = Command::None;
