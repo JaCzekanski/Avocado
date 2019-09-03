@@ -53,7 +53,7 @@ void openFile() {
     }
 
     openFileWindow = true;
-    ImGui::Begin("Open file", &openFileWindow, ImVec2(400.f, 300.f), ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Open file", &openFileWindow, ImVec2(400.f, 300.f), -1.f, ImGuiWindowFlags_NoCollapse);
 
     if (ImGui::InputText("Directory", &pathInput, ImGuiInputTextFlags_EnterReturnsTrue)) {
         readDirectory = true;  // Load new directory
@@ -113,7 +113,7 @@ void openFile() {
         ImGui::NextColumn();
 
         if (!fs::is_directory(f)) {
-            std::string fileSize = formatFileSize(fs::is_directory(f));
+            std::string fileSize = formatFileSize(f.file_size());
 
             ImVec2 size = ImGui::CalcTextSize(fileSize.c_str());
             size.x += 8;
