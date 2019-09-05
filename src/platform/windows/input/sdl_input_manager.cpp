@@ -29,7 +29,8 @@ void SdlInputManager::vibrationThreadFunc() {
         }
         // TODO: Current solution might cut out vibration from different controllers
         // Buffer them and send all in bulk at the end of the frame ?
-        SDL_GameControllerRumble(vibrationData.controller, vibrationData.e.big * 0xff, vibrationData.e.small * 0xffff, 16);
+        SDL_JoystickRumble(SDL_GameControllerGetJoystick(vibrationData.controller), vibrationData.e.big * 0xff,
+                           vibrationData.e.small * 0xffff, 16);
     }
 }
 
