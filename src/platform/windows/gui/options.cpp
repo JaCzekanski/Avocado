@@ -120,18 +120,40 @@ void graphicsOptionsWindow() {
         bus.notify(Event::Config::Gte{});
     }
 
-    if (widescreen) {
-        bool forceWidescreen = config["options"]["graphics"]["forceWidescreen"];
-        if (ImGui::Checkbox("Force widescreen in 3d (hack)", &forceWidescreen)) {
-            config["options"]["graphics"]["forceWidescreen"] = forceWidescreen;
-            bus.notify(Event::Config::Gte{});
-        }
-    }
-
     bool vsync = config["options"]["graphics"]["vsync"];
     if (ImGui::Checkbox("VSync", &vsync)) {
         config["options"]["graphics"]["vsync"] = vsync;
         bus.notify(Event::Config::Graphics{});
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Hacks");
+
+    bool forceNtsc = config["options"]["graphics"]["forceNtsc"];
+    if (ImGui::Checkbox("Force NTSC", &forceNtsc)) {
+        config["options"]["graphics"]["forceNtsc"] = forceNtsc;
+        bus.notify(Event::Config::Graphics{});
+    }
+
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(
+            "Force 60Hz mode for PAL games (50Hz)\n"
+            "Since some PAL games are slowed down versions of NTSC equivalent,\n"
+            "this option might be useful to bring back such titles to the original speed.");
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+
+    if (widescreen) {
+        bool forceWidescreen = config["options"]["graphics"]["forceWidescreen"];
+        if (ImGui::Checkbox("Force widescreen in 3d", &forceWidescreen)) {
+            config["options"]["graphics"]["forceWidescreen"] = forceWidescreen;
+            bus.notify(Event::Config::Gte{});
+        }
     }
 
     ImGui::End();

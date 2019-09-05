@@ -92,6 +92,7 @@ class GPU {
     // Hardware rendering
     std::vector<Vertex> vertices;
 
+    bool forceNtsc;
     bool softwareRendering;
     bool hardwareRendering;
 

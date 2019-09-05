@@ -17,6 +17,7 @@ GPU::GPU() {
 GPU::~GPU() { bus.unlistenAll(busToken); }
 
 void GPU::reload() {
+    forceNtsc = config["options"]["graphics"]["forceNtsc"];
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
     softwareRendering = (mode & RenderingMode::SOFTWARE) != 0;
     hardwareRendering = (mode & RenderingMode::HARDWARE) != 0;
@@ -746,7 +747,7 @@ bool GPU::insideDrawingArea(int x, int y) const {
            && (y < VRAM_HEIGHT);
 }
 
-bool GPU::isNtsc() { return gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
+bool GPU::isNtsc() { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
 
 void GPU::dumpVram() {
     std::vector<uint8_t> vram;
