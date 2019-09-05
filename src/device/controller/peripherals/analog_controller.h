@@ -3,18 +3,20 @@
 
 namespace peripherals {
 struct AnalogController : public DigitalController {
+   protected:
     enum class Command {
         None,
         Read,
         EnterConfiguration,
         ExitConfiguration,
         SetLed,
-        LedStatus,
+        GetLed,
         UnlockRumble,
         Unknown_46,
         Unknown_47,
         Unknown_4c
     };
+
     struct Stick {
         /**
          * 0x00 - left/up
@@ -25,15 +27,8 @@ struct AnalogController : public DigitalController {
         uint8_t y;
         Stick() : x(0x80), y(0x80) {}
     };
-    int verbose;
-    Stick left, right;
-    Command command = Command::None;
-    bool analogEnabled = false;
-    bool ledEnabled = false;
-    bool configurationMode = false;
 
-    AnalogController(int Port);
-    uint8_t handle(uint8_t byte) override;
+    uint8_t _handle(uint8_t byte);  // Wrapper for handler for catching return value
     uint8_t handleReadAnalog(uint8_t byte);
     uint8_t handleEnterConfiguration(uint8_t byte);
     uint8_t handleExitConfiguration(uint8_t byte);
@@ -43,6 +38,16 @@ struct AnalogController : public DigitalController {
     uint8_t handleUnknown46(uint8_t byte);
     uint8_t handleUnknown47(uint8_t byte);
     uint8_t handleUnknown4c(uint8_t byte);
+
+    Stick left, right;
+    Command command = Command::None;
+    bool analogEnabled = false;
+    bool ledEnabled = false;
+    bool configurationMode = false;
+
+   public:
+    AnalogController(int Port);
+    uint8_t handle(uint8_t byte) override;
     void update() override;
 };
 };  // namespace peripherals

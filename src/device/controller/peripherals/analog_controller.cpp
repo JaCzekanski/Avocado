@@ -1,19 +1,18 @@
 #include "analog_controller.h"
+#include <magic_enum.hpp>
 #include "config.h"
 #include "input/input_manager.h"
 
 namespace peripherals {
-AnalogController::AnalogController(int port) : DigitalController(Type::Analog, port) { verbose = config["debug"]["log"]["controller"]; }
+AnalogController::AnalogController(int port) : DigitalController(Type::Analog, port) {}
 
-uint8_t AnalogController::handle(uint8_t byte) {
+uint8_t AnalogController::_handle(uint8_t byte) {
     if (state == 0) command = Command::None;
-    if (verbose >= 2) printf("[CONTROLLER%d] state %d, input 0x%02x\n", port, state, byte);
-
     if (command == Command::Read && !analogEnabled) return handleRead(byte);
     if (command == Command::Read && analogEnabled) return handleReadAnalog(byte);
     if (command == Command::EnterConfiguration) return handleEnterConfiguration(byte);
     if (command == Command::ExitConfiguration) return handleExitConfiguration(byte);
-    if (command == Command::LedStatus) return handleLedStatus(byte);
+    if (command == Command::GetLed) return handleLedStatus(byte);
     if (command == Command::SetLed) return handleSetLed(byte);
     if (command == Command::UnlockRumble) return handleUnlockRumble(byte);
     if (command == Command::Unknown_46) return handleUnknown46(byte);
@@ -50,7 +49,7 @@ uint8_t AnalogController::handle(uint8_t byte) {
                 return ret;
             }
             if (byte == 0x45 && configurationMode) {  // Get LED status
-                command = Command::LedStatus;
+                command = Command::GetLed;
                 state++;
                 return ret;
             }
@@ -79,6 +78,20 @@ uint8_t AnalogController::handle(uint8_t byte) {
         }
         default: state = 0; return 0xff;
     }
+}
+
+uint8_t AnalogController::handle(uint8_t byte) {
+    if (state == 0) command = Command::None;
+    int _state = state;
+    auto _command = command;
+
+    uint8_t response = _handle(byte);
+
+    if (verbose >= 1)
+        printf("[ANALOG_%d]  data: 0x%02x, resp: 0x%02x, (State: %d, Command: %s)\n", port, byte, response, _state,
+               std::string(magic_enum::enum_name(_command)).c_str());
+
+    return response;
 }
 
 uint8_t AnalogController::handleReadAnalog(uint8_t byte) {
@@ -194,9 +207,9 @@ uint8_t AnalogController::handleUnlockRumble(uint8_t byte) {
         case 8:
             f = byte;
             state = 0;
-            analogEnabled = true;  // TODO: Not completely valid, but should be good enough
-            if (verbose >= 2)
-                printf("[CONTROLLER%d] Unlock Rumble: 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x\n", port, a, b, c, d, e, f);
+            // Note: 40 Winks does not use Unlock rumble command
+            // It enables analog mode using 0x4c command
+            analogEnabled = true;
             return 0;
 
         default: return 0xff;
@@ -237,16 +250,15 @@ uint8_t AnalogController::handleUnknown47(uint8_t byte) {
 }
 
 uint8_t AnalogController::handleUnknown4c(uint8_t byte) {
-    static uint8_t param;
     switch (state) {
         case 2: state++; return 0x5a;
         case 3:
-            param = byte;
+            analogEnabled = byte != 0;
             state++;
             return 0;
         case 4: state++; return 0;
         case 5: state++; return 0;
-        case 6: state++; return (param == 1) ? 0x07 : 0x04;
+        case 6: state++; return (analogEnabled) ? 0x07 : 0x04;
         case 7: state++; return 0;
         case 8: state = 0; return 0;
 
@@ -269,7 +281,7 @@ void AnalogController::update() {
             analogEnabled = !analogEnabled;
             ledEnabled = analogEnabled;
             resetState();
-            if (verbose >= 1) printf("[CONTROLLER%d] Analog mode %s\n", port, analogEnabled ? "enabled" : "disabled");
+            if (verbose >= 1) printf("[ANALOG_%d] Analog mode %s\n", port, analogEnabled ? "enabled" : "disabled");
         }
     } else {
         analogPressed = false;

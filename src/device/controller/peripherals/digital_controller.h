@@ -34,10 +34,12 @@ class DigitalController : public AbstractDevice {
         ButtonState() = default;
     };
 
+    int verbose;
     ButtonState buttons;
     std::string path;
 
     DigitalController(Type type, int port);
+    uint8_t _handle(uint8_t byte);
     uint8_t handleRead(uint8_t byte);
 
    public:
