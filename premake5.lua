@@ -246,6 +246,7 @@ project "avocado"
 			"stdc++fs", -- for experimental/filesystem
 			"glad",
 			"imgui",
+			"pthread",
 		}
 		buildoptions {getOutput("sdl2-config --cflags")}
 		linkoptions {getOutput("sdl2-config --libs")}

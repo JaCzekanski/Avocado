@@ -113,7 +113,7 @@ void openFile() {
         ImGui::NextColumn();
 
         if (!fs::is_directory(f)) {
-            std::string fileSize = formatFileSize(f.file_size());
+            std::string fileSize = formatFileSize(fs::file_size(f));
 
             ImVec2 size = ImGui::CalcTextSize(fileSize.c_str());
             size.x += 8;

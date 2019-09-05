@@ -13,6 +13,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
+*5.09.2019* - Vibration support
+
 *2.09.2019* - Anti-Modchip and LibCrypt protected games support
 
 *13.03.2019* - merged MDEC (video decoder) support

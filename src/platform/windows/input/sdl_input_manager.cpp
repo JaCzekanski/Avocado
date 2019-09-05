@@ -2,6 +2,54 @@
 #include "utils/math.h"
 #include "utils/string.h"
 
+SdlInputManager::SdlInputManager() {
+    vibrationThread = std::thread(&SdlInputManager::vibrationThreadFunc, this);
+    busToken = bus.listen<Event::Controller::Vibration>(std::bind(&SdlInputManager::onVibrationEvent, this, std::placeholders::_1));
+}
+
+SdlInputManager::~SdlInputManager() {
+    bus.unlistenAll(busToken);
+
+    // Notify vibrationThread to stop execution
+    {
+        std::unique_lock<std::mutex> lk(vibrationMutex);
+        vibrationThreadExit = true;
+        vibrationHasNewData.notify_one();
+    }
+    vibrationThread.join();
+}
+
+void SdlInputManager::vibrationThreadFunc() {
+    while (true) {
+        std::unique_lock<std::mutex> lk(vibrationMutex);
+        vibrationHasNewData.wait(lk);
+
+        if (vibrationThreadExit) {
+            break;
+        }
+        // TODO: Current solution might cut out vibration from different controllers
+        // Buffer them and send all in bulk at the end of the frame ?
+        SDL_GameControllerRumble(vibrationData.controller, vibrationData.e.big * 0xff, vibrationData.e.small * 0xffff, 16);
+    }
+}
+
+void SdlInputManager::onVibrationEvent(Event::Controller::Vibration e) {
+    // Vibration output is choosen by DPAD_UP mapped game controller
+    std::string keyName = config["controller"][std::to_string(e.port)]["keys"]["dpad_up"];
+    Key key(keyName);
+
+    if (key.type != Key::Type::ControllerMove && key.type != Key::Type::ControllerButton) {
+        return;  // DPAD_UP not mapped to a controller
+    }
+
+    auto controller = controllers[key.controller.id - 1];
+    if (controller != nullptr) {
+        std::unique_lock<std::mutex> lk(vibrationMutex);
+        vibrationData = {controller, e};
+        vibrationHasNewData.notify_one();
+    }
+}
+
 bool SdlInputManager::handleKey(Key key, AnalogValue value) {
     if (waitingForKeyPress) {
         waitingForKeyPress = false;

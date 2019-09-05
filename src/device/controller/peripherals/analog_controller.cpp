@@ -98,12 +98,25 @@ uint8_t AnalogController::handleReadAnalog(uint8_t byte) {
     (void)byte;
     switch (state) {
         case 2: state++; return 0x5a;
-        case 3: state++; return ~buttons._byte[0];
-        case 4: state++; return ~buttons._byte[1];
+        case 3:
+            state++;
+            vibration.small = byte != 0;
+            return ~buttons._byte[0];
+        case 4:
+            state++;
+            vibration.big = byte;
+            return ~buttons._byte[1];
         case 5: state++; return right.x;
         case 6: state++; return right.y;
         case 7: state++; return left.x;
-        case 8: state = 0; return left.y;
+        case 8:
+            state = 0;
+            // Do not send vibration events on continuous 0 values
+            if (vibration != prevVibration || vibration != 0) {
+                bus.notify(Event::Controller::Vibration{port, vibration.small, vibration.big});
+            }
+            prevVibration = vibration;
+            return left.y;
 
         default: return 0xff;
     }

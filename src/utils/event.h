@@ -30,6 +30,14 @@ struct Toast {
 };
 struct ToggleFullscreen {};
 }  // namespace Gui
+
+namespace Controller {
+struct Vibration {
+    int port;
+    bool small;
+    uint8_t big;
+};
+}  // namespace Controller
 };  // namespace Event
 
 void toast(const std::string& message);
