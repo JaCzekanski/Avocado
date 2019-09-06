@@ -155,13 +155,13 @@ std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, in
 
 void OpenGL::bindRenderAttributes() {
     renderShader->getAttrib("position").pointer(2, GL_INT, sizeof(gpu::Vertex), 1 * sizeof(int));
-    renderShader->getAttrib("color").pointer(3, GL_INT, sizeof(gpu::Vertex), 3 * sizeof(int));
+    renderShader->getAttrib("color").pointer(3, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 3 * sizeof(int));
     renderShader->getAttrib("texcoord").pointer(2, GL_INT, sizeof(gpu::Vertex), 6 * sizeof(int));
-    renderShader->getAttrib("bitcount").pointer(1, GL_INT, sizeof(gpu::Vertex), 8 * sizeof(int));
+    renderShader->getAttrib("bitcount").pointer(1, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 8 * sizeof(int));
     renderShader->getAttrib("clut").pointer(2, GL_INT, sizeof(gpu::Vertex), 9 * sizeof(int));
     renderShader->getAttrib("texpage").pointer(2, GL_INT, sizeof(gpu::Vertex), 11 * sizeof(int));
-    renderShader->getAttrib("flags").pointer(1, GL_INT, sizeof(gpu::Vertex), 13 * sizeof(int));
-    renderShader->getAttrib("textureWindow").pointer(1, GL_INT, sizeof(gpu::Vertex), 14 * sizeof(int));
+    renderShader->getAttrib("flags").pointer(1, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 13 * sizeof(int));
+    renderShader->getAttrib("textureWindow").pointer(1, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 14 * sizeof(int));
 }
 
 void OpenGL::bindBlitAttributes() {
