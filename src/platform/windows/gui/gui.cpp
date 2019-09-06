@@ -9,6 +9,7 @@
 #include "debug/timers/timers.h"
 #include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
+#include "options/memory_card/memory_card.h"
 #include "platform/windows/input/key.h"
 #include "version.h"
 
@@ -42,6 +43,8 @@ bool showAboutWindow = false;
 gui::debug::cdrom::Cdrom cdromDebug;
 gui::debug::cpu::CPU cpuDebug;
 gui::debug::timers::Timers timersDebug;
+
+gui::options::memory_card::MemoryCard memoryCardOptions;
 
 void aboutWindow() {
     ImGui::Begin("About", &showAboutWindow);
@@ -136,6 +139,7 @@ void renderImgui(System* sys) {
                 if (ImGui::MenuItem("Graphics", nullptr)) showGraphicsOptionsWindow = true;
                 if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
                 if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
+                ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Help")) {
@@ -168,6 +172,8 @@ void renderImgui(System* sys) {
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
         if (showBiosWindow) biosSelectionWindow();
         if (showControllerSetupWindow) controllerSetupWindow();
+
+        memoryCardOptions.displayWindows(sys);
 
         // Help
         if (showAboutWindow) aboutWindow();

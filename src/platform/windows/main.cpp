@@ -149,14 +149,28 @@ std::unique_ptr<System> hardReset() {
         printf("Using iso %s\n", iso.c_str());
     }
 
-    std::string pathCard1 = config["memoryCard"]["1"];
-    if (!pathCard1.empty()) {
-        auto card1 = getFileContents(pathCard1);
-        if (!card1.empty()) {
-            std::copy_n(std::make_move_iterator(card1.begin()), card1.size(), sys->controller->card[0]->data.begin());
-            printf("[INFO] Loaded memory card 1 from %s\n", getFilenameExt(pathCard1).c_str());
+    auto loadMemoryCard = [&](int slot) {
+        assert(slot == 0 || slot == 1);
+        auto card = sys->controller->card[slot].get();
+
+        auto configEntry = config["memoryCard"][std::to_string(slot + 1)];
+        std::string pathCard = configEntry.is_null() ? "" : configEntry;
+
+        card->inserted = false;
+
+        if (!pathCard.empty()) {
+            auto cardData = getFileContents(pathCard);
+            if (!cardData.empty()) {
+                std::copy_n(std::make_move_iterator(cardData.begin()), cardData.size(), sys->controller->card[slot]->data.begin());
+                card->inserted = true;
+                printf("[INFO] Loaded memory card %d from %s\n", slot + 1, getFilenameExt(pathCard).c_str());
+            }
         }
-    }
+    };
+
+    loadMemoryCard(0);
+    loadMemoryCard(1);
+
     return sys;
 }
 
@@ -362,13 +376,16 @@ int main(int argc, char** argv) {
     bool frameLimitEnabled = true;
     bool windowFocused = true;
 
+    bool forceRedraw = false;
+
     SDL_Event event;
     while (running && !exitProgram) {
         bool newEvent = false;
-        if (sys->state != System::State::run) {
+        if (!forceRedraw && sys->state != System::State::run) {
             SDL_WaitEvent(&event);
             newEvent = true;
         }
+        forceRedraw = false;
 
         auto lockMouse = sys->state == System::State::run && inputManager->mouseLocked;
         SDL_SetRelativeMouseMode((SDL_bool)lockMouse);
@@ -427,6 +444,10 @@ int main(int argc, char** argv) {
                 opengl.width = event.window.data1;
                 opengl.height = event.window.data2;
             }
+
+            // Crude hack to force next frame after last event received (in paused mode)
+            // Fixes ImGui window drawing
+            forceRedraw = true;
         }
 
         if (doHardReset) {

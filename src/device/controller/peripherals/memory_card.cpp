@@ -7,6 +7,11 @@ MemoryCard::MemoryCard(int port) : AbstractDevice(Type::MemoryCard, port) { verb
 
 uint8_t MemoryCard::handle(uint8_t byte) {
     if (state == 0) command = Command::None;
+
+    if (!inserted) {
+        return 0xff;
+    }
+
     if (verbose >= 3) printf("[MEMCARD] state %d\n", state);
     if (command == Command::Read) return handleRead(byte);
     if (command == Command::Write) return handleWrite(byte);
