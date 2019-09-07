@@ -16,7 +16,6 @@ CPU::CPU(System* sys) : sys(sys), _opcode(0) {
 }
 
 void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
-#ifdef ENABLE_LOAD_DELAY_SLOTS
     assert(r < REGISTER_COUNT);
     if (r == 0) return;
     if (r == slots[0].reg) slots[0].reg = 0;  // Override previous write to same register
@@ -24,13 +23,9 @@ void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
     slots[1].reg = r;
     slots[1].data = data;
     slots[1].prevData = reg[r];
-#else
-    reg[r] = data;
-#endif
 }
 
 void CPU::moveLoadDelaySlots() {
-#ifdef ENABLE_LOAD_DELAY_SLOTS
     if (slots[0].reg != 0) {
         assert(slots[0].reg < REGISTER_COUNT);
 
@@ -42,7 +37,6 @@ void CPU::moveLoadDelaySlots() {
 
     slots[0] = slots[1];
     slots[1].reg = 0;  // cancel
-#endif
 }
 
 void CPU::saveStateForException() {

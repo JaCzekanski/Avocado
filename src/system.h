@@ -23,24 +23,6 @@
  */
 
 /**
- * #define ENABLE_LOAD_DELAY_SLOTS
- * Switch: --disable-load-delay-slots
- * Default: true
- *
- * Accurate load delay slots, slightly slower.
- * Not sure, if games depends on that (assembler should nop delay slot)
- */
-
-/**
- * #define ENABLE_BREAKPOINTS
- * Switch: --enable-breakpoints
- * Default: false
- *
- * Enables logic that is responsible for checking code breakpoints.
- * Used in auto test build
- */
-
-/**
  * #define ENABLE_IO_LOG
  * Switch --enable-io-log
  * Default: false

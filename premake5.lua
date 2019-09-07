@@ -15,13 +15,6 @@ ndkstl "c++_static"
 ndkplatform "android-24"
 
 newoption {
-	trigger = "disable-load-delay-slots",
-	description = "Disable load delay slots (faster execution)",
-}
-filter "not options:disable-load-delay-slots"
-	defines "ENABLE_LOAD_DELAY_SLOTS"
-
-newoption {
 	trigger = "enable-io-log",
 	description = "Enable IO access log",
 }

@@ -15,7 +15,7 @@ std::string pathInput = "";
 fs::path path;
 std::vector<fs::directory_entry> files;
 
-std::array<const char*, 9> supportedFiles = {
+const std::array<const char*, 9> supportedFiles = {
     ".iso",      //
     ".cue",      //
     ".bin",      //

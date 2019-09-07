@@ -73,12 +73,10 @@ struct CPU {
     void loadDelaySlot(uint32_t r, uint32_t data);
     void moveLoadDelaySlots();
     INLINE void invalidateSlot(uint32_t r) {
-#ifdef ENABLE_LOAD_DELAY_SLOTS
         // TODO: Remove branching in delay slots to improve performance
         if (slots[0].reg == r) {
             slots[0].reg = 0;
         }
-#endif
     }
 
     INLINE void loadAndInvalidate(int r, uint32_t data) {
