@@ -31,7 +31,7 @@ class DigitalController : public AbstractDevice {
 
         void setByName(const std::string& name, bool value);
         ButtonState(uint16_t reg) : _reg(reg) {}
-        ButtonState() = default;
+        ButtonState() : _reg(0) {}
     };
 
     int verbose;

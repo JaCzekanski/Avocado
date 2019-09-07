@@ -1,7 +1,7 @@
 #include "digital_controller.h"
+#include <fmt/core.h>
 #include "config.h"
 #include "input/input_manager.h"
-#include "utils/string.h"
 
 namespace peripherals {
 void DigitalController::ButtonState::setByName(const std::string& name, bool value) {
@@ -28,7 +28,7 @@ void DigitalController::ButtonState::setByName(const std::string& name, bool val
 }
 
 DigitalController::DigitalController(Type type, int port)
-    : AbstractDevice(type, port), buttons(0), path(string_format("controller/%d/", port)), verbose(config["debug"]["log"]["controller"]) {}
+    : AbstractDevice(type, port), verbose(config["debug"]["log"]["controller"]), path(fmt::format("controller/{}/", port)) {}
 
 DigitalController::DigitalController(int port) : DigitalController(Type::Digital, port) {}
 
@@ -56,7 +56,7 @@ uint8_t DigitalController::_handle(uint8_t byte) {
 uint8_t DigitalController::handle(uint8_t byte) {
     int _state = state;
     uint8_t response = _handle(byte);
-    if (verbose >= 1) printf("[DIGITAL_%d] data: 0x%02x, resp: 0x%02x, (state: %d)\n", port, byte, response, _state);
+    if (verbose >= 1) fmt::print("[DIGITAL_{}] data: 0x{:02x}, resp: 0x{:02x}, (state: {})\n", port, byte, response, _state);
     return response;
 }
 

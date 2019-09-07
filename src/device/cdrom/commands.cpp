@@ -1,4 +1,4 @@
-#include <cstdio>
+#include <fmt/core.h>
 #include "cdrom.h"
 #include "utils/bcd.h"
 
@@ -8,7 +8,7 @@ void CDROM::cmdGetstat() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdGetstat -> 0x%02x\n", CDROM_response[0]);
+    if (verbose) fmt::print("CDROM: cmdGetstat -> 0x{:02x}\n", CDROM_response[0]);
 }
 
 void CDROM::cmdSetloc() {
@@ -21,7 +21,7 @@ void CDROM::cmdSetloc() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSetloc(min = %d, sec = %d, sect = %d)\n", minute, second, sector);
+    if (verbose) fmt::print("CDROM: cmdSetloc(min = {}, sec = {}, sect = {})\n", minute, second, sector);
 }
 
 void CDROM::cmdPlay() {
@@ -30,11 +30,11 @@ void CDROM::cmdPlay() {
     if (!CDROM_params.empty()) {
         int track = readParam();  // param or setloc used
         if (track >= (int)disc->getTrackCount()) {
-            printf("CDROM: Invalid PLAY track parameter (%d)\n", track);
+            fmt::print("CDROM: Invalid PLAY track parameter ({})\n", track);
             return;
         }
         pos = disc->getTrackStart(track);
-        if (verbose) printf("CDROM: PLAY (track: %d)\n", track);
+        if (verbose) fmt::print("CDROM: PLAY (track: {})\n", track);
     } else {
         pos = disc::Position::fromLba(seekSector);
     }
@@ -46,7 +46,7 @@ void CDROM::cmdPlay() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdPlay (pos: %s)\n", pos.toString().c_str());
+    if (verbose) fmt::print("CDROM: cmdPlay (pos: {})\n", pos.toString());
 }
 
 void CDROM::cmdReadN() {
@@ -57,7 +57,7 @@ void CDROM::cmdReadN() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdReadN\n");
+    if (verbose) fmt::print("CDROM: cmdReadN\n");
 }
 
 void CDROM::cmdMotorOn() {
@@ -69,7 +69,7 @@ void CDROM::cmdMotorOn() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdMotorOn\n");
+    if (verbose) fmt::print("CDROM: cmdMotorOn\n");
 }
 
 void CDROM::cmdStop() {
@@ -82,7 +82,7 @@ void CDROM::cmdStop() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdStop\n");
+    if (verbose) fmt::print("CDROM: cmdStop\n");
 }
 
 void CDROM::cmdPause() {
@@ -94,7 +94,7 @@ void CDROM::cmdPause() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdPause\n");
+    if (verbose) fmt::print("CDROM: cmdPause\n");
 }
 
 void CDROM::cmdInit() {
@@ -109,7 +109,7 @@ void CDROM::cmdInit() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdInit\n");
+    if (verbose) fmt::print("CDROM: cmdInit\n");
 }
 
 void CDROM::cmdMute() {
@@ -117,7 +117,7 @@ void CDROM::cmdMute() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdMute\n");
+    if (verbose) fmt::print("CDROM: cmdMute\n");
 }
 
 void CDROM::cmdDemute() {
@@ -125,7 +125,7 @@ void CDROM::cmdDemute() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdDemute\n");
+    if (verbose) fmt::print("CDROM: cmdDemute\n");
 }
 
 void CDROM::cmdSetFilter() {
@@ -134,7 +134,7 @@ void CDROM::cmdSetFilter() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSetFilter(file = 0x%02x, ch = 0x%02x)\n", filter.file, filter.channel);
+    if (verbose) fmt::print("CDROM: cmdSetFilter(file = 0x{:02x}, ch = 0x{:02x})\n", filter.file, filter.channel);
 }
 
 void CDROM::cmdSetmode() {
@@ -145,7 +145,7 @@ void CDROM::cmdSetmode() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSetmode(0x%02x)\n", setmode);
+    if (verbose) fmt::print("CDROM: cmdSetmode(0x{:02x})\n", setmode);
 }
 
 void CDROM::cmdSetSession() {
@@ -157,7 +157,7 @@ void CDROM::cmdSetSession() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSetSession(0x%02x)\n", session);
+    if (verbose) fmt::print("CDROM: cmdSetSession(0x{:02x})\n", session);
 }
 
 void CDROM::cmdSeekP() {
@@ -173,7 +173,7 @@ void CDROM::cmdSeekP() {
 
     stat.setMode(StatusCode::Mode::None);
 
-    if (verbose) printf("CDROM: cmdSeekP\n");
+    if (verbose) fmt::print("CDROM: cmdSeekP\n");
 }
 
 void CDROM::cmdGetlocL() {
@@ -194,14 +194,17 @@ void CDROM::cmdGetlocL() {
     writeResponse(rawSector[19]);  // ci
 
     if (verbose) {
-        printf("CDROM: cmdGetlocL -> (");
-        printf("pos = (%02x:%02x:%02x), ", CDROM_response[0], CDROM_response[1], CDROM_response[2]);
-        printf("mode = 0x%x, ", CDROM_response[3]);
-        printf("file = 0x%x, ", CDROM_response[4]);
-        printf("channel = 0x%x, ", CDROM_response[5]);
-        printf("submode = 0x%x, ", CDROM_response[6]);
-        printf("ci = 0x%x", CDROM_response[7]);
-        printf(")\n");
+        fmt::print(
+            "CDROM: cmdGetlocL -> ("
+            "pos = (0x{:02x}:0x{:02x}:0x{:02x}), ",
+            "mode = 0x{:x}, "
+            "file = 0x{:x}, "
+            "channel = 0x{:x}, "
+            "submode = 0x{:x}, "
+            "ci = 0x{:x}"
+            ")\n",
+            CDROM_response[0], CDROM_response[1], CDROM_response[2], CDROM_response[3], CDROM_response[4], CDROM_response[5],
+            CDROM_response[6], CDROM_response[7]);
     }
 }
 
@@ -217,7 +220,7 @@ void CDROM::cmdGetlocP() {
     writeResponse(lastQ.data[8]);  // sector (disc)
 
     if (verbose) {
-        printf("CDROM: cmdGetlocP -> (%s)\n", dumpFifo(CDROM_response).c_str());
+        fmt::print("CDROM: cmdGetlocP -> ({})\n", dumpFifo(CDROM_response));
     }
 }
 
@@ -228,12 +231,12 @@ void CDROM::cmdGetTN() {
     writeResponse(bcd::toBcd(disc->getTrackCount()));
 
     if (verbose) {
-        printf("CDROM: cmdGetTN -> (%s)\n", dumpFifo(CDROM_response).c_str());
+        fmt::print("CDROM: cmdGetTN -> ({})\n", dumpFifo(CDROM_response));
     }
 }
 
 void CDROM::cmdGetTD() {
-    int track = bcd::toBinary(readParam());
+    unsigned track = bcd::toBinary(readParam());
 
     if (track == 0) {  // end of last track
         auto diskSize = disc->getDiskSize();
@@ -254,13 +257,13 @@ void CDROM::cmdGetTD() {
         writeResponse(0x10);
 
         if (verbose) {
-            printf("GetTD(0x%02x): error\n", track);
+            fmt::print("CDROM: GetTD(0x{:02x}): error\n", track);
         }
         return;
     }
 
     if (verbose) {
-        printf("CDROM: cmdGetTD(0x%02x) -> (%s)\n", track, dumpFifo(CDROM_response).c_str());
+        fmt::print("CDROM: cmdGetTD(0x{:02x}) -> ({})\n", track, dumpFifo(CDROM_response));
     }
 }
 
@@ -275,7 +278,7 @@ void CDROM::cmdSeekL() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdSeekL\n");
+    if (verbose) fmt::print("CDROM: cmdSeekL\n");
 }
 
 void CDROM::cmdTest() {
@@ -304,12 +307,12 @@ void CDROM::cmdTest() {
         writeResponse(0x19);
         writeResponse(0xc0);
     } else {
-        printf("Unimplemented test CDROM opcode (0x%x)!\n", opcode);
+        fmt::print("CDROM: Unimplemented test opcode (0x{:x})!\n", opcode);
         postInterrupt(5);
     }
 
     if (verbose) {
-        printf("CDROM: cmdTest(0x%02x) -> (%s)\n", opcode, dumpFifo(CDROM_response).c_str());
+        fmt::print("CDROM: cmdTest(0x{:02x}) -> ({})\n", opcode, dumpFifo(CDROM_response));
     }
 }
 
@@ -352,7 +355,7 @@ void CDROM::cmdGetId() {
     }
 
     if (verbose) {
-        printf("CDROM: cmdGetId -> (%s)\n", dumpFifo(CDROM_response).c_str());
+        fmt::print("CDROM: cmdGetId -> ({})\n", dumpFifo(CDROM_response));
     }
 }
 
@@ -366,7 +369,7 @@ void CDROM::cmdReadS() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdReadS\n");
+    if (verbose) fmt::print("CDROM: cmdReadS\n");
 }
 
 void CDROM::cmdReadTOC() {
@@ -376,7 +379,7 @@ void CDROM::cmdReadTOC() {
     postInterrupt(2);
     writeResponse(stat._reg);
 
-    if (verbose) printf("CDROM: cmdReadTOC\n");
+    if (verbose) fmt::print("CDROM: cmdReadTOC\n");
 }
 
 void CDROM::cmdUnlock() {
@@ -386,7 +389,7 @@ void CDROM::cmdUnlock() {
     writeResponse(0x40);
 
     if (verbose) {
-        printf("CDROM: cmdUnlock -> (%s)\n", dumpFifo(CDROM_response).c_str());
+        fmt::print("CDROM: cmdUnlock -> ({})\n", dumpFifo(CDROM_response));
     }
 }
 }  // namespace cdrom

@@ -1,4 +1,5 @@
 #include "cue.h"
+#include <fmt/core.h>
 
 namespace disc {
 namespace format {
@@ -51,7 +52,7 @@ disc::Sector Cue::read(Position pos) {
         if (files.find(track.filename) == files.end()) {
             FILE* f = fopen(track.filename.c_str(), "rb");
             if (!f) {
-                printf("Unable to load file %s\n", track.filename.c_str());
+                fmt::print("Unable to load file {}\n", track.filename);
                 return std::make_pair(buffer, type);
             }
 

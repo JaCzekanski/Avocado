@@ -39,7 +39,7 @@ struct COP0 {
     };
     // cop0r13 cause, ro, bit8-9 are rw
     union CAUSE {
-        enum class Exception : uint32_t {
+        enum class Exception {
             interrupt = 0,
             addressErrorLoad = 4,
             addressErrorStore = 5,
@@ -71,22 +71,6 @@ struct COP0 {
                                               * source: L64360 datasheet
                                               */
         };
-
-        const char* getExceptionName() const {
-            switch (exception) {
-                case Exception::interrupt: return "interrupt";
-                case Exception::addressErrorLoad: return "addressErrorLoad";
-                case Exception::addressErrorStore: return "addressErrorStore";
-                case Exception::busErrorInstruction: return "busErrorInstruction";
-                case Exception::busErrorData: return "busErrorData";
-                case Exception::syscall: return "syscall";
-                case Exception::breakpoint: return "breakpoint";
-                case Exception::reservedInstruction: return "reservedInstruction";
-                case Exception::coprocessorUnusable: return "coprocessorUnusable";
-                case Exception::arithmeticOverflow: return "arithmeticOverflow";
-                default: return "unknown";
-            }
-        }
 
         void clearForException() {
             auto _interruptPending = interruptPending;

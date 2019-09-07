@@ -1,9 +1,9 @@
 #include "memory_card.h"
+#include <fmt/core.h>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include "config.h"
 #include "system.h"
-#include "utils/string.h"
 
 namespace gui::options::memory_card {
 void MemoryCard::memoryCardWindow(System* sys) {
@@ -17,7 +17,7 @@ void MemoryCard::memoryCardWindow(System* sys) {
     ImGui::BeginTabBar("##memory_select");
 
     for (size_t i = 0; i < sys->controller->card.size(); i++) {
-        if (ImGui::BeginTabItem(string_format("Slot %d", i + 1).c_str())) {
+        if (ImGui::BeginTabItem(fmt::format("Slot {}", i + 1).c_str())) {
             if (ImGui::InputText("Path", &cardPaths[i])) {
                 config["memoryCard"][std::to_string(i + 1)] = cardPaths[i];
             }

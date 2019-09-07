@@ -1,8 +1,8 @@
+#include <fmt/core.h>
 #include <imgui.h>
 #include <vector>
 #include "device/spu/spu.h"
 #include "gui.h"
-#include "utils/string.h"
 
 using namespace spu;
 extern bool showSpuWindow;
@@ -51,11 +51,11 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
                 s += "Release:\n";
             }
 
-            s += string_format("Step:      %d\n", e.getStep());
-            s += string_format("Shift:     %d\n", e.shift);
-            s += string_format("Direction: %s\n", e.direction == Envelope::Direction::Decrease ? "Decrease" : "Increase");
-            s += string_format("Mode:      %s\n", e.mode == Envelope::Mode::Exponential ? "Exponential" : "Linear");
-            s += string_format("Level:     %d\n\n", e.level);
+            s += fmt::format("Step:      {}\n", e.getStep());
+            s += fmt::format("Shift:     {}\n", e.shift);
+            s += fmt::format("Direction: {}\n", e.direction == Envelope::Direction::Decrease ? "Decrease" : "Increase");
+            s += fmt::format("Mode:      {}\n", e.mode == Envelope::Mode::Exponential ? "Exponential" : "Linear");
+            s += fmt::format("Level:     {}\n\n", e.level);
         }
 
         return s;
@@ -85,36 +85,39 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
         }
 
-        column(string_format("%d", i + 1));
+        column(fmt::format("{}", i + 1));
 
         column(mapState(v.state));
         if (parseValues) {
-            column(string_format("%.0f", v.volume.getLeft() * 100.f));
-            column(string_format("%.0f", v.volume.getRight() * 100.f));
-            column(string_format("%.0f", (v.adsrVolume._reg / static_cast<float>(0x7fff)) * 100.f));
+            column(fmt::format("{:.0f}", v.volume.getLeft() * 100.f));
+            column(fmt::format("{:.0f}", v.volume.getRight() * 100.f));
+            column(fmt::format("{:.0f}", (v.adsrVolume._reg / static_cast<float>(0x7fff)) * 100.f));
         } else {
-            column(string_format("%04x", v.volume.left));
-            column(string_format("%04x", v.volume.right));
-            column(string_format("%04x", v.adsrVolume._reg));
+            column(fmt::format("{:04x}", v.volume.left));
+            column(fmt::format("{:04x}", v.volume.right));
+            column(fmt::format("{:04x}", v.adsrVolume._reg));
         }
 
         if (parseValues) {
-            column(string_format("%5d Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
+            column(fmt::format("{:5d} Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
         } else {
-            column(string_format("%04x", v.sampleRate._reg));
+            column(fmt::format("{:04x}", v.sampleRate._reg));
         }
-        column(string_format("%04x", v.currentAddress._reg));
-        column(string_format("%04x", v.startAddress._reg));
-        column(string_format("%04x", v.repeatAddress._reg));
-        column(string_format("%08x", v.adsr._reg));
+        column(fmt::format("{:04x}", v.currentAddress._reg));
+        column(fmt::format("{:04x}", v.startAddress._reg));
+        column(fmt::format("{:04x}", v.repeatAddress._reg));
+        column(fmt::format("{:08x}", v.adsr._reg));
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::TextUnformatted(adsrInfo(v.adsr).c_str());
             ImGui::EndTooltip();
         }
 
-        column(string_format("%s %s %s", v.reverb ? "Reverb" : "", v.mode == Voice::Mode::Noise ? "Noise" : "",
-                             v.pitchModulation ? "PitchModulation" : ""));
+        column(fmt::format("{} {} {}",
+                           v.reverb ? "Reverb" : "",                     //
+                           v.mode == Voice::Mode::Noise ? "Noise" : "",  //
+                           v.pitchModulation ? "PitchModulation" : "")   //
+        );
 
         ImGui::PopStyleColor();
     }
@@ -174,7 +177,7 @@ void reverbInfo(spu::SPU* spu) {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int i = y * width + x;
-            auto str = string_format("%04x", spu->reverbRegisters[i]);
+            auto str = fmt::format("{:04x}", spu->reverbRegisters[i]._reg);
             ImGui::TextUnformatted(str.c_str());
 
             ImVec2 size = ImGui::CalcTextSize(str.c_str());

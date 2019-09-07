@@ -1,12 +1,12 @@
 #include "cdrom.h"
+#include <fmt/core.h>
 #include <imgui.h>
 #include "disc/empty.h"
 #include "disc/format/cue.h"
 #include "system.h"
-#include "utils/string.h"
 
 using namespace disc;
-#define POSITION(x) ((useFrames) ? string_format("%d", (x).toLba()).c_str() : (x).toString().c_str())
+#define POSITION(x) ((useFrames) ? fmt::format("{}", (x).toLba()) : (x).toString())
 
 namespace gui::debug::cdrom {
 
@@ -28,9 +28,15 @@ void Cdrom::cdromWindow(System* sys) {
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
                 auto track = cue->tracks[i];
 
-                auto line = string_format("%5d  %-8s  %-8s  %-8s  %-9zu  %-5s  %s", i + 1, POSITION(track.pregap), POSITION(track.index1),
-                                          POSITION(track.index1 + Position::fromLba(track.frames)), track.offset,
-                                          track.type == TrackType::DATA ? "DATA" : "AUDIO", getFilenameExt(track.filename).c_str());
+                auto line = fmt::format("{:>5}  {:<8}  {:<8}  {:<8}  {:<9}  {:<5}  {}",
+                                        i + 1,                                                     //
+                                        POSITION(track.pregap),                                    //
+                                        POSITION(track.index1),                                    //
+                                        POSITION(track.index1 + Position::fromLba(track.frames)),  //
+                                        track.offset,                                              //
+                                        track.type == TrackType::DATA ? "DATA" : "AUDIO",          //
+                                        getFilenameExt(track.filename)                             //
+                );
 
                 ImGui::Selectable(line.c_str());
             }

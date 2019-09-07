@@ -1,3 +1,4 @@
+#include <fmt/core.h>
 #include <imgui.h>
 #include <magic_enum.hpp>
 #include <nlohmann/json.hpp>
@@ -9,7 +10,6 @@
 #include "renderer/opengl/shader/texture.h"
 #include "tools.h"
 #include "utils/file.h"
-#include "utils/string.h"
 
 extern bool showVramWindow;
 extern bool showWatchWindow;
@@ -65,7 +65,7 @@ void replayCommands(gpu::GPU *gpu, int to) {
     for (int i = 0; i <= to; i++) {
         auto cmd = commands.at(i);
 
-        if (cmd.args.size() == 0) printf("Panic! no args");
+        if (cmd.args.size() == 0) fmt::print("Panic! no args");
 
         for (size_t j = 0; j < cmd.args.size(); j++) {
             uint32_t arg = cmd.args[j];
@@ -184,9 +184,9 @@ void gteLogWindow(System *sys) {
         auto ioEntry = sys->cpu->gte.log.at(i);
         std::string t;
         if (ioEntry.mode == GTE::GTE_ENTRY::MODE::func) {
-            t = string_format("%5d %c 0x%02x", i, 'F', ioEntry.n);
+            t = fmt::format("{:5d} {} 0x{:02x}", i, 'F', ioEntry.n);
         } else {
-            t = string_format("%5d %c %2d: 0x%08x", i, ioEntry.mode == GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n, ioEntry.data);
+            t = fmt::format("{:5d} {} {:2d}: 0x{:08x}", i, ioEntry.mode == GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n, ioEntry.data);
         }
         if (filterActive && t.find(filterBuffer) != std::string::npos)  // if found
         {
@@ -292,7 +292,7 @@ void gpuLogWindow(System *sys) {
                         ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
                     }
 
-                    vramAreas.push_back({string_format("Rectangle %d", i), ImVec2(x, y), ImVec2(w, h)});
+                    vramAreas.push_back({fmt::format("Rectangle {}", i), ImVec2(x, y), ImVec2(w, h)});
 
                     if (arg.isTextureMapped) {
                         int texX = arguments[2] & 0xff;
@@ -320,7 +320,7 @@ void gpuLogWindow(System *sys) {
                         texX += last_e1.texturePageBaseX * 64;
                         texY += last_e1.texturePageBaseY * 256;
 
-                        std::string textureInfo = string_format("Texture (%d bit)", textureBits);
+                        std::string textureInfo = fmt::format("Texture ({} bit)", textureBits);
 
                         if (nodeOpen) {
                             ImGui::NewLine();
@@ -374,10 +374,15 @@ void gpuLogWindow(System *sys) {
 
             for (size_t i = 0; i < gpuLog.size(); i++) {
                 auto e = gpuLog[i];
-                j.push_back({{"command", e.command}, {"cmd", (int)e.cmd}, {"name", magic_enum::enum_name(e.cmd)}, {"args", e.args}});
+                j.push_back({
+                    {"command", e.command},                  //
+                    {"cmd", (int)e.cmd},                     //
+                    {"name", magic_enum::enum_name(e.cmd)},  //
+                    {"args", e.args},                        //
+                });
             }
 
-            putFileContents(string_format("%s.json", filename), j.dump(2));
+            putFileContents(fmt::format("{}.json", filename), j.dump(2));
 
             // Binary vram dump
             std::vector<uint8_t> vram;
@@ -385,7 +390,7 @@ void gpuLogWindow(System *sys) {
                 vram.push_back(d & 0xff);
                 vram.push_back((d >> 8) & 0xff);
             }
-            putFileContents(string_format("%s.bin", filename), vram);
+            putFileContents(fmt::format("{}.bin", filename), vram);
 
             ImGui::CloseCurrentPopup();
         }
@@ -525,7 +530,7 @@ void watchWindow(System *sys) {
         ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
 
-        ImGui::Selectable(string_format("0x%08x: 0x%0*x    %s", watch.address, watch.size * 2, value, watch.name.c_str()).c_str());
+        ImGui::Selectable(fmt::format("0x{:08x}: 0x{:0{}x}    {}", watch.address, value, watch.size * 2, watch.name).c_str());
 
         ImGui::PopStyleColor();
 

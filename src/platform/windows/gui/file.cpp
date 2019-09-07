@@ -1,11 +1,11 @@
 #include "file.h"
+#include <fmt/core.h>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <algorithm>
 #include <cmath>
 #include "config.h"
 #include "filesystem.h"
-#include "utils/string.h"
 
 namespace gui::file {
 bool showHidden = false;
@@ -91,12 +91,12 @@ void openFile() {
         std::string units = "kMGTPE";
 
         int unit = 1024;
-        if (bytes < unit) return string_format("%4d B", bytes);
+        if (bytes < unit) return fmt::format("{:4d} B", bytes);
         int exp = (int)(std::log(bytes) / std::log(unit));
 
         char pre = units.at(exp - 1);
 
-        return string_format("%4.f %cB", (float)bytes / std::pow(unit, exp), pre);
+        return fmt::format("{:4.0f} {}B", (float)bytes / std::pow(unit, exp), pre);
     };
 
     float maxColumnWidth = 0.f;

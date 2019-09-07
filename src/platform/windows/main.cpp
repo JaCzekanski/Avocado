@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <fmt/core.h>
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -13,7 +14,6 @@
 #include "system.h"
 #include "utils/file.h"
 #include "utils/psf.h"
-#include "utils/string.h"
 #include "version.h"
 
 #ifdef _WIN32
@@ -98,8 +98,8 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     if (disc) {
         sys->cdrom->disc = std::move(disc);
         sys->cdrom->setShell(false);
-        printf("File %s loaded\n", filenameExt.c_str());
-        toast(string_format("%s loaded", filenameExt.c_str()));
+        fmt::print("File {} loaded\n", filenameExt);
+        toast(fmt::format("{} loaded", filenameExt));
     }
 }
 
@@ -111,7 +111,7 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force = false) {
         std::string pathCard = configEntry.is_null() ? "" : configEntry;
 
         if (pathCard.empty()) {
-            printf("[INFO] No memory card %d path in config, skipping save\n", slot + 1);
+            fmt::print("[INFO] No memory card {} path in config, skipping save\n", slot + 1);
             return;
         }
 
@@ -119,11 +119,11 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force = false) {
         auto output = std::vector<uint8_t>(data.begin(), data.end());
 
         if (!putFileContents(pathCard, output)) {
-            printf("[INFO] Unable to save memory card %d to %s\n", slot + 1, getFilenameExt(pathCard).c_str());
+            fmt::print("[INFO] Unable to save memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
             return;
         }
 
-        printf("[INFO] Saved memory card %d to %s\n", slot + 1, getFilenameExt(pathCard).c_str());
+        fmt::print("[INFO] Saved memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
     };
 
     saveMemoryCard(0);
@@ -135,18 +135,18 @@ std::unique_ptr<System> hardReset() {
 
     std::string bios = config["bios"];
     if (!bios.empty() && sys->loadBios(bios)) {
-        printf("[INFO] Using bios %s\n", getFilenameExt(bios).c_str());
+        fmt::print("[INFO] Using bios {}\n", getFilenameExt(bios));
     }
 
     std::string extension = config["extension"];
     if (!extension.empty() && sys->loadExpansion(getFileContents(extension))) {
-        printf("[INFO] Using extension %s\n", getFilenameExt(extension).c_str());
+        fmt::print("[INFO] Using extension {}\n", getFilenameExt(extension));
     }
 
     std::string iso = config["iso"];
     if (!iso.empty()) {
         loadFile(sys, iso);
-        printf("Using iso %s\n", iso.c_str());
+        fmt::print("[INFO] Using iso {}\n", iso);
     }
 
     auto loadMemoryCard = [&](int slot) {
@@ -163,7 +163,7 @@ std::unique_ptr<System> hardReset() {
             if (!cardData.empty()) {
                 std::copy_n(std::make_move_iterator(cardData.begin()), cardData.size(), sys->controller->card[slot]->data.begin());
                 card->inserted = true;
-                printf("[INFO] Loaded memory card %d from %s\n", slot + 1, getFilenameExt(pathCard).c_str());
+                fmt::print("[INFO] Loaded memory card {} from {}\n", slot + 1, getFilenameExt(pathCard));
             }
         }
     };
@@ -233,7 +233,7 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
             title += " | " + gameName;
         }
 
-        title += string_format(" | FPS: %.0f (%0.2f ms) %s", fps, (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
+        title += fmt::format(" | FPS: {:.0f} ({:.2f} ms) {}", fps, (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
 
         if (sys->state == System::State::pause) {
             title += " | paused";
@@ -243,7 +243,7 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 }
 
 void fatalError(const std::string& error) {
-    fprintf(stderr, "[FATAL] %s", error.c_str());
+    fmt::print(stderr, "[FATAL] %s", error);
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Avocado", error.c_str(), nullptr);
     SDL_Quit();
 }
@@ -268,7 +268,7 @@ int main(int argc, char** argv) {
     loadConfigFile(CONFIG_NAME);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
-        fatalError(string_format("Cannot init SDL (%s)", SDL_GetError()));
+        fatalError(fmt::format("Cannot init SDL ({})", SDL_GetError()));
         return 1;
     }
 
@@ -283,13 +283,13 @@ int main(int argc, char** argv) {
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr) {
-        fatalError(string_format("Cannot create window (%s)", SDL_GetError()));
+        fatalError(fmt::format("Cannot create window ({})", SDL_GetError()));
         return 1;
     }
 
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (glContext == nullptr) {
-        fatalError(string_format("Cannot create OpenGL context (%s)", SDL_GetError()));
+        fatalError(fmt::format("Cannot create OpenGL context ({})", SDL_GetError()));
         return 1;
     }
 
@@ -415,7 +415,7 @@ int main(int argc, char** argv) {
                     }
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
-                    printf("Shell toggle\n");
+                    fmt::print("[INFO] Shell toggle\n");
                     sys->cdrom->toggleShell();
                 }
                 if (event.key.keysym.sym == SDLK_F7) {

@@ -1,13 +1,12 @@
 #include "cdrom.h"
+#include <fmt/core.h>
 #include <cassert>
-#include <cstdio>
 #include "config.h"
 #include "disc/empty.h"
 #include "sound/adpcm.h"
 #include "system.h"
 #include "utils/bcd.h"
 #include "utils/cd.h"
-#include "utils/string.h"
 
 namespace device {
 namespace cdrom {
@@ -44,7 +43,7 @@ void CDROM::step() {
             }
 
             if (memcmp(rawSector.data(), sync.data(), sync.size()) == 0) {
-                printf("[CDROM] Trying to read Data track as audio\n");
+                fmt::print("[CDROM] Trying to read Data track as audio\n");
                 return;
             }
 
@@ -65,7 +64,7 @@ void CDROM::step() {
                 writeResponse(bcd::toBcd(0));       // peakhi
 
                 if (verbose) {
-                    printf("CDROM: CDDA report -> (%s)\n", dumpFifo(CDROM_response).c_str());
+                    fmt::print("CDROM: CDDA report -> ({})\n", dumpFifo(CDROM_response));
                 }
             }
 
@@ -87,7 +86,7 @@ void CDROM::step() {
             ackMoreData();
 
             if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
-                printf("Invalid sync\n");
+                fmt::print("CDROM: Invalid sync\n");
                 return;
             }
 
@@ -104,7 +103,7 @@ void CDROM::step() {
             // XA uses Mode2 sectors
             // Does PSX even support Mode1?
             if (mode != 2) {
-                printf("Not mode2 (%d instead)\n", mode);
+                fmt::print("CDROM: Not mode2 ({} instead)\n", mode);
                 return;
             }
 
@@ -114,18 +113,16 @@ void CDROM::step() {
             if (submode.form2 && submode.realtime) {
                 // Filter XA file/channel
                 if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
-                    // printf("Mismatch filter\n");
                     return;
                 }
 
                 // Only realtime audio
                 if (!submode.audio || !submode.realtime) {
-                    // printf("!audio || !realtime\n");
                     return;
                 }
 
                 if (codinginfo.bits == 1) {
-                    printf("[CDROM] Unsupported 8bit mode for XA\n");
+                    fmt::print("[CDROM] Unsupported 8bit mode for XA\n");
                     exit(1);
                 }
 
@@ -136,7 +133,7 @@ void CDROM::step() {
                 }
 
                 if (submode.endOfFile) {
-                    printf("End of file\n");
+                    fmt::print("CDROM: End of file\n");
                     stat.read = false;
                     return;
                 }
@@ -150,7 +147,7 @@ void CDROM::step() {
 uint8_t CDROM::read(uint32_t address) {
     if (address == 0) {  // CD Status
         // status.transmissionBusy = !interruptQueue.empty();
-        if (verbose == 2) printf("CDROM: R STATUS: 0x%02x\n", status._reg);
+        if (verbose == 2) fmt::print("CDROM: R STATUS: 0x{:02x}\n", status._reg);
         return status._reg;
     }
     if (address == 1) {  // CD Response
@@ -162,15 +159,17 @@ uint8_t CDROM::read(uint32_t address) {
                 status.responseFifoEmpty = 0;
             }
         }
-        if (verbose == 2) printf("CDROM: R RESPONSE: 0x%02x\n", response);
+        if (verbose == 2) fmt::print("CDROM: R RESPONSE: 0x{:02x}\n", response);
         return response;
     }
     if (address == 2) {  // CD Data
-        return readByte();
+        uint8_t byte = readByte();
+        if (verbose == 3) fmt::print("CDROM: R DATA: 0x{:02x}\n", byte);
+        return byte;
     }
     if (address == 3) {                                // CD Interrupt enable / flags
         if (status.index == 0 || status.index == 2) {  // Interrupt enable
-            if (verbose == 2) printf("CDROM: R INTE: 0x%02x\n", interruptEnable);
+            if (verbose == 2) fmt::print("CDROM: R INTE: 0x{:02x}\n", interruptEnable);
             return interruptEnable;
         }
         if (status.index == 1 || status.index == 3) {  // Interrupt flags
@@ -178,12 +177,11 @@ uint8_t CDROM::read(uint32_t address) {
             if (!interruptQueue.empty()) {
                 _status |= interruptQueue.peek() & 7;
             }
-            if (verbose == 2) printf("CDROM: R INTF: 0x%02x\n", _status);
+            if (verbose == 2) fmt::print("CDROM: R INTF: 0x{:02x}\n", _status);
             return _status;
         }
     }
-    printf("CDROM%d.%d->R    ?????\n", address, status.index);
-    sys->state = System::State::pause;
+    fmt::print("CDROM{}.{}->R    ?????\n", address, static_cast<int>(status.index));
     return 0;
 }
 
@@ -198,7 +196,7 @@ bool CDROM::isBufferEmpty() {
 
 uint8_t CDROM::readByte() {
     if (dataBuffer.empty()) {
-        printf("[CDROM] Buffer empty\n");
+        fmt::print("[CDROM] Buffer empty\n");
         return 0;
     }
 
@@ -228,7 +226,7 @@ uint8_t CDROM::readByte() {
 std::string CDROM::dumpFifo(const fifo<16, uint8_t> f) {
     std::string log = "";
     for (size_t i = 0; i < f.size(); i++) {
-        log += string_format("0x%02x", f[i]);
+        log += fmt::format("0x{:02x}", f[i]);
         if (i < f.size() - 1) log += ", ";
     }
     return log;
@@ -276,7 +274,7 @@ void CDROM::handleCommand(uint8_t cmd) {
         case 0x55:
         case 0x56: cmdUnlock(); break;
         default:
-            printf("[CDROM] Unimplemented cmd 0x%x, please report this game/software on project page.\n", cmd);
+            fmt::print("[CDROM] Unimplemented cmd 0x{:x}, please report this game/software on project page.\n", cmd);
             postInterrupt(5);
             writeResponse(0x11);
             writeResponse(0x40);
@@ -292,10 +290,12 @@ void CDROM::handleCommand(uint8_t cmd) {
 
 void CDROM::write(uint32_t address, uint8_t data) {
     if (address == 0) {
+        if (verbose == 3) fmt::print("CDROM: W INDEX: 0x{:02x}\n", data);
         status.index = data & 3;
         return;
     }
     if (address == 1 && status.index == 0) {  // Command register
+        if (verbose == 3) fmt::print("CDROM: W COMMAND: 0x{:02x}\n", data);
         return handleCommand(data);
     }
     if (address == 2 && status.index == 0) {  // Parameter fifo
@@ -303,6 +303,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
         CDROM_params.add(data);
         status.parameterFifoEmpty = 0;
         status.parameterFifoFull = !(CDROM_params.size() >= 16);
+        if (verbose == 3) fmt::print("CDROM: W PARAMFIFO: 0x{:02x}\n", data);
         return;
     }
     if (address == 3 && status.index == 0) {  // Request register
@@ -319,12 +320,12 @@ void CDROM::write(uint32_t address, uint8_t data) {
             dataBufferPointer = 0;
         }
 
-        if (verbose == 2) printf("CDROM: W REQDATA: 0x%02x\n", data);
+        if (verbose == 2) fmt::print("CDROM: W REQDATA: 0x{:02x}\n", data);
         return;
     }
     if (address == 2 && status.index == 1) {  // Interrupt enable
         interruptEnable = data;
-        if (verbose == 2) printf("CDROM: W INTE: 0x%02x\n", data);
+        if (verbose == 2) fmt::print("CDROM: W INTE: 0x{:02x}\n", data);
         return;
     }
     if (address == 3 && status.index == 1) {  // Interrupt flags
@@ -338,37 +339,41 @@ void CDROM::write(uint32_t address, uint8_t data) {
         if (!interruptQueue.empty()) {
             interruptQueue.get();
         }
-        if (verbose == 2) printf("CDROM: W INTF: 0x%02x\n", data);
+        if (verbose == 2) fmt::print("CDROM: W INTF: 0x{:02x}\n", data);
         return;
     }
 
     if (address == 2 && status.index == 2) {  // Left CD to Left SPU
         volumeLeftToLeft = data;
+        if (verbose == 2) fmt::print("CDROM: W LeftCDtoLeftSPU: 0x{:02x}\n", data);
         return;
     }
 
     if (address == 3 && status.index == 2) {  // Left CD to Right SPU
         volumeLeftToRight = data;
+        if (verbose == 2) fmt::print("CDROM: W LeftCDtoRightSPU: 0x{:02x}\n", data);
         return;
     }
 
     if (address == 1 && status.index == 3) {  // Right CD to Right SPU
         volumeRightToRight = data;
+        if (verbose == 2) fmt::print("CDROM: W RightCDtoRightSPU: 0x{:02x}\n", data);
         return;
     }
 
     if (address == 2 && status.index == 3) {  // Right CD to Left SPU
         volumeRightToLeft = data;
+        if (verbose == 2) fmt::print("CDROM: W RightCDtoLeftSPU: 0x{:02x}\n", data);
         return;
     }
 
     if (address == 3 && status.index == 3) {  // Apply volume changes (bit5)
         // FIXME: Temporarily ignored
+        if (verbose == 2) fmt::print("CDROM: W ApplyVolumeChanges: 0x{:02x}\n", data);
         return;
     }
 
-    printf("CDROM%d.%d<-W  UNIMPLEMENTED WRITE       0x%02x\n", address, status.index, data);
-    sys->state = System::State::pause;
+    fmt::print("CDROM{}.{}<-W  UNIMPLEMENTED WRITE       0x{:02x}\n", address, static_cast<int>(status.index), data);
 }
 }  // namespace cdrom
 }  // namespace device

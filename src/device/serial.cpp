@@ -1,5 +1,5 @@
 #include "serial.h"
-#include <cstdio>
+#include <fmt/core.h>
 
 Serial::Serial() { reset(); }
 
@@ -15,12 +15,12 @@ uint8_t Serial::read(uint32_t address) {
         return baud._byte[address - 14];
     }
 
-    printf("[SERIAL] read @ 0x%02x\n", address);
+    fmt::print("[SERIAL] read @ 0x{:02x}\n", address);
     return 0;
 }
 
 void Serial::write(uint32_t address, uint8_t data) {
-    printf("[SERIAL] write @ 0x%02x: 0x%02x\n", address, data);
+    fmt::print("[SERIAL] write @ 0x{:02x}: 0x{:02x}\n", address, data);
     if (address >= 14 && address < 16) {
         baud._byte[address - 14] = data;
     }

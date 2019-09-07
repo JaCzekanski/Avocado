@@ -1,6 +1,6 @@
 #include "debugger.h"
+#include <fmt/core.h>
 #include <array>
-#include "utils/string.h"
 
 namespace debugger {
 bool mapRegisterNames = true;
@@ -120,17 +120,17 @@ bool Instruction::isBranch() const {
 
 std::string reg(unsigned int n) {
     if (mapRegisterNames) return regNames[n];
-    return string_format("r%d", n);
+    return fmt::format("r{}", n);
 }
 
 std::string cop0reg(unsigned int n) {
     if (mapRegisterNames && n < cop0RegNames.size()) return cop0RegNames.at(n);
-    return string_format("cop0r%d", n);
+    return fmt::format("cop0r{}", n);
 }
 
 std::string cop2reg(unsigned int n) {
     if (mapRegisterNames && n < cop2RegNames.size()) return cop2RegNames.at(n);
-    return string_format("cop2r%d", n);
+    return fmt::format("cop2r{}", n);
 }
 
 Instruction mapSpecialInstruction(mips::Opcode& i);
@@ -139,17 +139,19 @@ Instruction decodeInstruction(mips::Opcode& i) {
     Instruction ins;
     ins.opcode = i;
 
+#define U16(x) static_cast<unsigned short>(x)
+
 #define R(x) reg(x).c_str()
-#define LOADTYPE string_format("%s, 0x%hx(%s)", R(i.rt), i.offset, R(i.rs));
-#define ITYPE string_format("%s, %s, 0x%hx", R(i.rt), R(i.rs), i.offset)
-#define JTYPE string_format("0x%x", i.target * 4)
+#define LOADTYPE fmt::format("{}, 0x{:04x}({})", R(i.rt), U16(i.offset), R(i.rs));
+#define ITYPE fmt::format("{}, {}, 0x{:04x}", R(i.rt), R(i.rs), U16(i.offset))
+#define JTYPE fmt::format("0x{:x}", i.target * 4)
 #define O(n, m, d)                     \
     case n:                            \
         ins.mnemonic = std::string(m); \
         ins.parameters = d;            \
         break
 
-#define BRANCH_TYPE string_format("%s, %d", R(i.rs), i.offset)
+#define BRANCH_TYPE fmt::format("{}, {}", R(i.rs), U16(i.offset))
 
     switch (i.op) {
         case 0: ins = mapSpecialInstruction(i); break;
@@ -162,7 +164,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
                 O(17, "bgezal", BRANCH_TYPE);
 
                 default:
-                    ins.mnemonic = string_format("0x%08x", i.opcode);
+                    ins.mnemonic = fmt::format("0x{:08x}", i.opcode);
                     ins.valid = false;
                     break;
             }
@@ -182,25 +184,23 @@ Instruction decodeInstruction(mips::Opcode& i) {
             O(12, "andi", ITYPE);
             O(13, "ori", ITYPE);
             O(14, "xori", ITYPE);
-            O(15, "lui", string_format("%s, 0x%hx", R(i.rt), i.offset));
+            O(15, "lui", fmt::format("{}, 0x{:04x}", R(i.rt), U16(i.offset)));
 
         case 16:
             switch (i.rs) {
                 case 0:
                     ins.mnemonic = std::string("mfc0");
-                    ins.parameters = string_format("%s, %s", R(i.rt), cop0reg(i.rd).c_str());
+                    ins.parameters = fmt::format("{}, {}", R(i.rt), cop0reg(i.rd).c_str());
                     ins.valid = i.rd < 16;
                     break;
                 case 4:
                     ins.mnemonic = std::string("mtc0");
-                    ins.parameters = string_format("%s, %s", R(i.rt), cop0reg(i.rd).c_str());
+                    ins.parameters = fmt::format("{}, {}", R(i.rt), cop0reg(i.rd).c_str());
                     ins.valid = i.rd < 16;
                     break;
-                    // O(0, "mfc0", string_format("%s, %s", R(i.rt), cop0reg(i.rd).c_str()));
-                    // O(4, "mtc0", string_format("%s, %s", R(i.rt), cop0reg(i.rd).c_str()));
                     O(16, "rfe", "");
                 default:
-                    ins.mnemonic = string_format("cop0 - 0x%08x", i.opcode);
+                    ins.mnemonic = fmt::format("cop0 - 0x{:08x}", i.opcode);
                     ins.valid = false;
                     break;
             }
@@ -209,12 +209,12 @@ Instruction decodeInstruction(mips::Opcode& i) {
 
         case 18:
             switch (i.rs) {
-                O(0, "mfc2", string_format("%s, %s", R(i.rt), cop2reg(i.rd).c_str()));
-                O(2, "cfc2", string_format("%s, %s", R(i.rt), cop2reg(i.rd + 32).c_str()));
-                O(4, "mtc2", string_format("%s, %s", R(i.rt), cop2reg(i.rd).c_str()));
-                O(6, "ctc2", string_format("%s, %s", R(i.rt), cop2reg(i.rd + 32).c_str()));
+                O(0, "mfc2", fmt::format("{}, {}", R(i.rt), cop2reg(i.rd).c_str()));
+                O(2, "cfc2", fmt::format("{}, {}", R(i.rt), cop2reg(i.rd + 32).c_str()));
+                O(4, "mtc2", fmt::format("{}, {}", R(i.rt), cop2reg(i.rd).c_str()));
+                O(6, "ctc2", fmt::format("{}, {}", R(i.rt), cop2reg(i.rd + 32).c_str()));
                 default:
-                    ins.mnemonic = string_format("cop2 - 0x%08x", i.opcode);
+                    ins.mnemonic = fmt::format("cop2 - 0x{:08x}", i.opcode);
                     ins.valid = false;
                     break;
             }
@@ -240,7 +240,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
             O(58, "swc2", "");  // TODO: add valid prototype
 
         default:
-            ins.mnemonic = string_format("0x%08x", i.opcode);
+            ins.mnemonic = fmt::format("0x{:08x}", i.opcode);
             ins.valid = false;
             break;
     }
@@ -250,8 +250,8 @@ Instruction decodeInstruction(mips::Opcode& i) {
 Instruction mapSpecialInstruction(mips::Opcode& i) {
     Instruction ins;
     ins.opcode = i;
-#define SHIFT_TYPE string_format("%s, %s, %d", R(i.rd), R(i.rt), i.sh)
-#define ATYPE string_format("%s, %s, %s", R(i.rd), R(i.rs), R(i.rt))
+#define SHIFT_TYPE fmt::format("{}, {}, {}", R(i.rd), R(i.rt), (int)i.sh)
+#define ATYPE fmt::format("{}, {}, {}", R(i.rd), R(i.rs), R(i.rt))
 
     switch (i.fun) {
         case 0:
@@ -269,20 +269,20 @@ Instruction mapSpecialInstruction(mips::Opcode& i) {
             O(6, "srlv", SHIFT_TYPE);
             O(7, "srav", SHIFT_TYPE);
 
-            O(8, "jr", string_format("%s", R(i.rs)));
-            O(9, "jalr", string_format("%s, %s", R(i.rd), R(i.rs)));
+            O(8, "jr", fmt::format("{}", R(i.rs)));
+            O(9, "jalr", fmt::format("{}, {}", R(i.rd), R(i.rs)));
             O(12, "syscall", "");
             O(13, "break", "");
 
-            O(16, "mfhi", string_format("%s", R(i.rd)));
-            O(17, "mthi", string_format("%s", R(i.rs)));
-            O(18, "mflo", string_format("%s", R(i.rd)));
-            O(19, "mtlo", string_format("%s", R(i.rs)));
+            O(16, "mfhi", fmt::format("{}", R(i.rd)));
+            O(17, "mthi", fmt::format("{}", R(i.rs)));
+            O(18, "mflo", fmt::format("{}", R(i.rd)));
+            O(19, "mtlo", fmt::format("{}", R(i.rs)));
 
-            O(24, "mult", string_format("%s, %s", R(i.rs), R(i.rt)));
-            O(25, "multu", string_format("%s, %s", R(i.rs), R(i.rt)));
-            O(26, "div", string_format("%s, %s", R(i.rs), R(i.rt)));
-            O(27, "divu", string_format("%s, %s", R(i.rs), R(i.rt)));
+            O(24, "mult", fmt::format("{}, {}", R(i.rs), R(i.rt)));
+            O(25, "multu", fmt::format("{}, {}", R(i.rs), R(i.rt)));
+            O(26, "div", fmt::format("{}, {}", R(i.rs), R(i.rt)));
+            O(27, "divu", fmt::format("{}, {}", R(i.rs), R(i.rt)));
 
             O(32, "add", ATYPE);
             O(33, "addu", ATYPE);
@@ -296,7 +296,7 @@ Instruction mapSpecialInstruction(mips::Opcode& i) {
             O(43, "sltu", ATYPE);
 
         default:
-            ins.mnemonic = string_format("special 0x%02x", i.fun);
+            ins.mnemonic = fmt::format("special 0x{:02x}", (int)i.fun);
             ins.valid = false;
             break;
     }

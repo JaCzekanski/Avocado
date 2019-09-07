@@ -1,4 +1,5 @@
 #include "config.h"
+#include <fmt/core.h>
 #include "utils/file.h"
 
 const char* CONFIG_NAME = "config.json";
@@ -192,15 +193,12 @@ json fixObject(json oldconfig, json newconfig) {
 
         // Add nonexisting fields
         if (newField == newconfig.end()) {
-            printf("Config: No field %s \n", oldField.key().c_str());
             newconfig.emplace(oldField.key(), oldField.value());
             continue;
         }
 
         // Repair these with invalid types
         if (newField.value().type() != oldField.value().type()) {
-            printf("[CONFIG]: Invalid type of field \"%s\" (%s), changing to %s\n", newField.key().c_str(), newField.value().type_name(),
-                   oldField.value().type_name());
             newconfig[oldField.key()] = oldField.value();
             continue;
         }

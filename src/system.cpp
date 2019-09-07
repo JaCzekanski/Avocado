@@ -1,5 +1,5 @@
 #include "system.h"
-#include <cstdio>
+#include <fmt/core.h>
 #include <cstdlib>
 #include <cstring>
 #include "bios/functions.h"
@@ -103,17 +103,17 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
         return data;                                                             \
     }
 
-#define READ_IO32(begin, end, periph)                                                                          \
-    if (addr >= (begin) && addr < (end)) {                                                                     \
-        T data = 0;                                                                                            \
-        if (sizeof(T) == 4) {                                                                                  \
-            data = (periph)->read(addr - (begin));                                                             \
-        } else {                                                                                               \
-            printf("R Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
-        }                                                                                                      \
-                                                                                                               \
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);                               \
-        return data;                                                                                           \
+#define READ_IO32(begin, end, periph)                                                                                    \
+    if (addr >= (begin) && addr < (end)) {                                                                               \
+        T data = 0;                                                                                                      \
+        if (sizeof(T) == 4) {                                                                                            \
+            data = (periph)->read(addr - (begin));                                                                       \
+        } else {                                                                                                         \
+            fmt::print("[SYS] R Unsupported access to " #periph " with bit size {}\n", static_cast<int>(sizeof(T) * 8)); \
+        }                                                                                                                \
+                                                                                                                         \
+        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);                                         \
+        return data;                                                                                                     \
     }
 
 #define WRITE_IO(begin, end, periph)                                              \
@@ -124,16 +124,16 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
         return;                                                                   \
     }
 
-#define WRITE_IO32(begin, end, periph)                                                                         \
-    if (addr >= (begin) && addr < (end)) {                                                                     \
-        if (sizeof(T) == 4) {                                                                                  \
-            (periph)->write(addr - (begin), data);                                                             \
-        } else {                                                                                               \
-            printf("W Unsupported access to " #periph " with bit size %d\n", static_cast<int>(sizeof(T) * 8)); \
-        }                                                                                                      \
-                                                                                                               \
-        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);                              \
-        return;                                                                                                \
+#define WRITE_IO32(begin, end, periph)                                                                                   \
+    if (addr >= (begin) && addr < (end)) {                                                                               \
+        if (sizeof(T) == 4) {                                                                                            \
+            (periph)->write(addr - (begin), data);                                                                       \
+        } else {                                                                                                         \
+            fmt::print("[SYS] W Unsupported access to " #periph " with bit size {}\n", static_cast<int>(sizeof(T) * 8)); \
+        }                                                                                                                \
+                                                                                                                         \
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);                                        \
+        return;                                                                                                          \
     }
 
 template <typename T>
@@ -176,7 +176,7 @@ INLINE T System::readMemory(uint32_t address) {
         return data;
     }
 
-    printf("R Unhandled address at 0x%08x\n", address);
+    fmt::print("[SYS] R Unhandled address at 0x{:08x}\n", address);
     return 0;
 }
 template <typename T>
@@ -219,7 +219,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
         return;
     }
 
-    printf("W Unhandled address at 0x%08x: 0x%02x\n", address, data);
+    fmt::print("[SYS] W Unhandled address at 0x{:08x}: 0x{:02x}\n", address, data);
 }
 
 uint8_t System::readMemory8(uint32_t address) { return readMemory<uint8_t>(address); }
@@ -235,41 +235,41 @@ void System::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16
 void System::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
 
 void System::printFunctionInfo(const char* functionNum, const bios::Function& f) {
-    printf("  %s: %s(", functionNum, f.name.c_str());
+    fmt::print("  {}: {}(", functionNum, f.name);
     unsigned int a = 0;
     for (auto arg : f.args) {
         uint32_t param = cpu->reg[4 + a];
         if (true) {
-            printf("%s = ", arg.name.c_str());
+            fmt::print("{} = ", arg.name);
         }
         switch (arg.type) {
             case bios::Type::INT:
-            case bios::Type::POINTER: printf("0x%x", param); break;
-            case bios::Type::CHAR: printf("'%c'", param); break;
+            case bios::Type::POINTER: fmt::print("0x{:x}", param); break;
+            case bios::Type::CHAR: fmt::print("'{:c}'", (char)param); break;
             case bios::Type::STRING: {
-                printf("\"");
+                fmt::print("\"");
                 for (int i = 0; i < 32; i++) {
                     uint8_t c = readMemory8(param + i);
 
                     if (c == 0) {
                         break;
                     } else if (c != 0 && i == 32 - 1) {
-                        printf("...");
+                        fmt::print("...");
                     } else {
-                        printf("%c", isprint(c) ? c : '_');
+                        fmt::print("{:c}", isprint(c) ? (char)c : '_');
                     }
                 }
-                printf("\"");
+                fmt::print("\"");
                 break;
             }
         }
         if (a < (f.args.size() - 1)) {
-            printf(", ");
+            fmt::print(", ");
         }
         a++;
         if (a > 4) break;
     }
-    printf(")\n");
+    fmt::print(")\n");
 }
 
 void System::handleBiosFunction() {
@@ -284,7 +284,7 @@ void System::handleBiosFunction() {
     const auto& function = table.find(functionNumber);
 
     if (function == table.end()) {
-        printf("  BIOS %1X(%02X): Unknown function!\n", 0xA + tableNum, functionNumber);
+        fmt::print("  BIOS {:1X}(0x{:02X}): Unknown function!\n", 0xA + tableNum, functionNumber);
         return;
     }
     if (function->second.callback != nullptr) {
@@ -292,7 +292,7 @@ void System::handleBiosFunction() {
     }
 
     if (log) {
-        std::string type = string_format("BIOS %1X(%02X)", 0xA + tableNum, functionNumber);
+        std::string type = fmt::format("BIOS {:1X}({:02X})", 0xA + tableNum, functionNumber);
         printFunctionInfo(type.c_str(), function->second);
     }
 }
@@ -309,7 +309,7 @@ void System::handleSyscallFunction() {
     }
 
     if (log) {
-        std::string type = string_format("SYSCALL(%01X)", functionNumber);
+        std::string type = fmt::format("SYSCALL({:X})", functionNumber);
         cpu->sys->printFunctionInfo(type.c_str(), function->second);
     }
 }
@@ -343,7 +343,6 @@ void System::emulateFrame() {
     int systemCycles = 300;
     for (;;) {
         if (!cpu->executeInstructions(systemCycles / 3)) {
-            // printf("CPU Halted\n");
             return;
         }
 
@@ -396,7 +395,7 @@ void System::emulateFrame() {
 }
 
 void System::softReset() {
-    printf("Soft reset\n");
+    fmt::print("Soft reset\n");
     cpu->setPC(0xBFC00000);
     cpu->inBranchDelay = false;
     state = State::run;
@@ -412,7 +411,7 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     memcpy(&exe, _exe.data(), sizeof(exe));
 
     if (exe.t_size > _exe.size() - 0x800) {
-        printf("Invalid exe t_size: 0x%08x\n", exe.t_size);
+        fmt::print("Invalid exe t_size: 0x{:08x}\n", exe.t_size);
         return false;
     }
 
@@ -435,13 +434,13 @@ bool System::loadBios(std::string path) {
 
     auto _bios = getFileContents(path);
     if (_bios.empty()) {
-        printf("Cannot open BIOS %s", path.c_str());
+        fmt::print("[SYS] Cannot open BIOS {}", path);
         return false;
     }
     assert(_bios.size() <= 512 * 1024);
 
     if (memcmp(_bios.data() + 0x108, licenseString, strlen(licenseString)) != 0) {
-        printf("[WARNING]: Loaded bios (%s) have invalid header, are you using correct file?\n", getFilenameExt(path).c_str());
+        fmt::print("[WARNING]: Loaded bios ({}) have invalid header, are you using correct file?\n", getFilenameExt(path));
     }
 
     std::copy(_bios.begin(), _bios.end(), bios);
@@ -460,7 +459,7 @@ bool System::loadExpansion(const std::vector<uint8_t>& _exp) {
     assert(_exp.size() <= EXPANSION_SIZE);
 
     if (memcmp(_exp.data() + 4, licenseString, strlen(licenseString)) != 0) {
-        printf("[WARNING]: Loaded expansion have invalid header, are you using correct file?\n");
+        fmt::print("[WARN]: Loaded expansion have invalid header, are you using correct file?\n");
     }
 
     std::copy(_exp.begin(), _exp.end(), expansion);

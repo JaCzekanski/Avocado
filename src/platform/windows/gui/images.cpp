@@ -1,9 +1,9 @@
 #include "images.h"
+#include <fmt/core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <unordered_map>
 #include "utils/file.h"
-#include "utils/string.h"
 
 Image::Image(GLuint id, int w, int h) : id(id), w(w), h(h) {}
 
@@ -15,13 +15,13 @@ std::optional<Image> loadImage(const std::string& file) {
 
     auto rawdata = getFileContents(file);
     if (rawdata.empty()) {
-        printf("[Error] Cannot load %s\n", getFilenameExt(file).c_str());
+        fmt::print("[ERROR] Cannot load {}\n", getFilenameExt(file));
         return {};
     }
 
     auto data = stbi_load_from_memory(rawdata.data(), rawdata.size(), &w, &h, &bit, 4);
     if (data == nullptr) {
-        printf("[Error] Cannot load %s\n", getFilenameExt(file).c_str());
+        fmt::print("[ERROR] Cannot load {}\n", getFilenameExt(file));
         return {};
     }
 
@@ -46,7 +46,7 @@ std::optional<Image> getImage(const std::string& button, const std::string& path
         return image->second;
     }
 
-    auto loaded = loadImage(string_format("%s/%s.png", path.c_str(), button.c_str()));
+    auto loaded = loadImage(fmt::format("{}/{}.png", path, button));
     images[path + button] = loaded;
 
     return loaded;

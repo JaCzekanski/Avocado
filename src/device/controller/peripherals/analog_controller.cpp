@@ -1,4 +1,5 @@
 #include "analog_controller.h"
+#include <fmt/core.h>
 #include <magic_enum.hpp>
 #include "config.h"
 #include "input/input_manager.h"
@@ -87,9 +88,10 @@ uint8_t AnalogController::handle(uint8_t byte) {
 
     uint8_t response = _handle(byte);
 
-    if (verbose >= 1)
-        printf("[ANALOG_%d]  data: 0x%02x, resp: 0x%02x, (State: %d, Command: %s)\n", port, byte, response, _state,
-               std::string(magic_enum::enum_name(_command)).c_str());
+    if (verbose >= 1) {
+        fmt::print("[ANALOG_{}]  data: 0x{:02x}, resp: 0x{:02x}, (State: {}, Command: {})\n", port, byte, response, _state,
+                   magic_enum::enum_name(_command));
+    }
 
     return response;
 }
@@ -294,7 +296,7 @@ void AnalogController::update() {
             analogEnabled = !analogEnabled;
             ledEnabled = analogEnabled;
             resetState();
-            if (verbose >= 1) printf("[ANALOG_%d] Analog mode %s\n", port, analogEnabled ? "enabled" : "disabled");
+            if (verbose >= 1) fmt::print("[ANALOG_{}] Analog mode {}\n", port, analogEnabled ? "enabled" : "disabled");
         }
     } else {
         analogPressed = false;

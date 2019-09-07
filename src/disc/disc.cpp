@@ -1,4 +1,5 @@
 #include "disc.h"
+#include <fmt/core.h>
 #include "utils/file.h"
 
 namespace disc {
@@ -29,7 +30,7 @@ bool Disc::loadSubchannel(const std::string& path) {
 
 bool Disc::loadLsd(const std::vector<uint8_t>& lsd) {
     if (lsd.empty()) {
-        printf("[DISC] LSD file is empty\n");
+        fmt::print("[DISC] LSD file is empty\n");
         return false;
     }
 
@@ -55,18 +56,18 @@ bool Disc::loadLsd(const std::vector<uint8_t>& lsd) {
         modifiedQ[pos] = q;
     }
 
-    printf("[DISC] Loaded LSD file\n");
+    fmt::print("[DISC] Loaded LSD file\n");
     return true;
 }
 
 bool Disc::loadSbi(const std::vector<uint8_t>& sbi) {
     if (sbi.empty()) {
-        printf("[DISC] SBI file is empty\n");
+        fmt::print("[DISC] SBI file is empty\n");
         return false;
     }
 
     if (sbi[0] != 'S' || sbi[1] != 'B' || sbi[2] != 'I' || sbi[3] != '\0') {
-        printf("[DISC] Invalid sbi header\n");
+        fmt::print("[DISC] Invalid sbi header\n");
         return false;
     }
 
@@ -82,7 +83,7 @@ bool Disc::loadSbi(const std::vector<uint8_t>& sbi) {
         int ff = bcd::toBinary(sbi[p + 2]);
         int dummy = sbi[p + 3];
         if (dummy != 1) {
-            printf("[DISC] Unsupported .sbi file, please create an issue on Github and attach this .sbi\n");
+            fmt::print("[DISC] Unsupported .sbi file, please create an issue on Github and attach this .sbi\n");
             return false;
         }
 
@@ -99,7 +100,7 @@ bool Disc::loadSbi(const std::vector<uint8_t>& sbi) {
         modifiedQ[pos] = q;
     }
 
-    printf("[DISC] Loaded SBI file\n");
+    fmt::print("[DISC] Loaded SBI file\n");
     return true;
 }
 }  // namespace disc

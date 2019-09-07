@@ -1,4 +1,5 @@
 #include "options.h"
+#include <fmt/core.h>
 #include <imgui.h>
 #include "config.h"
 #include "filesystem.h"
@@ -7,7 +8,6 @@
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "utils/file.h"
-#include "utils/string.h"
 
 bool showGraphicsOptionsWindow = false;
 bool showBiosWindow = false;
@@ -190,7 +190,7 @@ void biosSelectionWindow() {
             }
         }
     } catch (fs::filesystem_error& err) {
-        printf("%s", err.what());
+        fmt::print("%s", err.what());
     }
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
@@ -283,7 +283,7 @@ void button(int controller, std::string button, const char* tooltip = nullptr) {
         key = key.substr(pos + 1);
     }
 
-    if (ImGui::Button(string_format("%s##%s", key.c_str(), button.c_str()).c_str(), ImVec2(-iconSize * 3, 0.f))) {
+    if (ImGui::Button(fmt::format("{}##{}", key, button).c_str(), ImVec2(-iconSize * 3, 0.f))) {
         currentButton = button;
         inputManager->waitingForKeyPress = true;
         ImGui::OpenPopup("Waiting for key...");
@@ -302,10 +302,14 @@ void button(int controller, std::string button, const char* tooltip = nullptr) {
 void controllerSetupWindow() {
     const int controllerCount = 2;
     static int selectedController = 1;
-    static std::string comboString = string_format("Controller %d", selectedController);
+    static auto comboString = fmt::format("Controller {}", selectedController);
 
-    const std::array<const char*, 4> types
-        = {{ControllerType::NONE.c_str(), ControllerType::DIGITAL.c_str(), ControllerType::ANALOG.c_str(), ControllerType::MOUSE.c_str()}};
+    const std::array<const char*, 4> types = {{
+        ControllerType::NONE.c_str(),     //
+        ControllerType::DIGITAL.c_str(),  //
+        ControllerType::ANALOG.c_str(),   //
+        ControllerType::MOUSE.c_str(),    //
+    }};
 
     const auto find = [&](std::string selectedType) -> int {
         for (auto i = 0; i < (int)types.size(); i++) {
@@ -323,7 +327,7 @@ void controllerSetupWindow() {
     if (ImGui::BeginCombo("##combo_controller", comboString.c_str())) {
         for (int i = 1; i <= controllerCount; i++) {
             bool isSelected = i == selectedController;
-            std::string label = string_format("Controller %d", i);
+            auto label = fmt::format("Controller {}", i);
             if (ImGui::Selectable(label.c_str(), isSelected)) {
                 selectedController = i;
                 comboString = label;

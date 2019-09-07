@@ -129,6 +129,7 @@ include "premake/glad.lua"
 include "premake/imgui.lua"
 include "premake/lzma.lua"
 include "premake/miniz.lua"
+include "premake/fmt.lua"
 
 project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
@@ -143,6 +144,7 @@ project "core"
 		"externals/libchdr/src",
 		"externals/EventBus/lib/include",
 		"externals/magic_enum/include",
+		"externals/fmt/include",
 	}
 
 	files { 
@@ -161,6 +163,7 @@ project "core"
 		"lzma",
 		"flac",
 		"chdr",
+		"fmt",
 	}
 
 	if _ACTION ~= nil then
@@ -184,6 +187,7 @@ project "avocado"
 		"externals/filesystem/include",
         "externals/EventBus/lib/include",
 		"externals/magic_enum/include",
+		"externals/fmt/include",
 	}
 
 	links {
@@ -192,6 +196,7 @@ project "avocado"
 		"chdr",
 		"lzma",
 		"flac",
+		"fmt",
 	}
 
 	filter "options:headless"
@@ -303,9 +308,6 @@ project "avocado_test"
 		"core"
 	}
 
-	-- filter {"system:android"}
-	-- 	kind "SharedLib"
-
 project "avocado_autotest"
 	uuid "fcc880bc-c6fe-4b2b-80dc-d247345a1274"
 	kind "ConsoleApp"
@@ -325,6 +327,3 @@ project "avocado_autotest"
 	links {
 		"core"
 	}
-
-	-- filter {"system:android"}
-	-- 	kind "SharedLib"

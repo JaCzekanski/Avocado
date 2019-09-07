@@ -1,4 +1,5 @@
 #include "program.h"
+#include <fmt/core.h>
 #include "utils/file.h"
 
 Program::Program(std::string name) { this->name = name; }
@@ -81,7 +82,7 @@ Attribute Program::getAttrib(const char* name) {
     }
     GLint loc = glGetAttribLocation(programId, name);
     if (loc == -1) {
-        printf("[GL] Cannot find attribute \"%s\" in program %s\n", name, this->name.c_str());
+        fmt::print("[GL] Cannot find attribute \"{}\" in program {}\n", name, this->name);
     }
     auto attribute = Attribute(loc);
     attributes.emplace(name, attribute);
@@ -96,7 +97,7 @@ Uniform Program::getUniform(const char* name) {
     }
     GLint loc = glGetUniformLocation(programId, name);
     if (loc == -1) {
-        printf("[GL] Cannot find uniform \"%s\" in program %s\n", name, this->name.c_str());
+        fmt::print("[GL] Cannot find uniform \"{}\" in program {}\n", name, this->name);
     }
     auto uniform = Uniform(loc);
     uniforms.emplace(name, uniform);

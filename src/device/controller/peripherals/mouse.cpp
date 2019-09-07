@@ -1,11 +1,11 @@
 #include "mouse.h"
+#include <fmt/core.h>
 #include "config.h"
 #include "input/input_manager.h"
 #include "utils/math.h"
-#include "utils/string.h"
 
 namespace peripherals {
-Mouse::Mouse(int port) : AbstractDevice(Type::Mouse, port), path(string_format("controller/%d/", port)) {}
+Mouse::Mouse(int port) : AbstractDevice(Type::Mouse, port), path(fmt::format("controller/{}/", port)) {}
 
 uint8_t Mouse::handle(uint8_t byte) {
     switch (state) {
