@@ -29,7 +29,7 @@ const std::array<const char*, 9> supportedFiles = {
 
 void openFile() {
     if (!openFileWindow) {
-        path = fs::path(config["gui"]["lastPath"]);
+        path = fs::path(config["gui"]["lastPath"].get<std::string>());
         readDirectory = true;
     }
 

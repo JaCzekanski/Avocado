@@ -2,14 +2,23 @@
 #include "utils/math.h"
 #include "utils/string.h"
 
+#if SDL_VERSION_ATLEAST(2, 0, 9)
+#define VIBRATIONS_ENABLED
+#else
+#warning Vibrations are available for SDL >= 2.0.9
+#endif
+
 SdlInputManager::SdlInputManager() {
+#ifdef VIBRATIONS_ENABLED
     vibrationThread = std::thread(&SdlInputManager::vibrationThreadFunc, this);
+#endif
     busToken = bus.listen<Event::Controller::Vibration>(std::bind(&SdlInputManager::onVibrationEvent, this, std::placeholders::_1));
 }
 
 SdlInputManager::~SdlInputManager() {
     bus.unlistenAll(busToken);
 
+#ifdef VIBRATIONS_ENABLED
     // Notify vibrationThread to stop execution
     {
         std::unique_lock<std::mutex> lk(vibrationMutex);
@@ -17,6 +26,7 @@ SdlInputManager::~SdlInputManager() {
         vibrationHasNewData.notify_one();
     }
     vibrationThread.join();
+#endif
 }
 
 void SdlInputManager::vibrationThreadFunc() {
@@ -27,10 +37,11 @@ void SdlInputManager::vibrationThreadFunc() {
         if (vibrationThreadExit) {
             break;
         }
+#ifdef VIBRATIONS_ENABLED
         // TODO: Current solution might cut out vibration from different controllers
         // Buffer them and send all in bulk at the end of the frame ?
-        SDL_JoystickRumble(SDL_GameControllerGetJoystick(vibrationData.controller), vibrationData.e.big * 0xff,
-                           vibrationData.e.small * 0xffff, 16);
+        SDL_GameControllerRumble(vibrationData.controller, vibrationData.e.big * 0xff, vibrationData.e.small * 0xffff, 16);
+#endif
     }
 }
 
