@@ -35,3 +35,6 @@
 [submodule "externals/magic_enum"]
 	path = externals/magic_enum
 	url = https://github.com/Neargye/magic_enum.git
+[submodule "externals/fmt"]
+	path = externals/fmt
+	url = https://github.com/fmtlib/fmt
