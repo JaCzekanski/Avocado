@@ -15,9 +15,21 @@ std::string pathInput = "";
 fs::path path;
 std::vector<fs::directory_entry> files;
 
+std::array<const char*, 9> supportedFiles = {
+    ".iso",      //
+    ".cue",      //
+    ".bin",      //
+    ".img",      //
+    ".chd",      //
+    ".exe",      //
+    ".psexe",    //
+    ".psf",      //
+    ".minipsf",  //
+};
+
 void openFile() {
     if (!openFileWindow) {
-        path = fs::current_path();
+        path = fs::path(config["gui"]["lastPath"]);
         readDirectory = true;
     }
 
@@ -55,6 +67,11 @@ void openFile() {
     openFileWindow = true;
     ImGui::Begin("Open file", &openFileWindow, ImVec2(400.f, 300.f), -1.f, ImGuiWindowFlags_NoCollapse);
 
+    if (ImGui::Button("Home")) {
+        readDirectory = true;
+        path = fs::current_path();
+    }
+    ImGui::SameLine();
     if (ImGui::InputText("Directory", &pathInput, ImGuiInputTextFlags_EnterReturnsTrue)) {
         readDirectory = true;  // Load new directory
         path = fs::path(pathInput);
@@ -86,12 +103,20 @@ void openFile() {
     for (auto& f : files) {
         auto filename = f.path().filename().string();
         ImVec4 color = ImVec4(1.0, 1.0, 1.0, 1.0);
+        bool isSupported = false;
 
         if (fs::is_directory(f)) {
             color = ImVec4(0.34, 0.54, 0.56, 1.0);
-        }
-        if (filename[0] == '.' && filename != "..") {
+        } else if (filename[0] == '.' && filename != "..") {
             color = ImVec4(color.x - 0.3, color.y - 0.3, color.z - 0.3, 1.0);
+        } else {
+            std::string ext = f.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+            isSupported = std::find(supportedFiles.begin(), supportedFiles.end(), ext) != supportedFiles.end();
+
+            if (!isSupported) {
+                color = ImVec4(0.3, 0.3, 0.3, 1.0);
+            }
         }
 
         ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -99,13 +124,9 @@ void openFile() {
             if (fs::is_directory(f)) {
                 path = f.path();
                 readDirectory = true;
-            } else if (fs::exists(f)) {
-                std::string ext = f.path().extension().string();
-                std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
-                if (ext == ".iso" || ext == ".cue" || ext == ".bin" || ext == ".img" || ext == ".chd" || ext == ".exe" || ext == ".psexe") {
-                    bus.notify(Event::File::Load{f.path().string(), true});
-                    openFileWindow = false;
-                }
+            } else if (fs::exists(f) && isSupported) {
+                bus.notify(Event::File::Load{f.path().string(), true});
+                openFileWindow = false;
             }
         }
         ImGui::PopStyleColor();
@@ -133,6 +154,11 @@ void openFile() {
     ImGui::PopStyleVar();
 
     ImGui::End();
+
+    // Save last path on window close
+    if (!openFileWindow) {
+        config["gui"]["lastPath"] = path.string();
+    }
 }
 
 void close() {}

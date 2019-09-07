@@ -177,7 +177,10 @@ const json defaultConfig = {
     {"memoryCard", {
         {"1", "data/memory/card1.mcr"},
         {"2", ""}
-    }}
+    }},
+    {"gui", {
+        {"lastPath", ""},
+    }},
 };
 // clang-format on
 
