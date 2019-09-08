@@ -177,6 +177,8 @@ INLINE T System::readMemory(uint32_t address) {
     }
 
     fmt::print("[SYS] R Unhandled address at 0x{:08x}\n", address);
+    cpu->busError();
+
     return 0;
 }
 template <typename T>
@@ -220,6 +222,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     }
 
     fmt::print("[SYS] W Unhandled address at 0x{:08x}: 0x{:02x}\n", address, data);
+    cpu->busError();
 }
 
 uint8_t System::readMemory8(uint32_t address) { return readMemory<uint8_t>(address); }

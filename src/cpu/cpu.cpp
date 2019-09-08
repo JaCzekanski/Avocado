@@ -111,4 +111,7 @@ void CPU::checkForInterrupts() {
         instructions::exception(this, COP0::CAUSE::Exception::interrupt);
     }
 }
+
+void CPU::busError() { instructions::exception(this, COP0::CAUSE::Exception::busErrorData); }
+
 }  // namespace mips

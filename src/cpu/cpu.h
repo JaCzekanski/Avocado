@@ -98,6 +98,8 @@ struct CPU {
     bool handleSoftwareBreakpoints();
     bool executeInstructions(int count);
 
+    void busError();
+
     struct Breakpoint {
         bool enabled = true;
         int hitCount = 0;
