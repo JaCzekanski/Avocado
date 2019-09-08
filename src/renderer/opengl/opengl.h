@@ -27,8 +27,8 @@ class OpenGL {
     int height = resHeight;
     float aspect = RATIO_4_3;
 
-    bool init();
-    void deinit();
+    OpenGL();
+    ~OpenGL();
     bool setup();
     void render(gpu::GPU* gpu);
 

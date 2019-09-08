@@ -8,7 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "config.h"
 
-bool OpenGL::init() {
+OpenGL::OpenGL() {
 #ifdef USE_OPENGLES
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 #else
@@ -21,11 +21,9 @@ bool OpenGL::init() {
     // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 2);
 
     busToken = bus.listen<Event::Config::Graphics>([&](auto) { setup(); });
-
-    return true;
 }
 
-void OpenGL::deinit() { bus.unlistenAll(busToken); }
+OpenGL::~OpenGL() { bus.unlistenAll(busToken); }
 
 bool OpenGL::loadExtensions() {
 #ifdef __glad_h_
@@ -107,6 +105,8 @@ bool OpenGL::setup() {
     blitBuffer = std::make_unique<Buffer>(makeBlitBuf().size() * sizeof(BlitStruct));
 
     // Try native texture
+
+    vramTex.release();
 #ifdef GL_UNSIGNED_SHORT_1_5_5_5_REV
     vramTex = std::make_unique<Texture>(1024, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, false);
 #endif

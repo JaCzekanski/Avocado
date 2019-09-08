@@ -275,10 +275,6 @@ int main(int argc, char** argv) {
     SDL_GameControllerAddMappingsFromFile("data/assets/gamecontrollerdb.txt");
 
     OpenGL opengl;
-    if (!opengl.init()) {
-        fatalError("Cannot initialize OpenGL");
-        return 1;
-    }
 
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -484,8 +480,6 @@ int main(int argc, char** argv) {
     ImGui_ImplSdlGL3_Shutdown();
     ImGui::DestroyContext();
     InputManager::setInstance(nullptr);
-    opengl.deinit();
-    opengl.~OpenGL();
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     SDL_Quit();
