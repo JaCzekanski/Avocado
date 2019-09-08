@@ -44,30 +44,28 @@ disc::Sector Cue::read(Position pos) {
     auto buffer = std::vector<uint8_t>(Track::SECTOR_SIZE);
     auto type = disc::TrackType::INVALID;
 
-    // pos = pos;// - Position{0, 2, 0};
-
     auto trackNum = getTrackByPosition(pos);
     if (trackNum != -1) {
         auto track = tracks[trackNum];
         if (files.find(track.filename) == files.end()) {
-            FILE* f = fopen(track.filename.c_str(), "rb");
+            auto f = unique_ptr_file(fopen(track.filename.c_str(), "rb"));
             if (!f) {
                 fmt::print("Unable to load file {}\n", track.filename);
                 return std::make_pair(buffer, type);
             }
 
-            files.emplace(track.filename, std::shared_ptr<FILE>(f, fclose));
+            files.emplace(track.filename, std::move(f));
         }
 
         type = track.type;
-        auto file = files[track.filename];
+        auto file = files[track.filename].get();
 
         if (trackNum == 0 && type == disc::TrackType::DATA) {
             pos = pos - Position{0, 2, 0};
         }
         auto seek = pos - *track.index0;
-        fseek(file.get(), (long)(track.offset + seek.toLba() * Track::SECTOR_SIZE), SEEK_SET);
-        fread(buffer.data(), Track::SECTOR_SIZE, 1, file.get());
+        fseek(file, (long)(track.offset + seek.toLba() * Track::SECTOR_SIZE), SEEK_SET);
+        fread(buffer.data(), Track::SECTOR_SIZE, 1, file);
     }
 
     return std::make_pair(buffer, type);

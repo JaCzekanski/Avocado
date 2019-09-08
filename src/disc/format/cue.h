@@ -15,6 +15,8 @@ struct Cue : public Disc {
     std::string file;
     std::vector<Track> tracks;
 
+    Cue() = default;
+    Cue(Cue& cue) : file(cue.file), tracks(cue.tracks) {}
     static std::unique_ptr<Cue> fromBin(const char* file);
 
     std::string getFile() const override;
@@ -27,7 +29,7 @@ struct Cue : public Disc {
     disc::Sector read(Position pos) override;
 
    private:
-    std::unordered_map<std::string, std::shared_ptr<FILE>> files;
+    std::unordered_map<std::string, unique_ptr_file> files;
 };
 }  // namespace format
 }  // namespace disc
