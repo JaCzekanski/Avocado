@@ -197,13 +197,8 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 
     double frameTime = ntsc ? (1.0 / 60.0) : (1.0 / 50.0);
 
-    // Hack: when emulation is paused and app is inactive
-    // detlaTime accumulates and forces app to run without framelimiting
-    // until this time passes.
-    // This limits that behavior
-    if (deltaTime > 1.0) {
-        deltaTime = 1.0;
-    }
+    // Prevent deltaTime from accumulating when waiting for events
+    deltaTime = std::min(deltaTime, frameTime);
 
     if (framelimiter) {
         // If frame was shorter than frameTime - spin
@@ -438,8 +433,12 @@ int main(int argc, char** argv) {
                     } else if (sys->state == System::State::run) {
                         sys->state = System::State::pause;
                     }
+                    toast(fmt::format("Emulation {}", sys->state == System::State::run ? "resumed" : "paused"));
                 }
-                if (event.key.keysym.sym == SDLK_TAB) frameLimitEnabled = !frameLimitEnabled;
+                if (event.key.keysym.sym == SDLK_TAB) {
+                    frameLimitEnabled = !frameLimitEnabled;
+                    toast(fmt::format("Frame limiter {}", frameLimitEnabled ? "enabled" : "disabled"));
+                }
             }
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
