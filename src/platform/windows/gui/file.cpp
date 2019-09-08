@@ -4,8 +4,17 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <sstream>
 #include "config.h"
 #include "filesystem.h"
+#include "utils/file.h"
+#include "utils/string.h"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 namespace gui::file {
 bool autoClose = true;
@@ -28,7 +37,74 @@ const std::array<const char*, 9> supportedFiles = {
     ".minipsf",  //
 };
 
+std::map<std::string, std::string> drivePaths;
+std::vector<const char*> driveNames;
+bool drivesInitialized = false;
+int selectedDrive = 0;
+
+void getDriveList() {
+    drivesInitialized = true;
+
+    drivePaths["Avocado"] = fs::current_path().string();
+
+#ifdef _WIN32
+    DWORD drives = GetLogicalDrives();
+    for (int i = 0; i < 32; i++) {
+        if (drives & (1 << i)) {
+            char letter = 'A' + i;
+            auto name = fmt::format("{}:", letter);
+            auto path = fmt::format("{}:\\", letter);
+            drivePaths[name] = path;
+        }
+    }
+#endif
+
+#ifdef __APPLE__
+    // Get list of drives by iterating /Volumes
+    auto volumes = fs::directory_iterator("/Volumes");
+    for (auto& volume : volumes) {
+        if (!fs::exists(volume) || !fs::is_directory(volume)) {
+            continue;
+        }
+        drivePaths[volume.path().filename().string()] = volume.path().string();
+    }
+#endif
+
+#ifdef __linux__
+    auto mounts = getFileContentsAsString("/proc/mounts");
+    if (!mounts.empty()) {
+        std::string line;
+        std::istringstream is(mounts);
+        while (getline(is, line)) {
+            auto components = split(line, " ");
+            // Get only mountpoints with real devices
+            if (components.size() < 2 || components[0].rfind("/dev", 0) != 0) {
+                continue;
+            }
+
+            auto volume = fs::path(components[1]);
+            auto name = volume.filename().string();
+            if (name.empty()) {
+                name = "/";
+            }
+            drivePaths[name] = volume.string();
+        }
+    }
+#endif
+
+#ifdef __ANDROID__
+    drivePaths["SD card"] = "/sdcard";
+#endif
+
+    for (auto const& [name, path] : drivePaths) {
+        driveNames.push_back(name.c_str());
+    }
+}
+
 void openFile() {
+    if (!drivesInitialized) {
+        getDriveList();
+    }
     if (!openFileWindow) {
         path = fs::path(config["gui"]["lastPath"].get<std::string>());
         readDirectory = true;
@@ -44,13 +120,18 @@ void openFile() {
 
         path = fs::canonical(path);
 
-        auto it = fs::directory_iterator(path, fs::directory_options::skip_permission_denied);
+        try {
+            auto it = fs::directory_iterator(path, fs::directory_options::skip_permission_denied);
 
-        files.push_back(fs::directory_entry(path / ".."));
-        for (auto& f : it) {
-            if (!showHidden && f.path().filename().string()[0] == '.') continue;
-            files.push_back(f);
+            files.push_back(fs::directory_entry(path / ".."));
+            for (auto& f : it) {
+                if (!showHidden && f.path().filename().string()[0] == '.') continue;
+                files.push_back(f);
+            }
+        } catch (fs::filesystem_error& err) {
+            fmt::print("{}\n", err.what());
         }
+
         std::sort(files.begin(), files.end(), [](const fs::directory_entry& lhs, const fs::directory_entry& rhs) -> bool {
             // true if lhs is less than rhs
             if (lhs.path().filename() == "..") return true;
@@ -73,9 +154,10 @@ void openFile() {
         path /= "..";
     }
     ImGui::SameLine();
-    if (ImGui::Button("Home")) {
+    ImGui::SetNextItemWidth(100);
+    if (ImGui::Combo("##drive", &selectedDrive, driveNames.data(), driveNames.size())) {
         readDirectory = true;
-        path = fs::current_path();
+        path = drivePaths[driveNames[selectedDrive]];
     }
     ImGui::SameLine();
     if (ImGui::InputText("##Directory", &pathInput, ImGuiInputTextFlags_EnterReturnsTrue)) {

@@ -190,7 +190,7 @@ void biosSelectionWindow() {
             }
         }
     } catch (fs::filesystem_error& err) {
-        fmt::print("%s", err.what());
+        fmt::print("{}", err.what());
     }
 
     ImGui::Begin("BIOS", &showBiosWindow, ImGuiWindowFlags_AlwaysAutoResize);
