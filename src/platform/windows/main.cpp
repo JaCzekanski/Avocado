@@ -47,7 +47,11 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
 
     if (ext == "psf" || ext == "minipsf") {
         bootstrap(sys);
-        loadPsf(sys.get(), path);
+        if (loadPsf(sys.get(), path)) {
+            toast(fmt::format("{} loaded", filenameExt));
+        } else {
+            toast(fmt::format("Cannot load {}", filenameExt));
+        }
         sys->state = System::State::run;
         return;
     }
@@ -55,7 +59,11 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     if (ext == "exe" || ext == "psexe") {
         bootstrap(sys);
         // Replace shell with .exe contents
-        sys->loadExeFile(getFileContents(path));
+        if (sys->loadExeFile(getFileContents(path))) {
+            toast(fmt::format("{} loaded", filenameExt));
+        } else {
+            toast(fmt::format("Cannot load {}", filenameExt));
+        }
 
         // Resume execution
         sys->state = System::State::run;
@@ -98,8 +106,9 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
     if (disc) {
         sys->cdrom->disc = std::move(disc);
         sys->cdrom->setShell(false);
-        fmt::print("File {} loaded\n", filenameExt);
         toast(fmt::format("{} loaded", filenameExt));
+    } else {
+        toast(fmt::format("Cannot load {}", filenameExt));
     }
 }
 
@@ -406,13 +415,15 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_F2) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
                         sys = hardReset();
+                        toast("Hard reset");
                     } else {
                         sys->softReset();
+                        toast("Soft reset");
                     }
                 }
                 if (event.key.keysym.sym == SDLK_F3) {
-                    fmt::print("[INFO] Shell toggle\n");
                     sys->cdrom->toggleShell();
+                    toast(fmt::format("Shell {}", sys->cdrom->getShell() ? "open" : "closed"));
                 }
                 if (event.key.keysym.sym == SDLK_F7) {
                     singleFrame = true;

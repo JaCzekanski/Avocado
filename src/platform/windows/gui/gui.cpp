@@ -1,5 +1,7 @@
 #include "gui.h"
+#include <fmt/core.h>
 #include <imgui.h>
+#include <chrono>
 #include "config.h"
 #include "cpu/gte/gte.h"
 #include "debug/cdrom/cdrom.h"
@@ -11,6 +13,7 @@
 #include "options.h"
 #include "options/memory_card/memory_card.h"
 #include "platform/windows/input/key.h"
+#include "utils/string.h"
 #include "version.h"
 
 void openFileWindow();
@@ -56,13 +59,37 @@ void aboutWindow() {
 extern void ImGui::ShowDemoWindow(bool* p_open);
 
 int busToken;
-int toastTimer = 0;
-std::string toastMessage;
+using namespace std::chrono_literals;
+using chrono = std::chrono::steady_clock;
+struct Toast {
+    std::string msg;
+    chrono::time_point expire;
+};
+std::vector<Toast> toasts;
+
+std::string getToasts() {
+    std::string msg = "";
+    if (!toasts.empty()) {
+        auto now = chrono::now();
+
+        for (auto it = toasts.begin(); it != toasts.end();) {
+            auto toast = *it;
+
+            if (now > toast.expire) {
+                it = toasts.erase(it);
+            } else {
+                msg += toast.msg + "\n";
+                ++it;
+            }
+        }
+    }
+    return trim(msg);
+}
 
 void initGui() {
     busToken = bus.listen<Event::Gui::Toast>([](auto e) {
-        toastMessage = e.message;
-        toastTimer = 2000;
+        fmt::print("{}\n", e.message);
+        toasts.push_back({e.message, chrono::now() + 2s});
     });
 }
 
@@ -196,14 +223,18 @@ void renderImgui(System* sys) {
         ImGui::EndPopup();
     }
 
-    if (toastTimer > 0) {
-        // TODO: Do not use popup!
-        //        ImGui::OpenPopup("##toast");
-        //        if (ImGui::BeginPopup("##toast")) {
-        //            ImGui::TextUnformatted(toastMessage.c_str());
-        //            ImGui::EndPopup();
-        //        }
-        toastTimer--;
+    if (auto toasts = getToasts(); !toasts.empty()) {
+        const float margin = 16;
+        auto displaySize = ImGui::GetIO().DisplaySize;
+
+        auto pos = ImVec2(displaySize.x - margin, displaySize.y - margin);
+        ImGui::SetNextWindowPos(pos, 0, ImVec2(1.f, 1.f));
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::Begin("##toast", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::TextUnformatted(toasts.c_str());
+        ImGui::End();
+        ImGui::PopStyleVar();
     }
 
     ImGui::Render();

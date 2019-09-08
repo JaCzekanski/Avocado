@@ -4,6 +4,7 @@
 #include <magic_enum.hpp>
 #include "debugger/debugger.h"
 #include "system.h"
+#include "utils/event.h"
 #include "utils/string.h"
 
 namespace bios {
@@ -122,6 +123,7 @@ inline bool unresolvedException(System* sys) {
     fmt::print(RED, "This is most likely bug in Avocado, please report it.\n");
     fmt::print(RED | BOLD, "Emulation stopped.\n");
 
+    toast("Emulation stopeed, see console for logs");
     sys->state = System::State::halted;
     return false;
 }

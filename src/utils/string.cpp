@@ -29,8 +29,12 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
 std::string trim(const std::string& str) {
     const std::string pattern = " \f\n\r\t\v";
     std::string trimmed;
-    trimmed = str.substr(str.find_first_not_of(pattern));
-    trimmed = str.substr(0, str.find_last_not_of(pattern) + 1);
+    if (auto pos = str.find_first_not_of(pattern); pos != std::string::npos) {
+        trimmed = str.substr(pos);
+    }
+    if (auto pos = str.find_last_not_of(pattern); pos != std::string::npos) {
+        trimmed = str.substr(0, pos + 1);
+    }
 
     return trimmed;
 }

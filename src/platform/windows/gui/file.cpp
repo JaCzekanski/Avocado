@@ -8,6 +8,7 @@
 #include "filesystem.h"
 
 namespace gui::file {
+bool autoClose = true;
 bool showHidden = false;
 bool openFileWindow = false;
 bool readDirectory = false;
@@ -67,18 +68,25 @@ void openFile() {
     openFileWindow = true;
     ImGui::Begin("Open file", &openFileWindow, ImVec2(400.f, 300.f), -1.f, ImGuiWindowFlags_NoCollapse);
 
+    if (ImGui::Button("Up")) {
+        readDirectory = true;
+        path /= "..";
+    }
+    ImGui::SameLine();
     if (ImGui::Button("Home")) {
         readDirectory = true;
         path = fs::current_path();
     }
     ImGui::SameLine();
-    if (ImGui::InputText("Directory", &pathInput, ImGuiInputTextFlags_EnterReturnsTrue)) {
+    if (ImGui::InputText("##Directory", &pathInput, ImGuiInputTextFlags_EnterReturnsTrue)) {
         readDirectory = true;  // Load new directory
         path = fs::path(pathInput);
     }
     if (ImGui::Checkbox("Show hidden files", &showHidden)) {
         readDirectory = true;
     }
+    ImGui::SameLine();
+    ImGui::Checkbox("Auto close", &autoClose);
 
     ImGui::Separator();
 
@@ -126,7 +134,7 @@ void openFile() {
                 readDirectory = true;
             } else if (fs::exists(f) && isSupported) {
                 bus.notify(Event::File::Load{f.path().string(), true});
-                openFileWindow = false;
+                if (autoClose) openFileWindow = false;
             }
         }
         ImGui::PopStyleColor();
