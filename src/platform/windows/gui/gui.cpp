@@ -9,7 +9,6 @@
 #include "debug/gpu/gpu.h"
 #include "debug/kernel/kernel.h"
 #include "debug/timers/timers.h"
-#include "imgui/imgui_impl_sdl_gl3.h"
 #include "options.h"
 #include "options/memory_card/memory_card.h"
 #include "platform/windows/input/key.h"
@@ -238,5 +237,4 @@ void renderImgui(System* sys) {
     }
 
     ImGui::Render();
-    ImGui_ImplSdlGL3_RenderDrawData(ImGui::GetDrawData());
 }

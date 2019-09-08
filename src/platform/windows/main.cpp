@@ -1,12 +1,14 @@
 #include <SDL.h>
 #include <fmt/core.h>
+#include <imgui.h>
 #include <algorithm>
 #include <cstdio>
 #include <string>
 #include "config.h"
 #include "disc/format/chd_format.h"
 #include "disc/format/cue_parser.h"
-#include "imgui/imgui_impl_sdl_gl3.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/imgui_impl_sdl.h"
 #include "platform/windows/gui/gui.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
@@ -337,7 +339,8 @@ int main(int argc, char** argv) {
     InputManager::setInstance(inputManager.get());
 
     ImGui::CreateContext();
-    ImGui_ImplSdlGL3_Init(window);
+    ImGui_ImplSDL2_InitForOpenGL(window, glContext);
+    ImGui_ImplOpenGL3_Init();
     ImGui::StyleColorsDark();
     {
         ImGuiIO& io = ImGui::GetIO();
@@ -392,7 +395,7 @@ int main(int argc, char** argv) {
 
         inputManager->newFrame();
         while (newEvent || SDL_PollEvent(&event)) {
-            ImGui_ImplSdlGL3_ProcessEvent(&event);
+            ImGui_ImplSDL2_ProcessEvent(&event);
 
             inputManager->keyboardCaptured = ImGui::GetIO().WantCaptureKeyboard;
             inputManager->mouseCaptured = ImGui::GetIO().WantCaptureMouse;
@@ -471,11 +474,15 @@ int main(int argc, char** argv) {
                 sys->state = System::State::pause;
             }
         }
-        ImGui_ImplSdlGL3_NewFrame(window);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame(window);
+        ImGui::NewFrame();
 
         SDL_GL_GetDrawableSize(window, &opengl.width, &opengl.height);
         opengl.render(sys->gpu.get());
+
         renderImgui(sys.get());
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         SDL_GL_SwapWindow(window);
 
@@ -487,7 +494,8 @@ int main(int argc, char** argv) {
     bus.unlistenAll(busToken);
     deinitGui();
     Sound::close();
-    ImGui_ImplSdlGL3_Shutdown();
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     InputManager::setInstance(nullptr);
     SDL_GL_DeleteContext(glContext);
