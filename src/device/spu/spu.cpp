@@ -1,4 +1,5 @@
 #include "spu.h"
+#include <fmt/core.h>
 #include <array>
 #include <vector>
 #include "device/cdrom/cdrom.h"
@@ -188,7 +189,7 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
         case 3:
             voices[voice].volume.write(reg, data);
             if (reg == 3 && ((voices[voice].volume.left & 0x8000) || (voices[voice].volume.right & 0x8000))) {
-                printf("[SPU][WARN] Volume Sweep enabled for voice %d\n", voice);
+                fmt::print("[SPU][WARN] Volume Sweep enabled for voice {} (not implemented yet)\n", voice);
             }
             return;
 
@@ -337,7 +338,7 @@ uint8_t SPU::read(uint32_t address) {
         return voices[voice].volume.read(byte);
     }
 
-    printf("UNHANDLED SPU READ AT 0x%08x\n", address);
+    fmt::print("[SPU] Unhandled read at 0x{:08x}\n", address);
 
     return 0;
 }
@@ -477,7 +478,7 @@ void SPU::write(uint32_t address, uint8_t data) {
         return;
     }
 
-    printf("UNHANDLED SPU WRITE AT 0x%08x: 0x%02x\n", address, data);
+    fmt::print("[SPU] Unhandled write at 0x{:08x}: 0x{:02x}\n", address, data);
 }
 
 void SPU::memoryWrite8(uint32_t address, uint8_t data) {

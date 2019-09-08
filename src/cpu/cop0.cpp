@@ -29,15 +29,13 @@ void COP0::write(int reg, uint32_t value) {
         case 11: bpcm = value; break;
         case 12:
             if (value & (1 << 17)) {
-                // printf("Panic, SwC not handled\n");
-                // cpu->state = CPU::State::halted;
+                // TODO: Handle SwC
             }
             status._reg = value;
             break;
         case 13:
             cause.interruptPending &= 3;
             cause.interruptPending |= (value & 0x300) >> 8;
-            // TODO: Check software interrupt [psxtest_cpx: Interrupts]
             break;
         case 14: epc = value; break;
         default: break;

@@ -1,5 +1,5 @@
 #include "position.h"
-#include "utils/string.h"
+#include <fmt/core.h>
 
 namespace disc {
 Position::Position() : mm(0), ss(0), ff(0) {}
@@ -13,7 +13,7 @@ Position Position::fromLba(size_t lba) {
     return Position(mm, ss, ff);
 }
 
-std::string Position::toString() const { return string_format("%02d:%02d:%02d", mm, ss, ff); }
+std::string Position::toString() const { return fmt::format("{:02d}:{:02d}:{:02d}", mm, ss, ff); }
 
 int Position::toLba() const { return (mm * 60 * 75) + (ss * 75) + ff; }
 
@@ -26,4 +26,4 @@ bool Position::operator==(const Position& p) const { return toLba() == p.toLba()
 bool Position::operator>=(const Position& p) const { return toLba() >= p.toLba(); }
 
 bool Position::operator<(const Position& p) const { return toLba() < p.toLba(); }
-}  // namespace utils
+}  // namespace disc

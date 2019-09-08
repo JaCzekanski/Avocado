@@ -1,8 +1,8 @@
 #include "chd_format.h"
+#include <fmt/core.h>
 #include <cstring>
 #include "disc/track.h"
 #include "utils/file.h"
-#include "utils/string.h"
 
 namespace disc {
 namespace format {
@@ -11,7 +11,7 @@ std::unique_ptr<Chd> Chd::open(const std::string& path) {
     chd_file* chdFile;
     auto err = chd_open(path.c_str(), CHD_OPEN_READ, nullptr, &chdFile);
     if (err != CHDERR_NONE) {
-        printf("[CHD] Unable to load file %s (error: %d)\n", path.c_str(), err);
+        fmt::print("[CHD] Unable to load file {} (error: {})\n", path, err);
         return {};
     }
 
@@ -24,7 +24,7 @@ std::unique_ptr<Chd> Chd::open(const std::string& path) {
     chd->lastHunkId = 0xfffffff;
 
     if ((chd->hunkSize % chd->sectorSize) != 0) {
-        printf("[CHD] Image uses invalid hunkSize: %zu\n", chd->hunkSize);
+        fmt::print("[CHD] Image uses invalid hunkSize: {}\n", chd->hunkSize);
         return {};
     }
 
@@ -51,7 +51,7 @@ std::unique_ptr<Chd> Chd::open(const std::string& path) {
                 break;
             }
 
-            printf("[CHD] No valid metadata found, are you using correct .chd file?\n");
+            fmt::print("[CHD] No valid metadata found, are you using correct .chd file?\n");
             return {};
         }
 
@@ -62,7 +62,7 @@ std::unique_ptr<Chd> Chd::open(const std::string& path) {
             track.type = disc::TrackType::AUDIO;
         } else {
             track.type = disc::TrackType::INVALID;
-            printf("[CHD] Unsupported track type %s\n", type);
+            fmt::print("[CHD] Unsupported track type {}\n", type);
             return {};
         }
 
@@ -129,7 +129,7 @@ int Chd::getTrackByPosition(Position pos) const {
 
 Position Chd::getTrackStart(int track) const {
     size_t frames = 0;
-    if (track < tracks.size()) {
+    if ((unsigned)track < tracks.size()) {
         for (int i = 0; i < track - 1; i++) {
             frames += tracks[i].frames;
         }
@@ -139,7 +139,7 @@ Position Chd::getTrackStart(int track) const {
 }
 
 Position Chd::getTrackLength(int track) const {
-    if (track < tracks.size()) {
+    if ((unsigned)track < tracks.size()) {
         return Position::fromLba(tracks[track].frames);
     } else {
         return Position(0, 2, 0);

@@ -1,8 +1,9 @@
 #include "functions.h"
-#include <unordered_map>
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <magic_enum.hpp>
 #include "debugger/debugger.h"
 #include "system.h"
-#include "utils/logger.h"
 #include "utils/string.h"
 
 namespace bios {
@@ -23,7 +24,7 @@ Function::Function(const std::string& prototype, std::function<bool(System* sys)
         auto delim = sArg.find_last_of(' ');
 
         if (delim == std::string::npos) {
-            throw std::runtime_error(string_format("%s -> Invalid parameter without type", prototype.c_str()).c_str());
+            throw std::runtime_error(fmt::format("{} -> Invalid parameter without type", prototype));
         }
 
         auto sType = trim(sArg.substr(0, delim));
@@ -44,7 +45,7 @@ Function::Function(const std::string& prototype, std::function<bool(System* sys)
         else if (sType == "void*")
             arg.type = Type::POINTER;
         else
-            throw std::runtime_error(string_format("%s -> Invalid parameter type", prototype.c_str()).c_str());
+            throw std::runtime_error(fmt::format("{} -> Invalid parameter type", prototype));
 
         this->args.push_back(arg);
     }
@@ -65,7 +66,7 @@ inline bool dbgOutputString(System* sys) {
     for (int i = 0; i < 80; i++) {
         char c = sys->readMemory8(sys->cpu->reg[4] + i);
         if (c == 0) {
-            printf("\n");
+            fmt::print("\n");
             return false;
         }
         putchar(c);
@@ -90,20 +91,36 @@ inline bool unresolvedException(System* sys) {
     auto cause = sys->cpu->cop0.cause;
     uint32_t epc = sys->cpu->cop0.epc;
 
-    logger::printf("🔴Unresolved exception⚪️: 🅱️%s❌‍⚪️ (%u), epc=🔵0x%08x⚪️, ra=🔵0x%08x\n",
-                   cause.getExceptionName(), cause.exception, epc, sys->cpu->reg[31]);
+#define RED fmt::fg(fmt::terminal_color::red)
+#define WHITE fmt::fg(fmt::terminal_color::white)
+#define BLUE fmt::fg(fmt::terminal_color::blue)
+#define BOLD fmt::emphasis::bold
+
+    // Unresolved exception: {EXCEPTION_NAME} (EXCEPTION_NUMBER), epc={EPC}, ra={RA}
+    fmt::print(RED, "Unresolved exception");
+    fmt::print(": ");
+    fmt::print(WHITE | BOLD, "{}", magic_enum::enum_name(cause.exception));
+    fmt::print(" ({})", static_cast<int>(cause.exception));
+    fmt::print(", epc=");
+    fmt::print(BLUE, "0x{:08x}", epc);
+    fmt::print(", ra=");
+    fmt::print(BLUE, "0x{:08x}\n", sys->cpu->reg[31]);
+
     for (uint32_t addr = epc - howManyInstructionsToDisassemble * 4; addr <= epc; addr += 4) {
         auto opcode = mips::Opcode(sys->readMemory32(addr));
         auto ins = debugger::decodeInstruction(opcode);
 
-        if (addr == epc) {
-            ins.parameters += "🅱️     <---- Caused the exception";
-        }
+        fmt::print(BLUE, "0x{:08x}: ", addr);
+        fmt::print(WHITE, "{:<8} {}", ins.mnemonic, ins.parameters);
 
-        logger::printf("🔵0x%08x:⚪️ %-8s %s\n", addr, ins.mnemonic.c_str(), ins.parameters.c_str());
+        if (addr == epc) {
+            fmt::print(WHITE | BOLD, "     <---- Caused the exception\n");
+        } else {
+            fmt::print("\n");
+        }
     }
-    logger::printf("🔴This is most likely bug in Avocado, please report it.\n");
-    logger::printf("🔴 🅱️Emulation stopped.\n");
+    fmt::print(RED, "This is most likely bug in Avocado, please report it.\n");
+    fmt::print(RED | BOLD, "Emulation stopped.\n");
 
     sys->state = System::State::halted;
     return false;

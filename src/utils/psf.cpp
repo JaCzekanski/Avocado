@@ -1,4 +1,5 @@
 #include "psf.h"
+#include <fmt/core.h>
 #include <cstring>
 #include <sstream>
 #include "miniz.h"
@@ -25,7 +26,7 @@ bool loadExe(System* sys, const std::vector<uint8_t>& _exe, PsfType type) {
     memcpy(&exe, _exe.data(), sizeof(exe));
 
     if (exe.t_size > _exe.size() - 0x800) {
-        printf("Invalid exe t_size: 0x%08x\n", exe.t_size);
+        fmt::print("Invalid exe t_size: {:08x}\n", exe.t_size);
         return false;
     }
 
@@ -48,12 +49,12 @@ bool loadExe(System* sys, const std::vector<uint8_t>& _exe, PsfType type) {
 }  // namespace
 
 bool loadPsf(System* sys, const std::string& path, PsfType type) {
-    printf("Loading %s\n", path.c_str());
+    fmt::print("Loading {}\n", path);
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
     if (ext != "psf" && ext != "minipsf" && ext != "psflib") {
-        printf("[PSF] .psf and .minipsf extensions are supported.\n");
+        fmt::print("[PSF] .psf and .minipsf extensions are supported.\n");
         return false;
     }
 
@@ -63,13 +64,13 @@ bool loadPsf(System* sys, const std::string& path, PsfType type) {
     }
 
     if (file.size() < 16 || memcmp("PSF\x01", file.data(), 4) != 0) {
-        printf("[PSF] Invalid header\n");
+        fmt::print("[PSF] Invalid header\n");
         return false;
     }
 
     auto reservedArea = read_u32(file, 4);
     if (reservedArea != 0) {
-        printf("[PSF] Reserved area != 0\n");
+        fmt::print("[PSF] Reserved area != 0\n");
     }
     auto compressedSize = read_u32(file, 8);
 
@@ -118,7 +119,7 @@ bool loadPsf(System* sys, const std::string& path, PsfType type) {
 
             auto key = line.substr(0, pos);
             auto value = line.substr(pos + 1);
-            printf("%s: %s\n", key.c_str(), value.c_str());
+            fmt::print("[PSF] {}: {}\n", key, value);
         }
     }
 

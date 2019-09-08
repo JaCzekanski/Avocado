@@ -1,12 +1,12 @@
 #include "opengl.h"
 #include <SDL.h>
+#include <fmt/core.h>
 #include <algorithm>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <imgui.h>
 #include <stb_image_write.h>
 #include <glm/gtc/type_ptr.hpp>
 #include "config.h"
-#include "utils/string.h"
 
 bool OpenGL::init() {
 #ifdef USE_OPENGLES
@@ -39,21 +39,21 @@ bool OpenGL::loadShaders() {
     // PS1 GPU in Shader simulation
     renderShader = std::make_unique<Program>("data/shader/render.shader");
     if (!renderShader->load()) {
-        printf("[GL] Cannot load render shader: %s\n", renderShader->getError().c_str());
+        fmt::print("[GL] Cannot load render shader: {}\n", renderShader->getError());
         return false;
     }
 
     // Draw/Blit texture to framebuffer (with PS1 clipping and other modifiers)
     blitShader = std::make_unique<Program>("data/shader/blit.shader");
     if (!blitShader->load()) {
-        printf("[GL] Cannot load blit shader: %s\n", blitShader->getError().c_str());
+        fmt::print("[GL] Cannot load blit shader: {}\n", blitShader->getError());
         return false;
     }
 
     // Copy texture to texture
     copyShader = std::make_unique<Program>("data/shader/copy.shader");
     if (!copyShader->load()) {
-        printf("[GL] Cannot load copy shader: %s\n", copyShader->getError().c_str());
+        fmt::print("[GL] Cannot load copy shader: {}\n", copyShader->getError());
         return false;
     }
     return true;
@@ -61,15 +61,15 @@ bool OpenGL::loadShaders() {
 
 bool OpenGL::setup() {
     if (!loadExtensions()) {
-        printf("[GL] Cannot initialize glad\n");
+        fmt::print("[GL] Cannot initialize glad\n");
         return false;
     }
 
 #ifdef __glad_h_
     // Check actual version of OpenGL context
     if (GLVersion.major * 10 + GLVersion.minor < VERSION_MAJOR * 10 + VERSION_MINOR) {
-        printf("Unable to initialize OpenGL context for version %d.%d (got %d.%d)\n", VERSION_MAJOR, VERSION_MINOR, GLVersion.major,
-               GLVersion.minor);
+        fmt::print("Unable to initialize OpenGL context for version {}.{} (got {}.{})\n", VERSION_MAJOR, VERSION_MINOR, GLVersion.major,
+                   GLVersion.minor);
         return false;
     }
 #endif

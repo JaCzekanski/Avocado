@@ -1,6 +1,6 @@
 #include "sdl_input_manager.h"
+#include <fmt/core.h>
 #include "utils/math.h"
-#include "utils/string.h"
 
 #if SDL_VERSION_ATLEAST(2, 0, 9)
 #define VIBRATIONS_ENABLED
@@ -78,7 +78,7 @@ bool SdlInputManager::handleKey(Key key, AnalogValue value) {
             auto keyName = it.value().get<std::string>();
 
             if (Key(keyName) == key) {
-                auto path = string_format("controller/%d/%s", c, button.c_str());
+                auto path = fmt::format("controller/{}/{}", c, button);
                 state[path.c_str()] = value;
                 result = true;
             }
@@ -217,7 +217,7 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
     if (event.type == SDL_CONTROLLERDEVICEADDED) {
         int index = event.cdevice.which;
         controllers[index] = SDL_GameControllerOpen(index);
-        printf("Controller %s connected\n", SDL_GameControllerName(controllers[index]));
+        fmt::print("Controller {} connected\n", SDL_GameControllerName(controllers[index]));
         return true;
     }
 
@@ -226,7 +226,7 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
         auto controller = SDL_GameControllerFromInstanceID(joystickId);
         for (auto it = controllers.begin(); it != controllers.end(); ++it) {
             if (it->second == controller) {
-                printf("Controller %s disconnected\n", SDL_GameControllerName(controller));
+                fmt::print("Controller {} disconnected\n", SDL_GameControllerName(controller));
                 SDL_GameControllerClose(controller);
                 controllers.erase(it);
                 return true;

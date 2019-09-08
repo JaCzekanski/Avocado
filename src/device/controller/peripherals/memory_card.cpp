@@ -1,4 +1,5 @@
 #include "memory_card.h"
+#include <fmt/core.h>
 #include "config.h"
 
 namespace peripherals {
@@ -12,7 +13,7 @@ uint8_t MemoryCard::handle(uint8_t byte) {
         return 0xff;
     }
 
-    if (verbose >= 3) printf("[MEMCARD] state %d\n", state);
+    if (verbose >= 3) fmt::print("[MEMCARD_{}] state {}\n", port, state);
     if (command == Command::Read) return handleRead(byte);
     if (command == Command::Write) return handleWrite(byte);
     if (command == Command::ID) return handleId(byte);
@@ -34,7 +35,7 @@ uint8_t MemoryCard::handle(uint8_t byte) {
             } else if (byte == 'S') {
                 command = Command::ID;
             } else {
-                if (verbose >= 1) printf("[MEMCARD] Unsupported command 0x%02x\n", byte);
+                if (verbose >= 1) fmt::print("[MEMCARD_{}] Unsupported command 0x{:02x}\n", port, byte);
                 state = 0;
             }
             uint8_t ret = flag._reg;
@@ -66,10 +67,10 @@ uint8_t MemoryCard::handleRead(uint8_t byte) {
             address.write(0, byte);  // LSB
             // Check if address is out of bounds
             if (address._reg > 1024 - 1) {
-                if (verbose >= 1) printf("[MEMCARD] Out of bounds read 0x%04x\n", address._reg);
+                if (verbose >= 1) fmt::print("[MEMCARD_{}] Out of bounds read 0x{:04x}\n", port, address._reg);
                 address._reg &= 0x3ff;
             } else {
-                if (verbose >= 2) printf("[MEMCARD] Reading 0x%04x\n", address._reg);
+                if (verbose >= 2) fmt::print("[MEMCARD_{}] Reading 0x{:04x}\n", port, address._reg);
             }
             state++;
             return 0;
@@ -123,12 +124,12 @@ uint8_t MemoryCard::handleWrite(uint8_t byte) {
             // Check if address is out of bounds
             if (address._reg > 1024 - 1) {
                 flag.error = 1;
-                if (verbose >= 1) printf("[MEMCARD] Out of bounds write 0x%04x\n", address._reg);
+                if (verbose >= 1) fmt::print("[MEMCARD_{}] Out of bounds write 0x{:04x}\n", port, address._reg);
                 address._reg &= 0x3ff;
 
                 writeStatus = WriteStatus::BadSector;
             } else {
-                if (verbose >= 2) printf("[MEMCARD] Write 0x%04x\n", address._reg);
+                if (verbose >= 2) fmt::print("[MEMCARD_{}] Write 0x{:04x}\n", port, address._reg);
             }
             state++;
             return 0;
@@ -159,7 +160,7 @@ uint8_t MemoryCard::handleWrite(uint8_t byte) {
 
 uint8_t MemoryCard::handleId(uint8_t byte) {
     (void)byte;
-    if (verbose >= 1) printf("[MEMCARD] Unsupported ID command\n");
+    if (verbose >= 1) fmt::print("[MEMCARD_{}] Unsupported ID command\n", port);
     command = Command::None;
     return 0xff;
 }

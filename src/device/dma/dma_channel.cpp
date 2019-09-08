@@ -1,5 +1,5 @@
 #include "dma_channel.h"
-#include <cstdio>
+#include <fmt/core.h>
 #include "config.h"
 #include "system.h"
 
@@ -32,7 +32,7 @@ uint8_t DMAChannel::read(uint32_t address) {
     if (address >= 0x4 && address < 0x8) return count._byte[address - 4];
     if (address >= 0x8 && address < 0xc) return control._byte[address - 8];
 
-    printf("R Unimplemented DMA%d address 0x%08x\n", channel, address);
+    fmt::print("R Unimplemented DMA%d address 0x%08x\n", channel, address);
     return 0;
 }
 
@@ -56,9 +56,11 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             if (verbose) {
                 if (control.direction == CHCR::Direction::toRam) {
-                    printf("[DMA%d] %-8s -> RAM @ 0x%08x, block, count: 0x%04x\n", channel, name(), addr, count.syncMode0.wordCount);
+                    fmt::print("[DMA{}] {:<8} -> RAM @ 0x{:08x}, block, count: 0x{:04x}\n", channel, name(), addr,
+                               static_cast<int>(count.syncMode0.wordCount));
                 } else if (control.direction == CHCR::Direction::fromRam) {
-                    printf("[DMA%d] %-8s <- RAM @ 0x%08x, block, count: 0x%04x\n", channel, name(), addr, count.syncMode0.wordCount);
+                    fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, block, count: 0x{:04x}\n", channel, name(), addr,
+                               static_cast<int>(count.syncMode0.wordCount));
                 }
             }
             if (channel == 3)  // CDROM
@@ -85,7 +87,8 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             if (control.direction == CHCR::Direction::toRam) {
                 if (verbose) {
-                    printf("[DMA%d] %-8s -> RAM @ 0x%08x, sync, BS: 0x%04x, BC: 0x%04x\n", channel, name(), addr, blockSize, blockCount);
+                    fmt::print("[DMA{}] {:<8} -> RAM @ 0x{:08x}, sync, BS: 0x{:04x}, BC: 0x{:04x}\n", channel, name(), addr, blockSize,
+                               blockCount);
                 }
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
@@ -94,7 +97,8 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
             } else if (control.direction == CHCR::Direction::fromRam) {
                 if (verbose) {
-                    printf("[DMA%d] %-8s <- RAM @ 0x%08x, sync, BS: 0x%04x, BC: 0x%04x\n", channel, name(), addr, blockSize, blockCount);
+                    fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, sync, BS: 0x{:04x}, BC: 0x{:04x}\n", channel, name(), addr, blockSize,
+                               blockCount);
                 }
 
                 for (int block = 0; block < blockCount; block++) {
@@ -108,7 +112,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             int addr = baseAddress.address;
 
             if (verbose) {
-                printf("[DMA%d] %-8s <- RAM @ 0x%08x, linked list\n", channel, name(), addr);
+                fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, linked list\n", channel, name(), addr);
             }
 
             int breaker = 0;
@@ -124,7 +128,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 if (addr == 0xffffff || addr == 0) break;
 
                 if (++breaker > 0x4000) {
-                    printf("[DMA%d] GPU DMA transfer too long, breaking.\n", channel);
+                    fmt::print("[DMA{}] GPU DMA transfer too long, breaking.\n", channel);
                     break;
                 }
             }

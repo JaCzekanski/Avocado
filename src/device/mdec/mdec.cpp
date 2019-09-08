@@ -1,6 +1,6 @@
 #include "mdec.h"
+#include <fmt/core.h>
 #include <cassert>
-#include <cstdio>
 #include "config.h"
 #include "device/gpu/psx_color.h"
 
@@ -83,7 +83,7 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
             paramCount = data & 0xffff;
 
             if (status.colorDepth == Status::ColorDepth::bit_4 || status.colorDepth == Status::ColorDepth::bit_8) {
-                printf(
+                fmt::print(
                     "[MDEC] Warning: 4 and 8 bit format not supported, please report this game "
                     "(https://github.com/JaCzekanski/Avocado/issues).\n");
             }
@@ -96,8 +96,9 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
             status.commandBusy = true;
 
             if (verbose)
-                printf("[MDEC] Decode macroblock (depth: %d, signed: %d, setBit15: %d, size: 0x%0x)\n", status.colorDepth,
-                       status.outputSigned, status.outputSetBit15, paramCount);
+                fmt::print("[MDEC] Decode macroblock (depth: {}, signed: {}, setBit15: {}, size: 0x{:x})\n",
+                           static_cast<int>(status.colorDepth), static_cast<int>(status.outputSigned),
+                           static_cast<int>(status.outputSetBit15), paramCount);
 
             break;
         case 2:  // Set Quant table
@@ -112,7 +113,7 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
             }
             status.commandBusy = true;
 
-            if (verbose) printf("[MDEC] Set Quant table (color: %d)\n", color);
+            if (verbose) fmt::print("[MDEC] Set Quant table (color: {})\n", color);
             break;
         case 3:
             this->cmd = Commands::SetIDCT;
@@ -120,14 +121,13 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
             paramCount = 64 / 2;  // 64 uint16_t
             status.commandBusy = true;
 
-            if (verbose) printf("[MDEC] Set IDCT table\n");
+            if (verbose) fmt::print("[MDEC] Set IDCT table\n");
             break;
         default: this->cmd = Commands::None; break;
     }
 }
 
 void MDEC::write(uint32_t address, uint32_t data) {
-    // printf("MDEC write @ 0x%02x: 0x%02x\n", address, data);
     if (address < 4) {
         if (paramCount != 0) {
             switch (cmd) {

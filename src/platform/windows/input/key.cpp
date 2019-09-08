@@ -1,6 +1,6 @@
 #include "key.h"
+#include <fmt/core.h>
 #include "utils/math.h"
-#include "utils/string.h"
 
 std::string Key::mapAxis(Axis axis) {
     switch (axis) {
@@ -66,11 +66,11 @@ std::string Key::to_string() const {
         device = "mouse";
         event = mapMouseButton(mouse.button);
     } else if (type == Type::ControllerMove) {
-        device = string_format("controller%d", controller.id);
+        device = fmt::format("controller{}", controller.id);
         event = (controller.dir ? '+' : '-');
         event += SDL_GameControllerGetStringForAxis(controller.axis);
     } else if (type == Type::ControllerButton) {
-        device = string_format("controller%d", controller.id);
+        device = fmt::format("controller{}", controller.id);
         event = SDL_GameControllerGetStringForButton(controller.button);
     }
 

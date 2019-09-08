@@ -1,5 +1,5 @@
 #include "dma.h"
-#include <cstdio>
+#include <fmt/core.h>
 #include "dma0_channel.h"
 #include "dma1_channel.h"
 #include "dma2_channel.h"
@@ -54,7 +54,7 @@ void DMA::write(uint32_t address, uint8_t data) {
             status.write(address - 0xf4, data);
             return;
         }
-        printf("W Unimplemented DMA address 0x%08x\n", address);
+        fmt::print("W Unimplemented DMA address 0x{:08x}\n", address);
         return;
     }
 

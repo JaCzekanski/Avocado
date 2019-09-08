@@ -17,7 +17,6 @@ void exception(CPU* cpu, COP0::CAUSE::Exception cause);
 
 void dummy(CPU* cpu, Opcode i);
 void invalid(CPU* cpu, Opcode i);
-void notImplemented(CPU* cpu, Opcode i);
 void special(CPU* cpu, Opcode i);
 void branch(CPU* cpu, Opcode i);
 

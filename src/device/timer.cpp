@@ -1,4 +1,5 @@
 #include "timer.h"
+#include <fmt/core.h>
 #include "system.h"
 
 using namespace timer;
@@ -115,21 +116,21 @@ void Timer::write(uint32_t address, uint8_t data) {
                     auto mode0 = static_cast<CounterMode::SyncMode0>(mode.syncMode);
                     if (mode0 == modes::pauseUntilHblankAndFreerun) paused = true;
 
-                    printf("[Timer%d]: Synchronization enabled: %x\n", which, (int)mode0);
+                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode0);
                 }
                 if (which == 1) {
                     using modes = CounterMode::SyncMode1;
                     auto mode1 = static_cast<CounterMode::SyncMode1>(mode.syncMode);
                     if (mode1 == modes::pauseUntilVblankAndFreerun) paused = true;
 
-                    printf("[Timer%d]: Synchronization enabled: %x\n", which, (int)mode1);
+                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode1);
                 }
                 if (which == 2) {
                     using modes = CounterMode::SyncMode2;
                     auto mode2 = static_cast<CounterMode::SyncMode2>(mode.syncMode);
                     if (mode2 == modes::stopCounter || mode2 == modes::stopCounter_) paused = true;
 
-                    printf("[Timer%d]: Synchronization enabled: %x\n", which, (int)mode2);
+                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode2);
                 }
             }
         }

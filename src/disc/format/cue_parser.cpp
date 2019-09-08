@@ -1,7 +1,7 @@
 #include "cue_parser.h"
+#include <fmt/core.h>
 #include <sstream>
 #include "utils/file.h"
-#include "utils/string.h"
 
 namespace disc {
 namespace format {
@@ -18,7 +18,7 @@ bool CueParser::parseFile(std::string& line) {
 
     // TODO: Handle WAVE type
     if (lastFileType != "BINARY") {
-        throw ParsingException(string_format("Unsupported file type %s", lastFileType.c_str()));
+        throw ParsingException(fmt::format("Unsupported file type {}", lastFileType));
     }
     return true;
 }
@@ -49,7 +49,7 @@ bool CueParser::parseIndex(std::string& line) {
         track.index1 = {mm, ss, ff};
         addTrackToCue();
     } else {
-        throw ParsingException(string_format("Cue with index > 1 (%d given) are not supported", index));
+        throw ParsingException(fmt::format("Cue with index > 1 ({} given) are not supported", index));
     }
     return true;
 }
@@ -101,12 +101,12 @@ void CueParser::addTrackToCue() {
 }
 
 void CueParser::fixTracksLength() {
-    for (int t = 0; t < cue.tracks.size(); t++) {
+    for (unsigned t = 0; t < cue.tracks.size(); t++) {
         // Last track / single track .cue
         if (t == cue.tracks.size() - 1) {
             size_t size = getFileSize(cue.tracks[t].filename);
             if (size == 0) {
-                throw ParsingException(string_format("File %s not found", cue.tracks[t].filename.c_str()));
+                throw ParsingException(fmt::format("File {} not found", cue.tracks[t].filename));
             }
 
             if (t != 0 && cue.tracks[t].filename == cue.tracks[t - 1].filename) {
@@ -127,12 +127,12 @@ void CueParser::fixTracksLength() {
                 }
 
                 if (cue.tracks[t].frames == 0) {
-                    throw ParsingException(string_format("Something's fucky, track %d has no frames.", t));
+                    throw ParsingException(fmt::format("Something's fucky, track {} has no frames.", t));
                 }
             } else {
                 size_t size = getFileSize(cue.tracks[t].filename);
                 if (size == 0) {
-                    throw ParsingException(string_format("File %s not found", cue.tracks[t].filename.c_str()));
+                    throw ParsingException(fmt::format("File {} not found", cue.tracks[t].filename));
                 }
 
                 cue.tracks[t].offset = 0;
@@ -146,7 +146,7 @@ disc::TrackType CueParser::matchTrackType(const std::string& s) const {
     if (s == "MODE2/2352") return disc::TrackType::DATA;
     if (s == "AUDIO") return disc::TrackType::AUDIO;
 
-    throw ParsingException(string_format("Unsupported track type %s", s.c_str()));
+    throw ParsingException(fmt::format("Unsupported track type {}", s));
 }
 
 std::unique_ptr<Cue> CueParser::parse(const char* path) {
@@ -169,13 +169,13 @@ std::unique_ptr<Cue> CueParser::parse(const char* path) {
             if (parseIndex(line)) continue;
             if (parsePregap(line)) continue;
             if (parsePostgap(line)) continue;
-            printf("[CUE] Unparsed line: %s\n", line.c_str());
+            fmt::print("[CUE] Unparsed line: {}\n", line);
         }
 
         addTrackToCue();  // ?
         fixTracksLength();
     } catch (ParsingException& e) {
-        printf("[DISK] Error loading .cue: %s\n", e.what());
+        fmt::print("[DISK] Error loading .cue: {}\n", e.what());
         return {};
     }
 

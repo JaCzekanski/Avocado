@@ -1,11 +1,11 @@
 #pragma once
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <unordered_map>
-#include "debugger/debugger.h"
-#include "system.h"
-#include "utils/logger.h"
-#include "utils/string.h"
+#include <vector>
+
+struct System;
 
 namespace bios {
 

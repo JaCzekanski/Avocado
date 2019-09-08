@@ -1,5 +1,5 @@
 #include "framebuffer.h"
-#include <cstdio>
+#include <fmt/core.h>
 
 GLuint Framebuffer::currentId = 0;
 
@@ -12,7 +12,7 @@ Framebuffer::Framebuffer(GLuint colorTexture) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        printf("[GL] Framebuffer is not complete!\n");
+        fmt::print("[GL] Framebuffer is not complete!\n");
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, currentFramebuffer);

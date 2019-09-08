@@ -1,10 +1,11 @@
 #include "cpu.h"
+#include <fmt/core.h>
 #include <imgui.h>
+#include <algorithm>
 #include "debugger/debugger.h"
 #include "platform/windows/gui/tools.h"
 #include "system.h"
 #include "utils/address.h"
-#include "utils/string.h"
 
 namespace gui::debug::cpu {
 
@@ -45,7 +46,7 @@ Segment Segment::fromAddress(uint32_t address) {
 
 std::string formatOpcode(mips::Opcode& opcode) {
     auto disasm = debugger::decodeInstruction(opcode);
-    return string_format("%s %*s %s", disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "", disasm.parameters.c_str());
+    return fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max<int>(0, 6 - disasm.mnemonic.length()), disasm.parameters);
 }
 
 void CPU::debuggerWindow(System* sys) {
@@ -83,15 +84,6 @@ void CPU::debuggerWindow(System* sys) {
 
     auto glyphSize = ImGui::CalcTextSize("F").x + 1;  // We assume the font is mono-space
     {
-        std::vector<std::string> regs(4 + 32);
-        regs[0] = string_format(" pc: 0x%08x", sys->cpu->PC);
-        regs[2] = string_format(" hi: 0x%08x", sys->cpu->hi);
-        regs[3] = string_format(" lo: 0x%08x", sys->cpu->lo);
-
-        for (int i = 1; i < 32; i++) {
-            regs[4 + i] = string_format("%3s: 0x%08x", debugger::reg(i).c_str(), sys->cpu->reg[i]);
-        }
-
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         const int col_num = 4;
         std::vector<float> columnsWidth(col_num);
@@ -120,7 +112,7 @@ void CPU::debuggerWindow(System* sys) {
 
         ImGui::NextColumn();
         for (int i = 1; i < 32; i++) {
-            column(string_format("%3s: ", debugger::reg(i).c_str()).c_str(), sys->cpu->reg[i]);
+            column(fmt::format("{:>3}: ", debugger::reg(i)).c_str(), sys->cpu->reg[i]);
         }
 
         for (int c = 0; c < col_num; c++) {
@@ -220,10 +212,11 @@ void CPU::debuggerWindow(System* sys) {
             }
             ImGui::PushStyleColor(ImGuiCol_Text, color);
 
-            auto line = string_format("%s %*s %s", disasm.mnemonic.c_str(), 6 - disasm.mnemonic.length(), "", disasm.parameters.c_str());
-            if (ImGui::Selectable(
-                    string_format("    %s:0x%08x: %s %*s %s", segment.name, address, line.c_str(), 25 - line.length(), "", comment.c_str())
-                        .c_str())) {
+            auto line
+                = fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max<int>(0, 6 - disasm.mnemonic.length()), disasm.parameters);
+            if (ImGui::Selectable(fmt::format("    {}:0x{:08x}: {} {:{}c} {}", segment.name, address, line, ' ',
+                                              std::max<int>(0, 25 - line.length()), comment)
+                                      .c_str())) {
                 auto bp = sys->cpu->breakpoints.find(address);
                 if (bp == sys->cpu->breakpoints.end()) {
                     sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
@@ -313,8 +306,7 @@ void CPU::breakpointsWindow(System* sys) {
         if (!bp.second.enabled) color = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
 
-        if (ImGui::Selectable(
-                string_format("0x%08x: %s (hit count: %d)", bp.first, formatOpcode(opcode).c_str(), bp.second.hitCount).c_str())) {
+        if (ImGui::Selectable(fmt::format("0x{:08x}: {} (hit count: {})", bp.first, formatOpcode(opcode), bp.second.hitCount).c_str())) {
             bp.second.enabled = !bp.second.enabled;
         }
 

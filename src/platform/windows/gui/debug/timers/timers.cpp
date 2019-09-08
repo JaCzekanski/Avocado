@@ -1,10 +1,10 @@
 #include "timers.h"
+#include <fmt/core.h>
 #include <imgui.h>
 #include <magic_enum.hpp>
 #include <numeric>
 #include "platform/windows/gui/tools.h"
 #include "system.h"
-#include "utils/string.h"
 
 namespace gui::debug::timers {
 
@@ -145,7 +145,7 @@ void Timers::timersWindow(System* sys) {
             {"12", "Reached 0xFFFF", timer->mode.reachedFFFF ? "Yes" : "No", (bool)timer->mode.reachedFFFF},
         };
 
-        drawRegisterFields(string_format("flags##timer%d", which).c_str(), fields);
+        drawRegisterFields(fmt::format("flags##timer{}", which).c_str(), fields);
 
         ImGui::NextColumn();
     }
