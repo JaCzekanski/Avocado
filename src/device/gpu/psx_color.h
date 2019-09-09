@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <glm/glm.hpp>
+#include "utils/macros.h"
 #include "utils/math.h"
 
 // Union for storing 24bit color (used in GPU commands)
@@ -26,6 +27,8 @@ union PSXColor {
         uint16_t k : 1;
     };
     uint16_t raw;
+
+    INLINE uint16_t rev() const { return (r << 11) | (g << 6) | (b << 1) | k; }
 
     PSXColor() : raw(0) {}
     PSXColor(uint16_t color) : raw(color) {}

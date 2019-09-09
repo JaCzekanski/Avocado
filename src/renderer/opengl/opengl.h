@@ -51,6 +51,7 @@ class OpenGL {
     std::unique_ptr<Framebuffer> renderFramebuffer;
     std::unique_ptr<Texture> renderTex;
     std::unique_ptr<Texture> vramTex;
+    std::unique_ptr<Texture> vram24Tex;
     bool supportNativeTexture;
 
     int renderWidth;
@@ -67,7 +68,8 @@ class OpenGL {
     void bindRenderAttributes();
     void renderVertices(gpu::GPU* gpu);
 
-    std::vector<float> vramUnpacked;
+    std::vector<uint8_t> vram24Unpacked;
+    std::vector<uint16_t> vramUnpacked;
     void update24bitTexture(gpu::GPU* gpu);
     void updateVramTexture(gpu::GPU* gpu);
 

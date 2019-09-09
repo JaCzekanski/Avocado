@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
 
     SDL_GameControllerAddMappingsFromFile("data/assets/gamecontrollerdb.txt");
 
-    OpenGL opengl;
+    auto opengl = std::make_unique<OpenGL>();
 
     SDL_Window* window = SDL_CreateWindow("Avocado", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, OpenGL::resWidth, OpenGL::resHeight,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (!opengl.setup()) {
+    if (!opengl->setup()) {
         fatalError("Cannot setup graphics");
         return 1;
     }
@@ -450,8 +450,8 @@ int main(int argc, char** argv) {
             }
             if (event.type == SDL_WINDOWEVENT
                 && (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED || event.window.event == SDL_WINDOWEVENT_RESIZED)) {
-                opengl.width = event.window.data1;
-                opengl.height = event.window.data2;
+                opengl->width = event.window.data1;
+                opengl->height = event.window.data2;
             }
 
             // Crude hack to force next frame after last event received (in paused mode)
@@ -478,8 +478,8 @@ int main(int argc, char** argv) {
         ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
 
-        SDL_GL_GetDrawableSize(window, &opengl.width, &opengl.height);
-        opengl.render(sys->gpu.get());
+        SDL_GL_GetDrawableSize(window, &opengl->width, &opengl->height);
+        opengl->render(sys->gpu.get());
 
         renderImgui(sys.get());
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
