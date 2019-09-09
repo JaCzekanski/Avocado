@@ -86,9 +86,9 @@ bool OpenGL::setup() {
     // OpenGL 3.2 requires VAO to be used
     // I'm binding single one for whole program - it isn't optimal
     // but will make porting to GLES2/WebGL1 much easier
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+
+    vao = std::make_unique<VertexArrayObject>();
+    vao->bind();
 
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
     hardwareRendering = (mode & RenderingMode::HARDWARE) != 0;
@@ -523,6 +523,7 @@ void OpenGL::renderBlit(gpu::GPU* gpu, bool software) {
 }
 
 void OpenGL::render(gpu::GPU* gpu) {
+    vao->bind();
     // Clear framebuffer
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);

@@ -6,6 +6,7 @@
 #include "shader/framebuffer.h"
 #include "shader/program.h"
 #include "shader/texture.h"
+#include "shader/vertex_array_object.h"
 
 class OpenGL {
    public:
@@ -44,6 +45,7 @@ class OpenGL {
     bool hardwareRendering;
     bool transparency;
 
+    std::unique_ptr<VertexArrayObject> vao;
     std::unique_ptr<Program> renderShader;
     std::unique_ptr<Buffer> renderBuffer;
     std::unique_ptr<Framebuffer> renderFramebuffer;
