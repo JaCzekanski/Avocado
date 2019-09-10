@@ -3,16 +3,16 @@
 #include <string>
 #include <vector>
 
-std::string getPath(std::string name);
-std::string getFilenameExt(std::string name);
-std::string getFilename(std::string name);
-std::string getExtension(std::string name);
-bool fileExists(std::string name);
-std::vector<unsigned char> getFileContents(std::string name);
-bool putFileContents(std::string name, std::vector<unsigned char>& contents);
-bool putFileContents(std::string name, std::string contents);
-std::string getFileContentsAsString(std::string name);
-size_t getFileSize(std::string name);
+std::string getPath(const std::string& name);
+std::string getFilenameExt(const std::string& name);
+std::string getFilename(const std::string& name);
+std::string getExtension(const std::string& name);
+bool fileExists(const std::string& name);
+std::vector<unsigned char> getFileContents(const std::string& name);
+bool putFileContents(const std::string& name, const std::vector<unsigned char>& contents);
+bool putFileContents(const std::string& name, const std::string contents);
+std::string getFileContentsAsString(const std::string& name);
+size_t getFileSize(const std::string& name);
 
 struct FileDeleter {
     void operator()(FILE* ptr) const {

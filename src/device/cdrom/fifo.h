@@ -1,7 +1,7 @@
 #pragma once
 #include <cstddef>
 
-template <size_t length, typename T>
+template <typename T, size_t length>
 class fifo {
     // Elements are added to the back and are read from the front
     T data[length] = {};
@@ -58,5 +58,5 @@ class fifo {
         return data[(read_ptr + ptr) % length];
     }
 
-    T operator[](T ptr) const { return peek(ptr); }
+    T operator[](size_t ptr) const { return peek(ptr); }
 };

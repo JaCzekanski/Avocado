@@ -1,6 +1,5 @@
 #include "images.h"
 #include <fmt/core.h>
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <unordered_map>
 #include "utils/file.h"

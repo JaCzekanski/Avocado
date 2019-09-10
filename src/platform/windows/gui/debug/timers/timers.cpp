@@ -42,7 +42,7 @@ struct Field {
 void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
     const size_t colNum = 3;
     ImVec2 charSize = ImGui::CalcTextSize("_");
-    std::vector<unsigned int> columnsWidth(colNum);
+    std::vector<size_t> columnsWidth(colNum);
 
     for (size_t i = 0; i < fields.size(); i++) {
         auto& f = fields[i];

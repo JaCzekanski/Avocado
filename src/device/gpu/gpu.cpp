@@ -7,6 +7,9 @@
 #include "utils/logic.h"
 #include "utils/macros.h"
 
+// For vram dump
+#include <stb_image_write.h>
+
 namespace gpu {
 GPU::GPU() {
     busToken = bus.listen<Event::Config::Graphics>([&](auto) { reload(); });
@@ -743,8 +746,16 @@ bool GPU::insideDrawingArea(int x, int y) const {
 bool GPU::isNtsc() { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
 
 void GPU::dumpVram() {
-    std::vector<uint8_t> vram;
-    vram.assign(this->vram.begin(), this->vram.end());
-    putFileContents("vram.bin", vram);
+    const char* dumpName = "vram.png";
+    std::vector<uint8_t> vram(VRAM_WIDTH * VRAM_HEIGHT * 3);
+
+    for (size_t i = 0; i < this->vram.size(); i++) {
+        PSXColor c(this->vram[i]);
+        vram[i * 3 + 0] = c.r << 3;
+        vram[i * 3 + 1] = c.g << 3;
+        vram[i * 3 + 2] = c.b << 3;
+    }
+
+    stbi_write_png(dumpName, VRAM_WIDTH, VRAM_HEIGHT, 3, vram.data(), VRAM_WIDTH * 3);
 }
 }  // namespace gpu

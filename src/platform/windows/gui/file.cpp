@@ -177,10 +177,10 @@ void openFile() {
     ImGui::BeginChild("##files", ImVec2(0, 0));
     ImGui::Columns(2, nullptr, false);
 
-    auto formatFileSize = [](long bytes) {
+    auto formatFileSize = [](uintmax_t bytes) {
         std::string units = "kMGTPE";
 
-        int unit = 1024;
+        size_t unit = 1024;
         if (bytes < unit) return fmt::format("{:4d} B", bytes);
         int exp = (int)(std::log(bytes) / std::log(unit));
 
@@ -192,20 +192,20 @@ void openFile() {
     float maxColumnWidth = 0.f;
     for (auto& f : files) {
         auto filename = f.path().filename().string();
-        ImVec4 color = ImVec4(1.0, 1.0, 1.0, 1.0);
+        ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
         bool isSupported = false;
 
         if (fs::is_directory(f)) {
-            color = ImVec4(0.34, 0.54, 0.56, 1.0);
+            color = ImVec4(0.34f, 0.54f, 0.56f, 1.f);
         } else if (filename[0] == '.' && filename != "..") {
-            color = ImVec4(color.x - 0.3, color.y - 0.3, color.z - 0.3, 1.0);
+            color = ImVec4(color.x - 0.3f, color.y - 0.3f, color.z - 0.3f, 1.f);
         } else {
             std::string ext = f.path().extension().string();
             std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
             isSupported = std::find(supportedFiles.begin(), supportedFiles.end(), ext) != supportedFiles.end();
 
             if (!isSupported) {
-                color = ImVec4(0.3, 0.3, 0.3, 1.0);
+                color = ImVec4(0.3f, 0.3f, 0.3f, 1.f);
             }
         }
 

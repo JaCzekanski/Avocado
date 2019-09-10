@@ -7,7 +7,7 @@ class Buffer {
    public:
     static GLuint currentId;
 
-    Buffer(int size);
+    Buffer(size_t size);
     ~Buffer();
 
     void update(int size, const void* data);

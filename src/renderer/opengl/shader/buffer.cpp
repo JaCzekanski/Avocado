@@ -2,7 +2,7 @@
 
 GLuint Buffer::currentId = 0;
 
-Buffer::Buffer(int size) {
+Buffer::Buffer(size_t size) {
     GLint lastBuffer;
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &lastBuffer);
 

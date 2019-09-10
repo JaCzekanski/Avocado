@@ -183,7 +183,7 @@ void MDEC::idct(std::array<int16_t, 64>& src) {
             }
 
             int round = (sum >> 31) & 1;
-            src[x + y * 8] = (sum >> 32) + round;
+            src[x + y * 8] = (uint16_t)((sum >> 32) + round);
         }
     }
 }

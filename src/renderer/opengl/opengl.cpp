@@ -1,10 +1,8 @@
 #include "opengl.h"
 #include <SDL.h>
 #include <fmt/core.h>
-#include <algorithm>
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <imgui.h>
-#include <stb_image_write.h>
+#include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
 #include "config.h"
 
@@ -246,10 +244,10 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
         return;
     }
 
-    int areaX = lastPos.x;
-    int areaY = lastPos.y;
-    int areaW = gpu->gp1_08.getHorizontalResoulution();
-    int areaH = gpu->gp1_08.getVerticalResoulution();
+    int areaX = static_cast<int>(lastPos.x);
+    int areaY = static_cast<int>(lastPos.y);
+    int areaW = static_cast<int>(gpu->gp1_08.getHorizontalResoulution());
+    int areaH = static_cast<int>(gpu->gp1_08.getVerticalResoulution());
 
     // Simulate GPU in Shader (skip if no entries in renderlist)
     glViewport(0, 0, renderWidth, renderHeight);

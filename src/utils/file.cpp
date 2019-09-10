@@ -1,6 +1,6 @@
 #include "file.h"
 
-std::string getPath(std::string name) {
+std::string getPath(const std::string& name) {
     size_t begin = 0, end = name.length();
 
     size_t slash = name.find_last_of("/\\");
@@ -9,7 +9,7 @@ std::string getPath(std::string name) {
     return name.substr(begin, end - begin);
 }
 
-std::string getFilenameExt(std::string name) {
+std::string getFilenameExt(const std::string& name) {
     size_t begin = 0, end = name.length();
 
     size_t slash = name.find_last_of("/\\");
@@ -18,7 +18,7 @@ std::string getFilenameExt(std::string name) {
     return name.substr(begin, end);
 }
 
-std::string getFilename(std::string name) {
+std::string getFilename(const std::string& name) {
     size_t begin = 0, end = name.length();
 
     size_t slash = name.find_last_of("/\\");
@@ -30,7 +30,7 @@ std::string getFilename(std::string name) {
     return name.substr(begin, end - begin);
 }
 
-std::string getExtension(std::string name) {
+std::string getExtension(const std::string& name) {
     size_t found = name.find_last_of('.');
     if (found == std::string::npos) return "";
     return name.substr(found + 1);

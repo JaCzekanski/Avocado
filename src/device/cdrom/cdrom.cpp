@@ -223,9 +223,9 @@ uint8_t CDROM::readByte() {
     return data;
 }
 
-std::string CDROM::dumpFifo(const fifo<16, uint8_t> f) {
+std::string CDROM::dumpFifo(const FIFO& f) {
     std::string log = "";
-    for (size_t i = 0; i < f.size(); i++) {
+    for (size_t i = 0u; i < f.size(); i++) {
         log += fmt::format("0x{:02x}", f[i]);
         if (i < f.size() - 1) log += ", ";
     }

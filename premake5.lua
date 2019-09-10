@@ -140,6 +140,7 @@ project "core"
 		"src", 
 		"externals/glm",
 		"externals/json/include",
+		"externals/stb",
 		"externals/miniz",
 		"externals/libchdr/src",
 		"externals/EventBus/lib/include",

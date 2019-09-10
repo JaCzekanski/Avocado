@@ -158,6 +158,7 @@ void renderImgui(System* sys) {
                     sys->dumpRam();
                     sys->spu->dumpRam();
                     sys->gpu->dumpVram();
+                    toast("State dumped");
                 }
                 ImGui::EndMenu();
             }

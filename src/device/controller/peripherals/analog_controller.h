@@ -36,7 +36,7 @@ struct AnalogController : public DigitalController {
 
         bool operator==(const Vibration& r) { return small == r.small && big == r.big; }
         bool operator!=(const Vibration& r) { return !(*this == r); }
-        bool operator!=(const int r) { return small != r || small != r; }
+        bool operator!=(const int r) { return small != r || big != r; }
     };
 
     uint8_t _handle(uint8_t byte);  // Wrapper for handler for catching return value

@@ -1,7 +1,7 @@
 #include "utils/file.h"
 #include <SDL.h>
 
-bool fileExists(std::string name) {
+bool fileExists(const std::string &name) {
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "r");
     bool exists = false;
     if (f) {
@@ -11,7 +11,7 @@ bool fileExists(std::string name) {
     return exists;
 }
 
-std::vector<uint8_t> getFileContents(std::string name) {
+std::vector<uint8_t> getFileContents(const std::string &name) {
     std::vector<uint8_t> contents;
 
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "rb");
@@ -28,7 +28,7 @@ std::vector<uint8_t> getFileContents(std::string name) {
     return contents;
 }
 
-bool putFileContents(std::string name, std::vector<unsigned char> &contents) {
+bool putFileContents(const std::string &name, const std::vector<unsigned char> &contents) {
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "wb");
     if (!f) return false;
 
@@ -39,7 +39,7 @@ bool putFileContents(std::string name, std::vector<unsigned char> &contents) {
     return true;
 }
 
-bool putFileContents(std::string name, std::string contents) {
+bool putFileContents(const std::string &name, const std::string contents) {
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "wb");
     if (!f) return false;
 
@@ -50,7 +50,7 @@ bool putFileContents(std::string name, std::string contents) {
     return true;
 }
 
-std::string getFileContentsAsString(std::string name) {
+std::string getFileContentsAsString(const std::string &name) {
     std::string contents;
 
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "rb");
@@ -67,7 +67,7 @@ std::string getFileContentsAsString(std::string name) {
     return contents;
 }
 
-size_t getFileSize(std::string name) {
+size_t getFileSize(const std::string &name) {
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "rb");
     if (!f) return 0;
 

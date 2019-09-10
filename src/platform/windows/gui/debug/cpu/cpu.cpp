@@ -46,7 +46,7 @@ Segment Segment::fromAddress(uint32_t address) {
 
 std::string formatOpcode(mips::Opcode& opcode) {
     auto disasm = debugger::decodeInstruction(opcode);
-    return fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max<int>(0, 6 - disasm.mnemonic.length()), disasm.parameters);
+    return fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max(0, 6 - (int)disasm.mnemonic.length()), disasm.parameters);
 }
 
 void CPU::debuggerWindow(System* sys) {
@@ -96,7 +96,7 @@ void CPU::debuggerWindow(System* sys) {
             ImGui::TextUnformatted(reg);
             ImGui::SameLine();
 
-            auto color = ImVec4(1.0, 1.0, 1.0, (val == 0) ? 0.25 : 1.0);
+            auto color = ImVec4(1.f, 1.f, 1.f, (val == 0) ? 0.25f : 1.f);
             ImGui::TextColored(color, "0x%08x", val);
             ImGui::NextColumn();
 
@@ -149,7 +149,7 @@ void CPU::debuggerWindow(System* sys) {
                 auto lineHeight = ImGui::GetTextLineHeight();
                 int16_t branchOffset = disasm.opcode.offset;
 
-                int xEnd = xStart - clamp<int>(abs(branchOffset), glyphSize, xStart);
+                int xEnd = xStart - clamp(abs(branchOffset), (int)glyphSize, xStart);
 
                 ImVec2 src = ImGui::GetCursorScreenPos();
                 src.y += lineHeight / 2;
@@ -213,9 +213,9 @@ void CPU::debuggerWindow(System* sys) {
             ImGui::PushStyleColor(ImGuiCol_Text, color);
 
             auto line
-                = fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max<int>(0, 6 - disasm.mnemonic.length()), disasm.parameters);
+                = fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max(0, 6 - (int)disasm.mnemonic.length()), disasm.parameters);
             if (ImGui::Selectable(fmt::format("    {}:0x{:08x}: {} {:{}c} {}", segment.name, address, line, ' ',
-                                              std::max<int>(0, 25 - line.length()), comment)
+                                              std::max(0, 25 - (int)line.length()), comment)
                                       .c_str())) {
                 auto bp = sys->cpu->breakpoints.find(address);
                 if (bp == sys->cpu->breakpoints.end()) {

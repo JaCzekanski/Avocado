@@ -97,13 +97,15 @@ class CDROM {
         Filter() : file(0), channel(0) {}
     };
 
+    using FIFO = fifo<uint8_t, 16>;
+
     int verbose = 1;
 
     CDROM_Status status;
     uint8_t interruptEnable = 0;
-    fifo<16, uint8_t> CDROM_params;
-    fifo<16, uint8_t> CDROM_response;
-    fifo<16, uint8_t> interruptQueue;
+    FIFO CDROM_params;
+    FIFO CDROM_response;
+    FIFO interruptQueue;
 
     Mode mode;
     Filter filter;
@@ -165,7 +167,7 @@ class CDROM {
         interruptQueue.add(irq);
     }
 
-    std::string dumpFifo(const fifo<16, uint8_t> f);
+    std::string dumpFifo(const FIFO& f);
 
    public:
     uint8_t volumeLeftToLeft = 0;
