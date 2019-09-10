@@ -135,6 +135,14 @@ std::string cop2reg(unsigned int n) {
 
 Instruction mapSpecialInstruction(mips::Opcode& i);
 
+std::string hexWithSign(int16_t hex) {
+    if (hex >= 0) {
+        return fmt::format("0x{:04x}", static_cast<uint16_t>(hex));
+    }
+
+    return fmt::format("-0x{:04x}", static_cast<uint16_t>(hex * -1));
+}
+
 Instruction decodeInstruction(mips::Opcode& i) {
     Instruction ins;
     ins.opcode = i;
@@ -142,7 +150,7 @@ Instruction decodeInstruction(mips::Opcode& i) {
 #define U16(x) static_cast<unsigned short>(x)
 
 #define R(x) reg(x).c_str()
-#define LOADTYPE fmt::format("{}, 0x{:04x}({})", R(i.rt), U16(i.offset), R(i.rs));
+#define LOADTYPE fmt::format("{}, {}({})", R(i.rt), hexWithSign(i.offset), R(i.rs));
 #define ITYPE fmt::format("{}, {}, 0x{:04x}", R(i.rt), R(i.rs), U16(i.offset))
 #define JTYPE fmt::format("0x{:x}", i.target * 4)
 #define O(n, m, d)                     \
