@@ -199,11 +199,8 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 
     double frameTime = ntsc ? (1.0 / 60.0) : (1.0 / 50.0);
 
-    // Prevent deltaTime from accumulating when waiting for events
-    deltaTime = std::min(deltaTime, frameTime);
-
-    if (framelimiter) {
-        // If frame was shorter than frameTime - spin
+    if (framelimiter && deltaTime < frameTime) {
+        // If deltaTime was shorter than frameTime - spin
         if (deltaTime < frameTime - timeToSkip) {
             while (deltaTime < frameTime - timeToSkip) {  // calculate real difference
                 SDL_Delay(1);
