@@ -15,7 +15,7 @@ ccache --set-config=sloppiness=pch_defines,time_macros
 premake5 xcode4
 
 # Build
-xcodebuild -workspace Avocado.xcworkspace -scheme avocado -configuration release -parallelizeTargets -jobs 4 | xcpretty
+set -o pipefail && xcodebuild -workspace Avocado.xcworkspace -scheme avocado -configuration release -parallelizeTargets -jobs 4 | xcpretty
 
 # Package
 mkdir -p $ARTIFACT

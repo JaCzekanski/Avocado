@@ -67,7 +67,8 @@ filter "system:macosx"
 	platforms {"x64"}
 	defaultplatform "x64"
 	xcodebuildsettings {
-		['ALWAYS_SEARCH_USER_PATHS'] = {'YES'}
+		["ALWAYS_SEARCH_USER_PATHS"] = "YES",
+		["MACOSX_DEPLOYMENT_TARGET"] = "10.12",
 	}
 
 filter "system:android"
@@ -268,7 +269,7 @@ project "avocado"
 			"imgui",
 		}
 		buildoptions {getOutput("sdl2-config --cflags")}
-		linkoptions {getOutput("sdl2-config --libs")}
+		linkoptions {getOutput("sdl2-config --static-libs")}
 	
 	filter {"system:android"}
 		files { 
