@@ -7,7 +7,17 @@
 #include "system.h"
 #include "utils/address.h"
 
-namespace gui::debug::cpu {
+namespace gui::debug {
+
+struct Segment {
+    const char* name;
+    uint32_t base;
+    uint32_t size;
+
+    bool inRange(uint32_t addr) { return addr >= base && addr < base + size; }
+
+    static Segment fromAddress(uint32_t);
+};
 
 namespace segments {
 Segment RAM = {"RAM", System::RAM_BASE, System::RAM_SIZE};

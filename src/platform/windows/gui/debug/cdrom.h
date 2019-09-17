@@ -2,7 +2,7 @@
 
 struct System;
 
-namespace gui::debug::cdrom {
+namespace gui::debug {
 class Cdrom {
     bool useFrames = false;
     void cdromWindow(System* sys);

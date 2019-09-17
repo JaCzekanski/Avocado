@@ -1,5 +1,6 @@
 #pragma once
-#include "platform/windows/gui/gui.h"
+
+struct System;
 
 extern bool showKernelWindow;
 

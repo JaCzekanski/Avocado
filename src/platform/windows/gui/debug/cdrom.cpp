@@ -8,7 +8,7 @@
 using namespace disc;
 #define POSITION(x) ((useFrames) ? fmt::format("{}", (x).toLba()) : (x).toString())
 
-namespace gui::debug::cdrom {
+namespace gui::debug {
 
 void Cdrom::cdromWindow(System* sys) {
     ImGui::Begin("CDROM", &cdromWindowOpen);

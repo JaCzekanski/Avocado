@@ -1,21 +1,9 @@
 #pragma once
-#include <array>
 #include <cstdint>
-#include <string>
-#include "system.h"
 
 struct System;
 
-namespace gui::debug::cpu {
-struct Segment {
-    const char* name;
-    uint32_t base;
-    uint32_t size;
-
-    bool inRange(uint32_t addr) { return addr >= base && addr < base + size; }
-
-    static Segment fromAddress(uint32_t);
-};
+namespace gui::debug {
 
 class CPU {
     char addrInputBuffer[32];

@@ -27,19 +27,18 @@ void ramWindow(System* sys);
 bool showGui = true;
 
 bool ioLogEnabled = false;
-bool gpuLogEnabled = false;
 bool singleFrame = false;
 
 bool notInitializedWindowShown = false;
 bool showVramWindow = false;
 bool showWatchWindow = false;
 bool showRamWindow = false;
-bool showSpuWindow = false;
 
 bool showAboutWindow = false;
 
 gui::debug::Cdrom cdromDebug;
 gui::debug::CPU cpuDebug;
+gui::debug::GPU gpuDebug;
 gui::debug::Timers timersDebug;
 gui::debug::GTE gteDebug;
 gui::debug::SPU spuDebug;
@@ -153,7 +152,7 @@ void renderImgui(System* sys) {
                 ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
 #endif
                 ImGui::MenuItem("GTE log", nullptr, &gteDebug.logWindowOpen);
-                ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
+                ImGui::MenuItem("GPU log", nullptr, &gpuDebug.logEnabled);
 
                 ImGui::Separator();
 
@@ -165,7 +164,7 @@ void renderImgui(System* sys) {
                 ImGui::Separator();
                 ImGui::MenuItem("CDROM", nullptr, &cdromDebug.cdromWindowOpen);
                 ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
-                ImGui::MenuItem("GPU", nullptr, &showGpuWindow);
+                ImGui::MenuItem("GPU", nullptr, &gpuDebug.registersWindowOpen);
                 ImGui::MenuItem("GTE", nullptr, &gteDebug.registersWindowOpen);
                 ImGui::MenuItem("SPU", nullptr, &spuDebug.spuWindowOpen);
                 ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
@@ -218,7 +217,6 @@ void renderImgui(System* sys) {
 
         // Debug
         if (ioLogEnabled) ioLogWindow(sys);
-        if (gpuLogEnabled) gpuLogWindow(sys);
         if (showRamWindow) ramWindow(sys);
         if (showVramWindow) vramWindow(sys->gpu.get());
         if (showWatchWindow) watchWindow(sys);
@@ -227,6 +225,7 @@ void renderImgui(System* sys) {
 
         cdromDebug.displayWindows(sys);
         cpuDebug.displayWindows(sys);
+        gpuDebug.displayWindows(sys);
         timersDebug.displayWindows(sys);
         gteDebug.displayWindows(sys);
         spuDebug.displayWindows(sys);
