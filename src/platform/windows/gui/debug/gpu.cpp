@@ -112,7 +112,86 @@ void GPU::logWindow(System *sys) {
                 auto arguments = entry.args;
                 if (command >= 0x20 && command < 0x40) {
                     auto arg = gpu::PolygonArgs(command);
-                    (void)arg;  // TODO: Parse Polygon commands
+
+                    int ptr = 1;
+
+                    primitive::Triangle::Vertex v[4];
+                    gpu::TextureInfo tex;
+
+                    for (int i = 0; i < arg.getVertexCount(); i++) {
+                        v[i].pos.x = extend_sign<10>(arguments[ptr] & 0xffff);
+                        v[i].pos.y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+
+                        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
+                        if (arg.isTextureMapped) {
+                            if (i == 0) tex.palette = arguments[ptr];
+                            if (i == 1) tex.texpage = arguments[ptr];
+                            v[i].uv.x = arguments[ptr] & 0xff;
+                            v[i].uv.y = (arguments[ptr] >> 8) & 0xff;
+                            ptr++;
+                        }
+                        if (arg.gouroudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
+                    }
+
+                    if (nodeOpen) {
+                        std::string flags;
+                        if (arg.semiTransparency) flags += "semi-transparent, ";  // TODO: print WHICH transperancy is used, magic enum
+                        if (arg.isTextureMapped) flags += "textured, ";           // TODO: Bits?
+                        if (!arg.isRawTexture) flags += "color-blended, ";
+                        if (arg.gouroudShading) flags += "gouroud-shaded";
+                        ImGui::Text("Flags: %s", flags.c_str());
+                        for (int i = 0; i < arg.getVertexCount(); i++) {
+                            auto text = fmt::format("v{}: {}x{}", i, v[i].pos.x + last_offset_x, v[i].pos.y + last_offset_y);
+                            if (arg.isTextureMapped) {
+                                text += fmt::format(", uv{}: {}x{}", i, v[i].uv.x, v[i].uv.y);
+                            }
+                            ImGui::TextUnformatted(text.c_str());
+                        }
+
+                        ImGui::NewLine();
+                        ImGui::Text("Color: ");
+                        ImGui::SameLine();
+                        ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+                    }
+
+                    // vramAreas.push_back({fmt::format("Rectangle {}", i), ImVec2(x, y), ImVec2(w, h)});
+
+                    if (arg.isTextureMapped) {
+                        // int clutColors = tex.getBitcount();
+                        // int textureWidth;
+                        // int textureBits;
+
+                        // if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit4) {
+                        //     clutColors = 16;
+                        //     textureWidth = w / 4;
+                        //     textureBits = 4;
+                        // } else if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit8) {
+                        //     clutColors = 256;
+                        //     textureWidth = w / 2;
+                        //     textureBits = 8;
+                        // } else {
+                        //     clutColors = 0;
+                        //     textureWidth = w;
+                        //     textureBits = 16;
+                        // }
+
+                        std::string textureInfo = fmt::format("Texture ({} bit)", tex.getBitcount());
+
+                        if (nodeOpen) {
+                            ImGui::NewLine();
+                            ImGui::Text("%s: ", textureInfo.c_str());
+                            ImGui::Text("texPage: %dx%d", tex.getBaseX(), tex.getBaseY());
+                            ImGui::Text("CLUT:    %dx%d", tex.getClutX(), tex.getClutY());
+                        }
+
+                        // vramAreas.push_back({textureInfo, ImVec2(texX, texY), ImVec2(textureWidth, h)});
+
+                        if (tex.getBitcount() != 0) {
+                            vramAreas.push_back({"CLUT", ImVec2(tex.getClutX(), tex.getClutY()), ImVec2(tex.getBitcount(), 1)});
+                        }
+                    }
+
+                    showArguments = false;
                 } else if (command >= 0x40 && command < 0x60) {
                     auto arg = gpu::LineArgs(command);
                     (void)arg;  // TODO: Parse Line commands
@@ -172,16 +251,19 @@ void GPU::logWindow(System *sys) {
                             textureBits = 16;
                         }
 
-                        texX += last_e1.texturePageBaseX * 64;
-                        texY += last_e1.texturePageBaseY * 256;
+                        int texPageX = last_e1.texturePageBaseX * 64;
+                        int texPageY = last_e1.texturePageBaseY * 256;
 
                         std::string textureInfo = fmt::format("Texture ({} bit)", textureBits);
 
                         if (nodeOpen) {
                             ImGui::NewLine();
                             ImGui::Text("%s: ", textureInfo.c_str());
-                            ImGui::Text("Pos:  %dx%d", texX, texY);
-                            ImGui::Text("CLUT: %dx%d", clutX, clutY);
+                            ImGui::Text("UV:      %dx%d", texX + texPageX, texY + texPageY);
+                            ImGui::Text("CLUT:    %dx%d", clutX, clutY);
+                            ImGui::NewLine();
+                            ImGui::Text("Pos:     %dx%d (raw value in draw call)", texX, texY);
+                            ImGui::Text("texPage: %dx%d (from latest GP0_E1)", texPageX, texPageY);
                             // ImGui::SameLine();
                             // ImGui::Image()
                             // TODO: Render texture
