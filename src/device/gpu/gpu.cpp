@@ -404,22 +404,25 @@ void GPU::maskedWrite(int x, int y, uint16_t value) {
 void GPU::cmdCpuToVram2(uint8_t command) {
     (void)command;
 
-    uint32_t byte = arguments[0];
+    const auto advanceOrBreak = [&]() {
+        if (++currX >= endX) {
+            currX = startX;
+            if (++currY >= endY) {
+                cmd = Command::None;
+                return true;
+            }
+        }
+        return false;
+    };
 
-    // TODO: ugly code
-    maskedWrite(currX++, currY, byte & 0xffff);
-    if (currX >= endX) {
-        currX = startX;
-        if (++currY >= endY) cmd = Command::None;
-    }
-
-    maskedWrite(currX++, currY, (byte >> 16) & 0xffff);
-    if (currX >= endX) {
-        currX = startX;
-        if (++currY >= endY) cmd = Command::None;
-    }
-
+    uint32_t value = arguments[0];
     currentArgument = 0;
+
+    maskedWrite(currX, currY, value & 0xffff);
+    if (advanceOrBreak()) return;
+
+    maskedWrite(currX, currY, (value >> 16) & 0xffff);
+    if (advanceOrBreak()) return;
 }
 
 void GPU::cmdVramToCpu(uint8_t command) {
@@ -453,11 +456,13 @@ uint32_t GPU::readVramWord() {
 void GPU::cmdVramToVram(uint8_t command) {
     (void)command;
 
+    cmd = Command::None;
+
     if ((arguments[0] & 0x00ffffff) != 0) {
         fmt::print("[GPU] cpuVramToVram: Suspicious arg0: 0x{:x}, breaking!!!\n", arguments[0]);
-        cmd = Command::None;
         return;
     }
+
     int srcX = MaskCopy::startX(arguments[1] & 0xffff);
     int srcY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
 
@@ -469,7 +474,6 @@ void GPU::cmdVramToVram(uint8_t command) {
 
     if (width > VRAM_WIDTH || height > VRAM_HEIGHT) {
         fmt::print("[GPU] cpuVramToVram: Suspicious width: 0x{:x} or height: 0x{:x}\n", width, height);
-        cmd = Command::None;
         return;
     }
 
@@ -479,8 +483,6 @@ void GPU::cmdVramToVram(uint8_t command) {
             maskedWrite(dstX + x, dstY + y, src);
         }
     }
-
-    cmd = Command::None;
 }
 
 uint32_t GPU::getStat() {
