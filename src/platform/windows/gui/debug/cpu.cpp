@@ -460,7 +460,11 @@ void CPU::watchWindow(System* sys) {
     ImGui::End();
 }
 
-void CPU::ramWindow(System* sys) { editor.DrawWindow("Ram", sys->ram.data(), System::RAM_SIZE); }
+void CPU::ramWindow(System* sys) {
+    editor.Open = ramWindowOpen;
+    editor.DrawWindow("Ram", sys->ram.data(), System::RAM_SIZE);
+    ramWindowOpen = editor.Open;
+}
 
 void CPU::displayWindows(System* sys) {
     if (debuggerWindowOpen) debuggerWindow(sys);
