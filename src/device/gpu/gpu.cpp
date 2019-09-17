@@ -366,10 +366,10 @@ void GPU::cmdRectangle(RectangleArgs arg) {
 }
 
 struct MaskCopy {
-    constexpr static int startX(int x) { return x & 0x3ff; }
-    constexpr static int startY(int y) { return y & 0x1ff; }
-    constexpr static int endX(int x) { return ((x - 1) & 0x3ff) + 1; }
-    constexpr static int endY(int y) { return ((y - 1) & 0x1ff) + 1; }
+    constexpr static int x(int x) { return x & 0x3ff; }
+    constexpr static int y(int y) { return y & 0x1ff; }
+    constexpr static int w(int w) { return ((w - 1) & 0x3ff) + 1; }
+    constexpr static int h(int h) { return ((h - 1) & 0x1ff) + 1; }
 };
 
 void GPU::cmdCpuToVram1(uint8_t command) {
@@ -378,11 +378,11 @@ void GPU::cmdCpuToVram1(uint8_t command) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         fmt::print("[GPU] cmdCpuToVram1: Suspicious arg0: 0x{:x}\n", arguments[0]);
     }
-    startX = currX = MaskCopy::startX(arguments[1] & 0xffff);
-    startY = currY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
+    startX = currX = MaskCopy::x(arguments[1] & 0xffff);
+    startY = currY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
 
-    endX = startX + MaskCopy::endX(arguments[2] & 0xffff);
-    endY = startY + MaskCopy::endY((arguments[2] & 0xffff0000) >> 16);
+    endX = startX + MaskCopy::w(arguments[2] & 0xffff);
+    endY = startY + MaskCopy::h((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::CopyCpuToVram2;
     argumentCount = 1;
@@ -431,26 +431,34 @@ void GPU::cmdVramToCpu(uint8_t command) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         fmt::print("[GPU] cmdVramToCpu: Suspicious arg0: 0x{:x}\n", arguments[0]);
     }
+
     readMode = ReadMode::Vram;
-    startX = currX = MaskCopy::startX(arguments[1] & 0xffff);
-    startY = currY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
-    endX = startX + MaskCopy::endX(arguments[2] & 0xffff);
-    endY = startY + MaskCopy::endY((arguments[2] & 0xffff0000) >> 16);
+    startX = currX = MaskCopy::x(arguments[1] & 0xffff);
+    startY = currY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
+    endX = startX + MaskCopy::w(arguments[2] & 0xffff);
+    endY = startY + MaskCopy::h((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::None;
 }
 
-uint32_t GPU::readVramWord() {
-    uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
-    currX += 2;
-
-    if (currX >= endX) {
-        currX = startX;
-        if (++currY >= endY) {
-            readMode = ReadMode::Register;
+uint32_t GPU::readVramData() {
+    const auto advanceOrBreak = [&]() {
+        if (++currX >= endX) {
+            currX = startX;
+            if (++currY >= endY) {
+                readMode = ReadMode::Register;
+            }
         }
-    }
-    return word;
+    };
+
+    uint32_t data = 0;
+
+    data |= VRAM[currY % VRAM_HEIGHT][currX % VRAM_WIDTH];
+    advanceOrBreak();
+    data |= VRAM[currY % VRAM_HEIGHT][currX % VRAM_WIDTH] << 16;
+    advanceOrBreak();
+
+    return data;
 }
 
 void GPU::cmdVramToVram(uint8_t command) {
@@ -463,22 +471,17 @@ void GPU::cmdVramToVram(uint8_t command) {
         return;
     }
 
-    int srcX = MaskCopy::startX(arguments[1] & 0xffff);
-    int srcY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
+    int srcX = MaskCopy::x(arguments[1] & 0xffff);
+    int srcY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
 
-    int dstX = MaskCopy::startX(arguments[2] & 0xffff);
-    int dstY = MaskCopy::startY((arguments[2] & 0xffff0000) >> 16);
+    int dstX = MaskCopy::x(arguments[2] & 0xffff);
+    int dstY = MaskCopy::y((arguments[2] & 0xffff0000) >> 16);
 
-    int width = MaskCopy::endX(arguments[3] & 0xffff);
-    int height = MaskCopy::endY((arguments[3] & 0xffff0000) >> 16);
+    int w = MaskCopy::w(arguments[3] & 0xffff);
+    int h = MaskCopy::h((arguments[3] & 0xffff0000) >> 16);
 
-    if (width > VRAM_WIDTH || height > VRAM_HEIGHT) {
-        fmt::print("[GPU] cpuVramToVram: Suspicious width: 0x{:x} or height: 0x{:x}\n", width, height);
-        return;
-    }
-
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
             uint16_t src = VRAM[(srcY + y) % VRAM_HEIGHT][(srcX + x) % VRAM_WIDTH];
             maskedWrite(dstX + x, dstY + y, src);
         }
@@ -525,7 +528,7 @@ uint32_t GPU::read(uint32_t address) {
     int reg = address & 0xfffffffc;
     if (reg == 0) {
         if (readMode == ReadMode::Vram) {
-            return readVramWord();
+            return readVramData();
         } else {
             return readData;
         }

@@ -126,7 +126,7 @@ class GPU {
     void reload();
     void maskedWrite(int x, int y, uint16_t value);
 
-    uint32_t readVramWord();
+    uint32_t readVramData();
     uint32_t getStat();
 
    public:
