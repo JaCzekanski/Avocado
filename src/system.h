@@ -55,10 +55,10 @@ struct System {
     static const int IO_SIZE = 0x2000;
     State state = State::stop;
 
-    uint8_t bios[BIOS_SIZE];
-    uint8_t ram[RAM_SIZE];
-    uint8_t scratchpad[SCRATCHPAD_SIZE];
-    uint8_t expansion[EXPANSION_SIZE];
+    std::array<uint8_t, BIOS_SIZE> bios;
+    std::array<uint8_t, RAM_SIZE> ram;
+    std::array<uint8_t, SCRATCHPAD_SIZE> scratchpad;
+    std::array<uint8_t, EXPANSION_SIZE> expansion;
 
     bool debugOutput = true;  // Print BIOS logs
     bool biosLoaded = false;
@@ -76,7 +76,7 @@ struct System {
     std::unique_ptr<MemoryControl> memoryControl;
     std::unique_ptr<spu::SPU> spu;
     std::unique_ptr<Serial> serial;
-    std::array<std::unique_ptr<Timer>, 3> timer;
+    std::array<std::unique_ptr<device::timer::Timer>, 3> timer;
 
     template <typename T>
     INLINE T readMemory(uint32_t address);
@@ -99,6 +99,7 @@ struct System {
     bool isSystemReady();
 
     // Helpers
+    std::string biosPath;
     int biosLog = 0;
     bool printStackTrace = false;
     bool loadBios(std::string name);
@@ -118,4 +119,22 @@ struct System {
 
     std::vector<IO_LOG_ENTRY> ioLogList;
 #endif
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(*cpu);
+        ar(*gpu);
+        ar(*spu);
+        ar(*interrupt);
+        ar(*dma);
+        ar(*cdrom);
+        ar(*memoryControl);
+        ar(*serial);
+        ar(*mdec);
+        ar(*controller);
+        for (auto i : {0, 1, 2}) ar(*timer[i]);
+
+        ar(ram);
+        ar(scratchpad);
+    }
 };

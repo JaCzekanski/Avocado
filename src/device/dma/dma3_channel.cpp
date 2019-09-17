@@ -2,7 +2,7 @@
 #include "device/cdrom/cdrom.h"
 #include "utils/file.h"
 
-namespace device::dma::dmaChannel {
+namespace device::dma {
 uint32_t DMA3Channel::readDevice() {
     uint32_t data = 0;
     data |= cdrom->readByte() << 0;
@@ -12,8 +12,6 @@ uint32_t DMA3Channel::readDevice() {
     return data;
 }
 
-DMA3Channel::DMA3Channel(int channel, System* sys, device::cdrom::CDROM* cdrom) : DMAChannel(channel, sys), cdrom(cdrom) {
-    verbose = false;
-}
+DMA3Channel::DMA3Channel(Channel channel, System* sys, device::cdrom::CDROM* cdrom) : DMAChannel(channel, sys), cdrom(cdrom) {}
 
-}  // namespace device::dma::dmaChannel
+}  // namespace device::dma

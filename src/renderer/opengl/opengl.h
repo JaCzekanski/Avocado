@@ -40,7 +40,7 @@ class OpenGL {
         float tex[2];
     };
 
-    const int bufferSize = 100000;
+    const int bufferSize = 10000;
 
     bool hardwareRendering;
     bool transparency;

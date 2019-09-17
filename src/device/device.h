@@ -1,8 +1,6 @@
 #pragma once
 #include <cstdint>
 
-typedef uint32_t Bit;
-
 union Reg16 {
     uint16_t _reg;
     uint8_t _byte[2];
@@ -17,6 +15,11 @@ union Reg16 {
     uint8_t read(int n) const {
         if (n >= 2) return 0;
         return _byte[n];
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(_reg);
     }
 };
 
@@ -45,6 +48,11 @@ union Reg32 {
     bool getBit(int n) {
         if (n >= 32) return false;
         return (_reg & (1 << n)) != 0;
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(_reg);
     }
 };
 

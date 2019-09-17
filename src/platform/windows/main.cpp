@@ -2,17 +2,18 @@
 #include <fmt/core.h>
 #include <imgui.h>
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <string>
 #include "config.h"
-#include "disc/format/chd_format.h"
-#include "disc/format/cue_parser.h"
+#include "disc/load.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_sdl.h"
 #include "platform/windows/gui/gui.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "sound/sound.h"
+#include "state/state.h"
 #include "system.h"
 #include "utils/file.h"
 #include "utils/psf.h"
@@ -95,16 +96,13 @@ void loadFile(std::unique_ptr<System>& sys, std::string path) {
         return;
     }
 
-    std::unique_ptr<disc::Disc> disc;
-    if (ext == "chd") {
-        disc = disc::format::Chd::open(path);
-    } else if (ext == "cue") {
-        disc::format::CueParser parser;
-        disc = parser.parse(path.c_str());
-    } else if (ext == "iso" || ext == "bin" || ext == "img") {
-        disc = disc::format::Cue::fromBin(path.c_str());
+    if (ext == "state") {
+        if (state::loadFromFile(sys.get(), path)) {
+            return;
+        }
     }
 
+    std::unique_ptr<disc::Disc> disc = disc::load(path);
     if (disc) {
         sys->cdrom->disc = std::move(disc);
         sys->cdrom->setShell(false);
@@ -232,8 +230,10 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
         title += "Avocado";
 
         if (sys->cdrom->disc) {
-            auto gameName = getFilename(sys->cdrom->disc->getFile());
-            title += " | " + gameName;
+            auto cdPath = sys->cdrom->disc->getFile();
+            if (!cdPath.empty()) {
+                title += " | " + getFilename(cdPath);
+            }
         }
 
         title += fmt::format(" | FPS: {:.0f} ({:.2f} ms) {}", fps, (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
@@ -309,12 +309,12 @@ int main(int argc, char** argv) {
     });
 
     bool exitProgram = false;
-    bus.listen<Event::File::Exit>(busToken, [&](auto) { exitProgram = true; });
-
-    bus.listen<Event::System::SoftReset>(busToken, [&](auto) { sys->softReset(); });
-
     bool doHardReset = false;
+    bus.listen<Event::File::Exit>(busToken, [&](auto) { exitProgram = true; });
+    bus.listen<Event::System::SoftReset>(busToken, [&](auto) { sys->softReset(); });
     bus.listen<Event::System::HardReset>(busToken, [&](auto) { doHardReset = true; });
+    bus.listen<Event::System::SaveState>(busToken, [&](auto e) { state::quickSave(sys.get(), e.slot); });
+    bus.listen<Event::System::LoadState>(busToken, [&](auto e) { state::quickLoad(sys.get(), e.slot); });
 
     bus.listen<Event::Gui::ToggleFullscreen>(busToken, [&](auto) {
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
@@ -324,9 +324,17 @@ int main(int argc, char** argv) {
         }
     });
 
-    // If argument given - open that file (same as drag and drop)
-    if (argc > 1) {
-        loadFile(sys, argv[1]);
+    bus.listen<Event::Config::Spu>(busToken, [&](auto) {
+        bool soundEnabled = config["options"]["sound"]["enabled"];
+        if (soundEnabled) {
+            Sound::play();
+        } else {
+            Sound::stop();
+        }
+    });
+
+    if (config["options"]["sound"]["enabled"]) {
+        Sound::play();
     }
 
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
@@ -366,12 +374,22 @@ int main(int argc, char** argv) {
 
     initGui();
 
-    Sound::play();
-
-    if (!sys->isSystemReady())
+    if (!sys->isSystemReady()) {
         sys->state = System::State::stop;
-    else
+    } else {
         sys->state = System::State::run;
+
+        // If argument given - open that file (same as drag and drop)
+        if (argc > 1) {
+            loadFile(sys, argv[1]);
+        } else {
+            if (config["options"]["emulator"]["preserveState"]) {
+                if (state::loadLastState(sys.get())) {
+                    toast("Loaded last state");
+                }
+            }
+        }
+    }
 
     bool frameLimitEnabled = true;
     bool windowFocused = true;
@@ -420,9 +438,15 @@ int main(int argc, char** argv) {
                     sys->cdrom->toggleShell();
                     toast(fmt::format("Shell {}", sys->cdrom->getShell() ? "open" : "closed"));
                 }
-                if (event.key.keysym.sym == SDLK_F7) {
+                if (event.key.keysym.sym == SDLK_F5) {
+                    bus.notify(Event::System::SaveState{});
+                }
+                if (event.key.keysym.sym == SDLK_F6) {
                     singleFrame = true;
                     sys->state = System::State::run;
+                }
+                if (event.key.keysym.sym == SDLK_F7) {
+                    bus.notify(Event::System::LoadState{});
                 }
                 if (event.key.keysym.sym == SDLK_F8) {
                     sys->singleStep();
@@ -438,6 +462,11 @@ int main(int argc, char** argv) {
                 if (event.key.keysym.sym == SDLK_TAB) {
                     frameLimitEnabled = !frameLimitEnabled;
                     toast(fmt::format("Frame limiter {}", frameLimitEnabled ? "enabled" : "disabled"));
+                }
+                if (event.key.keysym.sym == SDLK_BACKSPACE) {
+                    if (state::rewindState(sys.get())) {
+                        toast("Going back 1 second");
+                    }
                 }
             }
             if (event.type == SDL_DROPFILE) {
@@ -470,6 +499,8 @@ int main(int argc, char** argv) {
                 singleFrame = false;
                 sys->state = System::State::pause;
             }
+
+            state::manageTimeTravel(sys.get());
         }
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(window);
@@ -484,6 +515,9 @@ int main(int argc, char** argv) {
         SDL_GL_SwapWindow(window);
 
         limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc(), inputManager->mouseLocked);
+    }
+    if (config["options"]["emulator"]["preserveState"]) {
+        state::saveLastState(sys.get());
     }
     saveMemoryCards(sys, true);
     saveConfigFile(CONFIG_NAME);

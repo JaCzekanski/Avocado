@@ -1,11 +1,11 @@
 #pragma once
 #include "dma_channel.h"
 
-namespace device::dma::dmaChannel {
+namespace device::dma {
 class DMA6Channel : public DMAChannel {
     uint32_t readDevice() override;
 
    public:
-    DMA6Channel(int channel, System* sys);
+    DMA6Channel(Channel channel, System* sys);
 };
-}  // namespace device::dma::dmaChannel
+}  // namespace device::dma

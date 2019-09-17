@@ -17,12 +17,10 @@ std::vector<uint8_t> getFileContents(const std::string &name) {
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "rb");
     if (!f) return contents;
 
-    SDL_RWseek(f, 0, SEEK_END);
-    int filesize = SDL_RWtell(f);
-    SDL_RWseek(f, 0, SEEK_SET);
+    int size = SDL_RWsize(f);
 
-    contents.resize(filesize);
-    SDL_RWread(f, &contents[0], 1, filesize);
+    contents.resize(size);
+    SDL_RWread(f, &contents[0], 1, size);
 
     SDL_RWclose(f);
     return contents;
@@ -71,8 +69,7 @@ size_t getFileSize(const std::string &name) {
     SDL_RWops *f = SDL_RWFromFile(name.c_str(), "rb");
     if (!f) return 0;
 
-    SDL_RWseek(f, 0, SEEK_END);
-    int size = SDL_RWtell(f);
+    int size = SDL_RWsize(f);
     SDL_RWclose(f);
 
     return size;

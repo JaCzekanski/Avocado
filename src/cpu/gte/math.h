@@ -21,6 +21,11 @@ struct Vector {
     Vector() = default;
     Vector(X x) : x(x), y(x), z(x) {}
     Vector(X x, Y y, Z z) : x(x), y(y), z(z) {}
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(x, y, z);
+    }
 };
 
 Vector<int16_t> toVector(int16_t ir[4]);

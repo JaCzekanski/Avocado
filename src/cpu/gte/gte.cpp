@@ -8,7 +8,18 @@ GTE::GTE() : unrTable(generateUnrTable()) {
 
 GTE::~GTE() { bus.unlistenAll(busToken); }
 
-void GTE::reload() { widescreenHack = config["options"]["graphics"]["forceWidescreen"]; }
+constexpr std::array<uint8_t, 0x101> GTE::generateUnrTable() {
+    std::array<uint8_t, 0x101> table = {{0}};
+    for (int i = 0; i < (int)table.size(); i++) {
+        table[i] = std::max(0, (0x40000 / (i + 0x100) + 1) / 2 - 0x101);
+    }
+    return table;
+}
+
+void GTE::reload() {
+    widescreenHack = config["options"]["graphics"]["forceWidescreen"];
+    logging = config["debug"]["log"]["gte"].get<int>();
+}
 
 uint32_t GTE::read(uint8_t n) {
     uint32_t ret = [this](uint8_t n) -> uint32_t {
@@ -92,12 +103,16 @@ uint32_t GTE::read(uint8_t n) {
         }
     }(n);
 
-    log.push_back({GTE_ENTRY::MODE::read, n, ret});
+    if (logging) {
+        log.push_back({GTE_ENTRY::MODE::read, n, ret});
+    }
     return ret;
 }
 
 void GTE::write(uint8_t n, uint32_t d) {
-    log.push_back({GTE_ENTRY::MODE::write, n, d});
+    if (logging) {
+        log.push_back({GTE_ENTRY::MODE::write, n, d});
+    }
     switch (n) {
         case 0:
             v[0].y = d >> 16;
@@ -245,34 +260,37 @@ void GTE::write(uint8_t n, uint32_t d) {
     }
 }
 
-bool GTE::command(gte::Command& cmd) {
+void GTE::command(gte::Command& cmd) {
+    if (logging) {
+        log.push_back({GTE_ENTRY::MODE::func, cmd.cmd, 0});
+    }
+
     flag.reg = 0;
     this->sf = cmd.sf;
     this->lm = cmd.lm;
 
     switch (cmd.cmd) {
-        case 0x01: rtps(); return true;
-        case 0x06: nclip(); return true;
-        case 0x0c: op(); return true;
-        case 0x10: dpcs(); return true;
-        case 0x11: intpl(); return true;
-        case 0x12: mvmva(cmd.mvmvaMultiplyMatrix, cmd.mvmvaMultiplyVector, cmd.mvmvaTranslationVector); return true;
-        case 0x13: ncds(); return true;
-        case 0x14: cdp(); return true;
-        case 0x16: ncdt(); return true;
-        case 0x1b: nccs(); return true;
-        case 0x1c: cc(); return true;
-        case 0x1e: ncs(); return true;
-        case 0x20: nct(); return true;
-        case 0x2a: dpct(); return true;
-        case 0x28: sqr(); return true;
-        case 0x29: dcpl(); return true;
-        case 0x2d: avsz3(); return true;
-        case 0x2e: avsz4(); return true;
-        case 0x30: rtpt(); return true;
-        case 0x3d: gpf(); return true;
-        case 0x3e: gpl(); return true;
-        case 0x3f: ncct(); return true;
-        default: return false;
+        case 0x01: rtps(); break;
+        case 0x06: nclip(); break;
+        case 0x0c: op(); break;
+        case 0x10: dpcs(); break;
+        case 0x11: intpl(); break;
+        case 0x12: mvmva(cmd.mvmvaMultiplyMatrix, cmd.mvmvaMultiplyVector, cmd.mvmvaTranslationVector); break;
+        case 0x13: ncds(); break;
+        case 0x14: cdp(); break;
+        case 0x16: ncdt(); break;
+        case 0x1b: nccs(); break;
+        case 0x1c: cc(); break;
+        case 0x1e: ncs(); break;
+        case 0x20: nct(); break;
+        case 0x2a: dpct(); break;
+        case 0x28: sqr(); break;
+        case 0x29: dcpl(); break;
+        case 0x2d: avsz3(); break;
+        case 0x2e: avsz4(); break;
+        case 0x30: rtpt(); break;
+        case 0x3d: gpf(); break;
+        case 0x3e: gpl(); break;
+        case 0x3f: ncct(); break;
     }
 }

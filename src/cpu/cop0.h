@@ -87,34 +87,34 @@ struct COP0 {
         enum class Mode : uint32_t { kernel = 0, user = 1 };
         enum class BootExceptionVectors { ram = 0, rom = 1 };
         struct {
-            Bit interruptEnable : 1;
+            uint32_t interruptEnable : 1;
             Mode mode : 1;
 
-            Bit previousInterruptEnable : 1;
+            uint32_t previousInterruptEnable : 1;
             Mode previousMode : 1;
 
-            Bit oldInterruptEnable : 1;
+            uint32_t oldInterruptEnable : 1;
             Mode oldMode : 1;
 
             uint32_t : 2;
 
             uint32_t interruptMask : 8;
-            Bit isolateCache : 1;
-            Bit swappedCache : 1;
-            Bit writeZeroAsParityBits : 1;
-            Bit : 1;  // CM
-            Bit cacheParityError : 1;
-            Bit tlbShutdown : 1;  // TS
+            uint32_t isolateCache : 1;
+            uint32_t swappedCache : 1;
+            uint32_t writeZeroAsParityBits : 1;
+            uint32_t : 1;  // CM
+            uint32_t cacheParityError : 1;
+            uint32_t tlbShutdown : 1;  // TS
 
             BootExceptionVectors bootExceptionVectors : 1;
             uint32_t : 2;
-            Bit reverseEndianness : 1;
+            uint32_t reverseEndianness : 1;
             uint32_t : 2;
 
-            Bit cop0Enable : 1;
-            Bit cop1Enable : 1;
-            Bit cop2Enable : 1;
-            Bit cop3Enable : 1;
+            uint32_t cop0Enable : 1;
+            uint32_t cop1Enable : 1;
+            uint32_t cop2Enable : 1;
+            uint32_t cop3Enable : 1;
         };
 
         void enterException() {
@@ -169,4 +169,19 @@ struct COP0 {
     std::pair<uint32_t, bool> read(int reg);
     void write(int reg, uint32_t value);
     void returnFromException();
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(bpc);
+        ar(bda);
+        ar(tar);
+        ar(dcic._reg);
+        ar(bada);
+        ar(bdam);
+        ar(bpcm);
+        ar(status._reg);
+        ar(cause._reg);
+        ar(epc);
+        ar(prid);
+    }
 };

@@ -95,6 +95,11 @@ class CDROM {
         uint8_t channel;
 
         Filter() : file(0), channel(0) {}
+
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(file, channel);
+        }
     };
 
     using FIFO = fifo<uint8_t, 16>;
@@ -183,6 +188,7 @@ class CDROM {
     bool isBufferEmpty();
     uint8_t readByte();
 
+    int readcnt = 0;
     disc::TrackType trackType;
     std::unique_ptr<disc::Disc> disc;
     disc::SubchannelQ lastQ;
@@ -199,6 +205,29 @@ class CDROM {
     void ackMoreData() {
         postInterrupt(1);
         writeResponse(stat._reg);
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(status._reg, interruptEnable);
+        ar(CDROM_params);
+        ar(CDROM_response);
+        ar(interruptQueue);
+        ar(mode._reg);
+        ar(filter);
+        ar(readSector);
+        ar(seekSector);
+        ar(scexCounter);
+        ar(stat._reg);
+        ar(volumeLeftToLeft, volumeLeftToRight, volumeRightToLeft, volumeRightToRight);
+        ar(audio);
+        ar(rawSector);
+        ar(dataBuffer);
+        ar(dataBufferPointer);
+        ar(readcnt);
+        ar(trackType);
+        ar(lastQ);
+        ar(mute);
     }
 };
 }  // namespace cdrom

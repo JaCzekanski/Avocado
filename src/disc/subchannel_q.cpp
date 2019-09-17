@@ -27,7 +27,7 @@ uint16_t SubchannelQ::calculateCrc() {
     for (int i = 0; i < 0x0a; i++) {
         uint8_t x;
         if (i == 0) {
-            x = control._;
+            x = control.reg;
         } else {
             x = data[i - 1];
         }

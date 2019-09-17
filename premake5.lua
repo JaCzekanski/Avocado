@@ -146,6 +146,7 @@ project "core"
 		"externals/EventBus/lib/include",
 		"externals/magic_enum/include",
 		"externals/fmt/include",
+        "externals/cereal/include",
 	}
 
 	files { 
@@ -189,6 +190,7 @@ project "avocado"
         "externals/EventBus/lib/include",
 		"externals/magic_enum/include",
 		"externals/fmt/include",
+        "externals/cereal/include",
 	}
 
 	links {

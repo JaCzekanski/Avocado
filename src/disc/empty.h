@@ -11,7 +11,7 @@ struct Empty : public Disc {
         return std::make_pair(std::vector<uint8_t>(), TrackType::INVALID);
     }
 
-    std::string getFile() const { return "No CD"; }
+    std::string getFile() const { return ""; }
 
     size_t getTrackCount() const { return 0; }
 

@@ -3,12 +3,13 @@
 #include <imgui.h>
 #include <chrono>
 #include "config.h"
-#include "cpu/gte/gte.h"
-#include "debug/cdrom/cdrom.h"
-#include "debug/cpu/cpu.h"
-#include "debug/gpu/gpu.h"
-#include "debug/kernel/kernel.h"
-#include "debug/timers/timers.h"
+#include "debug/cdrom.h"
+#include "debug/cpu.h"
+#include "debug/gpu.h"
+#include "debug/gte.h"
+#include "debug/kernel.h"
+#include "debug/spu.h"
+#include "debug/timers.h"
 #include "options.h"
 #include "options/memory_card/memory_card.h"
 #include "platform/windows/input/key.h"
@@ -17,20 +18,15 @@
 
 void openFileWindow();
 
-void gteRegistersWindow(GTE& gte);
 void ioLogWindow(System* sys);
-void gteLogWindow(System* sys);
 void gpuLogWindow(System* sys);
 void vramWindow(gpu::GPU* gpu);
 void watchWindow(System* sys);
 void ramWindow(System* sys);
-void spuWindow(spu::SPU* spu);
 
 bool showGui = true;
 
-bool gteRegistersEnabled = false;
 bool ioLogEnabled = false;
-bool gteLogEnabled = false;
 bool gpuLogEnabled = false;
 bool singleFrame = false;
 
@@ -42,9 +38,11 @@ bool showSpuWindow = false;
 
 bool showAboutWindow = false;
 
-gui::debug::cdrom::Cdrom cdromDebug;
-gui::debug::cpu::CPU cpuDebug;
-gui::debug::timers::Timers timersDebug;
+gui::debug::Cdrom cdromDebug;
+gui::debug::CPU cpuDebug;
+gui::debug::Timers timersDebug;
+gui::debug::GTE gteDebug;
+gui::debug::SPU spuDebug;
 
 gui::options::memory_card::MemoryCard memoryCardOptions;
 
@@ -118,9 +116,28 @@ void renderImgui(System* sys) {
                     sys->cdrom->toggleShell();
                 }
 
-                if (ImGui::MenuItem("Single frame", "F7")) {
+                if (ImGui::MenuItem("Single frame", "F6")) {
                     singleFrame = true;
                     sys->state = System::State::run;
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Quick save", "F5")) bus.notify(Event::System::SaveState{});
+                if (ImGui::MenuItem("Quick load", "F7")) bus.notify(Event::System::LoadState{});
+
+                if (ImGui::BeginMenu("Save")) {
+                    for (int i = 1; i <= 5; i++) {
+                        if (ImGui::MenuItem(fmt::format("Slot {}##save", i).c_str())) bus.notify(Event::System::SaveState{i});
+                    }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Load")) {
+                    for (int i = 1; i <= 5; i++) {
+                        if (ImGui::MenuItem(fmt::format("Slot {}##load", i).c_str())) bus.notify(Event::System::LoadState{i});
+                    }
+                    ImGui::EndMenu();
                 }
 
                 ImGui::EndMenu();
@@ -129,29 +146,30 @@ void renderImgui(System* sys) {
                 if (ImGui::MenuItem("System log", nullptr, &sys->debugOutput)) {
                     config["debug"]["log"]["system"] = (int)sys->debugOutput;
                 }
-                if (ImGui::MenuItem("BIOS calls log", nullptr, (bool*)&sys->biosLog)) {
+                if (ImGui::MenuItem("Syscall log", nullptr, (bool*)&sys->biosLog)) {
                     config["debug"]["log"]["bios"] = sys->biosLog;
                 }
 #ifdef ENABLE_IO_LOG
                 ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
 #endif
-                ImGui::MenuItem("GTE log", nullptr, &gteLogEnabled);
+                ImGui::MenuItem("GTE log", nullptr, &gteDebug.logWindowOpen);
                 ImGui::MenuItem("GPU log", nullptr, &gpuLogEnabled);
 
                 ImGui::Separator();
 
-                ImGui::MenuItem("GTE registers", nullptr, &gteRegistersEnabled);
-                ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
-
-                ImGui::MenuItem("Memory", nullptr, &showRamWindow);
-                ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
                 ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
                 ImGui::MenuItem("Breakpoints", nullptr, &cpuDebug.breakpointsWindowOpen);
                 ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
+                ImGui::MenuItem("Memory", nullptr, &showRamWindow);
+
+                ImGui::Separator();
                 ImGui::MenuItem("CDROM", nullptr, &cdromDebug.cdromWindowOpen);
-                ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
+                ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
                 ImGui::MenuItem("GPU", nullptr, &showGpuWindow);
-                ImGui::MenuItem("SPU", nullptr, &showSpuWindow);
+                ImGui::MenuItem("GTE", nullptr, &gteDebug.registersWindowOpen);
+                ImGui::MenuItem("SPU", nullptr, &spuDebug.spuWindowOpen);
+                ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
+                ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
 
                 ImGui::Separator();
                 if (ImGui::MenuItem("Dump state")) {
@@ -167,6 +185,25 @@ void renderImgui(System* sys) {
                 if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
                 if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
                 ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
+
+                bool soundEnabled = config["options"]["sound"]["enabled"];
+                if (ImGui::MenuItem("Sound", nullptr, &soundEnabled)) {
+                    config["options"]["sound"]["enabled"] = soundEnabled;
+                    bus.notify(Event::Config::Spu{});
+                }
+
+                ImGui::Separator();
+
+                bool preserveState = config["options"]["emulator"]["preserveState"];
+                if (ImGui::MenuItem("Save state on close", nullptr, &preserveState)) {
+                    config["options"]["emulator"]["preserveState"] = preserveState;
+                }
+
+                bool timeTravel = config["options"]["emulator"]["timeTravel"];
+                if (ImGui::MenuItem("Time travel", "backspace", &timeTravel)) {
+                    config["options"]["emulator"]["timeTravel"] = timeTravel;
+                }
+
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Help")) {
@@ -180,20 +217,19 @@ void renderImgui(System* sys) {
         gui::file::displayWindows();
 
         // Debug
-        if (gteRegistersEnabled) gteRegistersWindow(sys->cpu->gte);
         if (ioLogEnabled) ioLogWindow(sys);
-        if (gteLogEnabled) gteLogWindow(sys);
         if (gpuLogEnabled) gpuLogWindow(sys);
         if (showRamWindow) ramWindow(sys);
         if (showVramWindow) vramWindow(sys->gpu.get());
         if (showWatchWindow) watchWindow(sys);
         if (showKernelWindow) kernelWindow(sys);
         if (showGpuWindow) gpuWindow(sys);
-        if (showSpuWindow) spuWindow(sys->spu.get());
 
         cdromDebug.displayWindows(sys);
         cpuDebug.displayWindows(sys);
         timersDebug.displayWindows(sys);
+        gteDebug.displayWindows(sys);
+        spuDebug.displayWindows(sys);
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();

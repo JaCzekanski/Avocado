@@ -24,7 +24,6 @@ void CDROM::step() {
         }
     }
 
-    static int readcnt = 0;
     if ((stat.read || stat.play) && readcnt++ == 1150) {  // FIXME: yey, magic numbers
         readcnt = 0;
         const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};

@@ -5,18 +5,19 @@
 #include "dma2_channel.h"
 #include "dma3_channel.h"
 #include "dma4_channel.h"
+#include "dma5_channel.h"
 #include "dma6_channel.h"
 #include "system.h"
 
 namespace device::dma {
 DMA::DMA(System* sys) : sys(sys) {
-    dma[0] = std::make_unique<dmaChannel::DMA0Channel>(0, sys, sys->mdec.get());
-    dma[1] = std::make_unique<dmaChannel::DMA1Channel>(1, sys, sys->mdec.get());
-    dma[2] = std::make_unique<dmaChannel::DMA2Channel>(2, sys, sys->gpu.get());
-    dma[3] = std::make_unique<dmaChannel::DMA3Channel>(3, sys, sys->cdrom.get());
-    dma[4] = std::make_unique<dmaChannel::DMA4Channel>(4, sys, sys->spu.get());
-    dma[5] = std::make_unique<dmaChannel::DMAChannel>(5, sys);
-    dma[6] = std::make_unique<dmaChannel::DMA6Channel>(6, sys);
+    dma[0] = std::make_unique<DMA0Channel>(Channel::MDECin, sys, sys->mdec.get());
+    dma[1] = std::make_unique<DMA1Channel>(Channel::MDECout, sys, sys->mdec.get());
+    dma[2] = std::make_unique<DMA2Channel>(Channel::GPU, sys, sys->gpu.get());
+    dma[3] = std::make_unique<DMA3Channel>(Channel::CDROM, sys, sys->cdrom.get());
+    dma[4] = std::make_unique<DMA4Channel>(Channel::SPU, sys, sys->spu.get());
+    dma[5] = std::make_unique<DMA5Channel>(Channel::PIO, sys);
+    dma[6] = std::make_unique<DMA6Channel>(Channel::OTC, sys);
 }
 
 void DMA::step() {

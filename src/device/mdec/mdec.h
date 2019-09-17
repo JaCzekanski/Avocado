@@ -41,8 +41,6 @@ class MDEC {
         Status() : _reg(0) {}
     };
 
-    static const uint32_t BASE_ADDRESS = 0x1f801820;
-
     int verbose;
     Command command;
     Reg32 data;
@@ -58,14 +56,13 @@ class MDEC {
     int paramCount = 0;
     int cnt = 0;
 
-    void reset();
-
     std::vector<uint16_t> input;
     std::vector<uint32_t> output;
     size_t outputPtr;
 
-    // Algorithm
+    void reset();
 
+    // Algorithm
     void decodeMacroblocks();
     void yuvToRgb(decodedBlock& output, int blockX, int blockY);
     decodedBlock decodeMacroblock(std::vector<uint16_t>::iterator& src);
@@ -78,5 +75,13 @@ class MDEC {
     uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
     void write(uint32_t address, uint32_t data);
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(command._reg, data, status._reg, _control, cmd);
+        ar(luminanceQuantTable, colorQuantTable, idctTable);
+        ar(color, paramCount, cnt);
+        ar(input, output, outputPtr);
+    }
 };
 };  // namespace mdec

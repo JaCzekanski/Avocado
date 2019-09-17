@@ -59,4 +59,9 @@ class fifo {
     }
 
     T operator[](size_t ptr) const { return peek(ptr); }
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(data);
+    }
 };
