@@ -7,6 +7,7 @@
 #include "debug/cpu.h"
 #include "debug/gpu.h"
 #include "debug/gte.h"
+#include "debug/io.h"
 #include "debug/kernel.h"
 #include "debug/spu.h"
 #include "debug/timers.h"
@@ -18,21 +19,11 @@
 
 void openFileWindow();
 
-void ioLogWindow(System* sys);
-void gpuLogWindow(System* sys);
-void vramWindow(gpu::GPU* gpu);
-void watchWindow(System* sys);
-void ramWindow(System* sys);
-
 bool showGui = true;
 
-bool ioLogEnabled = false;
 bool singleFrame = false;
 
 bool notInitializedWindowShown = false;
-bool showVramWindow = false;
-bool showWatchWindow = false;
-bool showRamWindow = false;
 
 bool showAboutWindow = false;
 
@@ -42,6 +33,7 @@ gui::debug::GPU gpuDebug;
 gui::debug::Timers timersDebug;
 gui::debug::GTE gteDebug;
 gui::debug::SPU spuDebug;
+gui::debug::IO ioDebug;
 
 gui::options::memory_card::MemoryCard memoryCardOptions;
 
@@ -149,25 +141,26 @@ void renderImgui(System* sys) {
                     config["debug"]["log"]["bios"] = sys->biosLog;
                 }
 #ifdef ENABLE_IO_LOG
-                ImGui::MenuItem("IO log", nullptr, &ioLogEnabled);
+                ImGui::MenuItem("IO log", nullptr, &ioDebug.logWindowOpen);
 #endif
                 ImGui::MenuItem("GTE log", nullptr, &gteDebug.logWindowOpen);
-                ImGui::MenuItem("GPU log", nullptr, &gpuDebug.logEnabled);
+                ImGui::MenuItem("GPU log", nullptr, &gpuDebug.logWindowOpen);
 
                 ImGui::Separator();
 
                 ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
                 ImGui::MenuItem("Breakpoints", nullptr, &cpuDebug.breakpointsWindowOpen);
-                ImGui::MenuItem("Watch", nullptr, &showWatchWindow);
-                ImGui::MenuItem("Memory", nullptr, &showRamWindow);
+                ImGui::MenuItem("Watch", nullptr, &cpuDebug.watchWindowOpen);
+                ImGui::MenuItem("RAM", nullptr, &cpuDebug.ramWindowOpen);
 
                 ImGui::Separator();
+
                 ImGui::MenuItem("CDROM", nullptr, &cdromDebug.cdromWindowOpen);
                 ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
                 ImGui::MenuItem("GPU", nullptr, &gpuDebug.registersWindowOpen);
                 ImGui::MenuItem("GTE", nullptr, &gteDebug.registersWindowOpen);
                 ImGui::MenuItem("SPU", nullptr, &spuDebug.spuWindowOpen);
-                ImGui::MenuItem("VRAM", nullptr, &showVramWindow);
+                ImGui::MenuItem("VRAM", nullptr, &gpuDebug.vramWindowOpen);
                 ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
 
                 ImGui::Separator();
@@ -216,12 +209,7 @@ void renderImgui(System* sys) {
         gui::file::displayWindows();
 
         // Debug
-        if (ioLogEnabled) ioLogWindow(sys);
-        if (showRamWindow) ramWindow(sys);
-        if (showVramWindow) vramWindow(sys->gpu.get());
-        if (showWatchWindow) watchWindow(sys);
         if (showKernelWindow) kernelWindow(sys);
-        if (showGpuWindow) gpuWindow(sys);
 
         cdromDebug.displayWindows(sys);
         cpuDebug.displayWindows(sys);
@@ -229,6 +217,7 @@ void renderImgui(System* sys) {
         timersDebug.displayWindows(sys);
         gteDebug.displayWindows(sys);
         spuDebug.displayWindows(sys);
+        ioDebug.displayWindows(sys);
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
