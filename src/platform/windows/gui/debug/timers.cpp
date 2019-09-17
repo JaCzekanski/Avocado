@@ -3,34 +3,10 @@
 #include <imgui.h>
 #include <magic_enum.hpp>
 #include <numeric>
-#include "platform/windows/gui/tools.h"
+#include "device/timer.h"
 #include "system.h"
 
-namespace gui::debug::timers {
-
-#define ENUM_NAME(x) (std::string(magic_enum::enum_name(x)))
-
-std::string getSyncMode(Timer* timer) {
-    timer::CounterMode mode = timer->mode;
-
-    switch (timer->which) {
-        case 0: return ENUM_NAME(static_cast<timer::CounterMode::SyncMode0>(mode.syncMode));
-        case 1: return ENUM_NAME(static_cast<timer::CounterMode::SyncMode1>(mode.syncMode));
-        case 2: return ENUM_NAME(static_cast<timer::CounterMode::SyncMode2>(mode.syncMode));
-        default: return "";
-    }
-}
-
-std::string getClockSource(Timer* timer) {
-    timer::CounterMode mode = timer->mode;
-
-    switch (timer->which) {
-        case 0: return ENUM_NAME(static_cast<timer::CounterMode::ClockSource0>(mode.clockSource & 1));
-        case 1: return ENUM_NAME(static_cast<timer::CounterMode::ClockSource1>(mode.clockSource & 1));
-        case 2: return ENUM_NAME(static_cast<timer::CounterMode::ClockSource2>((mode.clockSource >> 1) & 1));
-        default: return "";
-    }
-}
+namespace gui::debug {
 
 struct Field {
     std::string bits;
@@ -38,6 +14,32 @@ struct Field {
     std::string value;
     bool active = true;
 };
+
+#define ENUM_NAME(x) (std::string(magic_enum::enum_name(x)))
+
+using namespace device::timer;
+
+std::string Timers::getSyncMode(Timer* timer) {
+    CounterMode mode = timer->mode;
+
+    switch (timer->which) {
+        case 0: return ENUM_NAME(static_cast<CounterMode::SyncMode0>(mode.syncMode));
+        case 1: return ENUM_NAME(static_cast<CounterMode::SyncMode1>(mode.syncMode));
+        case 2: return ENUM_NAME(static_cast<CounterMode::SyncMode2>(mode.syncMode));
+        default: return "";
+    }
+}
+
+std::string Timers::getClockSource(Timer* timer) {
+    CounterMode mode = timer->mode;
+
+    switch (timer->which) {
+        case 0: return ENUM_NAME(static_cast<CounterMode::ClockSource0>(mode.clockSource & 1));
+        case 1: return ENUM_NAME(static_cast<CounterMode::ClockSource1>(mode.clockSource & 1));
+        case 2: return ENUM_NAME(static_cast<CounterMode::ClockSource2>((mode.clockSource >> 1) & 1));
+        default: return "";
+    }
+}
 
 void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
     const size_t colNum = 3;
@@ -96,6 +98,7 @@ void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
 }
 
 void Timers::timersWindow(System* sys) {
+    const int baseAddress = 0x1f801100;
     ImGui::Begin("Timers", &timersWindowOpen, ImVec2(600, 300), ImGuiWindowFlags_NoScrollbar);
 
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
@@ -106,16 +109,16 @@ void Timers::timersWindow(System* sys) {
     for (auto* timer : timers) {
         int which = timer->which;
         const bool syncEnabled = timer->mode.syncEnabled;
-        const bool resetAfterTarget = timer->mode.resetToZero == timer::CounterMode::ResetToZero::whenTarget;
+        const bool resetAfterTarget = timer->mode.resetToZero == CounterMode::ResetToZero::whenTarget;
         const bool irqWhenTarget = timer->mode.irqWhenTarget;
-        const bool irqOneShot = timer->mode.irqRepeatMode == timer::CounterMode::IrqRepeatMode::oneShot;
-        const bool irqPulseMode = timer->mode.irqPulseMode == timer::CounterMode::IrqPulseMode::shortPulse;
+        const bool irqOneShot = timer->mode.irqRepeatMode == CounterMode::IrqRepeatMode::oneShot;
+        const bool irqPulseMode = timer->mode.irqPulseMode == CounterMode::IrqPulseMode::shortPulse;
         const auto clockSource = getClockSource(timer);
 
         ImGui::Text("Timer%d", which);
         ImGui::Text("Value:  0x%04x", timer->current._reg);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("0x%08x", timer->baseAddress + which * 0x10 + 0);
+            ImGui::SetTooltip("0x%08x", baseAddress + which * 0x10 + 0);
         }
 
         ImVec4 color(1, 1, 1, 1);
@@ -123,12 +126,12 @@ void Timers::timersWindow(System* sys) {
 
         ImGui::TextColored(color, "Target: 0x%04x", timer->target._reg);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("0x%08x", timer->baseAddress + which * 0x10 + 8);
+            ImGui::SetTooltip("0x%08x", baseAddress + which * 0x10 + 8);
         }
 
         ImGui::Text("Mode:   0x%04x", timer->mode._reg);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("0x%08x", timer->baseAddress + which * 0x10 + 4);
+            ImGui::SetTooltip("0x%08x", baseAddress + which * 0x10 + 4);
         }
 
         const std::vector<Field> fields = {
@@ -160,4 +163,4 @@ void Timers::timersWindow(System* sys) {
 void Timers::displayWindows(System* sys) {
     if (timersWindowOpen) timersWindow(sys);
 }
-}  // namespace gui::debug::timers
+}  // namespace gui::debug

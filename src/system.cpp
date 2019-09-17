@@ -10,10 +10,10 @@
 #include "utils/psx_exe.h"
 
 System::System() {
-    memset(bios, 0, BIOS_SIZE);
-    memset(ram, 0, RAM_SIZE);
-    memset(scratchpad, 0, SCRATCHPAD_SIZE);
-    memset(expansion, 0, EXPANSION_SIZE);
+    bios.fill(0);
+    ram.fill(0);
+    scratchpad.fill(0);
+    expansion.fill(0);
 
     cpu = std::make_unique<mips::CPU>(this);
     gpu = std::make_unique<gpu::GPU>();
@@ -28,7 +28,7 @@ System::System() {
     memoryControl = std::make_unique<MemoryControl>();
     serial = std::make_unique<Serial>();
     for (int t : {0, 1, 2}) {
-        timer[t] = std::make_unique<Timer>(this, t);
+        timer[t] = std::make_unique<device::timer::Timer>(this, t);
     }
 
     debugOutput = config["debug"]["log"]["system"].get<int>();
@@ -143,16 +143,16 @@ INLINE T System::readMemory(uint32_t address) {
     uint32_t addr = align_mips<T>(address);
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        return read_fast<T>(ram, (addr - RAM_BASE) & (RAM_SIZE - 1));
+        return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
-        return read_fast<T>(expansion, addr - EXPANSION_BASE);
+        return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
     }
     if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
-        return read_fast<T>(scratchpad, addr - SCRATCHPAD_BASE);
+        return read_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE);
     }
     if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
-        return read_fast<T>(bios, addr - BIOS_BASE);
+        return read_fast<T>(bios.data(), addr - BIOS_BASE);
     }
 
     READ_IO(0x1f801000, 0x1f801024, memoryControl);
@@ -190,13 +190,13 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     uint32_t addr = align_mips<T>(address);
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        return write_fast<T>(ram, (addr - RAM_BASE) & (RAM_SIZE - 1), data);
+        return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
-        return write_fast<T>(expansion, addr - EXPANSION_BASE, data);
+        return write_fast<T>(expansion.data(), addr - EXPANSION_BASE, data);
     }
     if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
-        return write_fast<T>(scratchpad, addr - SCRATCHPAD_BASE, data);
+        return write_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE, data);
     }
 
     WRITE_IO(0x1f801000, 0x1f801024, memoryControl);
@@ -381,10 +381,12 @@ void System::emulateFrame() {
             return;  // frame emulated
         }
 
+        // TODO: Move this code to Timer class
         if (gpu->gpuLine > gpu::LINE_VBLANK_START_NTSC) {
-            if (timer[1]->mode.syncEnabled) {
-                auto mode1 = static_cast<timer::CounterMode::SyncMode1>(timer[1]->mode.syncMode);
-                using modes = timer::CounterMode::SyncMode1;
+            auto& t = *timer[1];
+            if (t.mode.syncEnabled) {
+                using modes = device::timer::CounterMode::SyncMode1;
+                auto mode1 = static_cast<modes>(timer[1]->mode.syncMode);
                 if (mode1 == modes::resetAtVblank || mode1 == modes::resetAtVblankAndPauseOutside) {
                     timer[1]->current._reg = 0;
                 } else if (mode1 == modes::pauseUntilVblankAndFreerun) {
@@ -446,7 +448,8 @@ bool System::loadBios(std::string path) {
         fmt::print("[WARNING]: Loaded bios ({}) have invalid header, are you using correct file?\n", getFilenameExt(path));
     }
 
-    std::copy(_bios.begin(), _bios.end(), bios);
+    std::copy(_bios.begin(), _bios.end(), bios.begin());
+    this->biosPath = path;
     state = State::run;
     biosLoaded = true;
     return true;
@@ -465,12 +468,11 @@ bool System::loadExpansion(const std::vector<uint8_t>& _exp) {
         fmt::print("[WARN]: Loaded expansion have invalid header, are you using correct file?\n");
     }
 
-    std::copy(_exp.begin(), _exp.end(), expansion);
+    std::copy(_exp.begin(), _exp.end(), expansion.begin());
     return true;
 }
 
 void System::dumpRam() {
-    std::vector<uint8_t> ram;
-    ram.assign(this->ram, this->ram + 0x1fffff);
+    std::vector<uint8_t> ram(this->ram.begin(), this->ram.end());
     putFileContents("ram.bin", ram);
 }

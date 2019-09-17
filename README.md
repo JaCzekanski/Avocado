@@ -13,6 +13,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
+*16.09.2019* - Save states
+
 *5.09.2019* - Vibration support
 
 *2.09.2019* - Anti-Modchip and LibCrypt protected games support
@@ -85,8 +87,10 @@ PAL games with LibCrypt protection need additional subchannel info - download pr
 - **F1** - hide GUI
 - **F2** - soft reset
 - **Shift-F2** - hard reset
-- **F7** - single frame
+- **F5** - quick save
+- **F7** - quick load
 - **Tab** - disable framelimiting
+- **Backspace** - rewind one second
 
 Configure controls under Options->Controller menu.
 

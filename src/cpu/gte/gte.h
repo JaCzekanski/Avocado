@@ -7,7 +7,11 @@
 #include "math.h"
 #include "utils/logic.h"
 
-struct GTE {
+namespace gui::debug {
+class GTE;
+}
+
+class GTE {
     union Flag {
         enum {
             IR0_SATURATED = 1 << 12,
@@ -58,6 +62,17 @@ struct GTE {
 
         void calculate() { flag = or_range<30, 23>(reg) | or_range<18, 13>(reg); }
     };
+
+    friend gui::debug::GTE;
+
+    const std::array<uint8_t, 0x101> unrTable;
+    int busToken;
+    bool widescreenHack;
+    bool logging;
+    bool sf;  // Used for setMac and setIr functions
+    bool lm;  // saved as fields to prevent passing them to every function
+
+    // GTE registers 0-63
     gte::Vector<int16_t> v[3];
     Reg32 rgbc;
     uint16_t otz = 0;
@@ -84,41 +99,10 @@ struct GTE {
     int16_t zsf4 = 0;
     Flag flag;
 
-    GTE();
-    ~GTE();
-
-    uint32_t read(uint8_t n);
-    void write(uint8_t n, uint32_t d);
-
-    bool command(gte::Command &cmd);
-
-    struct GTE_ENTRY {
-        enum class MODE { read, write, func } mode;
-
-        uint32_t n;
-        uint32_t data;
-    };
-
-    std::vector<GTE_ENTRY> log;
-
-   private:
-    int busToken;
-    constexpr std::array<uint8_t, 0x101> generateUnrTable() {
-        std::array<uint8_t, 0x101> table = {{0}};
-        for (int i = 0; i < (int)table.size(); i++) {
-            table[i] = std::max(0, (0x40000 / (i + 0x100) + 1) / 2 - 0x101);
-        }
-        return table;
-    }
-    const std::array<uint8_t, 0x101> unrTable;
-
-    bool widescreenHack;
-    // Temporary, used in commands
-    bool sf;
-    bool lm;
-
+    constexpr std::array<uint8_t, 0x101> generateUnrTable();
     void reload();
 
+    // Internal operations and helpers
     void multiplyVectors(gte::Vector<int16_t> v1, gte::Vector<int16_t> v2, gte::Vector<int16_t> tr = gte::Vector<int16_t>(0));
     void multiplyMatrixByVector(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr = gte::Vector<int32_t>(0));
     int64_t multiplyMatrixByVectorRTP(gte::Matrix m, gte::Vector<int16_t> v, gte::Vector<int32_t> tr);
@@ -175,4 +159,49 @@ struct GTE {
     void gpl();
     void sqr();
     void op();
+
+   public:
+    struct GTE_ENTRY {
+        enum class MODE { read, write, func } mode;
+
+        uint32_t n;
+        uint32_t data;
+    };
+    std::vector<GTE_ENTRY> log;
+
+    GTE();
+    ~GTE();
+
+    uint32_t read(uint8_t n);
+    void write(uint8_t n, uint32_t d);
+    void command(gte::Command& cmd);
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(v);
+        ar(rgbc);
+        ar(otz);
+        ar(ir);
+        ar(s);
+        ar(rgb);
+        ar(res1);
+        ar(mac);
+        ar(irgb);
+        ar(lzcs);
+        ar(lzcr);
+
+        ar(rotation);
+        ar(translation);
+        ar(light);
+        ar(backgroundColor);
+        ar(color);
+        ar(farColor);
+        ar(of);
+        ar(h);
+        ar(dqa);
+        ar(dqb);
+        ar(zsf3);
+        ar(zsf4);
+        ar(flag.reg);
+    }
 };

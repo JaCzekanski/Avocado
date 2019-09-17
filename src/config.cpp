@@ -162,17 +162,25 @@ const json defaultConfig = {
             }},
             {"vsync", false},
             {"forceNtsc", false},
-        }}
+        }},
+        {"sound", {
+            {"enabled", true},
+        }},
+        {"emulator", {
+            {"preserveState", true},
+            {"timeTravel", true},
+        }},
     }},
     {"debug", {
         {"log", {
-            { "system",1u },
+            { "system", 1u },
             { "bios",  0u },
             { "cdrom", 0u },
             { "memoryCard", 0u },
             { "controller", 0u },
             { "dma", 0u },
-            { "mdec", 0u }
+            { "mdec", 0u },
+            { "gte", 0u},
         }}
     }},
     {"memoryCard", {

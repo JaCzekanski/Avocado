@@ -47,7 +47,7 @@ bool Disc::loadLsd(const std::vector<uint8_t>& lsd) {
         Position pos(mm, ss, ff);
 
         SubchannelQ q;
-        q.control._ = lsd[p + 3];
+        q.control.reg = lsd[p + 3];
         for (int j = 0; j < 9; j++) {
             q.data[j] = lsd[p + 4 + j];
         }
@@ -90,7 +90,7 @@ bool Disc::loadSbi(const std::vector<uint8_t>& sbi) {
         Position pos(mm, ss, ff);
 
         SubchannelQ q;
-        q.control._ = sbi[p + 4];
+        q.control.reg = sbi[p + 4];
         for (int j = 0; j < 9; j++) {
             q.data[j] = sbi[p + 5 + j];
         }

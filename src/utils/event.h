@@ -9,6 +9,7 @@ namespace Config {
 struct Graphics {};
 struct Gte {};
 struct Controller {};
+struct Spu {};
 };  // namespace Config
 
 namespace File {
@@ -22,6 +23,12 @@ struct Exit {};
 namespace System {
 struct SoftReset {};
 struct HardReset {};
+struct SaveState {
+    int slot = 0;
+};
+struct LoadState {
+    int slot = 0;
+};
 };  // namespace System
 
 namespace Gui {

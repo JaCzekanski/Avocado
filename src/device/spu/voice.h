@@ -52,5 +52,27 @@ struct Voice {
 
     void keyOn();
     void keyOff();
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(volume._reg, sampleRate, startAddress);
+        ar(adsr._reg, adsrVolume);
+        ar(repeatAddress);
+        ar(ignoreLoadRepeatAddress);
+        ar(currentAddress);
+        ar(counter._reg);
+        ar(state);
+        ar(mode);
+        ar(pitchModulation);
+        ar(reverb);
+        ar(adsrWaitCycles);
+        ar(loopEnd);
+        ar(loadRepeatAddress);
+        ar(flagsParsed);
+        ar(sample);
+        ar(prevSample);
+        ar(decodedSamples);
+        ar(prevDecodedSamples);
+    }
 };
 }  // namespace spu

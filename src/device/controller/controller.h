@@ -53,6 +53,12 @@ class Controller {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
     void update();
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(deviceSelected, mode, control, baud, irq, irqTimer, rxData, rxPending, ack);
+        // TODO: serialize controller && card state
+    }
 };
 }  // namespace controller
 }  // namespace device

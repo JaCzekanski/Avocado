@@ -2,7 +2,7 @@
 #include <fmt/core.h>
 #include "system.h"
 
-using namespace timer;
+namespace device::timer {
 
 Timer::Timer(System* sys, int which) : which(which), sys(sys) {}
 
@@ -138,3 +138,5 @@ void Timer::write(uint32_t address, uint8_t data) {
         target.write(address - 8, data);
     }
 }
+
+};  // namespace device::timer

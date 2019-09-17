@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include "device/device.h"
 #include "dma_channel.h"
 
 struct System;
@@ -10,25 +9,25 @@ namespace device::dma {
 union DPCR {
     struct {
         uint32_t priorityMdecIn : 3;  // DMA0
-        Bit enableMdecIn : 1;         // DMA0
+        uint32_t enableMdecIn : 1;    // DMA0
 
         uint32_t priorityMdecOut : 3;  // DMA1
-        Bit enableMdecOut : 1;         // DMA1
+        uint32_t enableMdecOut : 1;    // DMA1
 
         uint32_t priorityGpu : 3;  // DMA2
-        Bit enableGpu : 1;         // DMA2
+        uint32_t enableGpu : 1;    // DMA2
 
         uint32_t priorityCdrom : 3;  // DMA3
-        Bit enableCdrom : 1;         // DMA3
+        uint32_t enableCdrom : 1;    // DMA3
 
         uint32_t prioritySpu : 3;  // DMA4
-        Bit enableSpu : 1;         // DMA4
+        uint32_t enableSpu : 1;    // DMA4
 
         uint32_t priorityPio : 3;  // DMA5
-        Bit enablePio : 1;         // DMA5
+        uint32_t enablePio : 1;    // DMA5
 
         uint32_t priorityOtc : 3;  // DMA6
-        Bit enableOtc : 1;         // DMA6
+        uint32_t enableOtc : 1;    // DMA6
 
         uint32_t : 4;
     };
@@ -95,19 +94,24 @@ union DICR {
 };
 
 class DMA {
+    std::unique_ptr<DMAChannel> dma[7];
+
     DPCR control;
     DICR status;
     bool pendingInterrupt = false;
 
-   private:
     System* sys;
 
    public:
-    std::unique_ptr<dmaChannel::DMAChannel> dma[7];
-
     DMA(System* sys);
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(control._reg, status._reg, pendingInterrupt);
+        for (auto& ch : dma) ar(*ch);
+    }
 };
 }  // namespace device::dma

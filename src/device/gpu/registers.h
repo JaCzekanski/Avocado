@@ -7,6 +7,8 @@ namespace gpu {
 // FIFO size
 const int MAX_ARGS = 32;
 
+enum class ReadMode { Register, Vram };
+
 // Draw Mode setting
 union GP0_E1 {
     enum class TexturePageColors : uint32_t { bit4 = 0, bit8 = 1, bit15 = 2 };
@@ -16,19 +18,16 @@ union GP0_E1 {
         uint32_t texturePageBaseY : 1;  // N * 256
         SemiTransparency semiTransparency : 2;
         TexturePageColors texturePageColors : 2;
-        Bit dither24to15 : 1;
+        uint32_t dither24to15 : 1;
         DrawingToDisplayArea drawingToDisplayArea : 1;
-        Bit textureDisable : 1;          // 0=Normal, 1=Disable if GP1(09h).Bit0=1)
-        Bit texturedRectangleXFlip : 1;  // (BIOS does set this bit on power-up...?)
-        Bit texturedRectangleYFlip : 1;  // (BIOS does set it equal to GPUSTAT.13...?)
+        uint32_t textureDisable : 1;          // 0=Normal, 1=Disable if GP1(09h).Bit0=1)
+        uint32_t texturedRectangleXFlip : 1;  // (BIOS does set this bit on power-up...?)
+        uint32_t texturedRectangleYFlip : 1;  // (BIOS does set it equal to GPUSTAT.13...?)
 
         uint32_t : 10;
         uint8_t command;  // 0xe1
     };
-    struct {
-        uint32_t _reg : 24;
-        uint32_t _command : 8;
-    };
+    uint32_t _reg;
 
     GP0_E1() : _reg(0) {}
 };
@@ -44,10 +43,7 @@ union GP0_E2 {
         uint32_t : 4;
         uint8_t command;  // 0xe1
     };
-    struct {
-        uint32_t _reg : 24;
-        uint32_t _command : 8;
-    };
+    uint32_t _reg;
 
     GP0_E2() : _reg(0) {}
 };
@@ -61,10 +57,7 @@ union GP0_E6 {
         uint32_t : 22;
         uint8_t command;  // 0xe6
     };
-    struct {
-        uint32_t _reg : 24;
-        uint32_t _command : 8;
-    };
+    uint32_t _reg;
 
     GP0_E6() : _reg(0) {}
 };
@@ -98,10 +91,7 @@ union GP1_08 {
         uint32_t : 16;
         uint8_t command;  // 0x08
     };
-    struct {
-        uint32_t _reg : 24;
-        uint32_t _command : 8;
-    };
+    uint32_t _reg;
 
     GP1_08() : _reg(0) {}
 
@@ -126,6 +116,11 @@ struct Rect {
     T top = 0;
     T right = 0;
     T bottom = 0;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(left, top, right, bottom);
+    }
 };
 
 union PolygonArgs {

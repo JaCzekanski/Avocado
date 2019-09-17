@@ -1,5 +1,6 @@
 #include "kernel.h"
 #include <imgui.h>
+#include "system.h"
 
 bool showKernelWindow = false;
 

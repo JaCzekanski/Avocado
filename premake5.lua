@@ -9,7 +9,7 @@ require "./premake/androidmk"
 
 workspace "Avocado"    
 	configurations { "debug", "release" }
-    startproject "avocado"
+	startproject "avocado"
 	
 ndkstl "c++_static"
 ndkplatform "android-24"
@@ -22,31 +22,31 @@ filter "options:enable-io-log"
 	defines "ENABLE_IO_LOG"
 
 newoption {
-    trigger = "asan",
-    description = "Build with Address Sanitizer enabled"
+	trigger = "asan",
+	description = "Build with Address Sanitizer enabled"
 }
 filter "options:asan"
 	symbols "On"
-    buildoptions {"-fsanitize=address"}
+	buildoptions {"-fsanitize=address"}
 	linkoptions {"-fsanitize=address"}
 	
 newoption {
-    trigger = "msan",
-    description = "Build with Memory Sanitizer enabled"
+	trigger = "msan",
+	description = "Build with Memory Sanitizer enabled"
 }
 filter "options:msan"
 	symbols "On"
-    buildoptions {"-fsanitize=memory"}
+	buildoptions {"-fsanitize=memory"}
 	linkoptions {"-fsanitize=memory"}
 	
 newoption {
-    trigger = "ubsan",
-    description = "Build with Undefined Behaviour Sanitizer enabled"
+	trigger = "ubsan",
+	description = "Build with Undefined Behaviour Sanitizer enabled"
 }
 filter "options:ubsan"
 	symbols "On"
-    buildoptions {"-fsanitize=undefined"}
-    linkoptions {"-fsanitize=undefined"}
+	buildoptions {"-fsanitize=undefined"}
+	linkoptions {"-fsanitize=undefined"}
 
 filter {}
 	language "c++"
@@ -94,6 +94,9 @@ filter "action:gmake"
 
 filter "action:vs*"
 	defines "_CRT_SECURE_NO_WARNINGS"
+
+filter { "action:vs*", "configurations:Debug" }
+	defines "_ITERATOR_DEBUG_LEVEL=0"
 	
 filter "action:xcode*"
 	buildoptions "-fvisibility=hidden"
@@ -146,6 +149,7 @@ project "core"
 		"externals/EventBus/lib/include",
 		"externals/magic_enum/include",
 		"externals/fmt/include",
+		"externals/cereal/include",
 	}
 
 	files { 
@@ -186,9 +190,10 @@ project "avocado"
 		"externals/stb",
 		"externals/libchdr/src",
 		"externals/filesystem/include",
-        "externals/EventBus/lib/include",
+		"externals/EventBus/lib/include",
 		"externals/magic_enum/include",
 		"externals/fmt/include",
+		"externals/cereal/include",
 	}
 
 	links {
@@ -252,7 +257,7 @@ project "avocado"
 		
 
 	filter {"system:macosx"}
-	    kind "WindowedApp"
+		kind "WindowedApp"
 		files { 
 			"src/imgui/**.*",
 			"src/renderer/opengl/**.*",

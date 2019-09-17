@@ -1,38 +1,24 @@
 #include "dma_channel.h"
 #include <fmt/core.h>
+#include <magic_enum.hpp>
 #include "config.h"
 #include "system.h"
 
-namespace device::dma::dmaChannel {
-DMAChannel::DMAChannel(int channel, System* sys) : channel(channel), sys(sys) { verbose = config["debug"]["log"]["dma"]; }
+namespace device::dma {
+DMAChannel::DMAChannel(Channel channel, System* sys) : channel(channel), sys(sys) { verbose = config["debug"]["log"]["dma"]; }
 
 DMAChannel::~DMAChannel() {}
-
-void DMAChannel::step() {}
 
 uint32_t DMAChannel::readDevice() { return 0; }
 
 void DMAChannel::writeDevice(uint32_t data) { (void)data; }
-
-const char* DMAChannel::name() {
-    switch (channel) {
-        case 0: return "MDECin";
-        case 1: return "MDECout";
-        case 2: return "GPU";
-        case 3: return "CDROM";
-        case 4: return "SPU";
-        case 5: return "PIO";
-        case 6: return "OTC";
-        default: return "???";
-    }
-}
 
 uint8_t DMAChannel::read(uint32_t address) {
     if (address < 0x4) return baseAddress._byte[address];
     if (address >= 0x4 && address < 0x8) return count._byte[address - 4];
     if (address >= 0x8 && address < 0xc) return control._byte[address - 8];
 
-    fmt::print("R Unimplemented DMA%d address 0x%08x\n", channel, address);
+    fmt::print("R Unimplemented DMA%d address 0x%08x\n", (int)channel, address);
     return 0;
 }
 
@@ -56,25 +42,25 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             if (verbose) {
                 if (control.direction == CHCR::Direction::toRam) {
-                    fmt::print("[DMA{}] {:<8} -> RAM @ 0x{:08x}, block, count: 0x{:04x}\n", channel, name(), addr,
-                               static_cast<int>(count.syncMode0.wordCount));
+                    fmt::print("[DMA{}] {:<8} -> RAM @ 0x{:08x}, block, count: 0x{:04x}\n", (int)channel, magic_enum::enum_name(channel),
+                               addr, static_cast<int>(count.syncMode0.wordCount));
                 } else if (control.direction == CHCR::Direction::fromRam) {
-                    fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, block, count: 0x{:04x}\n", channel, name(), addr,
-                               static_cast<int>(count.syncMode0.wordCount));
+                    fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, block, count: 0x{:04x}\n", (int)channel, magic_enum::enum_name(channel),
+                               addr, static_cast<int>(count.syncMode0.wordCount));
                 }
             }
-            if (channel == 3)  // CDROM
-            {
+            if (channel == Channel::CDROM) {
                 for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
                     sys->writeMemory32(addr, readDevice());
                     addr += 4;
                 }
             } else {
                 for (size_t i = 0; i < count.syncMode0.wordCount; i++) {
-                    if (i == count.syncMode0.wordCount - 1)
+                    if (i == count.syncMode0.wordCount - 1) {
                         sys->writeMemory32(addr, 0xffffff);
-                    else
+                    } else {
                         sys->writeMemory32(addr, (addr - 4) & 0xffffff);
+                    }
                     addr -= 4;
                 }
             }
@@ -87,8 +73,8 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
 
             if (control.direction == CHCR::Direction::toRam) {
                 if (verbose) {
-                    fmt::print("[DMA{}] {:<8} -> RAM @ 0x{:08x}, sync, BS: 0x{:04x}, BC: 0x{:04x}\n", channel, name(), addr, blockSize,
-                               blockCount);
+                    fmt::print("[DMA{}] {:<8} -> RAM @ 0x{:08x}, sync, BS: 0x{:04x}, BC: 0x{:04x}\n", (int)channel,
+                               magic_enum::enum_name(channel), addr, blockSize, blockCount);
                 }
                 for (int block = 0; block < blockCount; block++) {
                     for (int i = 0; i < blockSize; i++, addr += 4) {
@@ -97,8 +83,8 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 }
             } else if (control.direction == CHCR::Direction::fromRam) {
                 if (verbose) {
-                    fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, sync, BS: 0x{:04x}, BC: 0x{:04x}\n", channel, name(), addr, blockSize,
-                               blockCount);
+                    fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, sync, BS: 0x{:04x}, BC: 0x{:04x}\n", (int)channel,
+                               magic_enum::enum_name(channel), addr, blockSize, blockCount);
                 }
 
                 for (int block = 0; block < blockCount; block++) {
@@ -112,7 +98,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
             int addr = baseAddress.address;
 
             if (verbose) {
-                fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, linked list\n", channel, name(), addr);
+                fmt::print("[DMA{}] {:<8} <- RAM @ 0x{:08x}, linked list\n", (int)channel, magic_enum::enum_name(channel), addr);
             }
 
             int breaker = 0;
@@ -128,7 +114,7 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
                 if (addr == 0xffffff || addr == 0) break;
 
                 if (++breaker > 0x4000) {
-                    fmt::print("[DMA{}] GPU DMA transfer too long, breaking.\n", channel);
+                    fmt::print("[DMA{}] GPU DMA transfer too long, breaking.\n", (int)channel);
                     break;
                 }
             }
@@ -139,4 +125,4 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         control.enabled = CHCR::Enabled::completed;
     }
 }
-}  // namespace device::dma::dmaChannel
+}  // namespace device::dma

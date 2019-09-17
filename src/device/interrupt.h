@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include "device.h"
 
 struct System;
@@ -22,17 +21,17 @@ enum IrqNumber {
 // Interrupt Channels
 union IRQ {
     struct {
-        Bit vblank : 1;      // IRQ0
-        Bit gpu : 1;         // IRQ1
-        Bit cdrom : 1;       // IRQ2
-        Bit dma : 1;         // IRQ3
-        Bit timer0 : 1;      // IRQ4
-        Bit timer1 : 1;      // IRQ5
-        Bit timer2 : 1;      // IRQ6
-        Bit controller : 1;  // IRQ7
-        Bit sio : 1;         // IRQ8
-        Bit spu : 1;         // IRQ9
-        Bit lightpen : 1;    // IRQ10
+        uint16_t vblank : 1;      // IRQ0
+        uint16_t gpu : 1;         // IRQ1
+        uint16_t cdrom : 1;       // IRQ2
+        uint16_t dma : 1;         // IRQ3
+        uint16_t timer0 : 1;      // IRQ4
+        uint16_t timer1 : 1;      // IRQ5
+        uint16_t timer2 : 1;      // IRQ6
+        uint16_t controller : 1;  // IRQ7
+        uint16_t sio : 1;         // IRQ8
+        uint16_t spu : 1;         // IRQ9
+        uint16_t lightpen : 1;    // IRQ10
         uint16_t : 5;
     };
     uint16_t _reg;
@@ -56,6 +55,9 @@ class Interrupt {
 
     void trigger(interrupt::IrqNumber irq);
     bool interruptPending();
-    std::string getMask();
-    std::string getStatus();
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(status._reg, mask._reg);
+    }
 };

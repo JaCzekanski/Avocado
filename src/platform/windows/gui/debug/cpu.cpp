@@ -3,11 +3,20 @@
 #include <imgui.h>
 #include <algorithm>
 #include "debugger/debugger.h"
-#include "platform/windows/gui/tools.h"
 #include "system.h"
 #include "utils/address.h"
 
-namespace gui::debug::cpu {
+namespace gui::debug {
+
+struct Segment {
+    const char* name;
+    uint32_t base;
+    uint32_t size;
+
+    bool inRange(uint32_t addr) { return addr >= base && addr < base + size; }
+
+    static Segment fromAddress(uint32_t);
+};
 
 namespace segments {
 Segment RAM = {"RAM", System::RAM_BASE, System::RAM_SIZE};
@@ -357,8 +366,106 @@ void CPU::breakpointsWindow(System* sys) {
     ImGui::End();
 }
 
+void CPU::watchWindow(System* sys) {
+    static int selectedWatch = -1;
+    ImGui::Begin("Watch", &watchWindowOpen, ImVec2(300, 200));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
+    ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    int i = 0;
+    for (auto& watch : watches) {
+        uint32_t value = 0;
+        if (watch.size == 1)
+            value = sys->readMemory8(watch.address);
+        else if (watch.size == 2)
+            value = sys->readMemory16(watch.address);
+        else if (watch.size == 4)
+            value = sys->readMemory32(watch.address);
+        else
+            continue;
+
+        ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
+        ImGui::PushStyleColor(ImGuiCol_Text, color);
+
+        ImGui::Selectable(fmt::format("0x{:08x}: 0x{:0{}x}    {}", watch.address, value, watch.size * 2, watch.name).c_str());
+
+        ImGui::PopStyleColor();
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGui::GetIO().MouseClicked[1])) {
+            ImGui::OpenPopup("watch_menu");
+            selectedWatch = i;
+        }
+        i++;
+    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+
+    bool showPopup = false;
+    if (ImGui::BeginPopupContextItem("watch_menu")) {
+        if (selectedWatch != -1 && ImGui::Selectable("Remove")) {
+            watches.erase(watches.begin() + selectedWatch);
+            selectedWatch = -1;
+        }
+        if (ImGui::Selectable("Add")) showPopup = true;
+
+        ImGui::EndPopup();
+    }
+    if (showPopup) ImGui::OpenPopup("Add watch");
+
+    if (ImGui::BeginPopupModal("Add watch", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        static const char* sizeLabels[] = {"1 byte (8 bits)", "2 bytes (16 bits)", "4 bytes (32 bits)"};
+        static int selectedSize = 0;
+        static char name[64];
+        static char addressInput[10];
+        uint32_t address;
+
+        ImGui::Text("Size: ");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(160);
+        ImGui::Combo("", &selectedSize, sizeLabels, 3);
+        ImGui::PopItemWidth();
+
+        ImGui::Text("Address: ");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+        ImGui::InputText("##address", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal);
+        ImGui::PopItemWidth();
+
+        ImGui::Text("Name: ");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(-1);
+        ImGui::InputText("##name", name, 64);
+        ImGui::PopItemWidth();
+
+        if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
+        ImGui::SameLine();
+        if (ImGui::Button("Add")) {
+            if (sscanf(addressInput, "%x", &address) == 1) {
+                int size = 1;
+                if (selectedSize == 0)
+                    size = 1;
+                else if (selectedSize == 1)
+                    size = 2;
+                else if (selectedSize == 2)
+                    size = 4;
+
+                watches.push_back({address, size, name});
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    ImGui::Text("Use right mouse button to show menu");
+    ImGui::End();
+}
+
+void CPU::ramWindow(System* sys) { editor.DrawWindow("Ram", sys->ram.data(), System::RAM_SIZE); }
+
 void CPU::displayWindows(System* sys) {
     if (debuggerWindowOpen) debuggerWindow(sys);
     if (breakpointsWindowOpen) breakpointsWindow(sys);
+    if (watchWindowOpen) watchWindow(sys);
+    if (ramWindowOpen) ramWindow(sys);
 }
-}  // namespace gui::debug::cpu
+}  // namespace gui::debug

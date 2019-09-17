@@ -10,4 +10,9 @@ class MemoryControl {
     MemoryControl();
     uint32_t read(uint32_t address);
     void write(uint32_t address, uint32_t data);
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(status);
+    }
 };

@@ -2,36 +2,39 @@
 #include <array>
 
 namespace {
-std::array<int8_t, 64> noiseAddition = {{1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,
-                                         0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1}};
+std::array<int8_t, 64> noiseAddition = {{
+    1, 0, 0, 1, 0, 1, 1, 0,  //
+    1, 0, 0, 1, 0, 1, 1, 0,  //
+    1, 0, 0, 1, 0, 1, 1, 0,  //
+    1, 0, 0, 1, 0, 1, 1, 0,  //
+    0, 1, 1, 0, 1, 0, 0, 1,  //
+    0, 1, 1, 0, 1, 0, 0, 1,  //
+    0, 1, 1, 0, 1, 0, 0, 1,  //
+    0, 1, 1, 0, 1, 0, 0, 1   //
+}};
 
 std::array<uint8_t, 5> noiseHalfcycle = {{0, 84, 140, 180, 210}};
 };  // namespace
 
 namespace spu {
-Noise::Noise() {
-    noiseFrequency = 0;
-    noiseLevel = 0;
-}
-
-int16_t Noise::getNoiseLevel() { return noiseLevel; }
+int16_t Noise::getNoiseLevel() { return level; }
 
 void Noise::doNoise(uint16_t step, uint16_t shift) {
     int freq = (0x8000 >> shift) << 16;
 
-    noiseFrequency += 0x10000;
-    noiseFrequency += noiseHalfcycle[step];
+    frequency += 0x10000;
+    frequency += noiseHalfcycle[step];
 
-    if ((noiseFrequency & 0xffff) >= noiseHalfcycle[4]) {
-        noiseFrequency += 0x10000;
-        noiseFrequency -= noiseHalfcycle[step];
+    if ((frequency & 0xffff) >= noiseHalfcycle[4]) {
+        frequency += 0x10000;
+        frequency -= noiseHalfcycle[step];
     }
 
-    if (noiseFrequency >= freq) {
-        noiseFrequency %= freq;
+    if (frequency >= freq) {
+        frequency %= freq;
 
-        int index = (noiseLevel >> 10) & 0x3f;
-        noiseLevel = (noiseLevel << 1) + noiseAddition[index];
+        int index = (level >> 10) & 0x3f;
+        level = (level << 1) + noiseAddition[index];
     }
 }
 }  // namespace spu

@@ -1,58 +1,43 @@
+#include "gpu.h"
+#define _USE_MATH_DEFINES
 #include <fmt/core.h>
 #include <imgui.h>
+#include <math.h>
 #include <magic_enum.hpp>
 #include <nlohmann/json.hpp>
-#include <vector>
-#include "../../../cpu/gte/gte.h"
-#include "debugger/debugger.h"
-#include "gui.h"
-#include "imgui/imgui_memory_editor.h"
-#include "renderer/opengl/shader/texture.h"
-#include "tools.h"
+#include "platform/windows/gui/images.h"
+#include "renderer/opengl/opengl.h"
+#include "system.h"
 #include "utils/file.h"
 
-extern bool showVramWindow;
-extern bool showWatchWindow;
+namespace gui::debug {
 
-struct Watch {
-    uint32_t address;
-    int size;  // 1, 2, 4
-    std::string name;
-};
-std::vector<Watch> watches = {{0x1F801070, 2, "ISTAT"}, {0x1F801074, 2, "IMASK"}};
+void GPU::registersWindow(System *sys) {
+    auto &gpu = sys->gpu;
 
-struct Area {
-    std::string name;
-    ImVec2 pos;
-    ImVec2 size;
-};
+    ImGui::Begin("GPU", &registersWindowOpen, ImVec2(200, 100));
 
-float blinkTimer = 0.f;
-std::vector<Area> vramAreas;
+    int horRes = gpu->gp1_08.getHorizontalResoulution();
+    int verRes = gpu->gp1_08.getVerticalResoulution();
+    bool interlaced = gpu->gp1_08.interlace;
+    int mode = gpu->gp1_08.videoMode == gpu::GP1_08::VideoMode::ntsc ? 60 : 50;
+    int colorDepth = gpu->gp1_08.colorDepth == gpu::GP1_08::ColorDepth::bit24 ? 24 : 15;
 
-const char *mapIo(uint32_t address) {
-    address -= 0x1f801000;
+    ImGui::Text("Display:");
+    ImGui::Text("Resolution %dx%d%c @ %dHz", horRes, verRes, interlaced ? 'i' : 'p', mode);
+    ImGui::Text("Color depth: %dbit", colorDepth);
+    ImGui::Text("areaStart:  %4d:%4d", gpu->displayAreaStartX, gpu->displayAreaStartY);
+    ImGui::Text("rangeX:     %4d:%4d", gpu->displayRangeX1, gpu->displayRangeX2);
+    ImGui::Text("rangeY:     %4d:%4d", gpu->displayRangeY1, gpu->displayRangeY2);
 
-#define IO(begin, end, periph)                   \
-    if (address >= (begin) && address < (end)) { \
-        return periph;                           \
-    }
+    ImGui::Text("");
+    ImGui::Text("Drawing:");
+    ImGui::Text("areaMin:    %4d:%4d", gpu->drawingArea.left, gpu->drawingArea.top);
+    ImGui::Text("areaMax:    %4d:%4d", gpu->drawingArea.right, gpu->drawingArea.bottom);
+    ImGui::Text("offset:     %4d:%4d", gpu->drawingOffsetX, gpu->drawingOffsetY);
+    // ImGui::Text("")
 
-    IO(0x00, 0x24, "memoryControl");
-    IO(0x40, 0x50, "controller");
-    IO(0x50, 0x60, "serial");
-    IO(0x60, 0x64, "memoryControl");
-    IO(0x70, 0x78, "interrupt");
-    IO(0x80, 0x100, "dma");
-    IO(0x100, 0x110, "timer0");
-    IO(0x110, 0x120, "timer1");
-    IO(0x120, 0x130, "timer2");
-    IO(0x800, 0x804, "cdrom");
-    IO(0x810, 0x818, "gpu");
-    IO(0x820, 0x828, "mdec");
-    IO(0xC00, 0x1000, "spu");
-    IO(0x1000, 0x1043, "exp2");
-    return "";
+    ImGui::End();
 }
 
 void replayCommands(gpu::GPU *gpu, int to) {
@@ -83,138 +68,8 @@ void replayCommands(gpu::GPU *gpu, int to) {
     gpu->gpuLogEnabled = true;
 }
 
-void dumpRegister(const char *name, uint16_t reg) {
-    ImGui::BulletText("%s", name);
-    ImGui::NextColumn();
-    ImGui::Text("0x%04x", reg);
-    ImGui::NextColumn();
-}
-
-void gteRegistersWindow(GTE &gte) {
-    if (!gteRegistersEnabled) {
-        return;
-    }
-    ImGui::Begin("GTE registers", &gteRegistersEnabled, ImVec2(400, 400));
-
-    ImGui::Columns(3, nullptr, false);
-    ImGui::Text("IR1:  %04hX", gte.ir[1]);
-    ImGui::NextColumn();
-    ImGui::Text("IR2:  %04hX", gte.ir[2]);
-    ImGui::NextColumn();
-    ImGui::Text("IR3:  %04hX", gte.ir[3]);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-    ImGui::Text("MAC0: %08X", gte.mac[0]);
-
-    ImGui::Separator();
-    ImGui::Text("MAC1: %08X", gte.mac[1]);
-    ImGui::NextColumn();
-    ImGui::Text("MAC2: %08X", gte.mac[2]);
-    ImGui::NextColumn();
-    ImGui::Text("MAC3: %08X", gte.mac[3]);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-    ImGui::Text("TRX:  %08X", gte.translation.x);
-    ImGui::NextColumn();
-    ImGui::Text("TRY:  %08X", gte.translation.y);
-    ImGui::NextColumn();
-    ImGui::Text("TRZ:  %08X", gte.translation.z);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-
-    for (int i = 0; i < 4; i++) {
-        ImGui::Text("S%dX:  %04hX", i, gte.s[i].x);
-        ImGui::NextColumn();
-        ImGui::Text("S%dY:  %04hX", i, gte.s[i].y);
-        ImGui::NextColumn();
-        ImGui::Text("S%dZ:  %04hX", i, gte.s[i].z);
-        ImGui::NextColumn();
-    }
-
-    ImGui::Separator();
-
-    for (int y = 0; y < 3; y++) {
-        for (int x = 0; x < 3; x++) {
-            ImGui::Text("RT%d%d:  %04hX", y + 1, x + 1, gte.rotation[y][x]);
-            ImGui::NextColumn();
-        }
-    }
-
-    ImGui::Separator();
-    ImGui::Text("VX0:  %04hX", gte.v[0].x);
-    ImGui::NextColumn();
-    ImGui::Text("VY0:  %04hX", gte.v[0].y);
-    ImGui::NextColumn();
-    ImGui::Text("VZ0:  %04hX", gte.v[0].z);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-    ImGui::Text("OFX:  %08X", gte.of[0]);
-    ImGui::NextColumn();
-    ImGui::Text("OFY:  %08X", gte.of[1]);
-    ImGui::NextColumn();
-    ImGui::Text("H:   %04hX", gte.h);
-    ImGui::NextColumn();
-
-    ImGui::Separator();
-    ImGui::Text("DQA:  %04hX", gte.dqa);
-    ImGui::NextColumn();
-    ImGui::Text("DQB:  %08X", gte.dqb);
-    ImGui::NextColumn();
-
-    ImGui::End();
-}
-
-void gteLogWindow(System *sys) {
-    if (!gteLogEnabled) {
-        return;
-    }
-    static char filterBuffer[16];
-    static bool searchActive = false;
-    bool filterActive = strlen(filterBuffer) > 0;
-    ImGui::Begin("GTE Log", &gteLogEnabled, ImVec2(300, 400));
-
-    ImGui::BeginChild("GTE Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-
-    for (size_t i = 0; i < sys->cpu->gte.log.size(); i++) {
-        auto ioEntry = sys->cpu->gte.log.at(i);
-        std::string t;
-        if (ioEntry.mode == GTE::GTE_ENTRY::MODE::func) {
-            t = fmt::format("{:5d} {} 0x{:02x}", i, 'F', ioEntry.n);
-        } else {
-            t = fmt::format("{:5d} {} {:2d}: 0x{:08x}", i, ioEntry.mode == GTE::GTE_ENTRY::MODE::read ? 'R' : 'W', ioEntry.n, ioEntry.data);
-        }
-        if (filterActive && t.find(filterBuffer) != std::string::npos)  // if found
-        {
-            // if search enabled - continue
-            ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", t.c_str());
-            continue;
-        }
-        if (searchActive) continue;
-
-        ImGui::Text("%s", t.c_str());
-    }
-    ImGui::PopStyleVar();
-    ImGui::EndChild();
-
-    ImGui::Text("Filter");
-    ImGui::SameLine();
-    if (ImGui::InputText("", filterBuffer, sizeof(filterBuffer) / sizeof(char), ImGuiInputTextFlags_EnterReturnsTrue)) {
-        searchActive = !searchActive;
-    }
-
-    ImGui::End();
-}
-
-void gpuLogWindow(System *sys) {
+void GPU::logWindow(System *sys) {
     vramAreas.clear();
-    if (!gpuLogEnabled) {
-        return;
-    }
     static std::unique_ptr<Texture> textureImage;
     static std::vector<uint8_t> textureUnpacked;
     if (!textureImage) {
@@ -222,7 +77,7 @@ void gpuLogWindow(System *sys) {
         textureUnpacked.resize(512 * 512 * 4);
     }
 
-    ImGui::Begin("GPU Log", &gpuLogEnabled, ImVec2(300, 400));
+    ImGui::Begin("GPU Log", &logWindowOpen, ImVec2(300, 400));
 
     ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -411,35 +266,7 @@ void gpuLogWindow(System *sys) {
     }
 }
 
-void ioLogWindow(System *sys) {
-#ifdef ENABLE_IO_LOG
-    if (!ioLogEnabled) {
-        return;
-    }
-    ImGui::Begin("IO Log", &ioLogEnabled, ImVec2(200, 400));
-
-    ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-
-    ImGuiListClipper clipper((int)sys->ioLogList.size());
-    while (clipper.Step()) {
-        for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-            auto ioEntry = sys->ioLogList.at(i);
-            char mode = ioEntry.mode == System::IO_LOG_ENTRY::MODE::READ ? 'R' : 'W';
-            ImGui::Text("%c %2d 0x%08x: 0x%0*x %*s %s                  (pc: 0x%08x)", mode, ioEntry.size, ioEntry.addr, ioEntry.size / 4,
-                        ioEntry.data,
-                        // padding
-                        8 - ioEntry.size / 4, "", mapIo(ioEntry.addr), ioEntry.pc);
-        }
-    }
-    ImGui::PopStyleVar();
-    ImGui::EndChild();
-
-    ImGui::End();
-#endif
-}
-
-void vramWindow(gpu::GPU *gpu) {
+void GPU::vramWindow(gpu::GPU *gpu) {
     static std::unique_ptr<Texture> vramImage;
     static std::vector<uint8_t> vramUnpacked;
     if (!vramImage) {
@@ -471,7 +298,7 @@ void vramWindow(gpu::GPU *gpu) {
         ImVec2(defaultSize.x / 2, defaultSize.y / 2), ImVec2(defaultSize.x * 2, defaultSize.y * 2),
         [](ImGuiSizeCallbackData *data) { data->DesiredSize.y = (data->DesiredSize.x / 2) + ImGui::GetItemsLineHeightWithSpacing() * 2; });
 
-    ImGui::Begin("VRAM", &showVramWindow, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
+    ImGui::Begin("VRAM", &vramWindowOpen, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
 
     auto currentSize = ImGui::GetWindowContentRegionMax();
     currentSize.y = currentSize.x / 2;
@@ -509,101 +336,9 @@ void vramWindow(gpu::GPU *gpu) {
     ImGui::End();
 }
 
-void watchWindow(System *sys) {
-    static int selectedWatch = -1;
-    ImGui::Begin("Watch", &showWatchWindow, ImVec2(300, 200));
-
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
-    ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
-    int i = 0;
-    for (auto &watch : watches) {
-        uint32_t value = 0;
-        if (watch.size == 1)
-            value = sys->readMemory8(watch.address);
-        else if (watch.size == 2)
-            value = sys->readMemory16(watch.address);
-        else if (watch.size == 4)
-            value = sys->readMemory32(watch.address);
-        else
-            continue;
-
-        ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
-        ImGui::PushStyleColor(ImGuiCol_Text, color);
-
-        ImGui::Selectable(fmt::format("0x{:08x}: 0x{:0{}x}    {}", watch.address, value, watch.size * 2, watch.name).c_str());
-
-        ImGui::PopStyleColor();
-
-        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGui::GetIO().MouseClicked[1])) {
-            ImGui::OpenPopup("watch_menu");
-            selectedWatch = i;
-        }
-        i++;
-    }
-    ImGui::EndChild();
-    ImGui::PopStyleVar();
-
-    bool showPopup = false;
-    if (ImGui::BeginPopupContextItem("watch_menu")) {
-        if (selectedWatch != -1 && ImGui::Selectable("Remove")) {
-            watches.erase(watches.begin() + selectedWatch);
-            selectedWatch = -1;
-        }
-        if (ImGui::Selectable("Add")) showPopup = true;
-
-        ImGui::EndPopup();
-    }
-    if (showPopup) ImGui::OpenPopup("Add watch");
-
-    if (ImGui::BeginPopupModal("Add watch", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        static const char *sizeLabels[] = {"1 byte (8 bits)", "2 bytes (16 bits)", "4 bytes (32 bits)"};
-        static int selectedSize = 0;
-        static char name[64];
-        static char addressInput[10];
-        uint32_t address;
-
-        ImGui::Text("Size: ");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(160);
-        ImGui::Combo("", &selectedSize, sizeLabels, 3);
-        ImGui::PopItemWidth();
-
-        ImGui::Text("Address: ");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(-1);
-        ImGui::InputText("##address", addressInput, 9, ImGuiInputTextFlags_CharsHexadecimal);
-        ImGui::PopItemWidth();
-
-        ImGui::Text("Name: ");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(-1);
-        ImGui::InputText("##name", name, 64);
-        ImGui::PopItemWidth();
-
-        if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
-        ImGui::SameLine();
-        if (ImGui::Button("Add")) {
-            if (sscanf(addressInput, "%x", &address) == 1) {
-                int size = 1;
-                if (selectedSize == 0)
-                    size = 1;
-                else if (selectedSize == 1)
-                    size = 2;
-                else if (selectedSize == 2)
-                    size = 4;
-
-                watches.push_back({address, size, name});
-                ImGui::CloseCurrentPopup();
-            }
-        }
-        ImGui::EndPopup();
-    }
-
-    ImGui::Text("Use right mouse button to show menu");
-    ImGui::End();
+void GPU::displayWindows(System *sys) {
+    if (registersWindowOpen) registersWindow(sys);
+    if (logWindowOpen) logWindow(sys);
+    if (vramWindowOpen) vramWindow(sys->gpu.get());
 }
-
-void ramWindow(System *sys) {
-    static MemoryEditor editor;
-    editor.DrawWindow("Ram", sys->ram, System::RAM_SIZE);
-}
+};  // namespace gui::debug

@@ -3,7 +3,9 @@
 
 struct System;
 
-namespace device::dma::dmaChannel {
+namespace device::dma {
+enum class Channel { MDECin, MDECout, GPU, CDROM, SPU, PIO, OTC };
+
 // DMA base address
 union MADDR {
     struct {
@@ -66,7 +68,9 @@ union CHCR {
 };
 
 class DMAChannel {
-    int channel;
+    int verbose;
+    Channel channel;
+
     CHCR control;
     MADDR baseAddress;
     BCR count;
@@ -76,18 +80,17 @@ class DMAChannel {
     virtual uint32_t readDevice();
     virtual void writeDevice(uint32_t data);
 
-    const char* name();
-
-   protected:
-    int verbose;
-
    public:
     bool irqFlag = false;
-    DMAChannel(int channel, System* sys);
+    DMAChannel(Channel channel, System* sys);
     virtual ~DMAChannel();
 
-    void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(control._reg, baseAddress._reg, count._reg);
+    }
 };
-}  // namespace device::dma::dmaChannel
+}  // namespace device::dma

@@ -38,3 +38,6 @@
 [submodule "externals/fmt"]
 	path = externals/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "externals/cereal"]
+	path = externals/cereal
+	url = https://github.com/USCiLab/cereal.git

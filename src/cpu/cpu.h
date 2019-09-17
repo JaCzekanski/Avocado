@@ -42,9 +42,14 @@ r31     ra    - return address
 */
 
 struct LoadSlot {
-    uint32_t reg : 5;
+    uint32_t reg;
     uint32_t data;
     uint32_t prevData;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(reg, data, prevData);
+    }
 };
 
 struct CPU {
@@ -62,9 +67,9 @@ struct CPU {
     std::array<LoadSlot, 2> slots;  // Load Delay slots
 
     std::array<uint32_t, REGISTER_COUNT> reg;
+    uint32_t hi, lo;
     COP0 cop0;
     GTE gte;
-    uint32_t hi, lo;
     System* sys;
     Opcode _opcode;
 
@@ -110,5 +115,14 @@ struct CPU {
         Breakpoint(bool singleTime) : singleTime(singleTime) {}
     };
     std::unordered_map<uint32_t, Breakpoint> breakpoints;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(PC, nextPC, inBranchDelay, branchTaken);
+        ar(slots);
+        ar(reg, hi, lo);
+        ar(cop0);
+        ar(gte);
+    }
 };
 };  // namespace mips

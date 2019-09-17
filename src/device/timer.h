@@ -1,9 +1,13 @@
 #pragma once
 #include <cassert>
-#include "device.h"
+#include <cereal/access.hpp>
 #include "interrupt.h"
 
-namespace timer {
+namespace gui::debug {
+class Timers;
+}
+
+namespace device::timer {
 union CounterMode {
     enum class SyncMode0 : uint16_t {
         pauseDuringHblank = 0,
@@ -63,21 +67,22 @@ union CounterMode {
         return _byte[n];
     }
 };
-}  // namespace timer
 
 class Timer {
-   public:
-    const int baseAddress = 0x1f801100;
+    friend class gui::debug::Timers;
+    friend class cereal::access;
 
     int which;
+
+   public:
     Reg16 current;
-    timer::CounterMode mode;
+    CounterMode mode;
     Reg16 target;
 
     bool paused = false;
+    uint32_t cnt = 0;
 
    private:
-    uint32_t cnt = 0;
     bool oneShotIrqOccured = false;
 
     System* sys;
@@ -93,8 +98,13 @@ class Timer {
 
    public:
     Timer(System* sys, int which);
-    void step() { step(1); }
     void step(int cycles);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(current, mode._reg, target, cnt, oneShotIrqOccured);
+    }
 };
+};  // namespace device::timer

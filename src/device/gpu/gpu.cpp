@@ -428,13 +428,26 @@ void GPU::cmdVramToCpu(uint8_t command) {
     if ((arguments[0] & 0x00ffffff) != 0) {
         fmt::print("[GPU] cmdVramToCpu: Suspicious arg0: 0x{:x}\n", arguments[0]);
     }
-    gpuReadMode = 1;
+    readMode = ReadMode::Vram;
     startX = currX = MaskCopy::startX(arguments[1] & 0xffff);
     startY = currY = MaskCopy::startY((arguments[1] & 0xffff0000) >> 16);
     endX = startX + MaskCopy::endX(arguments[2] & 0xffff);
     endY = startY + MaskCopy::endY((arguments[2] & 0xffff0000) >> 16);
 
     cmd = Command::None;
+}
+
+uint32_t GPU::readVramWord() {
+    uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
+    currX += 2;
+
+    if (currX >= endX) {
+        currX = startX;
+        if (++currY >= endY) {
+            readMode = ReadMode::Register;
+        }
+    }
+    return word;
 }
 
 void GPU::cmdVramToVram(uint8_t command) {
@@ -470,7 +483,8 @@ void GPU::cmdVramToVram(uint8_t command) {
     cmd = Command::None;
 }
 
-void GPU::step() {
+uint32_t GPU::getStat() {
+    uint32_t GPUSTAT = 0;
     uint8_t dataRequest = 0;
     if (dmaDirection == 0)
         dataRequest = 0;
@@ -501,30 +515,21 @@ void GPU::step() {
     GPUSTAT |= 1 << 28;  // Ready for receive DMA block
     GPUSTAT |= (dmaDirection & 3) << 29;
     GPUSTAT |= odd << 31;
+
+    return GPUSTAT;
 }
 
 uint32_t GPU::read(uint32_t address) {
     int reg = address & 0xfffffffc;
     if (reg == 0) {
-        if (gpuReadMode == 0 || gpuReadMode == 2) {
-            return GPUREAD;
-        }
-        if (gpuReadMode == 1) {
-            uint32_t word = VRAM[currY][currX] | (VRAM[currY][currX + 1] << 16);
-            currX += 2;
-
-            if (currX >= endX) {
-                currX = startX;
-                if (++currY >= endY) {
-                    gpuReadMode = 0;
-                }
-            }
-            return word;
+        if (readMode == ReadMode::Vram) {
+            return readVramWord();
+        } else {
+            return readData;
         }
     }
     if (reg == 4) {
-        step();
-        return GPUSTAT;
+        return getStat();
     }
     return 0;
 }
@@ -662,7 +667,7 @@ void GPU::writeGP1(uint32_t data) {
     } else if (command == 0x02) {  // Acknowledge IRQ1
         irqRequest = false;
     } else if (command == 0x03) {  // Display Enable
-        displayDisable = (Bit)(argument & 1);
+        displayDisable = argument & 1;
     } else if (command == 0x04) {  // DMA Direction
         dmaDirection = argument & 3;
     } else if (command == 0x05) {  // Start of display area
@@ -679,23 +684,23 @@ void GPU::writeGP1(uint32_t data) {
     } else if (command == 0x09) {  // Allow texture disable
         textureDisableAllowed = argument & 1;
     } else if (command >= 0x10 && command <= 0x1f) {  // get GPU Info
-        gpuReadMode = 2;
+        readMode = ReadMode::Register;
         argument &= 0xf;
 
         if (argument == 2) {
-            GPUREAD = gp0_e2._reg;
+            readData = gp0_e2._reg;
         } else if (argument == 3) {
-            GPUREAD = (drawingArea.top << 10) | drawingArea.left;
+            readData = (drawingArea.top << 10) | drawingArea.left;
         } else if (argument == 4) {
-            GPUREAD = (drawingArea.bottom << 10) | drawingArea.right;
+            readData = (drawingArea.bottom << 10) | drawingArea.right;
         } else if (argument == 5) {
-            GPUREAD = ((drawingOffsetY & 0x7ff) << 11) | (drawingOffsetX & 0x7ff);
+            readData = ((drawingOffsetY & 0x7ff) << 11) | (drawingOffsetX & 0x7ff);
         } else if (argument == 7) {
-            GPUREAD = 2;  // GPU Version
+            readData = 2;  // GPU Version
         } else if (argument == 8) {
-            GPUREAD = 0;
+            readData = 0;
         } else {
-            // GPUREAD unchanged
+            // readData unchanged
         }
     } else {
         fmt::print("[GPU] GP1(0x{:02x}) args 0x{:06x}\n", command, argument);

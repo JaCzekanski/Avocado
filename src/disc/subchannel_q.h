@@ -14,9 +14,9 @@ struct SubchannelQ {
             uint8_t quadAudio : 1;  // 0 - stereo, 1 - quad
         };
 
-        uint8_t _;
+        uint8_t reg;
 
-        Control() : _(0) {}
+        Control() : reg(0) {}
     };
     // Sync skipped
     Control control{};
@@ -26,5 +26,10 @@ struct SubchannelQ {
     static SubchannelQ generateForPosition(int track, disc::Position pos, disc::Position posInTrack, bool isAudio);
     uint16_t calculateCrc();
     bool validCrc();
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(control.reg, data, crc16);
+    }
 };
 };  // namespace disc

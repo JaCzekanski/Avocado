@@ -4,7 +4,7 @@
 
 struct System;
 
-namespace gui::options::memory_card {
+namespace gui::options {
 class MemoryCard {
     bool loadPaths = true;
     std::array<std::string, 2> cardPaths;

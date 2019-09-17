@@ -66,5 +66,33 @@ struct SPU {
     void memoryWrite16(uint32_t address, uint16_t data);
 
     void dumpRam();
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(voices);
+        ar(mainVolume._reg);
+        ar(cdVolume._reg);
+        ar(extVolume._reg);
+        ar(reverbVolume._reg);
+        ar(irqAddress);
+        ar(dataAddress);
+        ar(currentDataAddress);
+        ar(dataTransferControl._reg);
+        ar(control._reg);
+        ar(SPUSTAT);
+        ar(captureBufferIndex);
+        ar(noise);
+        ar(_keyOn);
+        ar(_keyOff);
+        ar(ram);
+
+        ar(reverbBase);
+        ar(reverbRegisters);
+        ar(reverbCurrentAddress);
+
+        ar(bufferReady);
+        ar(audioBufferPos);
+        ar(audioBuffer);
+    }
 };
 }  // namespace spu
