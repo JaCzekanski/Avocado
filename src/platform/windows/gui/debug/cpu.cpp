@@ -3,7 +3,6 @@
 #include <imgui.h>
 #include <algorithm>
 #include "debugger/debugger.h"
-#include "platform/windows/gui/tools.h"
 #include "system.h"
 #include "utils/address.h"
 

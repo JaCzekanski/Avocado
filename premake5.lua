@@ -94,6 +94,9 @@ filter "action:gmake"
 
 filter "action:vs*"
 	defines "_CRT_SECURE_NO_WARNINGS"
+
+filter { "action:vs*", "configurations:Debug" }
+	defines "_ITERATOR_DEBUG_LEVEL=0"
 	
 filter "action:xcode*"
 	buildoptions "-fvisibility=hidden"

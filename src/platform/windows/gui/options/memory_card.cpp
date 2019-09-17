@@ -5,7 +5,7 @@
 #include "config.h"
 #include "system.h"
 
-namespace gui::options::memory_card {
+namespace gui::options {
 void MemoryCard::memoryCardWindow(System* sys) {
     if (loadPaths) {
         for (size_t i = 0; i < cardPaths.size(); i++) {

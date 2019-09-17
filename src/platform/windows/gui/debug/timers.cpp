@@ -4,7 +4,6 @@
 #include <magic_enum.hpp>
 #include <numeric>
 #include "device/timer.h"
-#include "platform/windows/gui/tools.h"
 #include "system.h"
 
 namespace gui::debug {

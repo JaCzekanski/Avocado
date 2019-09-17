@@ -7,7 +7,7 @@
 #include <map>
 #include <sstream>
 #include "config.h"
-#include "filesystem.h"
+#include "platform/windows/gui/filesystem.h"
 #include "utils/file.h"
 #include "utils/string.h"
 

@@ -1,6 +1,8 @@
 #include "gpu.h"
+#define _USE_MATH_DEFINES
 #include <fmt/core.h>
 #include <imgui.h>
+#include <math.h>
 #include <magic_enum.hpp>
 #include <nlohmann/json.hpp>
 #include "platform/windows/gui/images.h"

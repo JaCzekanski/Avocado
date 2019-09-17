@@ -1,209 +1,180 @@
 #include "gui.h"
 #include <fmt/core.h>
 #include <imgui.h>
-#include <chrono>
 #include "config.h"
-#include "debug/cdrom.h"
-#include "debug/cpu.h"
-#include "debug/gpu.h"
-#include "debug/gte.h"
-#include "debug/io.h"
-#include "debug/kernel.h"
-#include "debug/spu.h"
-#include "debug/timers.h"
-#include "options.h"
-#include "options/memory_card/memory_card.h"
+#include "imgui/imgui_impl_opengl3.h"
+#include "imgui/imgui_impl_sdl.h"
 #include "platform/windows/input/key.h"
+#include "system.h"
+#include "utils/file.h"
 #include "utils/string.h"
-#include "version.h"
 
-void openFileWindow();
+GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuiStyle& style = ImGui::GetStyle();
 
-bool showGui = true;
+        ImFontConfig config;
+        config.OversampleH = 4;
+        config.OversampleV = 4;
+        config.FontDataOwnedByAtlas = false;
+        int fontSize = 16.f;
 
-bool singleFrame = false;
-
-bool notInitializedWindowShown = false;
-
-bool showAboutWindow = false;
-
-gui::debug::Cdrom cdromDebug;
-gui::debug::CPU cpuDebug;
-gui::debug::GPU gpuDebug;
-gui::debug::Timers timersDebug;
-gui::debug::GTE gteDebug;
-gui::debug::SPU spuDebug;
-gui::debug::IO ioDebug;
-
-gui::options::memory_card::MemoryCard memoryCardOptions;
-
-void aboutWindow() {
-    ImGui::Begin("About", &showAboutWindow);
-    ImGui::Text("Avocado %s", BUILD_STRING);
-    ImGui::Text("Build date: %s", BUILD_DATE);
-    ImGui::End();
-}
-
-extern void ImGui::ShowDemoWindow(bool* p_open);
-
-int busToken;
-using namespace std::chrono_literals;
-using chrono = std::chrono::steady_clock;
-struct Toast {
-    std::string msg;
-    chrono::time_point expire;
-};
-std::vector<Toast> toasts;
-
-std::string getToasts() {
-    std::string msg = "";
-    if (!toasts.empty()) {
-        auto now = chrono::now();
-
-        for (auto it = toasts.begin(); it != toasts.end();) {
-            auto toast = *it;
-
-            if (now > toast.expire) {
-                it = toasts.erase(it);
-            } else {
-                msg += toast.msg + "\n";
-                ++it;
-            }
-        }
-    }
-    return trim(msg);
-}
-
-void initGui() {
-    busToken = bus.listen<Event::Gui::Toast>([](auto e) {
-        fmt::print("{}\n", e.message);
-        toasts.push_back({e.message, chrono::now() + 2s});
-    });
-}
-
-void deinitGui() { bus.unlistenAll(busToken); }
-
-void renderImgui(System* sys) {
-    if (showGui) {
-        if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open")) gui::file::openFile();
-                if (ImGui::MenuItem("Exit", "Esc")) bus.notify(Event::File::Exit{});
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Emulation")) {
-                if (ImGui::MenuItem("Pause/Resume", "Space")) {
-                    if (sys->state == System::State::pause) {
-                        sys->state = System::State::run;
-                    } else if (sys->state == System::State::run) {
-                        sys->state = System::State::pause;
-                    }
-                }
-                if (ImGui::MenuItem("Soft reset", "F2")) bus.notify(Event::System::SoftReset{});
-                if (ImGui::MenuItem("Hard reset", "Shift+F2")) bus.notify(Event::System::HardReset{});
-
-                const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
-                if (ImGui::MenuItem(shellStatus, "F3")) {
-                    sys->cdrom->toggleShell();
-                }
-
-                if (ImGui::MenuItem("Single frame", "F6")) {
-                    singleFrame = true;
-                    sys->state = System::State::run;
-                }
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Quick save", "F5")) bus.notify(Event::System::SaveState{});
-                if (ImGui::MenuItem("Quick load", "F7")) bus.notify(Event::System::LoadState{});
-
-                if (ImGui::BeginMenu("Save")) {
-                    for (int i = 1; i <= 5; i++) {
-                        if (ImGui::MenuItem(fmt::format("Slot {}##save", i).c_str())) bus.notify(Event::System::SaveState{i});
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Load")) {
-                    for (int i = 1; i <= 5; i++) {
-                        if (ImGui::MenuItem(fmt::format("Slot {}##load", i).c_str())) bus.notify(Event::System::LoadState{i});
-                    }
-                    ImGui::EndMenu();
-                }
-
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Debug")) {
-                if (ImGui::MenuItem("System log", nullptr, &sys->debugOutput)) {
-                    config["debug"]["log"]["system"] = (int)sys->debugOutput;
-                }
-                if (ImGui::MenuItem("Syscall log", nullptr, (bool*)&sys->biosLog)) {
-                    config["debug"]["log"]["bios"] = sys->biosLog;
-                }
-#ifdef ENABLE_IO_LOG
-                ImGui::MenuItem("IO log", nullptr, &ioDebug.logWindowOpen);
+#ifdef ANDROID
+        fontSize = 40.f;
+        style.ScrollbarSize = 40.f;
+        style.GrabMinSize = 20.f;
+        style.TouchExtraPadding = ImVec2(10.f, 10.f);
 #endif
-                ImGui::MenuItem("GTE log", nullptr, &gteDebug.logWindowOpen);
-                ImGui::MenuItem("GPU log", nullptr, &gpuDebug.logWindowOpen);
 
-                ImGui::Separator();
+        style.GrabRounding = 6.f;
+        style.FrameRounding = 6.f;
 
-                ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
-                ImGui::MenuItem("Breakpoints", nullptr, &cpuDebug.breakpointsWindowOpen);
-                ImGui::MenuItem("Watch", nullptr, &cpuDebug.watchWindowOpen);
-                ImGui::MenuItem("RAM", nullptr, &cpuDebug.ramWindowOpen);
+        auto font = getFileContents("data/assets/roboto-mono.ttf");
+        io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
+        io.Fonts->AddFontDefault();
+    }
 
-                ImGui::Separator();
+    ImGui_ImplSDL2_InitForOpenGL(window, glContext);
+    ImGui_ImplOpenGL3_Init();
+}
 
-                ImGui::MenuItem("CDROM", nullptr, &cdromDebug.cdromWindowOpen);
-                ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
-                ImGui::MenuItem("GPU", nullptr, &gpuDebug.registersWindowOpen);
-                ImGui::MenuItem("GTE", nullptr, &gteDebug.registersWindowOpen);
-                ImGui::MenuItem("SPU", nullptr, &spuDebug.spuWindowOpen);
-                ImGui::MenuItem("VRAM", nullptr, &gpuDebug.vramWindowOpen);
-                ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
+GUI::~GUI() { ImGui::DestroyContext(); }
 
-                ImGui::Separator();
-                if (ImGui::MenuItem("Dump state")) {
-                    sys->dumpRam();
-                    sys->spu->dumpRam();
-                    sys->gpu->dumpVram();
-                    toast("State dumped");
-                }
-                ImGui::EndMenu();
+void GUI::processEvent(SDL_Event* e) { ImGui_ImplSDL2_ProcessEvent(e); }
+
+void GUI::mainMenu(System* sys) {
+    if (!ImGui::BeginMainMenuBar()) {
+        return;
+    }
+    if (ImGui::BeginMenu("File")) {
+        if (ImGui::MenuItem("Open")) gui::file::openFile();
+        if (ImGui::MenuItem("Exit", "Esc")) bus.notify(Event::File::Exit{});
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Emulation")) {
+        if (ImGui::MenuItem("Pause/Resume", "Space")) {
+            if (sys->state == System::State::pause) {
+                sys->state = System::State::run;
+            } else if (sys->state == System::State::run) {
+                sys->state = System::State::pause;
             }
-            if (ImGui::BeginMenu("Options")) {
-                if (ImGui::MenuItem("Graphics", nullptr)) showGraphicsOptionsWindow = true;
-                if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
-                if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
-                ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
-
-                bool soundEnabled = config["options"]["sound"]["enabled"];
-                if (ImGui::MenuItem("Sound", nullptr, &soundEnabled)) {
-                    config["options"]["sound"]["enabled"] = soundEnabled;
-                    bus.notify(Event::Config::Spu{});
-                }
-
-                ImGui::Separator();
-
-                bool preserveState = config["options"]["emulator"]["preserveState"];
-                if (ImGui::MenuItem("Save state on close", nullptr, &preserveState)) {
-                    config["options"]["emulator"]["preserveState"] = preserveState;
-                }
-
-                bool timeTravel = config["options"]["emulator"]["timeTravel"];
-                if (ImGui::MenuItem("Time travel", "backspace", &timeTravel)) {
-                    config["options"]["emulator"]["timeTravel"] = timeTravel;
-                }
-
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Help")) {
-                if (ImGui::MenuItem("About")) showAboutWindow = true;
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
         }
+        if (ImGui::MenuItem("Soft reset", "F2")) bus.notify(Event::System::SoftReset{});
+        if (ImGui::MenuItem("Hard reset", "Shift+F2")) bus.notify(Event::System::HardReset{});
+
+        const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
+        if (ImGui::MenuItem(shellStatus, "F3")) {
+            sys->cdrom->toggleShell();
+        }
+
+        if (ImGui::MenuItem("Single frame", "F6")) {
+            singleFrame = true;
+            sys->state = System::State::run;
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Quick save", "F5")) bus.notify(Event::System::SaveState{});
+        if (ImGui::MenuItem("Quick load", "F7")) bus.notify(Event::System::LoadState{});
+
+        if (ImGui::BeginMenu("Save")) {
+            for (int i = 1; i <= 5; i++) {
+                if (ImGui::MenuItem(fmt::format("Slot {}##save", i).c_str())) bus.notify(Event::System::SaveState{i});
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Load")) {
+            for (int i = 1; i <= 5; i++) {
+                if (ImGui::MenuItem(fmt::format("Slot {}##load", i).c_str())) bus.notify(Event::System::LoadState{i});
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Debug")) {
+        if (ImGui::MenuItem("System log", nullptr, &sys->debugOutput)) {
+            config["debug"]["log"]["system"] = (int)sys->debugOutput;
+        }
+        if (ImGui::MenuItem("Syscall log", nullptr, (bool*)&sys->biosLog)) {
+            config["debug"]["log"]["bios"] = sys->biosLog;
+        }
+#ifdef ENABLE_IO_LOG
+        ImGui::MenuItem("IO log", nullptr, &ioDebug.logWindowOpen);
+#endif
+        ImGui::MenuItem("GTE log", nullptr, &gteDebug.logWindowOpen);
+        ImGui::MenuItem("GPU log", nullptr, &gpuDebug.logWindowOpen);
+
+        ImGui::Separator();
+
+        ImGui::MenuItem("Debugger", nullptr, &cpuDebug.debuggerWindowOpen);
+        ImGui::MenuItem("Breakpoints", nullptr, &cpuDebug.breakpointsWindowOpen);
+        ImGui::MenuItem("Watch", nullptr, &cpuDebug.watchWindowOpen);
+        ImGui::MenuItem("RAM", nullptr, &cpuDebug.ramWindowOpen);
+
+        ImGui::Separator();
+
+        ImGui::MenuItem("CDROM", nullptr, &cdromDebug.cdromWindowOpen);
+        ImGui::MenuItem("Timers", nullptr, &timersDebug.timersWindowOpen);
+        ImGui::MenuItem("GPU", nullptr, &gpuDebug.registersWindowOpen);
+        ImGui::MenuItem("GTE", nullptr, &gteDebug.registersWindowOpen);
+        ImGui::MenuItem("SPU", nullptr, &spuDebug.spuWindowOpen);
+        ImGui::MenuItem("VRAM", nullptr, &gpuDebug.vramWindowOpen);
+        ImGui::MenuItem("Kernel", nullptr, &showKernelWindow);
+
+        ImGui::Separator();
+        if (ImGui::MenuItem("Dump state")) {
+            sys->dumpRam();
+            sys->spu->dumpRam();
+            sys->gpu->dumpVram();
+            toast("State dumped");
+        }
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Options")) {
+        if (ImGui::MenuItem("Graphics", nullptr)) showGraphicsOptionsWindow = true;
+        if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
+        if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
+        ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
+
+        bool soundEnabled = config["options"]["sound"]["enabled"];
+        if (ImGui::MenuItem("Sound", nullptr, &soundEnabled)) {
+            config["options"]["sound"]["enabled"] = soundEnabled;
+            bus.notify(Event::Config::Spu{});
+        }
+
+        ImGui::Separator();
+
+        bool preserveState = config["options"]["emulator"]["preserveState"];
+        if (ImGui::MenuItem("Save state on close", nullptr, &preserveState)) {
+            config["options"]["emulator"]["preserveState"] = preserveState;
+        }
+
+        bool timeTravel = config["options"]["emulator"]["timeTravel"];
+        if (ImGui::MenuItem("Time travel", "backspace", &timeTravel)) {
+            config["options"]["emulator"]["timeTravel"] = timeTravel;
+        }
+
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Help")) {
+        ImGui::MenuItem("About", nullptr, &aboutHelp.aboutWindowOpen);
+        ImGui::EndMenu();
+    }
+    ImGui::EndMainMenuBar();
+}
+
+void GUI::render(System* sys) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui::NewFrame();
+
+    if (showGui) {
+        mainMenu(sys);
 
         // File
         gui::file::displayWindows();
@@ -227,7 +198,7 @@ void renderImgui(System* sys) {
         memoryCardOptions.displayWindows(sys);
 
         // Help
-        if (showAboutWindow) aboutWindow();
+        aboutHelp.displayWindows();
     }
 
     if (!isEmulatorConfigured() && !notInitializedWindowShown) {
@@ -247,19 +218,8 @@ void renderImgui(System* sys) {
         ImGui::EndPopup();
     }
 
-    if (auto toasts = getToasts(); !toasts.empty()) {
-        const float margin = 16;
-        auto displaySize = ImGui::GetIO().DisplaySize;
-
-        auto pos = ImVec2(displaySize.x - margin, displaySize.y - margin);
-        ImGui::SetNextWindowPos(pos, 0, ImVec2(1.f, 1.f));
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-        ImGui::Begin("##toast", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::TextUnformatted(toasts.c_str());
-        ImGui::End();
-        ImGui::PopStyleVar();
-    }
+    toasts.display();
 
     ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

@@ -7,8 +7,6 @@
 #include <string>
 #include "config.h"
 #include "disc/load.h"
-#include "imgui/imgui_impl_opengl3.h"
-#include "imgui/imgui_impl_sdl.h"
 #include "platform/windows/gui/gui.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
@@ -343,36 +341,7 @@ int main(int argc, char** argv) {
     auto inputManager = std::make_unique<SdlInputManager>();
     InputManager::setInstance(inputManager.get());
 
-    ImGui::CreateContext();
-    ImGui_ImplSDL2_InitForOpenGL(window, glContext);
-    ImGui_ImplOpenGL3_Init();
-    ImGui::StyleColorsDark();
-    {
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuiStyle& style = ImGui::GetStyle();
-
-        ImFontConfig config;
-        config.OversampleH = 4;
-        config.OversampleV = 4;
-        config.FontDataOwnedByAtlas = false;
-        int fontSize = 16.f;
-
-#ifdef ANDROID
-        fontSize = 40.f;
-        style.ScrollbarSize = 40.f;
-        style.GrabMinSize = 20.f;
-        style.TouchExtraPadding = ImVec2(10.f, 10.f);
-#endif
-
-        style.GrabRounding = 6.f;
-        style.FrameRounding = 6.f;
-
-        auto font = getFileContents("data/assets/roboto-mono.ttf");
-        io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
-        io.Fonts->AddFontDefault();
-    }
-
-    initGui();
+    auto gui = std::make_unique<GUI>(window, glContext);
 
     if (!sys->isSystemReady()) {
         sys->state = System::State::stop;
@@ -410,7 +379,7 @@ int main(int argc, char** argv) {
 
         inputManager->newFrame();
         while (newEvent || SDL_PollEvent(&event)) {
-            ImGui_ImplSDL2_ProcessEvent(&event);
+            gui->processEvent(&event);
 
             inputManager->keyboardCaptured = ImGui::GetIO().WantCaptureKeyboard;
             inputManager->mouseCaptured = ImGui::GetIO().WantCaptureMouse;
@@ -424,7 +393,7 @@ int main(int argc, char** argv) {
             }
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_F1) showGui = !showGui;
+                if (event.key.keysym.sym == SDLK_F1) gui->showGui = !gui->showGui;
                 if (event.key.keysym.sym == SDLK_F2) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
                         sys = hardReset();
@@ -442,7 +411,7 @@ int main(int argc, char** argv) {
                     bus.notify(Event::System::SaveState{});
                 }
                 if (event.key.keysym.sym == SDLK_F6) {
-                    singleFrame = true;
+                    gui->singleFrame = true;
                     sys->state = System::State::run;
                 }
                 if (event.key.keysym.sym == SDLK_F7) {
@@ -495,22 +464,18 @@ int main(int argc, char** argv) {
             sys->controller->update();
 
             sys->emulateFrame();
-            if (singleFrame) {
-                singleFrame = false;
+            if (gui->singleFrame) {
+                gui->singleFrame = false;
                 sys->state = System::State::pause;
             }
 
             state::manageTimeTravel(sys.get());
         }
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame(window);
-        ImGui::NewFrame();
 
         SDL_GL_GetDrawableSize(window, &opengl->width, &opengl->height);
         opengl->render(sys->gpu.get());
 
-        renderImgui(sys.get());
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        gui->render(sys.get());
 
         SDL_GL_SwapWindow(window);
 
@@ -523,11 +488,7 @@ int main(int argc, char** argv) {
     saveConfigFile(CONFIG_NAME);
 
     bus.unlistenAll(busToken);
-    deinitGui();
     Sound::close();
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
     InputManager::setInstance(nullptr);
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);

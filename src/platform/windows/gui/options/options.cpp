@@ -2,9 +2,8 @@
 #include <fmt/core.h>
 #include <imgui.h>
 #include "config.h"
-#include "filesystem.h"
-#include "gui.h"
-#include "images.h"
+#include "platform/windows/gui/filesystem.h"
+#include "platform/windows/gui/images.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
 #include "utils/file.h"
@@ -13,6 +12,7 @@ bool showGraphicsOptionsWindow = false;
 bool showBiosWindow = false;
 bool showControllerSetupWindow = false;
 
+// TODO: Move these windows to separate classes
 void graphicsOptionsWindow() {
     const int MAX_LEN = 5;
     static bool initialized = false;
