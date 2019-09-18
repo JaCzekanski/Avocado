@@ -16,7 +16,7 @@ System::System() {
     expansion.fill(0);
 
     cpu = std::make_unique<mips::CPU>(this);
-    gpu = std::make_unique<gpu::GPU>();
+    gpu = std::make_unique<gpu::GPU>(this);
     spu = std::make_unique<spu::SPU>(this);
     mdec = std::make_unique<mdec::MDEC>();
 
@@ -35,7 +35,7 @@ System::System() {
     biosLog = config["debug"]["log"]["bios"];
 }
 
-// Note: stupid static_casts and asserts are only to supress MSVC warnings
+// Note: stupid static_casts and asserts are only to suppress MSVC warnings
 
 // Warning: This function does not check array boundaries. Make sure that address is aligned!
 template <typename T>

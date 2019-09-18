@@ -3,6 +3,7 @@
 #include <cassert>
 #include "config.h"
 #include "render/render.h"
+#include "system.h"
 #include "utils/file.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
@@ -11,7 +12,7 @@
 #include <stb_image_write.h>
 
 namespace gpu {
-GPU::GPU() {
+GPU::GPU(System* sys) : sys(sys) {
     busToken = bus.listen<Event::Config::Graphics>([&](auto) { reload(); });
     reload();
     reset();
@@ -60,16 +61,18 @@ void GPU::drawTriangle(const primitive::Triangle& triangle) {
 
         for (int i : {0, 1, 2}) {
             auto& v = triangle.v[i];
-            vertices.push_back({Vertex::Type::Polygon,
-                                {v.pos.x + drawingOffsetX, v.pos.y + drawingOffsetY},
-                                {v.color.r, v.color.g, v.color.b},
-                                {v.uv.x, v.uv.y},
-                                triangle.bits,
-                                {triangle.clut.x, triangle.clut.y},
-                                {triangle.texpage.x, triangle.texpage.y},
-                                flags,
-                                gp0_e2,
-                                gp0_e6});
+            vertices.push_back({
+                Vertex::Type::Polygon,
+                {v.pos.x + drawingOffsetX, v.pos.y + drawingOffsetY},
+                {v.color.r, v.color.g, v.color.b},
+                {v.uv.x, v.uv.y},
+                triangle.bits,
+                {triangle.clut.x, triangle.clut.y},
+                {triangle.texpage.x, triangle.texpage.y},
+                flags,
+                gp0_e2,
+                gp0_e6,
+            });
         }
     }
 
@@ -92,10 +95,30 @@ void GPU::drawLine(const primitive::Line& line) {
         if (line.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
         if (line.gouroudShading) flags |= Vertex::Flags::GouroudShading;
 
-        vertices.push_back(
-            {Vertex::Type::Line, {p[0].x, p[0].y}, {c[0].r, c[0].g, c[0].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2, gp0_e6});
-        vertices.push_back(
-            {Vertex::Type::Line, {p[1].x, p[1].y}, {c[1].r, c[1].g, c[1].b}, {0, 0}, 0, {0, 0}, {0, 0}, flags, gp0_e2, gp0_e6});
+        vertices.push_back({
+            Vertex::Type::Line,
+            {p[0].x, p[0].y},
+            {c[0].r, c[0].g, c[0].b},
+            {0, 0},  // UV: 0
+            0,       // Bits: 0
+            {0, 0},  // clut: 0
+            {0, 0},  // texPage: 0
+            flags,
+            gp0_e2,
+            gp0_e6,
+        });
+        vertices.push_back({
+            Vertex::Type::Line,
+            {p[1].x, p[1].y},
+            {c[1].r, c[1].g, c[1].b},
+            {0, 0},  // UV: 0
+            0,       // Bits: 0
+            {0, 0},  // clut: 0
+            {0, 0},  // texPage: 0
+            flags,
+            gp0_e2,
+            gp0_e6,
+        });
     }
 
     if (softwareRendering) {
@@ -142,16 +165,18 @@ void GPU::drawRectangle(const primitive::Rect& rect) {
 
         Vertex v[6];
         for (int i : {0, 1, 2, 1, 2, 3}) {
-            v[i] = {Vertex::Type::Polygon,
-                    {x[i], y[i]},
-                    {rect.color.r, rect.color.g, rect.color.b},
-                    {uv[i].x, uv[i].y},
-                    rect.bits,
-                    {rect.clut.x, rect.clut.y},
-                    {rect.texpage.x, rect.texpage.y},
-                    flags,
-                    gp0_e2,
-                    gp0_e6};
+            v[i] = {
+                Vertex::Type::Polygon,
+                {x[i], y[i]},
+                {rect.color.r, rect.color.g, rect.color.b},
+                {uv[i].x, uv[i].y},
+                rect.bits,
+                {rect.clut.x, rect.clut.y},
+                {rect.texpage.x, rect.texpage.y},
+                flags,
+                gp0_e2,
+                gp0_e6,
+            };
             vertices.push_back(v[i]);
         }
     }
@@ -161,10 +186,7 @@ void GPU::drawRectangle(const primitive::Rect& rect) {
     }
 }
 
-void GPU::cmdFillRectangle(uint8_t command) {
-    (void)command;
-
-    // I'm sorry, but it appears that C++ doesn't have local functions.
+void GPU::cmdFillRectangle() {
     struct mask {
         constexpr static int startX(int x) { return x & 0x3f0; }
         constexpr static int startY(int y) { return y & 0x1ff; }
@@ -199,16 +221,18 @@ void GPU::cmdFillRectangle(uint8_t command) {
 
         Vertex v[6];
         for (int i : {0, 1, 2, 1, 2, 3}) {
-            v[i] = {Vertex::Type::Polygon,
-                    {p[i].x, p[i].y},
-                    {c.r, c.g, c.b},
-                    {0, 0},  // UV: 0
-                    0,       // Bits: 0
-                    {0, 0},  // clut: 0
-                    {0, 0},  // texPage: 0
-                    0,       // Flags: 0
-                    e2,      // gp0_e2: 0
-                    e6};     // gp0_e6: 0, no mask
+            v[i] = {
+                Vertex::Type::Polygon,
+                {p[i].x, p[i].y},
+                {c.r, c.g, c.b},
+                {0, 0},  // UV: 0
+                0,       // Bits: 0
+                {0, 0},  // clut: 0
+                {0, 0},  // texPage: 0
+                0,       // Flags: 0
+                e2,      // gp0_e2: 0
+                e6,      // gp0_e6: 0, no mask
+            };
             vertices.push_back(v[i]);
         }
     }
@@ -267,41 +291,41 @@ void GPU::cmdPolygon(PolygonArgs arg) {
     cmd = Command::None;
 }
 
-// fixme: handle multiline with > 15 lines (arguments array hold only 31 elements)
 void GPU::cmdLine(LineArgs arg) {
     int ptr = 1;
-    int lineCount = (!arg.polyLine) ? 1 : 15;
 
     primitive::Line line;
     line.isSemiTransparent = arg.semiTransparency;
     line.gouroudShading = arg.gouroudShading;
 
-    for (int i = 0; i < lineCount; i++) {
-        if ((arguments[ptr] & 0xf000f000) == 0x50005000) break;
+    line.pos[0].x = extend_sign<10>(arguments[ptr] & 0xffff);
+    line.pos[0].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+    line.color[0].raw = (arguments[0] & 0xffffff);
 
-        if (i == 0) {
-            line.pos[0].x = extend_sign<10>(arguments[ptr] & 0xffff);
-            line.pos[0].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
-            line.color[0].raw = (arguments[0] & 0xffffff);
-        } else {
-            line.pos[0] = line.pos[1];
-            line.pos[0] = line.pos[1];
-            line.color[0] = line.color[1];
-        }
-
-        if (arg.gouroudShading) {
-            line.color[1].raw = arguments[ptr++];
-        } else {
-            line.color[1].raw = (arguments[0] & 0xffffff);
-        }
-
-        line.pos[1].x = extend_sign<10>((arguments[ptr] & 0xffff));
-        line.pos[1].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
-
-        drawLine(line);
+    if (arg.gouroudShading) {
+        line.color[1].raw = arguments[ptr++];
+    } else {
+        line.color[1] = line.color[0];
     }
 
-    cmd = Command::None;
+    line.pos[1].x = extend_sign<10>((arguments[ptr] & 0xffff));
+    line.pos[1].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+
+    drawLine(line);
+
+    if (!arg.polyLine) {
+        cmd = Command::None;
+        return;
+    }
+
+    // Swap pos[1] to pos[0] (and color if shaded), so that next lines can be rendered
+    if (!arg.gouroudShading) {
+        arguments[1] = arguments[2];  // Pos
+    } else {
+        arguments[1] = arguments[3];  // Pos
+        arguments[0] = arguments[2];  // Color
+    }
+    currentArgument = 2;
 }
 
 void GPU::cmdRectangle(RectangleArgs arg) {
@@ -372,9 +396,7 @@ struct MaskCopy {
     constexpr static int h(int h) { return ((h - 1) & 0x1ff) + 1; }
 };
 
-void GPU::cmdCpuToVram1(uint8_t command) {
-    (void)command;
-
+void GPU::cmdCpuToVram1() {
     if ((arguments[0] & 0x00ffffff) != 0) {
         fmt::print("[GPU] cmdCpuToVram1: Suspicious arg0: 0x{:x}\n", arguments[0]);
     }
@@ -401,9 +423,7 @@ void GPU::maskedWrite(int x, int y, uint16_t value) {
     VRAM[y][x] = value | mask;
 }
 
-void GPU::cmdCpuToVram2(uint8_t command) {
-    (void)command;
-
+void GPU::cmdCpuToVram2() {
     const auto advanceOrBreak = [&]() {
         if (++currX >= endX) {
             currX = startX;
@@ -425,9 +445,7 @@ void GPU::cmdCpuToVram2(uint8_t command) {
     if (advanceOrBreak()) return;
 }
 
-void GPU::cmdVramToCpu(uint8_t command) {
-    (void)command;
-
+void GPU::cmdVramToCpu() {
     if ((arguments[0] & 0x00ffffff) != 0) {
         fmt::print("[GPU] cmdVramToCpu: Suspicious arg0: 0x{:x}\n", arguments[0]);
     }
@@ -461,9 +479,7 @@ uint32_t GPU::readVramData() {
     return data;
 }
 
-void GPU::cmdVramToVram(uint8_t command) {
-    (void)command;
-
+void GPU::cmdVramToVram() {
     cmd = Command::None;
 
     if ((arguments[0] & 0x00ffffff) != 0) {
@@ -540,9 +556,8 @@ uint32_t GPU::read(uint32_t address) {
 }
 
 void GPU::write(uint32_t address, uint32_t data) {
-    int reg = address & 0xfffffffc;
-    if (reg == 0) writeGP0(data);
-    if (reg == 4) writeGP1(data);
+    if (address == 0) writeGP0(data);
+    if (address == 4) writeGP1(data);
 }
 
 void GPU::writeGP0(uint32_t data) {
@@ -575,18 +590,18 @@ void GPU::writeGP0(uint32_t data) {
             // Rectangles
             cmd = Command::Rectangle;
             argumentCount = RectangleArgs(command).getArgumentCount();
-        } else if (command == 0xa0) {
-            // Copy rectangle (CPU -> VRAM)
-            cmd = Command::CopyCpuToVram1;
-            argumentCount = 2;
-        } else if (command == 0xc0) {
-            // Copy rectangle (VRAM -> CPU)
-            cmd = Command::CopyVramToCpu;
-            argumentCount = 2;
-        } else if (command == 0x80) {
+        } else if (command >= 0x80 && command <= 0x9f) {
             // Copy rectangle (VRAM -> VRAM)
             cmd = Command::CopyVramToVram;
             argumentCount = 3;
+        } else if (command >= 0xa0 && command <= 0xbf) {
+            // Copy rectangle (CPU -> VRAM)
+            cmd = Command::CopyCpuToVram1;
+            argumentCount = 2;
+        } else if (command >= 0xc0 && command <= 0xdf) {
+            // Copy rectangle (VRAM -> CPU)
+            cmd = Command::CopyVramToCpu;
+            argumentCount = 2;
         } else if (command == 0xe1) {
             // Draw mode setting
             gp0_e1._reg = arguments[0];
@@ -611,7 +626,7 @@ void GPU::writeGP0(uint32_t data) {
         } else if (command == 0x1f) {
             // Interrupt request
             irqRequest = true;
-            // TODO: IRQ
+            sys->interrupt->trigger(interrupt::IrqNumber::GPU);
         } else {
             fmt::print("GPU: GP0(0x{:02x}) args 0x{:06x}\n", command, arguments[0]);
         }
@@ -630,11 +645,20 @@ void GPU::writeGP0(uint32_t data) {
     }
 
     if (currentArgument < argumentCount) {
+        // Multi line draw call is handled separatly
+        // as it line count is not known beforehand
+        if (cmd == Command::Line && LineArgs(command).polyLine && ((data & 0xf000f000) == 0x50005000)) {
+            cmd = Command::None;
+            return;
+        }
+
         arguments[currentArgument++] = data;
-        if (argumentCount == MAX_ARGS && (data & 0xf000f000) == 0x50005000) argumentCount = currentArgument;
-        if (currentArgument != argumentCount) return;
+        if (currentArgument != argumentCount) {
+            return;
+        }
     }
 
+    // TODO: Make it work with multiline, include vram transfer data
     if (gpuLogEnabled && cmd != Command::CopyCpuToVram2) {
         LogEntry entry;
         entry.cmd = cmd;
@@ -643,22 +667,23 @@ void GPU::writeGP0(uint32_t data) {
         gpuLogList.push_back(entry);
     }
 
-    if (cmd == Command::FillRectangle)
-        cmdFillRectangle(command);
-    else if (cmd == Command::Polygon)
+    if (cmd == Command::FillRectangle) {
+        cmdFillRectangle();
+    } else if (cmd == Command::Polygon) {
         cmdPolygon(command);
-    else if (cmd == Command::Line)
+    } else if (cmd == Command::Line) {
         cmdLine(command);
-    else if (cmd == Command::Rectangle)
+    } else if (cmd == Command::Rectangle) {
         cmdRectangle(command);
-    else if (cmd == Command::CopyCpuToVram1)
-        cmdCpuToVram1(command);
-    else if (cmd == Command::CopyCpuToVram2)
-        cmdCpuToVram2(command);
-    else if (cmd == Command::CopyVramToCpu)
-        cmdVramToCpu(command);
-    else if (cmd == Command::CopyVramToVram)
-        cmdVramToVram(command);
+    } else if (cmd == Command::CopyCpuToVram1) {
+        cmdCpuToVram1();
+    } else if (cmd == Command::CopyCpuToVram2) {
+        cmdCpuToVram2();
+    } else if (cmd == Command::CopyVramToCpu) {
+        cmdVramToCpu();
+    } else if (cmd == Command::CopyVramToVram) {
+        cmdVramToVram();
+    }
 }
 
 void GPU::writeGP1(uint32_t data) {
@@ -668,7 +693,7 @@ void GPU::writeGP1(uint32_t data) {
     if (command == 0x00) {  // Reset GPU
         reset();
     } else if (command == 0x01) {  // Reset command buffer
-
+        cmd = Command::None;
     } else if (command == 0x02) {  // Acknowledge IRQ1
         irqRequest = false;
     } else if (command == 0x03) {  // Display Enable
@@ -707,11 +732,12 @@ void GPU::writeGP1(uint32_t data) {
         } else {
             // readData unchanged
         }
+    } else if (command == 0x20) {
+        fmt::print("[GPU] GP1(0x20) - Special Texutre disable: 0x{:06x}\n", argument);
     } else {
         fmt::print("[GPU] GP1(0x{:02x}) args 0x{:06x}\n", command, argument);
         assert(false);
     }
-    // command 0x20 is not implemented
 }
 
 bool GPU::emulateGpuCycles(int cycles) {

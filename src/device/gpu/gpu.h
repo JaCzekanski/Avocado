@@ -27,6 +27,8 @@ class GPU {
     friend class ::Render;
     friend class ::OpenGL;
 
+    System* sys;
+
     int busToken;
 
     // Copy/Fill commands
@@ -107,14 +109,14 @@ class GPU {
     bool hardwareRendering;
 
     void reset();
-    void cmdFillRectangle(uint8_t command);
+    void cmdFillRectangle();
     void cmdPolygon(PolygonArgs arg);
     void cmdLine(LineArgs arg);
     void cmdRectangle(RectangleArgs arg);
-    void cmdCpuToVram1(uint8_t command);
-    void cmdCpuToVram2(uint8_t command);
-    void cmdVramToCpu(uint8_t command);
-    void cmdVramToVram(uint8_t command);
+    void cmdCpuToVram1();
+    void cmdCpuToVram2();
+    void cmdVramToCpu();
+    void cmdVramToVram();
 
     void drawTriangle(const primitive::Triangle& triangle);
     void drawLine(const primitive::Line& line);
@@ -130,7 +132,7 @@ class GPU {
     uint32_t getStat();
 
    public:
-    GPU();
+    GPU(System* sys);
     ~GPU();
     void step();
     bool emulateGpuCycles(int cycles);

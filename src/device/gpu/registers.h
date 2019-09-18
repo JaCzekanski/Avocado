@@ -161,9 +161,11 @@ union LineArgs {
     LineArgs(uint8_t arg) : _(arg) {}
 
     int getArgumentCount() const {
-        if (polyLine) return MAX_ARGS - 1;
-
-        return 2 + (gouroudShading ? 1 : 0);
+        if (gouroudShading) {
+            return 3;
+        } else {
+            return 2;
+        }
     }
 };
 
