@@ -23,8 +23,8 @@ GPU::~GPU() { bus.unlistenAll(busToken); }
 void GPU::reload() {
     forceNtsc = config["options"]["graphics"]["forceNtsc"];
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
-    softwareRendering = (mode & RenderingMode::SOFTWARE) != 0;
-    hardwareRendering = (mode & RenderingMode::HARDWARE) != 0;
+    softwareRendering = (mode & RenderingMode::software) != 0;
+    hardwareRendering = (mode & RenderingMode::hardware) != 0;
 }
 
 void GPU::reset() {

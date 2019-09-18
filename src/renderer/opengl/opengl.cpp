@@ -89,7 +89,7 @@ bool OpenGL::setup() {
     vao->bind();
 
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
-    hardwareRendering = (mode & RenderingMode::HARDWARE) != 0;
+    hardwareRendering = (mode & RenderingMode::hardware) != 0;
 
     transparency = config["options"]["graphics"]["transparency"];
 

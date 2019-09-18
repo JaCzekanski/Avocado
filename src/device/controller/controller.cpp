@@ -54,12 +54,12 @@ Controller::~Controller() { bus.unlistenAll(busToken); }
 void Controller::reload() {
     auto createDevice = [](int num) -> std::unique_ptr<peripherals::AbstractDevice> {
         num += 1;
-        std::string type = config["controller"][std::to_string(num)]["type"];
-        if (type == ControllerType::DIGITAL) {
+        ControllerType type = config["controller"][std::to_string(num)]["type"];
+        if (type == ControllerType::digital) {
             return std::make_unique<peripherals::DigitalController>(num);
-        } else if (type == ControllerType::ANALOG) {
+        } else if (type == ControllerType::analog) {
             return std::make_unique<peripherals::AnalogController>(num);
-        } else if (type == ControllerType::MOUSE) {
+        } else if (type == ControllerType::mouse) {
             return std::make_unique<peripherals::Mouse>(num);
         } else {
             return std::make_unique<peripherals::None>(num);

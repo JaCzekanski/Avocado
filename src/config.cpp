@@ -4,13 +4,6 @@
 
 const char* CONFIG_NAME = "config.json";
 
-namespace ControllerType {
-const std::string NONE = "none";
-const std::string DIGITAL = "digital";
-const std::string ANALOG = "analog";
-const std::string MOUSE = "mouse";
-}  // namespace ControllerType
-
 namespace DefaultKeyBindings {
 // clang-format off
 json none() {
@@ -142,17 +135,17 @@ const json defaultConfig = {
 	{"iso", ""},
     {"controller", {
         {"1", {
-            {"type", ControllerType::ANALOG},
+            {"type", ControllerType::analog},
             {"keys", DefaultKeyBindings::keyboard_numpad()}
         }},
         {"2", {
-            {"type", ControllerType::NONE},
+            {"type", ControllerType::none},
             {"keys", DefaultKeyBindings::none()}
         }}
     }},
     {"options", {
         {"graphics", {
-            {"rendering_mode", RenderingMode::SOFTWARE},
+            {"rendering_mode", RenderingMode::software},
             {"transparency", true},
             {"widescreen", false},
             {"forceWidescreen", false},
