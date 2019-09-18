@@ -202,7 +202,7 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
     }
 
     uint32_t handlerAddress = cpu->cop0.status.getHandlerAddress();
-    if (cause == Exception::breakpoint) {
+    if (cause == Exception::breakpoint && cpu->cop0.dcic.codeBreakpointHit) {
         handlerAddress -= 0x40;
     }
 
