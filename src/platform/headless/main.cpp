@@ -33,11 +33,11 @@ int main(int argc, char **argv) {
     }
     printf("File %s loaded\n", getFilenameExt(argv[1]).c_str());
 
-    cpu->state = mips::CPU::State::run;
+    cpu->state = System::State::run;
     cpu->debugOutput = false;
     cpu->setPC(cpu->readMemory32(0x1f000000));
 
-    while (cpu->state == mips::CPU::State::run) {
+    while (cpu->state == System::State::run) {
         cpu->emulateFrame();
     }
 

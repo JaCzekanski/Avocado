@@ -78,11 +78,7 @@ std::array<PrimaryInstruction, 64> OpcodeTable = {{
     {60, invalid},
     {61, invalid},
     {62, invalid},
-#ifdef ENABLE_BREAKPOINTS
-    {63, op_breakpoint}
-#else
-    {63, invalid}
-#endif
+    {63, invalid},
 }};
 
 // opcodes encoded with "function" field, when opcode == 0
@@ -218,7 +214,6 @@ void invalid(CPU *cpu, Opcode i) {
     UNUSED(i);
 
     exception(cpu, COP0::CAUSE::Exception::reservedInstruction);
-    // TODO: cpu->sys kinda sucks
 }
 
 void special(CPU *cpu, Opcode i) {
@@ -799,12 +794,5 @@ void op_swc2(CPU *cpu, Opcode i) {
     assert(i.rt < 64);
     auto gteRead = cpu->gte.read(i.rt);
     cpu->sys->writeMemory32(addr, gteRead);
-}
-
-// BREAKPOINT
-void op_breakpoint(CPU *cpu, Opcode i) {
-    UNUSED(i);
-    cpu->sys->state = System::State::halted;
-    cpu->setPC(cpu->nextPC);
 }
 };  // namespace instructions

@@ -53,7 +53,7 @@ struct LoadSlot {
 };
 
 struct CPU {
-    static const int REGISTER_COUNT = 32;
+    inline static const int REGISTER_COUNT = 32;
 
     // Saved state for exception handling
     uint32_t exceptionPC;
@@ -77,17 +77,14 @@ struct CPU {
     void checkForInterrupts();
     void loadDelaySlot(uint32_t r, uint32_t data);
     void moveLoadDelaySlots();
-    INLINE void invalidateSlot(uint32_t r) {
-        // TODO: Remove branching in delay slots to improve performance
+    INLINE void loadAndInvalidate(uint32_t r, uint32_t data) {
+        if (r == 0) return;
+        reg[r] = data;
+
+        // Invalidate
         if (slots[0].reg == r) {
             slots[0].reg = 0;
         }
-    }
-
-    INLINE void loadAndInvalidate(int r, uint32_t data) {
-        if (r == 0) return;
-        reg[r] = data;
-        invalidateSlot(r);
     }
     INLINE void jump(uint32_t address) {
         nextPC = address;
@@ -100,7 +97,7 @@ struct CPU {
 
     void saveStateForException();
     void handleHardwareBreakpoints();
-    bool handleSoftwareBreakpoints();
+    INLINE bool handleSoftwareBreakpoints();
     bool executeInstructions(int count);
 
     void busError();

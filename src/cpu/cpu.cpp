@@ -58,24 +58,26 @@ void CPU::handleHardwareBreakpoints() {
     }
 }
 
-bool CPU::handleSoftwareBreakpoints() {
-    if (!breakpoints.empty()) {
-        auto bp = breakpoints.find(PC);
-        if (bp != breakpoints.end() && bp->second.enabled) {
-            if (bp->second.singleTime) {
-                breakpoints.erase(bp);
-                sys->state = System::State::pause;
-                return true;
-            }
-            if (!bp->second.hit) {
-                bp->second.hitCount++;
-                bp->second.hit = true;
-                sys->state = System::State::pause;
+INLINE bool CPU::handleSoftwareBreakpoints() {
+    if (breakpoints.empty()) {
+        return false;
+    }
 
-                return true;
-            }
-            bp->second.hit = false;
+    auto bp = breakpoints.find(PC);
+    if (bp != breakpoints.end() && bp->second.enabled) {
+        if (bp->second.singleTime) {
+            breakpoints.erase(bp);
+            sys->state = System::State::pause;
+            return true;
         }
+        if (!bp->second.hit) {
+            bp->second.hitCount++;
+            bp->second.hit = true;
+            sys->state = System::State::pause;
+
+            return true;
+        }
+        bp->second.hit = false;
     }
     return false;
 }
@@ -90,7 +92,7 @@ bool CPU::executeInstructions(int count) {
         checkForInterrupts();
         handleHardwareBreakpoints();
 
-        if (handleSoftwareBreakpoints()) return false;
+        if (unlikely(handleSoftwareBreakpoints())) return false;
 
         _opcode = Opcode(sys->readMemory32(PC));
         const auto& op = instructions::OpcodeTable[_opcode.op];
