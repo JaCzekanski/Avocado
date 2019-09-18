@@ -434,7 +434,7 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     return true;
 }
 
-bool System::loadBios(std::string path) {
+bool System::loadBios(const std::string& path) {
     const char* licenseString = "Sony Computer Entertainment Inc";
 
     auto _bios = getFileContents(path);

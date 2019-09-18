@@ -81,7 +81,7 @@ std::unique_ptr<Chd> Chd::open(const std::string& path) {
     return chd;
 }
 
-Chd::Chd(std::string path, chd_file* chdFile) : path(path), chdFile(chdFile) {}
+Chd::Chd(const std::string& path, chd_file* chdFile) : path(path), chdFile(chdFile) {}
 
 Chd::~Chd() { chd_close(chdFile); }
 

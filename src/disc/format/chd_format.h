@@ -23,7 +23,7 @@ struct Chd : public Disc {
     Position getDiskSize() const override;
 
    private:
-    Chd(std::string path, chd_file* chdFile);
+    Chd(const std::string& path, chd_file* chdFile);
 
     std::string path;
     chd_file* chdFile;

@@ -102,7 +102,7 @@ struct System {
     std::string biosPath;
     int biosLog = 0;
     bool printStackTrace = false;
-    bool loadBios(std::string name);
+    bool loadBios(const std::string& name);
     bool loadExpansion(const std::vector<uint8_t>& _exe);
     bool loadExeFile(const std::vector<uint8_t>& _exe);
     void dumpRam();

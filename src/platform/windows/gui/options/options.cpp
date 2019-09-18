@@ -1,7 +1,9 @@
 #include "options.h"
 #include <fmt/core.h>
 #include <imgui.h>
+#include <magic_enum.hpp>
 #include "config.h"
+#include "device/controller/controller_type.h"
 #include "platform/windows/gui/filesystem.h"
 #include "platform/windows/gui/images.h"
 #include "platform/windows/input/sdl_input_manager.h"
@@ -245,7 +247,7 @@ void drawImage(const std::optional<Image> image, float w = 0.f, float h = 0.f) {
     }
 }
 
-void button(int controller, std::string button, const char* tooltip = nullptr) {
+void button(int controller, const std::string& button, const char* tooltip = nullptr) {
     auto inputManager = static_cast<SdlInputManager*>(InputManager::getInstance());
     static std::string currentButton = "";
     if (controller < 1 || controller > 4) return;
@@ -304,22 +306,15 @@ void controllerSetupWindow() {
     static int selectedController = 1;
     static auto comboString = fmt::format("Controller {}", selectedController);
 
-    const std::array<const char*, 4> types = {{
-        ControllerType::NONE.c_str(),     //
-        ControllerType::DIGITAL.c_str(),  //
-        ControllerType::ANALOG.c_str(),   //
-        ControllerType::MOUSE.c_str(),    //
+    const auto controllerTypes = magic_enum::enum_entries<ControllerType>();
+
+    const std::array<const char*, 5> defaults = {{
+        "Defaults ...",
+        "Clear",
+        "Keyboard (Numpad)",
+        "Mouse",
+        "Controller 1",
     }};
-
-    const auto find = [&](std::string selectedType) -> int {
-        for (auto i = 0; i < (int)types.size(); i++) {
-            std::string type = types[i];
-            if (type == selectedType) return i;
-        }
-        return 0;
-    };
-
-    const std::array<const char*, 5> defaults = {{"Defaults ...", "Clear", "Keyboard (Numpad)", "Mouse", "Controller 1"}};
 
     ImGui::Begin("Controller", &showControllerSetupWindow, ImVec2(500.f, 320.f), ImGuiWindowFlags_NoScrollbar);
 
@@ -340,8 +335,7 @@ void controllerSetupWindow() {
     }
     ImGui::PopItemWidth();
 
-    int typePos = find(config["controller"][std::to_string(selectedController)]["type"]);
-    auto currentType = types[typePos];
+    auto currentType = config["controller"][std::to_string(selectedController)]["type"];
 
     const float leftGroupWidth = 256.f;
     ImGui::BeginGroup();
@@ -349,18 +343,24 @@ void controllerSetupWindow() {
     ImGui::Text("Type");
     ImGui::SameLine();
     ImGui::PushItemWidth(-1);
-    if (ImGui::Combo("##type", &typePos, types.data(), (int)types.size())) {
-        config["controller"][std::to_string(selectedController)]["type"] = types[typePos];
-        bus.notify(Event::Config::Controller{});
+
+    if (ImGui::BeginCombo("##type", std::string(currentType).c_str())) {
+        for (auto& type : controllerTypes) {
+            if (ImGui::Selectable(std::string(type.second).c_str())) {
+                config["controller"][std::to_string(selectedController)]["type"] = type.first;
+                bus.notify(Event::Config::Controller{});
+            }
+        }
+        ImGui::EndCombo();
     }
     ImGui::PopItemWidth();
 
-    if (currentType != ControllerType::NONE) {
+    if (currentType != ControllerType::none) {
         drawImage(getImage(currentType), leftGroupWidth);
     }
     ImGui::EndChild();
 
-    if (currentType != ControllerType::NONE) {
+    if (currentType != ControllerType::none) {
         ImGui::PushItemWidth(leftGroupWidth);
         if (int pos = 0; ImGui::Combo("##defaults", &pos, defaults.data(), (int)defaults.size())) {
             auto& keysConfig = config["controller"][std::to_string(selectedController)]["keys"];
@@ -378,7 +378,7 @@ void controllerSetupWindow() {
     ImGui::SameLine();
 
     ImGui::BeginChild("Buttons", ImVec2(0.f, 0.f));
-    if (currentType == ControllerType::MOUSE) {
+    if (currentType == ControllerType::mouse) {
         button(selectedController, "l_up", "Move Up");
         button(selectedController, "l_right", "Move Right");
         button(selectedController, "l_down", "Move Down");
@@ -386,7 +386,7 @@ void controllerSetupWindow() {
         button(selectedController, "l1", "Left Button");
         button(selectedController, "r1", "Right Button");
     }
-    if (currentType == ControllerType::DIGITAL || currentType == ControllerType::ANALOG) {
+    if (currentType == ControllerType::digital || currentType == ControllerType::analog) {
         button(selectedController, "dpad_up", "D-Pad Up");
         button(selectedController, "dpad_down", "D-Pad Down");
         button(selectedController, "dpad_left", "D-Pad Left");
@@ -405,7 +405,7 @@ void controllerSetupWindow() {
         button(selectedController, "select", "Select");
         button(selectedController, "start", "Start");
 
-        if (currentType == ControllerType::ANALOG) {
+        if (currentType == ControllerType::analog) {
             button(selectedController, "analog", "Analog mode toggle");
             button(selectedController, "l3", "Left Stick Press");
             button(selectedController, "l_up", "Left Stick Up");

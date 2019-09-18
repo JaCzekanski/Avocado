@@ -22,7 +22,7 @@ void bootstrap(std::unique_ptr<System>& sys) {
     while (sys->state == System::State::run) sys->emulateFrame();
 }
 
-void loadFile(std::unique_ptr<System>& sys, std::string path) {
+void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
