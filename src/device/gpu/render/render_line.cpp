@@ -7,7 +7,6 @@
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
 void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
-    using Transparency = gpu::SemiTransparency;
     const auto transparency = gpu->gp0_e1.semiTransparency;
     const bool checkMaskBeforeDraw = gpu->gp0_e6.checkMaskBeforeDraw;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
@@ -73,14 +72,8 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
             c = PSXColor(col.r, col.g, col.b);
         }
 
-        // TODO: This code repeats 3 times, make it more generic
         if (line.isSemiTransparent) {
-            switch (transparency) {
-                case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
-                case Transparency::BplusF: c = bg + c; break;
-                case Transparency::BminusF: c = bg - c; break;
-                case Transparency::BplusFby4: c = bg + (c >> 2); break;
-            }
+            c = PSXColor::blend(bg, c, transparency);
         }
 
         c.k |= bg.k | setMaskWhileDrawing;

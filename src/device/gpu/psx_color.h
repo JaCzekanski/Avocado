@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <glm/glm.hpp>
+#include "semi_transparency.h"
 #include "utils/macros.h"
 #include "utils/math.h"
 
@@ -34,7 +35,11 @@ union PSXColor {
     INLINE uint16_t rev() const { return (r << 11) | (g << 6) | (b << 1) | k; }
 
     PSXColor() : raw(0) {}
+
+    // 16bit word from VRAM
     PSXColor(uint16_t color) : raw(color) {}
+
+    // 8bit input values
     PSXColor(uint8_t r, uint8_t g, uint8_t b) {
         this->r = r >> 3;
         this->g = g >> 3;
@@ -42,46 +47,49 @@ union PSXColor {
         this->k = 0;
     }
 
-    PSXColor operator+(const PSXColor& rhs) {
-        r = std::min(r + rhs.r, 31);
-        g = std::min(g + rhs.g, 31);
-        b = std::min(b + rhs.b, 31);
-        return *this;
+    // 5bit input values
+    PSXColor(uint8_t r, uint8_t g, uint8_t b, uint8_t k) : r(r), g(g), b(b), k(k) {}
+
+    PSXColor operator*(const glm::ivec3& rhs) const {
+        return PSXColor(                               //
+            clamp_top<uint8_t>((rhs.r * r) >> 7, 31),  //
+            clamp_top<uint8_t>((rhs.g * g) >> 7, 31),  //
+            clamp_top<uint8_t>((rhs.b * b) >> 7, 31),  //
+            k                                          //
+        );
     }
 
-    PSXColor operator-(const PSXColor& rhs) {
-        r = std::max<int>(r - rhs.r, 0);
-        g = std::max<int>(g - rhs.g, 0);
-        b = std::max<int>(b - rhs.b, 0);
-        return *this;
-    }
-
-    PSXColor operator*(const float& rhs) {
-        r = (uint16_t)(r * rhs);
-        g = (uint16_t)(g * rhs);
-        b = (uint16_t)(b * rhs);
-        return *this;
-    }
-
-    PSXColor operator/(const int& rhs) {
-        r = (uint16_t)(r / rhs);
-        g = (uint16_t)(g / rhs);
-        b = (uint16_t)(b / rhs);
-        return *this;
-    }
-
-    PSXColor operator>>(const int& sh) {
-        r >>= sh;
-        g >>= sh;
-        b >>= sh;
-        return *this;
-    }
-
-    PSXColor operator*(const glm::vec3& rhs) {
-        r = std::min<uint16_t>((uint16_t)(rhs.r * r), 31);
-        g = std::min<uint16_t>((uint16_t)(rhs.g * g), 31);
-        b = std::min<uint16_t>((uint16_t)(rhs.b * b), 31);
-        return *this;
+    INLINE static PSXColor blend(const PSXColor& bg, const PSXColor& c, const gpu::SemiTransparency& transparency) {
+        switch (transparency) {
+            case gpu::SemiTransparency::Bby2plusFby2:
+                return PSXColor(                       //
+                    clamp_top((bg.r + c.r) >> 1, 31),  //
+                    clamp_top((bg.g + c.g) >> 1, 31),  //
+                    clamp_top((bg.b + c.b) >> 1, 31),  //
+                    0                                  //
+                );
+            case gpu::SemiTransparency::BplusF:
+                return PSXColor(                //
+                    clamp_top(bg.r + c.r, 31),  //
+                    clamp_top(bg.g + c.g, 31),  //
+                    clamp_top(bg.b + c.b, 31),  //
+                    0                           //
+                );
+            case gpu::SemiTransparency::BminusF:
+                return PSXColor(                  //
+                    clamp_bottom(bg.r - c.r, 0),  //
+                    clamp_bottom(bg.g - c.g, 0),  //
+                    clamp_bottom(bg.b - c.b, 0),  //
+                    0                             //
+                );
+            case gpu::SemiTransparency::BplusFby4:
+                return PSXColor(                       //
+                    clamp_top(bg.r + (c.r >> 2), 31),  //
+                    clamp_top(bg.g + (c.g >> 2), 31),  //
+                    clamp_top(bg.b + (c.b >> 2), 31),  //
+                    0                                  //
+                );
+        }
     }
 };
 

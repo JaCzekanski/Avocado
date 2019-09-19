@@ -4,8 +4,8 @@
 #include "utils/macros.h"
 
 using glm::ivec2;
+using glm::ivec3;
 using glm::uvec2;
-using glm::vec3;
 using gpu::GPU;
 
 #undef VRAM
@@ -28,7 +28,6 @@ INLINE glm::uvec2 calculateTexel(glm::ivec2 tex, const gpu::GP0_E2 textureWindow
 template <ColorDepth bits>
 INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     // Extract common GPU state
-    using Transparency = gpu::SemiTransparency;
     const auto transparency = gpu->gp0_e1.semiTransparency;
     const bool checkMaskBeforeDraw = gpu->gp0_e6.checkMaskBeforeDraw;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
@@ -83,18 +82,12 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
                 if (c.raw == 0x0000) continue;
 
                 if (isBlended) {
-                    vec3 brightness = vec3(rect.color.r, rect.color.g, rect.color.b) / 255.f;
-                    c = c * (brightness * 2.f);
+                    c = c * ivec3(rect.color.r, rect.color.g, rect.color.b);
                 }
             }
 
             if (rect.isSemiTransparent && (!isTextured || c.k)) {
-                switch (transparency) {
-                    case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
-                    case Transparency::BplusF: c = bg + c; break;
-                    case Transparency::BminusF: c = bg - c; break;
-                    case Transparency::BplusFby4: c = bg + (c >> 2); break;
-                }
+                c = PSXColor::blend(bg, c, transparency);
             }
 
             c.k |= bg.k | setMaskWhileDrawing;

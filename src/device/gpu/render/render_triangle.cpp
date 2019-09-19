@@ -9,7 +9,6 @@
 using glm::ivec2;
 using glm::ivec3;
 using glm::uvec2;
-using glm::vec3;
 using gpu::GPU;
 using gpu::Vertex;
 
@@ -67,7 +66,6 @@ static bool isTopLeft(const ivec2 e) { return e.y < 0 || (e.y == 0 && e.x < 0); 
 template <ColorDepth bits>
 void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
     // Extract common GPU state
-    using Transparency = gpu::SemiTransparency;
     const auto transparency = triangle.transparency;
     const bool checkMaskBeforeDraw = gpu->gp0_e6.checkMaskBeforeDraw;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
@@ -133,10 +131,8 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
     };
 
     ivec3 COLOR[3];
-    vec3 fcolor[3];
     for (int i = 0; i < 3; i++) {
         COLOR[i] = ivec3(triangle.v[i].color.r, triangle.v[i].color.g, triangle.v[i].color.b);
-        fcolor[i] = vec3(COLOR[i]) / 255.f;
     }
 
     ivec2 p;
@@ -163,32 +159,25 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
                     if (c.raw == 0x0000) goto DONE;
 
                     if (isBlended) {
-                        vec3 brightness;
-
+                        ivec3 brightness;
                         if (isGouroudShaded) {
-                            // TODO: Get rid of float colors
-                            brightness = vec3(                                                //
-                                (s.x * fcolor[0].r + s.y * fcolor[1].r + s.z * fcolor[2].r),  //
-                                (s.x * fcolor[0].g + s.y * fcolor[1].g + s.z * fcolor[2].g),  //
-                                (s.x * fcolor[0].b + s.y * fcolor[1].b + s.z * fcolor[2].b)   //
+                            brightness = ivec3(                                            //
+                                (s.x * COLOR[0].r + s.y * COLOR[1].r + s.z * COLOR[2].r),  //
+                                (s.x * COLOR[0].g + s.y * COLOR[1].g + s.z * COLOR[2].g),  //
+                                (s.x * COLOR[0].b + s.y * COLOR[1].b + s.z * COLOR[2].b)   //
                             );
                             brightness /= area;
                         } else {  // Flat shading
-                            brightness = fcolor[0];
+                            brightness = COLOR[0];
                         }
 
-                        c = c * (brightness * 2.f);
+                        c = c * brightness;
                     }
                     // TODO: Textured polygons are not dithered
                 }
 
                 if (isSemiTransparent && (!isTextured || c.k)) {
-                    switch (transparency) {
-                        case Transparency::Bby2plusFby2: c = (bg >> 1) + (c >> 1); break;
-                        case Transparency::BplusF: c = bg + c; break;
-                        case Transparency::BminusF: c = bg - c; break;
-                        case Transparency::BplusFby4: c = bg + (c >> 2); break;
-                    }
+                    c = PSXColor::blend(bg, c, transparency);
                 }
 
                 c.k |= bg.k | setMaskWhileDrawing;
