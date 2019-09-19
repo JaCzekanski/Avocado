@@ -20,7 +20,7 @@ std::vector<int16_t> decode(uint8_t buffer[16], int32_t prevSample[2]) {
     // Read ADPCM header
     auto shift = buffer[0] & 0x0f;
     auto filter = (buffer[0] & 0x70) >> 4;  // 0x40 for xa adpcm
-    if (shift > 9) shift = 9;
+    if (shift > 12) shift = 9;
 
     assert(filter <= 4);
     if (filter > 4) filter = 4;  // TODO: Not sure, check behaviour on real HW
@@ -103,7 +103,7 @@ std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2], bo
         // Read ADPCM header
         auto shift = buffer[4 + block] & 0x0f;
         auto filter = (buffer[4 + block] & 0x30) >> 4;
-        if (shift > 9) shift = 9;
+        if (shift > 12) shift = 9;
 
         auto filterPos = filterTablePos[filter];
         auto filterNeg = filterTableNeg[filter];
