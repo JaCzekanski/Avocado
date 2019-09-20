@@ -1,4 +1,5 @@
 #include "voice.h"
+#include <algorithm>
 #include <cmath>
 #include "sound/adpcm.h"
 #include "utils/math.h"
