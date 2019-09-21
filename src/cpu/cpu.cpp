@@ -1,5 +1,4 @@
 #include "cpu.h"
-#include <cassert>
 #include "bios/functions.h"
 #include "cpu/instructions.h"
 #include "system.h"
@@ -27,8 +26,6 @@ void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
 
 void CPU::moveLoadDelaySlots() {
     if (slots[0].reg != 0) {
-        assert(slots[0].reg < REGISTER_COUNT);
-
         // If register contents has been changed during delay slot - ignore it
         if (reg[slots[0].reg] == slots[0].prevData) {
             reg[slots[0].reg] = slots[0].data;

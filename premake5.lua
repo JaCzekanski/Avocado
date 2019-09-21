@@ -115,6 +115,7 @@ filter {"kind:*App", "system:android"}
 filter "configurations:Debug"
 	defines { "DEBUG" }
 	symbols "On"
+	optimize "Debug"
 
 filter "configurations:Release"
 	staticruntime "on"

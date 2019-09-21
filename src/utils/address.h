@@ -1,9 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <type_traits>
+#include "macros.h"
 
 template <typename T>
-constexpr uint32_t align_mips(uint32_t address) {
+INLINE constexpr uint32_t align_mips(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     if (sizeof(T) == 1) return address & 0x1fffffff;
@@ -13,6 +14,6 @@ constexpr uint32_t align_mips(uint32_t address) {
 }
 
 template <uint32_t base, uint32_t size>
-constexpr bool in_range(const uint32_t addr) {
+INLINE constexpr bool in_range(const uint32_t addr) {
     return (addr >= base && addr < base + size);
 }

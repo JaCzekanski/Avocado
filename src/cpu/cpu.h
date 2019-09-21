@@ -1,5 +1,4 @@
 #pragma once
-#include <array>
 #include <cstdint>
 #include <unordered_map>
 #include "cpu/cop0.h"
@@ -60,13 +59,13 @@ struct CPU {
     bool exceptionIsInBranchDelay;
     bool exceptionIsBranchTaken;
 
-    uint32_t PC;                    // Address to be executed
-    uint32_t nextPC;                // Next address to be executed
-    bool inBranchDelay;             // Is CPU currently in Branch Delay slot
-    bool branchTaken;               // If CPU is in Branch Delay slot, was the branch taken
-    std::array<LoadSlot, 2> slots;  // Load Delay slots
+    uint32_t PC;         // Address to be executed
+    uint32_t nextPC;     // Next address to be executed
+    bool inBranchDelay;  // Is CPU currently in Branch Delay slot
+    bool branchTaken;    // If CPU is in Branch Delay slot, was the branch taken
+    LoadSlot slots[2];   // Load Delay slots
 
-    std::array<uint32_t, REGISTER_COUNT> reg;
+    uint32_t reg[REGISTER_COUNT];
     uint32_t hi, lo;
     COP0 cop0;
     GTE gte;
