@@ -269,7 +269,8 @@ void GPU::logWindow(System *sys) {
                             // TODO: Render texture
                         }
 
-                        vramAreas.push_back({textureInfo, ImVec2(texX, texY), ImVec2(textureWidth, h)});
+                        vramAreas.push_back(
+                            {textureInfo, ImVec2(texPageX + texX / (16 / textureBits), texPageY + texY), ImVec2(textureWidth, h)});
 
                         if (clutColors != 0) {
                             vramAreas.push_back({"CLUT", ImVec2(clutX, clutY), ImVec2(clutColors, 1)});
