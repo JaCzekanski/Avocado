@@ -43,7 +43,6 @@ class OpenGL {
     const int bufferSize = 10000;
 
     bool hardwareRendering;
-    bool transparency;
 
     std::unique_ptr<VertexArrayObject> vao;
     std::unique_ptr<Program> renderShader;

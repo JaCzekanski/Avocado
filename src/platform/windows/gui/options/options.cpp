@@ -105,12 +105,6 @@ void graphicsOptionsWindow() {
             }
             ImGui::PopItemWidth();
         }
-
-        bool transparency = config["options"]["graphics"]["transparency"];
-        if (ImGui::Checkbox("Transparency", &transparency)) {
-            config["options"]["graphics"]["transparency"] = transparency;
-            bus.notify(Event::Config::Graphics{});
-        }
     }
 
     bool widescreen = config["options"]["graphics"]["widescreen"];

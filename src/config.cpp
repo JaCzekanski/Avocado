@@ -146,7 +146,6 @@ const json defaultConfig = {
     {"options", {
         {"graphics", {
             {"rendering_mode", RenderingMode::software},
-            {"transparency", true},
             {"widescreen", false},
             {"forceWidescreen", false},
             {"resolution", {

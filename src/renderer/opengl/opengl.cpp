@@ -91,8 +91,6 @@ bool OpenGL::setup() {
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
     hardwareRendering = (mode & RenderingMode::hardware) != 0;
 
-    transparency = config["options"]["graphics"]["transparency"];
-
     renderWidth = config["options"]["graphics"]["resolution"]["width"];
     renderHeight = config["options"]["graphics"]["resolution"]["height"];
 
@@ -271,104 +269,11 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
             return GL_TRIANGLES;
     };
 
-#if 0
-    const std::array<const char*, 15> blendModes= {{
-            "GL_ZERO",
-            "GL_ONE",
-            "GL_SRC_COLOR",
-            "GL_ONE_MINUS_SRC_COLOR",
-            "GL_DST_COLOR",
-            "GL_ONE_MINUS_DST_COLOR",
-            "GL_SRC_ALPHA",
-            "GL_ONE_MINUS_SRC_ALPHA",
-            "GL_DST_ALPHA",
-            "GL_ONE_MINUS_DST_ALPHA",
-            "GL_CONSTANT_COLOR",
-            "GL_ONE_MINUS_CONSTANT_COLOR",
-            "GL_CONSTANT_ALPHA",
-            "GL_ONE_MINUS_CONSTANT_ALPHA",
-            "GL_SRC_ALPHA_SATURATE"
-    }};
-
-    auto mapBlendMode = [](int mode) {
-        switch (mode){ 
-            case 0:  return GL_ZERO;
-            case 1:  return GL_ONE;
-            case 2:  return GL_SRC_COLOR;
-            case 3:  return GL_ONE_MINUS_SRC_COLOR;
-            case 4:  return GL_DST_COLOR;
-            case 5:  return GL_ONE_MINUS_DST_COLOR;
-            case 6:  return GL_SRC_ALPHA;
-            case 7:  return GL_ONE_MINUS_SRC_ALPHA;
-            case 8:  return GL_DST_ALPHA;
-            case 9:  return GL_ONE_MINUS_DST_ALPHA;
-            case 10: return  GL_CONSTANT_COLOR;
-            case 11: return  GL_ONE_MINUS_CONSTANT_COLOR;
-            case 12: return  GL_CONSTANT_ALPHA;
-            case 13: return  GL_ONE_MINUS_CONSTANT_ALPHA;
-            case 14: return  GL_SRC_ALPHA_SATURATE;
-        }
-    };
-
-    const std::array<const char*, 3> equations = {{
-        "GL_FUNC_ADD",
-        "GL_FUNC_SUBTRACT",
-        "GL_FUNC_REVERSE_SUBTRACT"
-    }};
-
-    auto mapEquation = [](int mode) {
-        switch (mode){ 
-            case 0:  return GL_FUNC_ADD;
-            case 1:  return GL_FUNC_SUBTRACT;
-            case 2:  return GL_FUNC_REVERSE_SUBTRACT;
-        }
-    };
-
-    static int selectedSrcA = 0;
-    static int selectedSrcC = 0;
-    static int selectedEquation = 0;
-    static int selectedDstA = 0;
-    static int selectedDstC = 0;
-
-    static glm::vec4 blendColor;
-
-    ImGui::Begin("BminusF");
-
-    if (ImGui::Button("-##sa") && selectedSrcA > 0) selectedSrcA--; ImGui::SameLine();
-    if (ImGui::Button("+##sa") && selectedSrcA < blendModes.size()-1) selectedSrcA++; ImGui::SameLine();
-    ImGui::Combo("SRC A", &selectedSrcA, blendModes.data(), blendModes.size());
-
-
-    if (ImGui::Button("-##sc") && selectedSrcC > 0) selectedSrcC--; ImGui::SameLine();
-    if (ImGui::Button("+##sc") && selectedSrcC < blendModes.size()-1) selectedSrcC++; ImGui::SameLine();
-    ImGui::Combo("SRC C", &selectedSrcC, blendModes.data(), blendModes.size());
-    
-    if (ImGui::Button("-##e") && selectedEquation > 0) selectedEquation--; ImGui::SameLine();
-    if (ImGui::Button("+##e") && selectedEquation < equations.size()-1) selectedEquation++; ImGui::SameLine();
-    ImGui::Combo("##equation", &selectedEquation, equations.data(), equations.size());
-    
-    if (ImGui::Button("-##da") && selectedDstA > 0) selectedDstA--; ImGui::SameLine();
-    if (ImGui::Button("+##da") && selectedDstA < blendModes.size()-1) selectedDstA++; ImGui::SameLine();
-    ImGui::Combo("DST A", &selectedDstA, blendModes.data(), blendModes.size());
-    
-    if (ImGui::Button("-##dc") && selectedDstC > 0) selectedDstC--; ImGui::SameLine();
-    if (ImGui::Button("+##dc") && selectedDstC < blendModes.size()-1) selectedDstC++; ImGui::SameLine();
-    ImGui::Combo("DST C", &selectedDstC, blendModes.data(), blendModes.size());
-
-    ImGui::ColorPicker4("Blend Color", glm::value_ptr(blendColor));
-
-    ImGui::End();
-#endif
+    glBlendColor(0.25f, 0.25f, 0.25f, 0.5f);
 
     // Unbatched render
     using Transparency = gpu::SemiTransparency;
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    if (transparency) {
-        glEnable(GL_BLEND);
-    } else {
-        glDisable(GL_BLEND);
-    }
     for (size_t i = 0; i < buffer.size();) {
         auto type = mapType(buffer[i].type);
         int count = type == GL_TRIANGLES ? 3 : 2;
@@ -391,29 +296,25 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
             continue;
         }
 
-        if (transparency && buffer[i].flags & gpu::Vertex::SemiTransparency) {
+        if (buffer[i].flags & gpu::Vertex::SemiTransparency) {
+            glEnable(GL_BLEND);
             auto semi = static_cast<Transparency>((buffer[i].flags >> 5) & 3);
+            // TODO: Refactor and batch
             if (semi == Transparency::Bby2plusFby2) {
-                // Works ok, benchmark.exe
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                // glBlendFuncSeparate(mapBlendMode(selectedSrcC), mapBlendMode(selectedDstC), mapBlendMode(selectedSrcA),
-                // mapBlendMode(selectedDstA)); glBlendEquation(mapEquation(selectedEquation)); glBlendColor(blendColor.r, blendColor.g,
-                // blendColor.b, blendColor.a );
+                glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+                glBlendFuncSeparate(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA, GL_ONE, GL_ZERO);
             } else if (semi == Transparency::BplusF) {
-                // Works ok (Tekken 3 Sword glow)
-                glBlendFunc(GL_DST_ALPHA, GL_ONE);
+                glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+                glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
             } else if (semi == Transparency::BminusF) {
-                // Ok on crash, black menu on Tekken3
-                // glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
-
-                glBlendFunc(GL_ONE, GL_ONE);
-
-                // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glBlendEquationSeparate(GL_FUNC_REVERSE_SUBTRACT, GL_FUNC_ADD);
+                glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
             } else if (semi == Transparency::BplusFby4) {
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+                glBlendFuncSeparate(GL_CONSTANT_COLOR, GL_ONE, GL_ONE, GL_ZERO);
             }
         } else {
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDisable(GL_BLEND);
         }
 
         glDrawArrays(type, i, count);
@@ -422,6 +323,8 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
     }
     lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
 
+    glBlendColor(1.f, 1.f, 1.f, 1.f);
+    glDisable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
