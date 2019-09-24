@@ -1,6 +1,7 @@
 #include "spu.h"
 #include <fmt/core.h>
 #include <array>
+#include <functional>
 #include <vector>
 #include "device/cdrom/cdrom.h"
 #include "interpolation.h"
@@ -222,6 +223,16 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
 }
 
 uint8_t SPU::read(uint32_t address) {
+// Helper to extract given flag from all voices
+#define READ_FOR_EACH_VOICE(BYTE, FIELD)                                        \
+    [&]() {                                                                     \
+        uint8_t data = 0;                                                       \
+        for (unsigned v = (BYTE)*8; v < (BYTE)*8 + 8 && v < VOICE_COUNT; v++) { \
+            data |= static_cast<uint8_t>(voices[v].FIELD) << (v % 8);           \
+        }                                                                       \
+        return data;                                                            \
+    }()
+
     address += BASE_ADDRESS;
 
     if (address >= 0x1f801c00 && address < 0x1f801c00 + 0x10 * VOICE_COUNT) {
@@ -263,53 +274,19 @@ uint8_t SPU::read(uint32_t address) {
     }
 
     if (address >= 0x1F801D90 && address <= 0x1F801D93) {  // Pitch modulation enable flags
-        static Reg32 pitchModulation;
-
-        if (address == 0x1F801D90) {
-            pitchModulation._reg = 0;
-            for (int v = 1; v < VOICE_COUNT; v++) {
-                pitchModulation.setBit(v, voices[v].pitchModulation);
-            }
-        }
-
-        return pitchModulation.read(address - 0x1F801D90);
+        return READ_FOR_EACH_VOICE(address - 0x1F801D90, pitchModulation);
     }
 
     if (address >= 0x1f801d9c && address <= 0x1f801d9f) {  // Voice ON/OFF status (ENDX)
-        static Reg32 status;
-        if (address == 0x1f801d9c) {
-            status._reg = 0;
-            for (int v = 0; v < VOICE_COUNT; v++) {
-                status.setBit(v, voices[v].loopEnd);
-            }
-        }
-
-        return status._byte[address - 0x1f801d9c];
+        return READ_FOR_EACH_VOICE(address - 0x1f801d9c, loopEnd);
     }
 
     if (address >= 0x1F801D94 && address <= 0x1F801D97) {  // Voice noise mode
-        static Reg32 noiseEnabled;
-
-        if (address == 0x1F801D94) {
-            noiseEnabled._reg = 0;
-            for (int v = 0; v < VOICE_COUNT; v++) {
-                noiseEnabled.setBit(v, voices[v].mode == Voice::Mode::Noise);
-            }
-        }
-
-        return noiseEnabled.read(address - 0x1F801D94);
+        return READ_FOR_EACH_VOICE(address - 0x1F801D94, mode);
     }
 
     if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb
-        static Reg32 reverb;
-        if (address == 0x1f801d98) {
-            reverb._reg = 0;
-            for (int v = 0; v < VOICE_COUNT; v++) {
-                reverb.setBit(v, voices[v].reverb);
-            }
-        }
-
-        return reverb.read(address - 0x1f801d98);
+        return READ_FOR_EACH_VOICE(address - 0x1f801d98, reverb);
     }
 
     if (address >= 0x1F801DA2 && address <= 0x1F801DA3) {  // Reverb Work area start
@@ -341,9 +318,17 @@ uint8_t SPU::read(uint32_t address) {
     fmt::print("[SPU] Unhandled read at 0x{:08x}\n", address);
 
     return 0;
+#undef READ_FOR_EACH_VOICE
 }
 
 void SPU::write(uint32_t address, uint8_t data) {
+    // Helper to set given flag for all voices
+    auto FOR_EACH_VOICE = [&](unsigned BYTE, std::function<void(int, bool)> FUNC) {
+        for (unsigned v = BYTE * 8; v < BYTE * 8 + 8 && v < VOICE_COUNT; v++) {
+            FUNC(v, data & (1 << (v % 8)));
+        }
+    };
+
     address += BASE_ADDRESS;
 
     if (address >= 0x1f801c00 && address < 0x1f801c00 + 0x10 * VOICE_COUNT) {
@@ -362,58 +347,33 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801d88 && address <= 0x1f801d8b) {  // Voices Key On
-        _keyOn.write(address - 0x1f801d88, data);
-        if (address == 0x1f801d8b) {
-            for (int i = 0; i < VOICE_COUNT; i++) {
-                if (_keyOn.getBit(i)) voices[i].keyOn();
-            }
-        }
+        FOR_EACH_VOICE(address - 0x1f801d88, [&](int v, bool bit) {
+            if (bit) voices[v].keyOn();
+        });
         return;
     }
 
     if (address >= 0x1f801d8c && address <= 0x1f801d8f) {  // Voices Key Off
-        _keyOff.write(address - 0x1f801d8c, data);
-        if (address == 0x1f801d8f) {
-            for (int i = 0; i < VOICE_COUNT; i++) {
-                if (_keyOff.getBit(i)) voices[i].keyOff();
-            }
-        }
+        FOR_EACH_VOICE(address - 0x1f801d8c, [&](int v, bool bit) {
+            if (bit) voices[v].keyOff();
+        });
         return;
     }
 
     if (address >= 0x1F801D90 && address <= 0x1F801D93) {  // Pitch modulation enable flags
-        static Reg32 pitchModulation;
-
-        pitchModulation.write(address - 0x1F801D90, data);
-        if (address == 0x1F801D93) {
-            for (int v = 1; v < VOICE_COUNT; v++) {
-                voices[v].pitchModulation = pitchModulation.getBit(v);
-            }
-        }
+        FOR_EACH_VOICE(address - 0x1F801D90, [&](int v, bool bit) {
+            if (v > 0) voices[v].pitchModulation = bit;
+        });
         return;
     }
 
     if (address >= 0x1F801D94 && address <= 0x1F801D97) {  // Voice noise mode
-        static Reg32 noiseEnabled;
-        noiseEnabled.write(address - 0x1F801D94, data);
-
-        if (address == 0x1F801D97) {
-            for (int v = 0; v < VOICE_COUNT; v++) {
-                voices[v].mode = noiseEnabled.getBit(v) ? Voice::Mode::Noise : Voice::Mode::ADSR;
-            }
-        }
+        FOR_EACH_VOICE(address - 0x1F801D94, [&](int v, bool bit) { voices[v].mode = bit ? Voice::Mode::Noise : Voice::Mode::ADSR; });
         return;
     }
 
     if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb
-        static Reg32 reverb;
-        reverb.write(address - 0x1f801d98, data);
-
-        if (address == 0x1f801d9b) {
-            for (int v = 0; v < VOICE_COUNT; v++) {
-                voices[v].reverb = reverb.getBit(v);
-            }
-        }
+        FOR_EACH_VOICE(address - 0x1f801d98, [&](int v, bool bit) { voices[v].reverb = bit; });
         return;
     }
 
