@@ -53,11 +53,13 @@ void GPU::reset() {
 void GPU::drawTriangle(const primitive::Triangle& triangle) {
     if (hardwareRendering) {
         int flags = 0;
-        if (triangle.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
         if (triangle.isRawTexture) flags |= Vertex::Flags::RawTexture;
         if (gp0_e1.dither24to15) flags |= Vertex::Flags::Dithering;
         if (triangle.gouroudShading) flags |= Vertex::Flags::GouroudShading;
-        flags |= static_cast<int>(triangle.transparency) << 5;
+        if (triangle.isSemiTransparent) {
+            flags |= Vertex::Flags::SemiTransparency;
+            flags |= static_cast<int>(triangle.transparency) << 5;
+        }
 
         for (int i : {0, 1, 2}) {
             auto& v = triangle.v[i];
@@ -92,8 +94,11 @@ void GPU::drawLine(const primitive::Line& line) {
         auto c = line.color;
         int flags = 0;
 
-        if (line.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
         if (line.gouroudShading) flags |= Vertex::Flags::GouroudShading;
+        if (line.isSemiTransparent) {
+            flags |= Vertex::Flags::SemiTransparency;
+            flags |= static_cast<int>(gp0_e1.semiTransparency) << 5;
+        }
 
         vertices.push_back({
             Vertex::Type::Line,
@@ -161,7 +166,10 @@ void GPU::drawRectangle(const primitive::Rect& rect) {
 
         int flags = 0;
         if (rect.isRawTexture) flags |= Vertex::Flags::RawTexture;
-        if (rect.isSemiTransparent) flags |= Vertex::Flags::SemiTransparency;
+        if (rect.isSemiTransparent) {
+            flags |= Vertex::Flags::SemiTransparency;
+            flags |= static_cast<int>(gp0_e1.semiTransparency) << 5;
+        }
 
         Vertex v[6];
         for (int i : {0, 1, 2, 1, 2, 3}) {
