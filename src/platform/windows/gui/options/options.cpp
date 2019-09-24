@@ -40,8 +40,8 @@ void graphicsOptionsWindow() {
         int width = 0;
         int height = 0;
 
-        if (sscanf(_width, "%u", &width) != 1) return;
-        if (sscanf(_height, "%u", &height) != 1) return;
+        if (sscanf(_width, "%u", &width) != 1 || width < 1) return;
+        if (sscanf(_height, "%u", &height) != 1 || height < 1) return;
 
         config["options"]["graphics"]["resolution"]["width"] = width;
         config["options"]["graphics"]["resolution"]["height"] = height;

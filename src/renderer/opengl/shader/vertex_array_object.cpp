@@ -8,7 +8,7 @@ VertexArrayObject::VertexArrayObject() {
 
     glGenVertexArrays(1, &id);
 
-    glBindBuffer(GL_ARRAY_BUFFER, lastArray);
+    glBindVertexArray(lastArray);
 }
 
 VertexArrayObject::~VertexArrayObject() { glDeleteVertexArrays(1, &id); }

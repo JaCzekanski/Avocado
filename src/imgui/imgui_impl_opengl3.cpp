@@ -146,7 +146,6 @@ static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_wid
     glUseProgram(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
-    if (glBindSampler) glBindSampler(0, 0);  // We use combined texture/sampler state. Applications using GL 3.3 may set that otherwise.
 
     (void)vertex_array_object;
 #ifndef IMGUI_IMPL_OPENGL_ES2
@@ -183,8 +182,6 @@ void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data) {
     glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
     GLint last_texture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    GLint last_sampler;
-    if (glBindSampler) glGetIntegerv(GL_SAMPLER_BINDING, &last_sampler);
     GLint last_array_buffer;
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
 #ifndef IMGUI_IMPL_OPENGL_ES2
@@ -296,7 +293,6 @@ void ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data) {
     // Restore modified GL state
     glUseProgram(last_program);
     glBindTexture(GL_TEXTURE_2D, last_texture);
-    if (glBindSampler) glBindSampler(0, last_sampler);
     glActiveTexture(last_active_texture);
 #ifndef IMGUI_IMPL_OPENGL_ES2
     glBindVertexArray(last_vertex_array_object);
