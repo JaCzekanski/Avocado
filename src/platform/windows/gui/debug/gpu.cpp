@@ -5,12 +5,21 @@
 #include <math.h>
 #include <magic_enum.hpp>
 #include <nlohmann/json.hpp>
+#include "config.h"
 #include "platform/windows/gui/images.h"
 #include "renderer/opengl/opengl.h"
 #include "system.h"
 #include "utils/file.h"
 
 namespace gui::debug {
+GPU::GPU() {
+    busToken = bus.listen<Event::Config::Graphics>([&](auto) {
+        textureImage.release();
+        vramImage.release();
+    });
+}
+
+GPU::~GPU() { bus.unlistenAll(busToken); }
 
 void GPU::registersWindow(System *sys) {
     auto &gpu = sys->gpu;
@@ -70,8 +79,6 @@ void replayCommands(gpu::GPU *gpu, int to) {
 
 void GPU::logWindow(System *sys) {
     vramAreas.clear();
-    static std::unique_ptr<Texture> textureImage;
-    static std::vector<uint8_t> textureUnpacked;
     if (!textureImage) {
         textureImage = std::make_unique<Texture>(512, 512, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false);
         textureUnpacked.resize(512 * 512 * 4);
@@ -350,11 +357,9 @@ void GPU::logWindow(System *sys) {
 }
 
 void GPU::vramWindow(gpu::GPU *gpu) {
-    static std::unique_ptr<Texture> vramImage;
-    static std::vector<uint8_t> vramUnpacked;
     if (!vramImage) {
-        vramImage = std::make_unique<Texture>(gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false);
-        vramUnpacked.resize(gpu::VRAM_WIDTH * gpu::VRAM_HEIGHT * 4);
+        vramImage = std::make_unique<Texture>(gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, false);
+        vramUnpacked.resize(gpu::VRAM_WIDTH * gpu::VRAM_HEIGHT * 3);
     }
 
     // Update texture
@@ -362,10 +367,9 @@ void GPU::vramWindow(gpu::GPU *gpu) {
         for (int x = 0; x < gpu::VRAM_WIDTH; x++) {
             PSXColor c = gpu->vram[y * gpu::VRAM_WIDTH + x];
 
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 0] = c.r << 3;
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 1] = c.g << 3;
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 2] = c.b << 3;
-            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 4 + 3] = 0xff;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 3 + 0] = c.r << 3;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 3 + 1] = c.g << 3;
+            vramUnpacked[(y * gpu::VRAM_WIDTH + x) * 3 + 2] = c.b << 3;
         }
     }
     vramImage->update(vramUnpacked.data());

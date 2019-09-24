@@ -4,6 +4,7 @@
 #include <vector>
 
 struct System;
+class Texture;
 
 namespace gpu {
 class GPU;
@@ -16,8 +17,15 @@ class GPU {
         ImVec2 pos;
         ImVec2 size;
     };
+    int busToken = -1;
+
     std::vector<Area> vramAreas;
     float blinkTimer = 0.f;
+
+    std::unique_ptr<Texture> textureImage;
+    std::vector<uint8_t> textureUnpacked;
+    std::unique_ptr<Texture> vramImage;
+    std::vector<uint8_t> vramUnpacked;
 
     void registersWindow(System *sys);
     void logWindow(System *sys);
@@ -28,6 +36,8 @@ class GPU {
     bool logWindowOpen = false;
     bool vramWindowOpen = false;
 
+    GPU();
+    ~GPU();
     void displayWindows(System *sys);
 };
 }  // namespace gui::debug

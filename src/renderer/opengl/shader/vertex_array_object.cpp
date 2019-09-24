@@ -2,14 +2,7 @@
 
 GLuint VertexArrayObject::currentId = 0;
 
-VertexArrayObject::VertexArrayObject() {
-    GLint lastArray;
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &lastArray);
-
-    glGenVertexArrays(1, &id);
-
-    glBindVertexArray(lastArray);
-}
+VertexArrayObject::VertexArrayObject() { glGenVertexArrays(1, &id); }
 
 VertexArrayObject::~VertexArrayObject() { glDeleteVertexArrays(1, &id); }
 
