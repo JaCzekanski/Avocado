@@ -41,6 +41,7 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
     }
 
     if (ext == "exe" || ext == "psexe") {
+        bool isPaused = sys->state == System::State::pause;
         bootstrap(sys);
         // Replace shell with .exe contents
         if (sys->loadExeFile(getFileContents(path))) {
@@ -50,7 +51,7 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
         }
 
         // Resume execution
-        sys->state = System::State::run;
+        sys->state = isPaused ? System::State::pause : System::State::run;
         return;
     }
 

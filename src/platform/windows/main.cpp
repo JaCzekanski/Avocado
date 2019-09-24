@@ -143,10 +143,12 @@ int main(int argc, char** argv) {
     std::unique_ptr<System> sys = system_tools::hardReset();
 
     int busToken = bus.listen<Event::File::Load>([&](auto e) {
+        bool isPaused = sys->state == System::State::pause;
         if (e.reset) {
             sys = system_tools::hardReset();
         }
         system_tools::loadFile(sys, e.file);
+        sys->state = isPaused ? System::State::pause : System::State::run;
     });
 
     bool exitProgram = false;
