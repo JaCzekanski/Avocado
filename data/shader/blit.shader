@@ -1,6 +1,8 @@
 uniform sampler2D renderBuffer;
-uniform vec2 clipLeftTop;
-uniform vec2 clipRightBottom;
+uniform vec2 iResolution;
+uniform vec2 displayHorizontal;
+uniform vec2 displayVertical;
+uniform bool displayEnabled;
 
 SHARED vec2 fragTexcoord;
 
@@ -17,10 +19,12 @@ void main() {
 
 #ifdef FRAGMENT_SHADER
 void main() {
-    vec2 pos = vec2(fragTexcoord.x, fragTexcoord.y);
+    vec2 pos = gl_FragCoord.xy / iResolution;
+    pos.y = 1. - pos.y;
     
-    if (pos.x < clipLeftTop.x || pos.y < clipLeftTop.y || 
-        pos.x >= clipRightBottom.x || pos.y >= clipRightBottom.y) {
+    if (!displayEnabled || 
+        pos.x < displayHorizontal.x || pos.x >= displayHorizontal.y ||
+        pos.y < displayVertical.x   || pos.y >= displayVertical.y) {
         outColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }

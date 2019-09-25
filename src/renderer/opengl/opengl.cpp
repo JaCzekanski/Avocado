@@ -355,11 +355,36 @@ void OpenGL::renderBlit(gpu::GPU* gpu, bool software) {
         y = static_cast<int>((height - h) / 2.f);
     }
 
-    float y2 = static_cast<float>(gpu->displayRangeY2 - gpu->displayRangeY1);
-    if (gpu->gp1_08.getVerticalResoulution() == 480) y2 *= 2;
-    // TODO: convert xy to screen space
-    blitShader->getUniform("clipLeftTop").f(0, 0);
-    blitShader->getUniform("clipRightBottom").f(1024, gpu->displayAreaStartY + y2);
+    {
+        float yOffset = y / static_cast<float>(h);  // Compensate for aspect ratio
+        float xOffset = x / static_cast<float>(w);
+
+        float vResolution = gpu->isNtsc() ? 240 : 256;
+
+        float displayTop = 0.f;
+        float displayBottom = (gpu->displayRangeY2 - gpu->displayRangeY1) / vResolution;
+
+        // V aligment disabled for now
+        // int firstLine = gpu->isNtsc() ? (0x88 - 224/2)  : (0xA3 - 264/2);
+        // y -= ((gpu->displayRangeY1 - firstLine) / vResolution) * h;
+
+        float hres = gpu->gp1_08.getHorizontalResoulution();
+        int cyclesPerPixel = ceilf(640 * 4 / hres);
+
+        float displayXOffset = (gpu->displayRangeX1 - 0x260) / cyclesPerPixel / hres;
+
+        float displayLeft = 0.f;
+        float displayRight = (gpu->displayRangeX2 - gpu->displayRangeX1) / cyclesPerPixel / hres;
+
+        // Move display to right by offset
+        x += displayXOffset * w;
+
+        blitShader->getUniform("iResolution").f(w, h);
+        blitShader->getUniform("displayHorizontal").f(displayLeft + xOffset, displayRight + xOffset);
+        blitShader->getUniform("displayVertical").f(displayTop - yOffset, displayBottom - yOffset);
+    }
+
+    blitShader->getUniform("displayEnabled").i(!gpu->displayDisable);
 
     glViewport(x, y, w, h);
     blitBuffer->update(bb.size() * sizeof(BlitStruct), bb.data());
