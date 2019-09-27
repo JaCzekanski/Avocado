@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui.h>
+#include <memory>
 #include <string>
 #include <vector>
 
