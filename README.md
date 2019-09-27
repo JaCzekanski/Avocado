@@ -2,7 +2,10 @@
 A Modern Playstation 1 emulator.
 
 <p align="center">
-    <img src="docs/boot.png" height="200">
+    <img src=".github/screenshots/1.png" height="250">
+    <img src=".github/screenshots/2.png" height="250">
+    <img src=".github/screenshots/3.png" height="250">
+    <img src=".github/screenshots/4.png" height="250">
 </p>
 
 If you have any questions just catch me on Twitter ([@JaCzekanski](https://twitter.com/JaCzekanski)) or create an [Issue](https://github.com/JaCzekanski/Avocado/issues). There is also [Discord server](https://discord.gg/ATEJApR).
