@@ -64,8 +64,7 @@ void GPU::drawTriangle(const primitive::Triangle& triangle) {
         for (int i : {0, 1, 2}) {
             auto& v = triangle.v[i];
             vertices.push_back({
-                Vertex::Type::Polygon,
-                {v.pos.x + drawingOffsetX, v.pos.y + drawingOffsetY},
+                {static_cast<float>(v.pos.x + drawingOffsetX), static_cast<float>(v.pos.y + drawingOffsetY)},
                 {v.color.r, v.color.g, v.color.b},
                 {v.uv.x, v.uv.y},
                 triangle.bits,
@@ -100,30 +99,32 @@ void GPU::drawLine(const primitive::Line& line) {
             flags |= static_cast<int>(gp0_e1.semiTransparency) << 5;
         }
 
-        vertices.push_back({
-            Vertex::Type::Line,
-            {p[0].x, p[0].y},
-            {c[0].r, c[0].g, c[0].b},
-            {0, 0},  // UV: 0
-            0,       // Bits: 0
-            {0, 0},  // clut: 0
-            {0, 0},  // texPage: 0
-            flags,
-            gp0_e2,
-            gp0_e6,
-        });
-        vertices.push_back({
-            Vertex::Type::Line,
-            {p[1].x, p[1].y},
-            {c[1].r, c[1].g, c[1].b},
-            {0, 0},  // UV: 0
-            0,       // Bits: 0
-            {0, 0},  // clut: 0
-            {0, 0},  // texPage: 0
-            flags,
-            gp0_e2,
-            gp0_e6,
-        });
+        // Calculate vector b perpendicular to p0p1 line
+        glm::vec2 angle(p[1] - p[0]);
+        // Rotate 90°, normalize and make it half size
+        glm::vec2 b = glm::normalize(glm::vec2(angle.y, -angle.x)) / 2.f;
+
+        auto pushVertex = [&](float x, float y, const RGB c) {
+            vertices.push_back({
+                {x, y},
+                {c.r, c.g, c.b},
+                {0, 0},  // UV: 0
+                0,       // Bits: 0
+                {0, 0},  // clut: 0
+                {0, 0},  // texPage: 0
+                flags,
+                gp0_e2,
+                gp0_e6,
+            });
+        };
+
+        // Trianglulate line
+        pushVertex(p[0].x - b.x, p[0].y - b.y, c[0]);
+        pushVertex(p[0].x + b.x, p[0].y + b.y, c[0]);
+        pushVertex(p[1].x - b.x, p[1].y - b.y, c[1]);
+        pushVertex(p[0].x + b.x, p[0].y + b.y, c[0]);
+        pushVertex(p[1].x + b.x, p[1].y + b.y, c[1]);
+        pushVertex(p[1].x - b.x, p[1].y - b.y, c[1]);
     }
 
     if (softwareRendering) {
@@ -134,7 +135,7 @@ void GPU::drawLine(const primitive::Line& line) {
 void GPU::drawRectangle(const primitive::Rect& rect) {
     if (hardwareRendering) {
         glm::ivec2 p;
-        int x[4], y[4];
+        float x[4], y[4];
         glm::ivec2 uv[4];
 
         p.x = rect.pos.x + drawingOffsetX;
@@ -174,7 +175,6 @@ void GPU::drawRectangle(const primitive::Rect& rect) {
         Vertex v[6];
         for (int i : {0, 1, 2, 1, 2, 3}) {
             v[i] = {
-                Vertex::Type::Polygon,
                 {x[i], y[i]},
                 {rect.color.r, rect.color.g, rect.color.b},
                 {uv[i].x, uv[i].y},
@@ -219,7 +219,12 @@ void GPU::cmdFillRectangle() {
     cmd = Command::None;
 
     if (hardwareRendering) {
-        glm::ivec2 p[4] = {{startX, startY}, {endX, startY}, {startX, endY}, {endX, endY}};
+        glm::ivec2 p[4] = {
+            {startX, startY},
+            {endX, startY},
+            {startX, endY},
+            {endX, endY},
+        };
 
         RGB c;
         c.raw = arguments[0];
@@ -230,8 +235,7 @@ void GPU::cmdFillRectangle() {
         Vertex v[6];
         for (int i : {0, 1, 2, 1, 2, 3}) {
             v[i] = {
-                Vertex::Type::Polygon,
-                {p[i].x, p[i].y},
+                {static_cast<float>(p[i].x), static_cast<float>(p[i].y)},
                 {c.r, c.g, c.b},
                 {0, 0},  // UV: 0
                 0,       // Bits: 0

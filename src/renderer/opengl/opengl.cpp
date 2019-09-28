@@ -157,14 +157,20 @@ std::vector<OpenGL::BlitStruct> OpenGL::makeBlitBuf(int screenX, int screenY, in
 }
 
 void OpenGL::bindRenderAttributes() {
-    renderShader->getAttrib("position").pointer(2, GL_INT, sizeof(gpu::Vertex), 1 * sizeof(int));
-    renderShader->getAttrib("color").pointer(3, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 3 * sizeof(int));
-    renderShader->getAttrib("texcoord").pointer(2, GL_INT, sizeof(gpu::Vertex), 6 * sizeof(int));
-    renderShader->getAttrib("bitcount").pointer(1, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 8 * sizeof(int));
-    renderShader->getAttrib("clut").pointer(2, GL_INT, sizeof(gpu::Vertex), 9 * sizeof(int));
-    renderShader->getAttrib("texpage").pointer(2, GL_INT, sizeof(gpu::Vertex), 11 * sizeof(int));
-    renderShader->getAttrib("flags").pointer(1, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 13 * sizeof(int));
-    renderShader->getAttrib("textureWindow").pointer(1, GL_UNSIGNED_INT, sizeof(gpu::Vertex), 14 * sizeof(int));
+    const size_t stride = sizeof(gpu::Vertex);
+    size_t offset = 0;
+    auto attrib = [&](const char* name, GLint size, GLenum type) {
+        renderShader->getAttrib(name).pointer(size, type, stride, offset);
+        offset += size * Attribute::getSize(type);
+    };
+    attrib("position", 2, GL_FLOAT);
+    attrib("color", 3, GL_UNSIGNED_INT);
+    attrib("texcoord", 2, GL_INT);
+    attrib("bitcount", 1, GL_UNSIGNED_INT);
+    attrib("clut", 2, GL_INT);
+    attrib("texpage", 2, GL_INT);
+    attrib("flags", 1, GL_UNSIGNED_INT);
+    attrib("textureWindow", 1, GL_UNSIGNED_INT);
 }
 
 void OpenGL::bindBlitAttributes() {
@@ -262,22 +268,13 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
     renderShader->getUniform("displayAreaPos").f(areaX, areaY);
     renderShader->getUniform("displayAreaSize").f(areaW, areaH);
 
-    auto mapType = [](int type) {
-        if (type == gpu::Vertex::Type::Line)
-            return GL_LINES;
-        else
-            return GL_TRIANGLES;
-    };
-
     glBlendColor(0.25f, 0.25f, 0.25f, 0.5f);
 
     // Unbatched render
     using Transparency = gpu::SemiTransparency;
 
-    for (size_t i = 0; i < buffer.size();) {
-        auto type = mapType(buffer[i].type);
-        int count = type == GL_TRIANGLES ? 3 : 2;
-
+    const int count = 3;
+    for (size_t i = 0; i < buffer.size(); i += count) {
         // Skip rendering when distance between vertices is bigger than 1023x511
         bool skipRender = false;
         for (int j = 0; j < count; j++) {
@@ -285,19 +282,17 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
             auto& v1 = buffer[i + ((j + 1) % count)];
             int x = abs(v0.position[0] - v1.position[0]);
             int y = abs(v0.position[1] - v1.position[1]);
-            if (x >= 1024 || y >= 1024) {
+            if (x >= 1024 || y >= 512) {
                 skipRender = true;
                 break;
             }
         }
 
         if (skipRender) {
-            i += count;
             continue;
         }
 
         if (buffer[i].flags & gpu::Vertex::SemiTransparency) {
-            glEnable(GL_BLEND);
             auto semi = static_cast<Transparency>((buffer[i].flags >> 5) & 3);
             // TODO: Refactor and batch
             if (semi == Transparency::Bby2plusFby2) {
@@ -313,13 +308,13 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
                 glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
                 glBlendFuncSeparate(GL_CONSTANT_COLOR, GL_ONE, GL_ONE, GL_ZERO);
             }
+
+            glEnable(GL_BLEND);
         } else {
             glDisable(GL_BLEND);
         }
 
-        glDrawArrays(type, i, count);
-
-        i += count;
+        glDrawArrays(GL_TRIANGLES, i, count);
     }
     lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
 

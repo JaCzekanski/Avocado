@@ -11,4 +11,6 @@ class Attribute {
     void enable();
     void disable();
     void pointer(GLint size, GLenum type, GLsizei stride, uintptr_t pointer);
+
+    static size_t getSize(GLenum type);
 };
