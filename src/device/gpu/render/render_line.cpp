@@ -40,7 +40,7 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
     int dx = x1 - x0;
     int dy = y1 - y0;
     int derror = std::abs(dy) * 2;
-    int error = 0;
+    int error = !steep;
     int _y = y0;
 
     float length = sqrtf(powf(x1 - x0, 2) + powf(y1 - y0, 2));
