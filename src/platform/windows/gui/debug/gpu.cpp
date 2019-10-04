@@ -126,8 +126,8 @@ void GPU::logWindow(System *sys) {
                     gpu::TextureInfo tex;
 
                     for (int i = 0; i < arg.getVertexCount(); i++) {
-                        v[i].pos.x = extend_sign<10>(arguments[ptr] & 0xffff);
-                        v[i].pos.y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+                        v[i].pos.x = extend_sign<11>(arguments[ptr] & 0xffff);
+                        v[i].pos.y = extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
                         if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
                         if (arg.isTextureMapped) {
@@ -208,12 +208,12 @@ void GPU::logWindow(System *sys) {
                     int16_t h = arg.getSize();
 
                     if (arg.size == 0) {
-                        w = extend_sign<10>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
-                        h = extend_sign<10>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
+                        w = extend_sign<11>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
+                        h = extend_sign<11>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
                     }
 
-                    int16_t x = extend_sign<10>(arguments[1] & 0xffff);
-                    int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
+                    int16_t x = extend_sign<11>(arguments[1] & 0xffff);
+                    int16_t y = extend_sign<11>((arguments[1] & 0xffff0000) >> 16);
 
                     x += last_offset_x;
                     y += last_offset_y;

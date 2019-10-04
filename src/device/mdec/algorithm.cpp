@@ -134,7 +134,7 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iter
 
     if (src == input.end()) return;
     DCT dct = *src++;
-    int32_t current = extend_sign<9>(dct.dc);
+    int32_t current = extend_sign<10>(dct.dc);
 
     int32_t value = current * table[0];
 
@@ -153,7 +153,7 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iter
 
         if (src == input.end()) break;
         RLE rle = *src++;
-        current = extend_sign<9>(rle.ac);
+        current = extend_sign<10>(rle.ac);
         n += rle.zeroes + 1;
 
         value = (current * table[n] * dct.qFactor + 4) / 8;

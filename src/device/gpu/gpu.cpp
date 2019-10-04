@@ -257,8 +257,8 @@ void GPU::cmdPolygon(PolygonArgs arg) {
     TextureInfo tex;
 
     for (int i = 0; i < arg.getVertexCount(); i++) {
-        v[i].pos.x = extend_sign<10>(arguments[ptr] & 0xffff);
-        v[i].pos.y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+        v[i].pos.x = extend_sign<11>(arguments[ptr] & 0xffff);
+        v[i].pos.y = extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
         if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
@@ -310,8 +310,8 @@ void GPU::cmdLine(LineArgs arg) {
     line.isSemiTransparent = arg.semiTransparency;
     line.gouroudShading = arg.gouroudShading;
 
-    line.pos[0].x = extend_sign<10>(arguments[ptr] & 0xffff);
-    line.pos[0].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+    line.pos[0].x = extend_sign<11>(arguments[ptr] & 0xffff);
+    line.pos[0].y = extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
     line.color[0].raw = (arguments[0] & 0xffffff);
 
     if (arg.gouroudShading) {
@@ -320,8 +320,8 @@ void GPU::cmdLine(LineArgs arg) {
         line.color[1] = line.color[0];
     }
 
-    line.pos[1].x = extend_sign<10>((arguments[ptr] & 0xffff));
-    line.pos[1].y = extend_sign<10>((arguments[ptr++] & 0xffff0000) >> 16);
+    line.pos[1].x = extend_sign<11>((arguments[ptr] & 0xffff));
+    line.pos[1].y = extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
     drawLine(line);
 
@@ -353,12 +353,12 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     int16_t h = arg.getSize();
 
     if (arg.size == 0) {
-        w = extend_sign<10>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
-        h = extend_sign<10>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
+        w = extend_sign<11>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
+        h = extend_sign<11>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
     }
 
-    int16_t x = extend_sign<10>(arguments[1] & 0xffff);
-    int16_t y = extend_sign<10>((arguments[1] & 0xffff0000) >> 16);
+    int16_t x = extend_sign<11>(arguments[1] & 0xffff);
+    int16_t y = extend_sign<11>((arguments[1] & 0xffff0000) >> 16);
 
     primitive::Rect rect;
     rect.pos = vec2(x, y);
@@ -630,8 +630,8 @@ void GPU::writeGP0(uint32_t data) {
             drawingArea.bottom = (arguments[0] & 0xffc00) >> 10;
         } else if (command == 0xe5) {
             // Drawing offset
-            drawingOffsetX = extend_sign<10>(arguments[0] & 0x7ff);
-            drawingOffsetY = extend_sign<10>((arguments[0] >> 11) & 0x7ff);
+            drawingOffsetX = extend_sign<11>(arguments[0] & 0x7ff);
+            drawingOffsetY = extend_sign<11>((arguments[0] >> 11) & 0x7ff);
         } else if (command == 0xe6) {
             // Mask bit setting
             gp0_e6._reg = arguments[0];

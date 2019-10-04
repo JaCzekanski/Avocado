@@ -18,8 +18,8 @@ int32_t GTE::clip(int32_t value, int32_t max, int32_t min, uint32_t flags) {
 
 template <int bit_size>
 void GTE::checkOverflow(int64_t value, uint32_t overflowBits, uint32_t underflowFlags) {
-    if (value >= (1LL << bit_size)) flag.reg |= overflowBits;
-    if (value < -(1LL << bit_size)) flag.reg |= underflowFlags;
+    if (value >= (1LL << (bit_size - 1))) flag.reg |= overflowBits;
+    if (value < -(1LL << (bit_size - 1))) flag.reg |= underflowFlags;
 }
 
 template <int i>
@@ -27,21 +27,21 @@ int64_t GTE::checkMacOverflowAndExtend(int64_t value) {
     static_assert(i >= 1 && i <= 3, "Invalid mac for GTE::checkMacOverflowAndExtend");
 
     if (i == 1) {
-        checkOverflow<43>(value, Flag::MAC1_OVERFLOW_POSITIVE, Flag::MAC1_OVERFLOW_NEGATIVE);
+        checkOverflow<44>(value, Flag::MAC1_OVERFLOW_POSITIVE, Flag::MAC1_OVERFLOW_NEGATIVE);
     } else if (i == 2) {
-        checkOverflow<43>(value, Flag::MAC2_OVERFLOW_POSITIVE, Flag::MAC2_OVERFLOW_NEGATIVE);
+        checkOverflow<44>(value, Flag::MAC2_OVERFLOW_POSITIVE, Flag::MAC2_OVERFLOW_NEGATIVE);
     } else if (i == 3) {
-        checkOverflow<43>(value, Flag::MAC3_OVERFLOW_POSITIVE, Flag::MAC3_OVERFLOW_NEGATIVE);
+        checkOverflow<44>(value, Flag::MAC3_OVERFLOW_POSITIVE, Flag::MAC3_OVERFLOW_NEGATIVE);
     }
 
-    return extend_sign<43, int64_t>(value);
+    return extend_sign<44, int64_t>(value);
 }
 
 #define O(i, value) checkMacOverflowAndExtend<i>(value)
 
 template <>
 int64_t GTE::setMac<0>(int64_t value) {
-    checkOverflow<31>(value, Flag::MAC0_OVERFLOW_POSITIVE, Flag::MAC0_OVERFLOW_NEGATIVE);
+    checkOverflow<32>(value, Flag::MAC0_OVERFLOW_POSITIVE, Flag::MAC0_OVERFLOW_NEGATIVE);
     mac[0] = value;
     return value;
 }
@@ -51,11 +51,11 @@ int64_t GTE::setMac(int64_t value) {
     static_assert(i >= 1 && i <= 3, "Invalid mac for GTE::setMac");
 
     if (i == 1) {
-        checkOverflow<43>(value, Flag::MAC1_OVERFLOW_POSITIVE, Flag::MAC1_OVERFLOW_NEGATIVE);
+        checkOverflow<44>(value, Flag::MAC1_OVERFLOW_POSITIVE, Flag::MAC1_OVERFLOW_NEGATIVE);
     } else if (i == 2) {
-        checkOverflow<43>(value, Flag::MAC2_OVERFLOW_POSITIVE, Flag::MAC2_OVERFLOW_NEGATIVE);
+        checkOverflow<44>(value, Flag::MAC2_OVERFLOW_POSITIVE, Flag::MAC2_OVERFLOW_NEGATIVE);
     } else if (i == 3) {
-        checkOverflow<43>(value, Flag::MAC3_OVERFLOW_POSITIVE, Flag::MAC3_OVERFLOW_NEGATIVE);
+        checkOverflow<44>(value, Flag::MAC3_OVERFLOW_POSITIVE, Flag::MAC3_OVERFLOW_NEGATIVE);
     }
 
     if (sf) value >>= 12;

@@ -19,15 +19,17 @@ bool or_range(uint32_t v) {
 
 /**
  * Sign extend integer to bigger size.
- * eg. 10 bit int to int16_t
+ * eg. 11 bit int to int16_t
  * THPS games does not use upper bits resulting in invalid coords.
+ *
+ * bit_size - number of bits INCLUDING sign bit
  */
-template <size_t bits, typename T = int16_t>
+template <size_t bit_size, typename T = int16_t>
 T extend_sign(uint64_t n) {
-    static_assert(bits > 0 && bits < 63, "bits out of range");
+    static_assert(bit_size > 0 && bit_size < 63, "bit_size out of range");
 
-    T mask = ((1LL << bits) - 1);
-    bool sign = (n & (1LL << bits)) != 0;
+    T mask = ((1LL << (bit_size - 1)) - 1);
+    bool sign = (n & (1LL << (bit_size - 1))) != 0;
 
     T val = n & mask;
     if (sign) val |= ~mask;
