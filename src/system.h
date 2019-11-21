@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "cpu/cpu.h"
+#include "device/cache_control.h"
 #include "device/cdrom/cdrom.h"
 #include "device/controller/controller.h"
 #include "device/dma/dma.h"
@@ -74,6 +75,7 @@ struct System {
     std::unique_ptr<Interrupt> interrupt;
     std::unique_ptr<mdec::MDEC> mdec;
     std::unique_ptr<MemoryControl> memoryControl;
+    std::unique_ptr<CacheControl> cacheControl;
     std::unique_ptr<spu::SPU> spu;
     std::unique_ptr<Serial> serial;
     std::array<std::unique_ptr<device::timer::Timer>, 3> timer;
@@ -129,6 +131,7 @@ struct System {
         ar(*dma);
         ar(*cdrom);
         ar(*memoryControl);
+        ar(*cacheControl);
         ar(*serial);
         ar(*mdec);
         ar(*controller);

@@ -21,7 +21,7 @@ const std::string basePath = "data/state/";
 const std::string lastSavePath = basePath + "last.state";
 
 struct StateMetadata {
-    inline static const uint32_t SAVESTATE_VERSION = 1;
+    inline static const uint32_t SAVESTATE_VERSION = 2;
 
     uint32_t version = SAVESTATE_VERSION;
     std::string biosPath;

@@ -51,6 +51,18 @@ struct LoadSlot {
     }
 };
 
+#define CACHE_LINE_VALID_BIT 0x80000000
+struct CacheLine {
+    // Valid bit is stored as highest bit of of tag field
+    uint32_t tag;  // 20 bit used
+    uint32_t data;
+
+    template <class Archive>
+    void serialize(Archive& ar) {
+        ar(tag, data);
+    }
+};
+
 struct CPU {
     inline static const int REGISTER_COUNT = 32;
 
@@ -71,6 +83,9 @@ struct CPU {
     GTE gte;
     System* sys;
     Opcode _opcode;
+
+    bool icacheEnabled;
+    CacheLine icache[1024];
 
     CPU(System* sys);
     void checkForInterrupts();
@@ -97,6 +112,7 @@ struct CPU {
     void saveStateForException();
     void handleHardwareBreakpoints();
     INLINE bool handleSoftwareBreakpoints();
+    INLINE uint32_t fetchInstruction(uint32_t address);
     bool executeInstructions(int count);
 
     void busError();
@@ -119,6 +135,7 @@ struct CPU {
         ar(reg, hi, lo);
         ar(cop0);
         ar(gte);
+        ar(icacheEnabled, icache);
     }
 };
 };  // namespace mips

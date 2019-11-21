@@ -26,6 +26,7 @@ System::System() {
     expansion2 = std::make_unique<Expansion2>();
     interrupt = std::make_unique<Interrupt>(this);
     memoryControl = std::make_unique<MemoryControl>();
+    cacheControl = std::make_unique<CacheControl>(this);
     serial = std::make_unique<Serial>();
     for (int t : {0, 1, 2}) {
         timer[t] = std::make_unique<device::timer::Timer>(this, t);
@@ -170,8 +171,8 @@ INLINE T System::readMemory(uint32_t address) {
     READ_IO(0x1f801C00, 0x1f802000, spu);
     READ_IO(0x1f802000, 0x1f802067, expansion2);
 
-    if (in_range<0xfffe0130, 4>(address)) {
-        auto data = read_io<T>(memoryControl, address);
+    if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
+        auto data = cacheControl->read(0);
         LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);
         return data;
     }
@@ -185,7 +186,12 @@ template <typename T>
 INLINE void System::writeMemory(uint32_t address, T data) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
-    if (unlikely(cpu->cop0.status.isolateCache)) return;
+    if (unlikely(cpu->cop0.status.isolateCache)) {
+        uint32_t tag = (address & 0xfffff000) >> 12;
+        uint16_t index = (address & 0xffc) >> 2;
+        cpu->icache[index] = mips::CacheLine{tag, data};
+        return;
+    }
 
     uint32_t addr = align_mips<T>(address);
 
@@ -213,10 +219,9 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     WRITE_IO32(0x1f801820, 0x1f801828, mdec);
     WRITE_IO(0x1f801C00, 0x1f802000, spu);
     WRITE_IO(0x1f802000, 0x1f802067, expansion2);
-    WRITE_IO32(0xfffe0130, 0xfffe0134, memoryControl);
 
-    if (in_range<0xfffe0130, 4>(address)) {
-        write_io<T>(memoryControl, 0xfffe0130, data);
+    if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
+        cacheControl->write(0, data);
         LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);
         return;
     }
