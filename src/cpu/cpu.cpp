@@ -12,30 +12,14 @@ CPU::CPU(System* sys) : sys(sys), _opcode(0) {
     hi = 0;
     lo = 0;
 
-    for (auto& slot : slots) slot.reg = 0;
-    for (auto& line : icache) line.tag = 0;
+    for (auto& slot : slots) slot = {DUMMY_REG, 0};
+    for (auto& line : icache) line = {0, 0};
 }
 
-void CPU::loadDelaySlot(uint32_t r, uint32_t data) {
-    assert(r < REGISTER_COUNT);
-    if (r == 0) return;
-    if (r == slots[0].reg) slots[0].reg = 0;  // Override previous write to same register
-
-    slots[1].reg = r;
-    slots[1].data = data;
-    slots[1].prevData = reg[r];
-}
-
-void CPU::moveLoadDelaySlots() {
-    if (slots[0].reg != 0) {
-        // If register contents has been changed during delay slot - ignore it
-        if (reg[slots[0].reg] == slots[0].prevData) {
-            reg[slots[0].reg] = slots[0].data;
-        }
-    }
-
+INLINE void CPU::moveLoadDelaySlots() {
+    reg[slots[0].reg] = slots[0].data;
     slots[0] = slots[1];
-    slots[1].reg = 0;  // cancel
+    slots[1].reg = DUMMY_REG;  // invalidate
 }
 
 void CPU::saveStateForException() {

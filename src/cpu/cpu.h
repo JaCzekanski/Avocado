@@ -43,11 +43,10 @@ r31     ra    - return address
 struct LoadSlot {
     uint32_t reg;
     uint32_t data;
-    uint32_t prevData;
 
     template <class Archive>
     void serialize(Archive& ar) {
-        ar(reg, data, prevData);
+        ar(reg, data);
     }
 };
 
@@ -65,6 +64,7 @@ struct CacheLine {
 
 struct CPU {
     inline static const int REGISTER_COUNT = 32;
+#define DUMMY_REG 32  // Used as dummy Load Delay slot
 
     // Saved state for exception handling
     uint32_t exceptionPC;
@@ -77,7 +77,7 @@ struct CPU {
     bool branchTaken;    // If CPU is in Branch Delay slot, was the branch taken
     LoadSlot slots[2];   // Load Delay slots
 
-    uint32_t reg[REGISTER_COUNT];
+    uint32_t reg[REGISTER_COUNT + 1];
     uint32_t hi, lo;
     COP0 cop0;
     GTE gte;
@@ -89,15 +89,22 @@ struct CPU {
 
     CPU(System* sys);
     void checkForInterrupts();
-    void loadDelaySlot(uint32_t r, uint32_t data);
-    void moveLoadDelaySlots();
-    INLINE void loadAndInvalidate(uint32_t r, uint32_t data) {
+    INLINE void moveLoadDelaySlots();
+    INLINE void loadDelaySlot(uint32_t r, uint32_t data) {
+        if (r == 0) return;
+        if (r == slots[0].reg) {
+            slots[0].reg = DUMMY_REG;  // Override previous write to same register
+        }
+
+        slots[1] = {r, data};
+    }
+    INLINE void setReg(uint32_t r, uint32_t data) {
         if (r == 0) return;
         reg[r] = data;
 
         // Invalidate
         if (slots[0].reg == r) {
-            slots[0].reg = 0;
+            slots[0].reg = DUMMY_REG;
         }
     }
     INLINE void jump(uint32_t address) {

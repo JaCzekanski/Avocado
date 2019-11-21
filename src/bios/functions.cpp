@@ -83,7 +83,7 @@ inline bool haltSystem(System* sys) {
 inline bool forceTTYOn(System* sys) {
     (void)sys;
     // Force TTY redirection (requires proper DUART implementation)
-    sys->cpu->reg[4] = 1;
+    sys->cpu->setReg(4, 1);
     return true;
 }
 

@@ -430,11 +430,11 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
     }
 
     cpu->setPC(exe.pc0);
-    cpu->reg[28] = exe.gp0;
+    cpu->setReg(28, exe.gp0);
 
     if (exe.s_addr != 0) {
-        cpu->reg[29] = exe.s_addr + exe.s_size;
-        cpu->reg[30] = exe.s_addr + exe.s_size;
+        cpu->setReg(29, exe.s_addr + exe.s_size);
+        cpu->setReg(30, exe.s_addr + exe.s_size);
     }
 
     cpu->inBranchDelay = false;
