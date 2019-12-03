@@ -288,6 +288,18 @@ void GPU::cmdPolygon(PolygonArgs arg) {
         triangle.clut.x = tex.getClutX();
         triangle.clut.y = tex.getClutY();
         triangle.transparency = tex.semiTransparencyBlending();
+
+        // Copy texture bits from Polygon draw command to E1 register
+        // texpagex, texpagey, semi-transparency, texture disable bits
+        const uint32_t E1_MASK = 0b00001001'11111111;
+
+        uint16_t newBits = (tex.texpage >> 16) & E1_MASK;
+        if (!textureDisableAllowed) {
+            newBits &= ~(1 << 11);
+        }
+
+        gp0_e1._reg &= ~E1_MASK;
+        gp0_e1._reg |= newBits;
     }
 
     triangle.assureCcw();
@@ -617,6 +629,9 @@ void GPU::writeGP0(uint32_t data) {
         } else if (command == 0xe1) {
             // Draw mode setting
             gp0_e1._reg = arguments[0];
+            if (!textureDisableAllowed) {
+                gp0_e1.textureDisable = false;
+            }
         } else if (command == 0xe2) {
             // Texture window setting
             gp0_e2._reg = arguments[0];
