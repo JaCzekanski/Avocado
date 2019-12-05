@@ -310,7 +310,8 @@ void controllerSetupWindow() {
         "Controller 1",
     }};
 
-    ImGui::Begin("Controller", &showControllerSetupWindow, ImVec2(500.f, 320.f), ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetNextWindowSize(ImVec2(500.f, 320.f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Controller", &showControllerSetupWindow, ImGuiWindowFlags_NoScrollbar);
 
     ImGui::PushItemWidth(-1);
     if (ImGui::BeginCombo("##combo_controller", comboString.c_str())) {

@@ -31,7 +31,8 @@ const char *mapIo(uint32_t address) {
 
 void IO::logWindow(System *sys) {
 #ifdef ENABLE_IO_LOG
-    ImGui::Begin("IO Log", &logWindowOpen, ImVec2(200, 400));
+    ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("IO Log", &logWindowOpen);
 
     ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));

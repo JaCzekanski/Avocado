@@ -8,3 +8,4 @@ AlignTrailingComments: true
 BreakBeforeBinaryOperators: All 
 AlignOperands: true
 AllowShortCaseLabelsOnASingleLine: true
+SortIncludes: false

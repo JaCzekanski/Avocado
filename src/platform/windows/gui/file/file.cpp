@@ -61,12 +61,16 @@ void getDriveList() {
 
 #ifdef __APPLE__
     // Get list of drives by iterating /Volumes
-    auto volumes = fs::directory_iterator("/Volumes");
-    for (auto& volume : volumes) {
-        if (!fs::exists(volume) || !fs::is_directory(volume)) {
-            continue;
+    auto volumes = fs::directory_iterator("/Volumes", fs::directory_options::skip_permission_denied);
+    try {
+        for (auto& volume : volumes) {
+            if (!fs::exists(volume) || !fs::is_directory(volume)) {
+                continue;
+            }
+            drivePaths[volume.path().filename().string()] = volume.path().string();
         }
-        drivePaths[volume.path().filename().string()] = volume.path().string();
+    } catch (fs::filesystem_error& err) {
+        fmt::print("{}\n", err.what());
     }
 #endif
 
@@ -147,7 +151,9 @@ void openFile() {
     }
 
     openFileWindow = true;
-    ImGui::Begin("Open file", &openFileWindow, ImVec2(400.f, 300.f), -1.f, ImGuiWindowFlags_NoCollapse);
+
+    ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Open file", &openFileWindow, ImGuiWindowFlags_NoCollapse);
 
     if (ImGui::Button("Up")) {
         readDirectory = true;

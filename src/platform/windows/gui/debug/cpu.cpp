@@ -60,7 +60,8 @@ std::string formatOpcode(mips::Opcode& opcode) {
 
 void CPU::debuggerWindow(System* sys) {
     bool goToPc = false;
-    ImGui::Begin("Debugger", &debuggerWindowOpen, ImVec2(400, 500), ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Debugger", &debuggerWindowOpen, ImGuiWindowFlags_NoScrollbar);
 
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 
@@ -304,7 +305,8 @@ void CPU::debuggerWindow(System* sys) {
 
 void CPU::breakpointsWindow(System* sys) {
     static uint32_t selectedBreakpoint = 0;
-    ImGui::Begin("Breakpoints", &breakpointsWindowOpen, ImVec2(300, 200));
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Breakpoints", &breakpointsWindowOpen);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
@@ -368,7 +370,9 @@ void CPU::breakpointsWindow(System* sys) {
 
 void CPU::watchWindow(System* sys) {
     static int selectedWatch = -1;
-    ImGui::Begin("Watch", &watchWindowOpen, ImVec2(300, 200));
+
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Watch", &watchWindowOpen);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
     ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);

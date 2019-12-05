@@ -1,3 +1,4 @@
+#include "miniz.h"
 /**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
@@ -24,7 +25,7 @@
  *
  **************************************************************************/
 
-#include  "miniz.h"
+
 
 typedef unsigned char mz_validate_uint16[sizeof(mz_uint16) == 2 ? 1 : -1];
 typedef unsigned char mz_validate_uint32[sizeof(mz_uint32) == 4 ? 1 : -1];
@@ -82,6 +83,12 @@ mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len)
         }
         return ~crcu32;
     }
+#elif defined(USE_EXTERNAL_MZCRC)
+/* If USE_EXTERNAL_CRC is defined, an external module will export the
+ * mz_crc32() symbol for us to use, e.g. an SSE-accelerated version.
+ * Depending on the impl, it may be necessary to ~ the input/output crc values.
+ */
+mz_ulong mz_crc32(mz_ulong crc, const mz_uint8 *ptr, size_t buf_len);
 #else
 /* Faster, but larger CPU cache footprint.
  */
@@ -157,17 +164,17 @@ void mz_free(void *p)
     MZ_FREE(p);
 }
 
-void *miniz_def_alloc_func(void *opaque, size_t items, size_t size)
+MINIZ_EXPORT void *miniz_def_alloc_func(void *opaque, size_t items, size_t size)
 {
     (void)opaque, (void)items, (void)size;
     return MZ_MALLOC(items * size);
 }
-void miniz_def_free_func(void *opaque, void *address)
+MINIZ_EXPORT void miniz_def_free_func(void *opaque, void *address)
 {
     (void)opaque, (void)address;
     MZ_FREE(address);
 }
-void *miniz_def_realloc_func(void *opaque, void *address, size_t items, size_t size)
+MINIZ_EXPORT void *miniz_def_realloc_func(void *opaque, void *address, size_t items, size_t size)
 {
     (void)opaque, (void)address, (void)items, (void)size;
     return MZ_REALLOC(address, items * size);
@@ -651,7 +658,6 @@ const char *mz_error(int err)
  * THE SOFTWARE.
  *
  **************************************************************************/
-
 
 
 
@@ -2205,7 +2211,7 @@ void tdefl_compressor_free(tdefl_compressor *pComp)
 #ifdef __cplusplus
 }
 #endif
-/**************************************************************************
+ /**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
  * Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
@@ -2945,7 +2951,7 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 #ifdef __cplusplus
 }
 #endif
-/**************************************************************************
+ /**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
  * Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
@@ -3044,7 +3050,7 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN(f, m, s) freopen(f, m, s)
 #define MZ_DELETE_FILE remove
-#elif defined(__GNUC__) && defined(_LARGEFILE64_SOURCE)
+#elif defined(__USE_LARGEFILE64) // gcc, clang
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
@@ -4888,7 +4894,7 @@ mz_zip_reader_extract_iter_state* mz_zip_reader_extract_iter_new(mz_zip_archive 
         if (!((flags & MZ_ZIP_FLAG_COMPRESSED_DATA) || (!pState->file_stat.m_method)))
         {
             /* Decompression required, therefore intermediate read buffer required */
-            pState->read_buf_size = MZ_MIN(pState->file_stat.m_comp_size, MZ_ZIP_MAX_IO_BUF_SIZE);
+            pState->read_buf_size = MZ_MIN(pState->file_stat.m_comp_size, (mz_uint64)MZ_ZIP_MAX_IO_BUF_SIZE);
             if (NULL == (pState->pRead_buf = pZip->m_pAlloc(pZip->m_pAlloc_opaque, 1, (size_t)pState->read_buf_size)))
             {
                 mz_zip_set_error(pZip, MZ_ZIP_ALLOC_FAILED);

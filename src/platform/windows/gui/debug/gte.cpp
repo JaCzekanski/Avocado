@@ -12,7 +12,9 @@ void GTE::logWindow(System* sys) {
     static bool searchActive = false;
     bool enabled = config["debug"]["log"]["gte"].get<int>();
     bool filterActive = strlen(filterBuffer) > 0;
-    ImGui::Begin("GTE Log", &logWindowOpen, ImVec2(300, 400));
+
+    ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("GTE Log", &logWindowOpen);
 
     ImGui::BeginChild("GTE Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -56,7 +58,9 @@ void GTE::logWindow(System* sys) {
 
 void GTE::registersWindow(System* sys) {
     auto& gte = sys->cpu->gte;
-    ImGui::Begin("Gte", &registersWindowOpen, ImVec2(600, 300), ImGuiWindowFlags_NoScrollbar);
+
+    ImGui::SetNextWindowSize(ImVec2(600, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Gte", &registersWindowOpen, ImGuiWindowFlags_NoScrollbar);
 
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 

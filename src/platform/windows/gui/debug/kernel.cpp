@@ -183,7 +183,8 @@ void parse(System* sys) {
 }  // namespace EvCB
 
 void kernelWindow(System* sys) {
-    ImGui::Begin("Kernel", &showKernelWindow, ImVec2(300, 200));
+    ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Kernel", &showKernelWindow);
     int treeFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
     if (ImGui::TreeNodeEx("Process Control Blocks (PCB)", treeFlags)) PCB::parse(sys);

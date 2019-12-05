@@ -99,7 +99,9 @@ void drawRegisterFields(const char* name, const std::vector<Field>& fields) {
 
 void Timers::timersWindow(System* sys) {
     const int baseAddress = 0x1f801100;
-    ImGui::Begin("Timers", &timersWindowOpen, ImVec2(600, 300), ImGuiWindowFlags_NoScrollbar);
+
+    ImGui::SetNextWindowSize(ImVec2(600, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Timers", &timersWindowOpen, ImGuiWindowFlags_NoScrollbar);
 
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 

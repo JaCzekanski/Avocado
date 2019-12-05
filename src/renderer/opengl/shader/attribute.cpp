@@ -28,5 +28,6 @@ size_t Attribute::getSize(GLenum type) {
         case GL_UNSIGNED_INT: return sizeof(unsigned int);
         case GL_FLOAT: return sizeof(float);
         case GL_DOUBLE: return sizeof(double);
+        default: return 0;
     }
 }

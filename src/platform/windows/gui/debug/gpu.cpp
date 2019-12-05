@@ -24,7 +24,8 @@ GPU::~GPU() { bus.unlistenAll(busToken); }
 void GPU::registersWindow(System *sys) {
     auto &gpu = sys->gpu;
 
-    ImGui::Begin("GPU", &registersWindowOpen, ImVec2(200, 100));
+    ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiCond_FirstUseEver);
+    ImGui::Begin("GPU", &registersWindowOpen);
 
     int horRes = gpu->gp1_08.getHorizontalResoulution();
     int verRes = gpu->gp1_08.getVerticalResoulution();
@@ -84,7 +85,8 @@ void GPU::logWindow(System *sys) {
         textureUnpacked.resize(512 * 512 * 4);
     }
 
-    ImGui::Begin("GPU Log", &logWindowOpen, ImVec2(300, 400));
+    ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("GPU Log", &logWindowOpen);
 
     ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -385,7 +387,8 @@ void GPU::vramWindow(gpu::GPU *gpu) {
         ImVec2(defaultSize.x / 2, defaultSize.y / 2), ImVec2(defaultSize.x * 2, defaultSize.y * 2),
         [](ImGuiSizeCallbackData *data) { data->DesiredSize.y = (data->DesiredSize.x / 2) + ImGui::GetItemsLineHeightWithSpacing() * 2; });
 
-    ImGui::Begin("VRAM", &vramWindowOpen, defaultSize, -1, ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetNextWindowSize(defaultSize);
+    ImGui::Begin("VRAM", &vramWindowOpen, ImGuiWindowFlags_NoScrollbar);
 
     auto currentSize = ImGui::GetWindowContentRegionMax();
     currentSize.y = currentSize.x / 2;
