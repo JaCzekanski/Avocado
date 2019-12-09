@@ -163,6 +163,7 @@ void GUI::mainMenu(System* sys) {
     }
     if (ImGui::BeginMenu("Help")) {
         ImGui::MenuItem("About", nullptr, &aboutHelp.aboutWindowOpen);
+        ImGui::MenuItem("System Information", nullptr, &sysinfoHelp.sysinfoWindowOpen);
         ImGui::EndMenu();
     }
     ImGui::EndMainMenuBar();
@@ -199,6 +200,7 @@ void GUI::render(System* sys) {
 
         // Help
         aboutHelp.displayWindows();
+        sysinfoHelp.displayWindows();
     }
 
     if (!isEmulatorConfigured() && !notInitializedWindowShown) {

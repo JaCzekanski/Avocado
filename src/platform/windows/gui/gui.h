@@ -10,6 +10,7 @@
 #include "debug/timers.h"
 #include "file/file.h"
 #include "help/about.h"
+#include "help/sysinfo.h"
 #include "options/memory_card.h"
 #include "options/options.h"
 #include "toasts.h"
@@ -28,6 +29,7 @@ class GUI {
     gui::debug::SPU spuDebug;
     gui::debug::IO ioDebug;
     gui::help::About aboutHelp;
+    gui::help::SysInfo sysinfoHelp;
 
     gui::options::MemoryCard memoryCardOptions;
 
