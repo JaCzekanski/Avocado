@@ -38,10 +38,10 @@ union BCR {
 
 // DMA Channel Control
 union CHCR {
+    static inline const uint32_t MASK = 0b10001110'10001000'11111000'11111100;
     enum class Direction : uint32_t { toRam = 0, fromRam = 1 };
     enum class MemoryAddressStep : uint32_t { forward = 0, backward = 1 };
-    enum class SyncMode : uint32_t { startImmediately = 0, syncBlockToDmaRequests = 1, linkedListMode = 2 };
-    enum class ChoppingEnable : uint32_t { normal = 0, chopping = 1 };
+    enum class SyncMode : uint32_t { block = 0, sync = 1, linkedList = 2 };
     enum class Enabled : uint32_t { completed = 0, stop = 0, start = 1 };
     enum class StartTrigger : uint32_t { clear = 0, automatic = 0, manual = 1 };
 
@@ -49,7 +49,7 @@ union CHCR {
         Direction direction : 1;
         MemoryAddressStep memoryAddressStep : 1;
         uint32_t : 6;
-        ChoppingEnable choppingEnable : 1;
+        uint32_t choppingEnable : 1;
         SyncMode syncMode : 2;
         uint32_t : 5;
         uint32_t choppingDmaWindowSize : 3;  // Chopping DMA Window Size (1 SHL N words)
@@ -59,15 +59,25 @@ union CHCR {
         Enabled enabled : 1;  // stopped/completed, start/enable/busy
         uint32_t : 3;
         StartTrigger startTrigger : 1;
-        uint32_t : 3;
+        uint32_t unknown1 : 1;
+        uint32_t unknown2 : 1;
+        uint32_t : 1;
     };
     uint32_t _reg;
     uint8_t _byte[4];
 
     CHCR() : _reg(0) {}
+
+    const char* dir() const {
+        if (direction == Direction::fromRam)
+            return "<-";
+        else
+            return "->";
+    }
 };
 
 class DMAChannel {
+   protected:
     int verbose;
     Channel channel;
 
@@ -79,6 +89,8 @@ class DMAChannel {
 
     virtual uint32_t readDevice();
     virtual void writeDevice(uint32_t data);
+    virtual void maskControl();
+    virtual void startTransfer();
 
    public:
     bool irqFlag = false;

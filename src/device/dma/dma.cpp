@@ -68,4 +68,9 @@ void DMA::write(uint32_t address, uint8_t data) {
         }
     }
 }
+
+bool DMA::isChannelEnabled(Channel ch) {
+    uint32_t mask = 0b1000 << ((int)ch * 4);
+    return (control._reg & mask) != 0;
+}
 }  // namespace device::dma

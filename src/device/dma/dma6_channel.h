@@ -3,7 +3,8 @@
 
 namespace device::dma {
 class DMA6Channel : public DMAChannel {
-    uint32_t readDevice() override;
+    void maskControl() override;
+    void startTransfer() override;
 
    public:
     DMA6Channel(Channel channel, System* sys);

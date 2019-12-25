@@ -34,7 +34,7 @@ union DPCR {
     uint32_t _reg;
     uint8_t _byte[4];
 
-    DPCR() : _reg(0) {}
+    DPCR() : _reg(0x07654321) {}
 };
 
 // 0x1f8010f4 - DICR,  DMA Interrupt Register
@@ -107,6 +107,8 @@ class DMA {
     void step();
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+
+    bool isChannelEnabled(Channel ch);
 
     template <class Archive>
     void serialize(Archive& ar) {
