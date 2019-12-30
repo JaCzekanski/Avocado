@@ -29,6 +29,7 @@ class GPU {
 
     System* sys;
 
+    int verbose;
     int busToken;
 
     // Copy/Fill commands

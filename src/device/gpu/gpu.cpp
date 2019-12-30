@@ -21,6 +21,7 @@ GPU::GPU(System* sys) : sys(sys) {
 GPU::~GPU() { bus.unlistenAll(busToken); }
 
 void GPU::reload() {
+    verbose = config["debug"]["log"]["gpu"];
     forceNtsc = config["options"]["graphics"]["forceNtsc"];
     auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
     softwareRendering = (mode & RenderingMode::software) != 0;
@@ -574,7 +575,12 @@ uint32_t GPU::read(uint32_t address) {
         }
     }
     if (reg == 4) {
-        return getStat();
+        uint32_t stat = getStat();
+
+        if (verbose) {
+            fmt::print("[GPU] R GPUSTAT: 0x{:07x}\n", stat);
+        }
+        return stat;
     }
     return 0;
 }
@@ -666,6 +672,12 @@ void GPU::writeGP0(uint32_t data) {
             entry.args.push_back(arguments[0]);
             gpuLogList.push_back(entry);
         }
+        if (verbose && cmd == Command::None) {
+            fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
+        }
+        // TODO: Refactor gpu log to handle copies && multiline
+        // TODO: Refactor gpu log to store initial state
+        // TODO: Refactor gpu log to store gp1 writes
 
         argumentCount++;
         return;
@@ -692,6 +704,9 @@ void GPU::writeGP0(uint32_t data) {
         entry.command = command;
         entry.args = std::vector<uint32_t>(arguments.begin(), arguments.begin() + argumentCount);
         gpuLogList.push_back(entry);
+    }
+    if (verbose && cmd != Command::CopyCpuToVram2) {
+        fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
     }
 
     if (cmd == Command::FillRectangle) {
@@ -764,6 +779,9 @@ void GPU::writeGP1(uint32_t data) {
     } else {
         fmt::print("[GPU] GP1(0x{:02x}) args 0x{:06x}\n", command, argument);
         assert(false);
+    }
+    if (verbose) {
+        fmt::print("[GPU] W GP1(0x{:02x}): 0x{:06x}\n", command, argument);
     }
 }
 
