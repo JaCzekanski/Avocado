@@ -14,9 +14,10 @@ using json = nlohmann::json;
 
 namespace DefaultKeyBindings {
 json none();
+json keyboard_wadx();
 json keyboard_numpad();
 json mouse();
-json controller();
+json controller(int n);
 }  // namespace DefaultKeyBindings
 
 extern const char* CONFIG_NAME;

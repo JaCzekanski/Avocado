@@ -302,12 +302,9 @@ void controllerSetupWindow() {
 
     const auto controllerTypes = magic_enum::enum_entries<ControllerType>();
 
-    const std::array<const char*, 5> defaults = {{
-        "Defaults ...",
-        "Clear",
-        "Keyboard (Numpad)",
-        "Mouse",
-        "Controller 1",
+    const std::array<const char*, 7> defaults = {{
+        "Defaults ...", "Clear", "Keyboard (WADX)", "Keyboard (Numpad)", "Mouse", "Controller 1",
+        "Controller 2",  // TODO: Add autodetection for game controllers
     }};
 
     ImGui::SetNextWindowSize(ImVec2(500.f, 320.f), ImGuiCond_FirstUseEver);
@@ -361,9 +358,11 @@ void controllerSetupWindow() {
             auto& keysConfig = config["controller"][std::to_string(selectedController)]["keys"];
             switch (pos) {
                 case 1: keysConfig = DefaultKeyBindings::none(); break;
-                case 2: keysConfig = DefaultKeyBindings::keyboard_numpad(); break;
-                case 3: keysConfig = DefaultKeyBindings::mouse(); break;
-                case 4: keysConfig = DefaultKeyBindings::controller(); break;
+                case 2: keysConfig = DefaultKeyBindings::keyboard_wadx(); break;
+                case 3: keysConfig = DefaultKeyBindings::keyboard_numpad(); break;
+                case 4: keysConfig = DefaultKeyBindings::mouse(); break;
+                case 5: keysConfig = DefaultKeyBindings::controller(1); break;
+                case 6: keysConfig = DefaultKeyBindings::controller(2); break;
             }
         }
         ImGui::PopItemWidth();

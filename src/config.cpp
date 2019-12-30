@@ -36,6 +36,35 @@ json none() {
     };
 }
 
+json keyboard_wadx() {
+    return {
+        {"dpad_up",    "keyboard|Up"},
+        {"dpad_right", "keyboard|Right"},
+        {"dpad_down",  "keyboard|Down"},
+        {"dpad_left",  "keyboard|Left"},
+        {"triangle",   "keyboard|w"},
+        {"circle",     "keyboard|d"},
+        {"cross",      "keyboard|x"},
+        {"square",     "keyboard|a"},
+        {"l1",         "keyboard|q"},
+        {"r1",         "keyboard|e"},
+        {"l2",         "keyboard|1"},
+        {"r2",         "keyboard|3"},
+        {"l3",         ""},
+        {"r3",         ""},
+        {"select",     "keyboard|Right Shift"},
+        {"start",      "keyboard|Return"},
+        {"analog",     ""},
+        {"l_up",       ""},
+        {"l_right",    ""},
+        {"l_down",     ""},
+        {"l_left",     ""},
+        {"r_up",       ""},
+        {"r_right",    ""},
+        {"r_down",     ""},
+        {"r_left",     ""},
+    };
+}
 json keyboard_numpad() {
     return {
         {"dpad_up",    "keyboard|Up"},
@@ -66,33 +95,36 @@ json keyboard_numpad() {
     };
 }
 
-json controller() {
+json controller(int n) {
+    auto C = [n](const char* key) {
+        return fmt::format("controller{}|{}", n, key);
+    };
     return {
-        {"dpad_up",    "controller1|dpup"},
-        {"dpad_right", "controller1|dpright"},
-        {"dpad_down",  "controller1|dpdown"},
-        {"dpad_left",  "controller1|dpleft"},
-        {"triangle",   "controller1|y"},
-        {"circle",     "controller1|b"},
-        {"cross",      "controller1|a"},
-        {"square",     "controller1|x"},
-        {"l1",         "controller1|leftshoulder"},
-        {"r1",         "controller1|rightshoulder"},
-        {"l2",         "controller1|+lefttrigger"},
-        {"r2",         "controller1|+righttrigger"},
-        {"l3",         "controller1|leftstick"},
-        {"r3",         "controller1|rightstick"},
-        {"select",     "controller1|back"},
-        {"start",      "controller1|start"},
-        {"analog",     "controller1|guide"},
-        {"l_up",       "controller1|-lefty"},
-        {"l_right",    "controller1|+leftx"},
-        {"l_down",     "controller1|+lefty"},
-        {"l_left",     "controller1|-leftx"},
-        {"r_up",       "controller1|-righty"},
-        {"r_right",    "controller1|+rightx"},
-        {"r_down",     "controller1|+righty"},
-        {"r_left",     "controller1|-rightx"},
+        {"dpad_up",    C("dpup")},
+        {"dpad_right", C("dpright")},
+        {"dpad_down",  C("dpdown")},
+        {"dpad_left",  C("dpleft")},
+        {"triangle",   C("y")},
+        {"circle",     C("b")},
+        {"cross",      C("a")},
+        {"square",     C("x")},
+        {"l1",         C("leftshoulder")},
+        {"r1",         C("rightshoulder")},
+        {"l2",         C("+lefttrigger")},
+        {"r2",         C("+righttrigger")},
+        {"l3",         C("leftstick")},
+        {"r3",         C("rightstick")},
+        {"select",     C("back")},
+        {"start",      C("start")},
+        {"analog",     C("guide")},
+        {"l_up",       C("-lefty")},
+        {"l_right",    C("+leftx")},
+        {"l_down",     C("+lefty")},
+        {"l_left",     C("-leftx")},
+        {"r_up",       C("-righty")},
+        {"r_right",    C("+rightx")},
+        {"r_down",     C("+righty")},
+        {"r_left",     C("-rightx")},
     };
 }
 
@@ -165,14 +197,15 @@ const json defaultConfig = {
     }},
     {"debug", {
         {"log", {
-            { "system", 1u },
             { "bios",  0u },
             { "cdrom", 0u },
-            { "memoryCard", 0u },
             { "controller", 0u },
             { "dma", 0u },
+            { "gpu", 0u },
+            { "gte", 0u },
             { "mdec", 0u },
-            { "gte", 0u},
+            { "memoryCard", 0u },
+            { "system", 1u },
         }}
     }},
     {"memoryCard", {
