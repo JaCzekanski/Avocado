@@ -50,7 +50,7 @@ void GUI::mainMenu(System* sys) {
         return;
     }
     if (ImGui::BeginMenu("File")) {
-        if (ImGui::MenuItem("Open")) gui::file::openFile();
+        ImGui::MenuItem("Open", nullptr, &openFile.openWindowOpen);
         if (ImGui::MenuItem("Exit", "Esc")) bus.notify(Event::File::Exit{});
         ImGui::EndMenu();
     }
@@ -137,7 +137,7 @@ void GUI::mainMenu(System* sys) {
     }
     if (ImGui::BeginMenu("Options")) {
         if (ImGui::MenuItem("Graphics", nullptr)) showGraphicsOptionsWindow = true;
-        if (ImGui::MenuItem("BIOS", nullptr)) showBiosWindow = true;
+        ImGui::MenuItem("BIOS", nullptr, &biosOptions.biosWindowOpen);
         if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
         ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
 
@@ -173,11 +173,23 @@ void GUI::render(System* sys) {
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
 
+    if (ImGui::BeginPopupModal("Avocado", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Avocado needs to be set up before running.");
+        ImGui::Text("You need one of BIOS files placed in data/bios directory.");
+
+        if (ImGui::Button("Select BIOS file")) {
+            biosOptions.biosWindowOpen = true;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
     if (showGui) {
         mainMenu(sys);
 
         // File
-        gui::file::displayWindows();
+        openFile.displayWindows();
 
         // Debug
         if (showKernelWindow) kernelWindow(sys);
@@ -192,9 +204,9 @@ void GUI::render(System* sys) {
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
-        if (showBiosWindow) biosSelectionWindow();
         if (showControllerSetupWindow) controllerSetupWindow();
 
+        biosOptions.displayWindows();
         memoryCardOptions.displayWindows(sys);
 
         // Help
@@ -204,18 +216,6 @@ void GUI::render(System* sys) {
     if (!isEmulatorConfigured() && !notInitializedWindowShown) {
         notInitializedWindowShown = true;
         ImGui::OpenPopup("Avocado");
-    }
-
-    if (ImGui::BeginPopupModal("Avocado", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Avocado needs to be set up before running.");
-        ImGui::Text("You need one of BIOS files placed in data/bios directory.");
-
-        if (ImGui::Button("Select BIOS file")) {
-            showBiosWindow = true;
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
     }
 
     toasts.display();

@@ -352,7 +352,7 @@ void OpenGL::renderBlit(gpu::GPU* gpu, bool software) {
 
     {
         float yOffset = y / static_cast<float>(h);  // Compensate for aspect ratio
-        float xOffset = x / static_cast<float>(w);
+        float xOffset = x / static_cast<float>(w);  // TODO: Handle 24bit mode!
 
         float vResolution = gpu->isNtsc() ? 240 : 256;
 
