@@ -333,5 +333,6 @@ project "avocado_autotest"
 	}
 
 	links {
-		"core"
+		"core",
+		"fmt"
 	}

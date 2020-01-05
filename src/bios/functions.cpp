@@ -52,17 +52,17 @@ Function::Function(const std::string& prototype, std::function<bool(System* sys)
     }
 }
 
-inline bool noLog(System* sys) {
+bool noLog(System* sys) {
     (void)(sys);
     return false;
 }
 
-inline bool dbgOutputChar(System* sys) {
+bool dbgOutputChar(System* sys) {
     if (sys->debugOutput) putchar(sys->cpu->reg[4]);
     return false;  // Do not log function call
 }
 
-inline bool dbgOutputString(System* sys) {
+bool dbgOutputString(System* sys) {
     if (!sys->debugOutput) return false;
     for (int i = 0; i < 80; i++) {
         char c = sys->readMemory8(sys->cpu->reg[4] + i);
@@ -75,19 +75,19 @@ inline bool dbgOutputString(System* sys) {
     return false;  // Do not log function call
 }
 
-inline bool haltSystem(System* sys) {
+bool haltSystem(System* sys) {
     sys->state = System::State::halted;
     return true;
 }
 
-inline bool forceTTYOn(System* sys) {
+bool forceTTYOn(System* sys) {
     (void)sys;
     // Force TTY redirection (requires proper DUART implementation)
     sys->cpu->setReg(4, 1);
     return true;
 }
 
-inline bool unresolvedException(System* sys) {
+bool unresolvedException(System* sys) {
     const int howManyInstructionsToDisassemble = 6;
     auto cause = sys->cpu->cop0.cause;
     uint32_t epc = sys->cpu->cop0.epc;
