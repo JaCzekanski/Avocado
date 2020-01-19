@@ -148,6 +148,17 @@ void CDROM::cmdSetmode() {
     if (verbose) fmt::print("CDROM: cmdSetmode(0x{:02x})\n", setmode);
 }
 
+void CDROM::cmdGetparam() {
+    postInterrupt(3);
+    writeResponse(stat._reg);
+    writeResponse(mode._reg);
+    writeResponse(0x00);
+    writeResponse(filter.file);
+    writeResponse(filter.channel);
+
+    if (verbose) fmt::print("CDROM: cmdGetparam({})\n", dumpFifo(CDROM_response));
+}
+
 void CDROM::cmdSetSession() {
     uint8_t session = readParam();
 
@@ -196,14 +207,15 @@ void CDROM::cmdGetlocL() {
     if (verbose) {
         fmt::print(
             "CDROM: cmdGetlocL -> ("
-            "pos = (0x{:02x}:0x{:02x}:0x{:02x}), ",
+            "pos = (0x{:02x}:0x{:02x}:0x{:02x}), "
             "mode = 0x{:x}, "
             "file = 0x{:x}, "
             "channel = 0x{:x}, "
             "submode = 0x{:x}, "
             "ci = 0x{:x}"
             ")\n",
-            CDROM_response[0], CDROM_response[1], CDROM_response[2], CDROM_response[3], CDROM_response[4], CDROM_response[5],
+            CDROM_response[0], CDROM_response[1], CDROM_response[2],  //
+            CDROM_response[3], CDROM_response[4], CDROM_response[5],  //
             CDROM_response[6], CDROM_response[7]);
     }
 }
@@ -306,6 +318,13 @@ void CDROM::cmdTest() {
         writeResponse(0x09);
         writeResponse(0x19);
         writeResponse(0xc0);
+    } else if (opcode == 0x22) {  // Get CDROM BIOS region
+        // Simulate SCEA bios
+        postInterrupt(3);
+        const std::string region = "for U/C";
+        for (auto c : region) {
+            writeResponse(c);
+        }
     } else {
         fmt::print("CDROM: Unimplemented test opcode (0x{:x})!\n", opcode);
         postInterrupt(5);
@@ -331,7 +350,7 @@ void CDROM::cmdGetId() {
     // No CD
     if (disc->getTrackCount() == 0) {
         postInterrupt(5);
-        writeResponse(0x08);
+        writeResponse(stat._reg);
         writeResponse(0x40);
         for (int i = 0; i < 6; i++) writeResponse(0);
     }

@@ -249,7 +249,7 @@ void CDROM::handleCommand(uint8_t cmd) {
         case 0x0c: cmdDemute(); break;
         case 0x0d: cmdSetFilter(); break;
         case 0x0e: cmdSetmode(); break;
-        // Missing 0x0f cmdGetparam
+        case 0x0f: cmdGetparam(); break;
         case 0x10: cmdGetlocL(); break;
         case 0x11: cmdGetlocP(); break;
         case 0x12: cmdSetSession(); break;

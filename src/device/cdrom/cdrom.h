@@ -135,6 +135,7 @@ class CDROM {
     void cmdDemute();
     void cmdSetFilter();
     void cmdSetmode();
+    void cmdGetparam();
     void cmdGetlocL();
     void cmdGetlocP();
     void cmdGetTN();
