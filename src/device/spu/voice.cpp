@@ -24,6 +24,8 @@ Voice::Voice() {
     loadRepeatAddress = false;
 
     prevSample[0] = prevSample[1] = 0;
+
+    enabled = true;
 }
 
 Envelope Voice::getCurrentPhase() {
@@ -100,6 +102,8 @@ void Voice::parseFlags(uint8_t flags) {
 }
 
 void Voice::keyOn() {
+    decodedSamples.clear();
+    counter.sample = 0;
     adsrVolume._reg = 0;
 
     // INFO: Square games load repeatAddress before keyOn,
@@ -115,6 +119,9 @@ void Voice::keyOn() {
     loopEnd = false;
     loadRepeatAddress = false;
     adsrWaitCycles = 0;
+
+    prevSample[0] = prevSample[1] = 0;
+    prevDecodedSamples.clear();
 }
 
 void Voice::keyOff() {

@@ -39,6 +39,8 @@ struct Voice {
 
     float sample;  // Used for Pitch Modulation
 
+    bool enabled;  // Allows for muting individual channels
+
     // ADPCM decoding
     int32_t prevSample[2];
     std::vector<int16_t> decodedSamples;

@@ -4,12 +4,13 @@
 #include <vector>
 #include "device/spu/spu.h"
 #include "system.h"
+#include <SDL.h>
 
 namespace gui::debug {
 using namespace spu;
 
 void channelsInfo(spu::SPU* spu, bool parseValues) {
-    const int COL_NUM = 11;
+    const int COL_NUM = 12;
     float columnsWidth[COL_NUM] = {0};
 
     auto column = [&](const std::string& str) {
@@ -66,6 +67,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
     ImGui::Columns(COL_NUM, nullptr, false);
 
+    column("");
     column("Ch");
     column("State");
     column("VolL");
@@ -85,6 +87,31 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
         } else {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
         }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        if (ImGui::Checkbox(fmt::format("##enabled{}", i + 1).c_str(), &v.enabled)) {
+            if (ImGui::GetIO().KeyShift) {
+                for (int j = 0; j < spu::SPU::VOICE_COUNT; j++) {
+                    if (j != i) spu->voices[j].enabled = false;
+                }
+                v.enabled = true;
+            }
+            if (ImGui::GetIO().KeyCtrl) {
+                for (int j = 0; j < spu::SPU::VOICE_COUNT; j++) {
+                    if (j != i) spu->voices[j].enabled = true;
+                }
+                v.enabled = false;
+            }
+        }
+        ImGui::PopStyleVar();
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted("Shift + click - mute other channels");
+            ImGui::TextUnformatted("Ctrl  + click - play other channels");
+            ImGui::EndTooltip();
+        }
+        columnsWidth[0] = 16.f;
+        ImGui::NextColumn();
 
         column(fmt::format("{}", i + 1));
 

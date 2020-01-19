@@ -18,6 +18,8 @@ struct SPU {
     static const int RAM_SIZE = 1024 * 512;
     static const size_t AUDIO_BUFFER_SIZE = 28 * 2 * 4;
 
+    int verbose;
+
     std::array<Voice, VOICE_COUNT> voices;
 
     Volume mainVolume;

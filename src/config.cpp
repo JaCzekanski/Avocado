@@ -205,6 +205,7 @@ const json defaultConfig = {
             { "gte", 0u },
             { "mdec", 0u },
             { "memoryCard", 0u },
+            { "spu", 0u },
             { "system", 1u },
         }}
     }},

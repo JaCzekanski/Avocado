@@ -10,10 +10,12 @@
 #include "system.h"
 #include "utils/file.h"
 #include "utils/math.h"
+#include "config.h"
 
 using namespace spu;
 
 SPU::SPU(System* sys) : sys(sys) {
+    verbose = config["debug"]["log"]["spu"];
     ram.fill(0);
     audioBufferPos = 0;
     captureBufferIndex = 0;
@@ -64,12 +66,14 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         sample *= intToFloat(voice.adsrVolume._reg);
         voice.sample = sample;
 
-        sumLeft += sample * voice.volume.getLeft();
-        sumRight += sample * voice.volume.getRight();
+        if (voice.enabled) {
+            sumLeft += sample * voice.volume.getLeft();
+            sumRight += sample * voice.volume.getRight();
 
-        if (voice.reverb) {
-            sumReverbLeft += sample * voice.volume.getLeft();
-            sumReverbRight += sample * voice.volume.getRight();
+            if (voice.reverb) {
+                sumReverbLeft += sample * voice.volume.getLeft();
+                sumReverbRight += sample * voice.volume.getRight();
+            }
         }
 
         voice.counter._reg += step;
