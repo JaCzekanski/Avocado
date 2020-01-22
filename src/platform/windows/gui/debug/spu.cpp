@@ -12,12 +12,12 @@ using namespace spu;
 void channelsInfo(spu::SPU* spu, bool parseValues) {
     const int COL_NUM = 12;
     float columnsWidth[COL_NUM] = {0};
+    int n = 0;
 
     auto column = [&](const std::string& str) {
-        static int n = 0;
         ImVec2 size = ImGui::CalcTextSize(str.c_str());
-        size.x += 8.f;
-        if (size.x > columnsWidth[n]) columnsWidth[n] = size.x;
+        float width = std::max(size.x + 8.f, 48.f);
+        if (width > columnsWidth[n]) columnsWidth[n] = width;
         ImGui::TextUnformatted(str.c_str());
         ImGui::NextColumn();
         if (++n >= COL_NUM) n = 0;
@@ -30,7 +30,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             case Voice::State::Sustain: return "  S ";
             case Voice::State::Release: return "   R";
             case Voice::State::Off:
-            default: return "";
+            default: return "    ";
         }
     };
 
@@ -67,7 +67,7 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
     ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
     ImGui::Columns(COL_NUM, nullptr, false);
 
-    column("");
+    column(" ");
     column("Ch");
     column("State");
     column("VolL");
@@ -110,15 +110,31 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             ImGui::TextUnformatted("Ctrl  + click - play other channels");
             ImGui::EndTooltip();
         }
-        columnsWidth[0] = 16.f;
+        columnsWidth[n++] = ImGui::GetItemRectSize().x + 4.f;
         ImGui::NextColumn();
 
-        column(fmt::format("{}", i + 1));
+        column(fmt::format("{:2d}", i + 1));
 
         column(mapState(v.state));
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImU32 frameColor = ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+        if (v.state == Voice::State::Off) {
+            frameColor = ImGui::GetColorU32(ImVec4(0.4f, 0.4f, 0.4f, .25f));
+        }
+        int barHeight = 12;  // TODO: Do not hardcode!
+        int barWidth = 12;   // TODO: Use dynamic width!
         if (parseValues) {
+            ImVec2 src = ImGui::GetCursorScreenPos();
+            drawList->AddRectFilled(src, ImVec2(src.x + (barWidth * v.volume.getLeft()), src.y + barHeight), frameColor);
             column(fmt::format("{:.0f}", v.volume.getLeft() * 100.f));
+
+            src = ImGui::GetCursorScreenPos();
+            drawList->AddRectFilled(src, ImVec2(src.x + (barWidth * v.volume.getRight()), src.y + barHeight), frameColor);
             column(fmt::format("{:.0f}", v.volume.getRight() * 100.f));
+
+            src = ImGui::GetCursorScreenPos();
+            drawList->AddRectFilled(src, ImVec2(src.x + (barWidth * (v.adsrVolume._reg / static_cast<float>(0x7fff))), src.y + barHeight),
+                                    frameColor);
             column(fmt::format("{:.0f}", (v.adsrVolume._reg / static_cast<float>(0x7fff)) * 100.f));
         } else {
             column(fmt::format("{:04x}", v.volume.left));
@@ -127,10 +143,22 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
         }
 
         if (parseValues) {
-            column(fmt::format("{:5d} Hz", static_cast<int>(std::min((uint16_t)0x1000, v.sampleRate._reg) / 4096.f * 44100.f)));
+            column(fmt::format("{:5.0f} Hz", v.sampleRate._reg / 4096.f * 44100.f));
         } else {
             column(fmt::format("{:04x}", v.sampleRate._reg));
         }
+        ImVec2 src = ImGui::GetCursorScreenPos();
+        barWidth = 128;
+
+        float startP = v.startAddress._reg * 8 / (float)spu::SPU::RAM_SIZE;
+        float currP = v.currentAddress._reg * 8 / (float)spu::SPU::RAM_SIZE;
+        float repeatP = v.repeatAddress._reg * 8 / (float)spu::SPU::RAM_SIZE;
+        drawList->AddRectFilled(ImVec2(src.x + barWidth * startP, src.y), ImVec2(src.x + barWidth * repeatP, src.y + barHeight),
+                                frameColor);
+
+        ImU32 lineColor = ImGui::GetColorU32(ImVec4(0.8f, 0.8f, 0.8f, 1.f));
+        drawList->AddLine(ImVec2(src.x + barWidth * currP, src.y), ImVec2(src.x + barWidth * currP, src.y + barHeight), lineColor);
+
         column(fmt::format("{:04x}", v.currentAddress._reg));
         column(fmt::format("{:04x}", v.startAddress._reg));
         column(fmt::format("{:04x}", v.repeatAddress._reg));
