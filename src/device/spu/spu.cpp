@@ -6,6 +6,7 @@
 #include "device/cdrom/cdrom.h"
 #include "interpolation.h"
 #include "reverb.h"
+#include "sample.h"
 #include "sound/adpcm.h"
 #include "system.h"
 #include "utils/file.h"
@@ -21,21 +22,9 @@ SPU::SPU(System* sys) : sys(sys) {
     captureBufferIndex = 0;
 }
 
-// Basically an overflow save int16_t
-struct Sample {
-    int16_t value;
-
-    Sample& operator*=(const int16_t& b) {
-        value = (value * b) >> 15;
-        return *this;
-    }
-    Sample(int16_t v) : value(v) {}
-    Sample() : value(0) {}
-};
-
 void SPU::step(device::cdrom::CDROM* cdrom) {
-    int16_t sumLeft = 0, sumReverbLeft = 0;
-    int16_t sumRight = 0, sumReverbRight = 0;
+    Sample sumLeft = 0, sumReverbLeft = 0;
+    Sample sumRight = 0, sumReverbRight = 0;
 
     noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
 
@@ -60,22 +49,22 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
         if (step > 0x3fff) step = 0x4000;
 
-        int16_t sample;
+        Sample sample;
         if (voice.mode == Voice::Mode::Noise) {
             sample = noise.getNoiseLevel();
         } else {
             sample = interpolate(voice, voice.counter.sample, voice.counter.index);
         }
-        sample = (sample * voice.adsrVolume._reg) >> 15;
+        sample *= voice.adsrVolume._reg;
         voice.sample = sample;
 
         if (voice.enabled) {
-            sumLeft += (sample * voice.volume.getLeft()) >> 15;
-            sumRight += (sample * voice.volume.getRight()) >> 15;
+            sumLeft += sample * voice.volume.getLeft();
+            sumRight += sample * voice.volume.getRight();
 
             if (voice.reverb) {
-                sumReverbLeft += (sample * voice.volume.getLeft()) >> 15;
-                sumReverbRight += (sample * voice.volume.getRight()) >> 15;
+                sumReverbLeft += sample * voice.volume.getLeft();
+                sumReverbRight += sample * voice.volume.getRight();
             }
         }
 
@@ -98,13 +87,8 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
-    sumLeft = (sumLeft * mainVolume.getLeft()) >> 15;
-    sumRight = (sumRight * mainVolume.getRight()) >> 15;
-
-    sumLeft = clamp(sumLeft, INT16_MIN, INT16_MAX);
-    sumRight = clamp(sumRight, INT16_MIN, INT16_MAX);
-    sumReverbLeft = clamp(sumReverbLeft, INT16_MIN, INT16_MAX);
-    sumReverbRight = clamp(sumReverbRight, INT16_MIN, INT16_MAX);
+    sumLeft *= mainVolume.getLeft();
+    sumRight *= mainVolume.getRight();
 
     if (!forceReverbOff && control.masterReverb) {
         static int16_t reverbLeft = 0, reverbRight = 0;
@@ -147,8 +131,8 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
-    audioBuffer[audioBufferPos] = clamp(sumLeft, INT16_MIN, INT16_MAX);
-    audioBuffer[audioBufferPos + 1] = clamp(sumRight, INT16_MIN, INT16_MAX);
+    audioBuffer[audioBufferPos] = sumLeft;
+    audioBuffer[audioBufferPos + 1] = sumRight;
 
     audioBufferPos += 2;
     if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
