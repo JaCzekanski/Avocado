@@ -108,6 +108,10 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         sumRight += reverbRight;
     }
 
+    if (!control.unmute) {
+        sumLeft = 0.f;
+        sumRight = 0.f;
+    }
     // Mix with cd
     if (!cdrom->audio.first.empty()) {
         cdLeft = cdrom->audio.first.front();

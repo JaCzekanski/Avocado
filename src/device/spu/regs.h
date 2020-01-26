@@ -56,7 +56,7 @@ union Control {
         uint16_t masterReverb : 1;
         uint16_t noiseFrequencyStep : 2;  // 4,5,6,7
         uint16_t noiseFrequencyShift : 4;
-        uint16_t mute : 1;  // 0 - mute, 1 - unmute
+        uint16_t unmute : 1;  // 0 - mute, 1 - unmute
         uint16_t spuEnable : 1;
     };
     uint16_t _reg;
