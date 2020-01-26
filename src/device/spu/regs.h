@@ -65,4 +65,21 @@ union Control {
     Control() : _reg(0) {}
 };
 
+union Status {
+    struct {
+        uint16_t currentMode : 6;  // Control 0..5 bits
+        uint16_t irqFlag : 1;
+        uint16_t dmaReadWriteRequest : 1;
+        uint16_t dmaWriteRequest : 1;
+        uint16_t dmaReadRequest : 1;
+        uint16_t dmaBusy : 1;
+        uint16_t captureBufferHalf : 1;  // 0 - first, 1 - second
+        uint16_t : 4;
+    };
+    uint16_t _reg;
+    uint8_t _byte[2];
+
+    Status() : _reg(0) {}
+};
+
 }  // namespace spu

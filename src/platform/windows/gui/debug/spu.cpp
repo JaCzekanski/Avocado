@@ -6,6 +6,13 @@
 #include "system.h"
 #include <SDL.h>
 
+namespace ImGui {
+template <typename... Args>
+void Fmt(const char* fmt, Args... args) {
+    ImGui::TextUnformatted(fmt::format(fmt, args...).c_str());
+}
+};  // namespace ImGui
+
 namespace gui::debug {
 using namespace spu;
 
@@ -261,11 +268,24 @@ void registersInfo(spu::SPU* spu) {
     ImGui::Text("CD     volume: %08x", spu->cdVolume._reg);
     ImGui::Text("Ext    volume: %08x", spu->extVolume._reg);
     ImGui::Text("Reverb volume: %08x", spu->reverbVolume._reg);
-    ImGui::Text("Control: 0x%04x     %-10s   %-4s   %-8s   %-3s %s %s", spu->control._reg, spu->control.spuEnable ? "SPU enable" : "",
-                spu->control.mute ? "" : "Mute", spu->control.cdEnable ? "Audio CD" : "", spu->control.irqEnable ? "IRQ" : "",
-                spu->control.masterReverb ? "Reverb" : "", spu->control.cdReverb ? "CD_Reverb" : "");
-
-    ImGui::Text("Status:  0x%0x04  %-3s", spu->SPUSTAT._reg, (spu->SPUSTAT._reg & (1 << 6)) ? "IRQ" : "");
+    ImGui::Fmt("Control: 0x{:04x}  {:10s} {:4s} {:8s} {:3s} {:6s} {:9s}",  //
+               spu->control._reg,                                          //
+               spu->control.spuEnable ? "SPU enable" : "",                 //
+               spu->control.unmute ? "" : "Mute",                          //
+               spu->control.cdEnable ? "Audio CD" : "",                    //
+               spu->control.irqEnable ? "IRQ" : "",                        //
+               spu->control.masterReverb ? "Reverb" : "",                  //
+               spu->control.cdReverb ? "CD_Reverb" : ""                    //
+    );
+    ImGui::Fmt("Status:  0x{:04x}  CaptureBuffer={:6s} {:8s} {:8s} {:8s} {:9s} {:3s}",  //
+               spu->status._reg,                                                        //
+               spu->status.captureBufferHalf ? "Second" : "First",                      //
+               spu->status.dmaBusy ? "DMA_Busy" : "",                                   //
+               spu->status.dmaReadRequest ? "DMA_Rreq" : "",                            //
+               spu->status.dmaWriteRequest ? "DMA_Wreq" : "",                           //
+               spu->status.dmaReadWriteRequest ? "DMA_RWreq" : "",                      //
+               spu->status.irqFlag ? "IRQ" : ""                                         //
+    );
 
     ImGui::Text("IRQ Address: 0x%08x", spu->irqAddress._reg);
     ImGui::PopStyleVar();

@@ -32,7 +32,7 @@ struct SPU {
     uint32_t currentDataAddress;
     DataTransferControl dataTransferControl;
     Control control;
-    Reg16 SPUSTAT;
+    Status status;
 
     uint32_t captureBufferIndex;
 
@@ -81,7 +81,7 @@ struct SPU {
         ar(currentDataAddress);
         ar(dataTransferControl._reg);
         ar(control._reg);
-        ar(SPUSTAT);
+        ar(status);
         ar(captureBufferIndex);
         ar(noise);
         ar(_keyOn);

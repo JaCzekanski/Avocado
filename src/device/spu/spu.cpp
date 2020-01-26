@@ -37,7 +37,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         if (voice.decodedSamples.empty()) {
             auto readAddress = voice.currentAddress._reg * 8;
             if (control.irqEnable && readAddress == irqAddress._reg * 8) {
-                SPUSTAT._reg |= 1 << 6;
+                status.irqFlag = true;
                 sys->interrupt->trigger(interrupt::SPU);
             }
             voice.decodedSamples = ADPCM::decode(&ram[readAddress], voice.prevSample);
@@ -303,9 +303,7 @@ uint8_t SPU::read(uint32_t address) {
     }
 
     if (address >= 0x1f801dae && address <= 0x1f801daf) {  // SPUSTAT
-        SPUSTAT._reg &= 0x0FC0;
-        SPUSTAT._reg |= (control._reg & 0x3F);
-        return SPUSTAT.read(address - 0x1f801dae);
+        return status._byte[address - 0x1f801dae];
     }
 
     if (address >= 0x1f801db8 && address <= 0x1f801dbb) {  // Current Main Volume L/R ?? (used by MGS)
@@ -415,8 +413,12 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801daa && address <= 0x1f801dab) {  // SPUCNT
-        SPUSTAT._reg &= ~(1 << 6);
         control._byte[address - 0x1f801daa] = data;
+
+        status.currentMode = control._reg & 0x3f;
+        if (!control.irqEnable) {
+            status.irqFlag = false;
+        }
         return;
     }
 
@@ -449,7 +451,7 @@ void SPU::memoryWrite8(uint32_t address, uint8_t data) {
     ram[address] = data;
 
     if (control.irqEnable && address == irqAddress._reg * 8) {
-        SPUSTAT._reg |= 1 << 6;
+        status.irqFlag = true;
         sys->interrupt->trigger(interrupt::SPU);
     }
 }
