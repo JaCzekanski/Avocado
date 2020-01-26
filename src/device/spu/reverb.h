@@ -3,5 +3,5 @@
 #include "spu.h"
 
 namespace spu {
-    std::tuple<float, float> doReverb(SPU* spu, std::tuple<float, float> input);
+std::tuple<int16_t, int16_t> doReverb(SPU* spu, std::tuple<int16_t, int16_t> input);
 }  // namespace spu

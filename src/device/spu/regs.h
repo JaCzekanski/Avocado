@@ -22,14 +22,14 @@ union Volume {
         return _byte[n];
     }
 
-    float getLeft() {
-        if (left & 0x8000) return 1.f;  // TODO: Implement sweep
-        return ((int16_t)(left << 1) / (float)0x7fff);
+    int16_t getLeft() {
+        if (left & 0x8000) return 0x7fff;  // TODO: Implement sweep
+        return (int16_t)(left);
     }
 
-    float getRight() {
-        if (right & 0x8000) return 1.f;  // TODO: Implement sweep
-        return ((int16_t)(right << 1) / (float)0x7fff);
+    int16_t getRight() {
+        if (right & 0x8000) return 0x7fff;  // TODO: Implement sweep
+        return (int16_t)(right);
     }
 };
 

@@ -37,7 +37,7 @@ struct Voice {
     bool loadRepeatAddress;
     bool flagsParsed;
 
-    float sample;  // Used for Pitch Modulation
+    int16_t sample;  // Used for Pitch Modulation
 
     bool enabled;     // Allows for muting individual channels
     uint64_t cycles;  // For dismissing KeyOff write right after KeyOn

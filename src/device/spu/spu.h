@@ -79,7 +79,7 @@ struct SPU {
         ar(currentDataAddress);
         ar(dataTransferControl._reg);
         ar(control._reg);
-        ar(status);
+        ar(status._reg);
         ar(captureBufferIndex);
         ar(noise);
         ar(_keyOn);

@@ -21,9 +21,21 @@ SPU::SPU(System* sys) : sys(sys) {
     captureBufferIndex = 0;
 }
 
+// Basically an overflow save int16_t
+struct Sample {
+    int16_t value;
+
+    Sample& operator*=(const int16_t& b) {
+        value = (value * b) >> 15;
+        return *this;
+    }
+    Sample(int16_t v) : value(v) {}
+    Sample() : value(0) {}
+};
+
 void SPU::step(device::cdrom::CDROM* cdrom) {
-    float sumLeft = 0, sumReverbLeft = 0;
-    float sumRight = 0, sumReverbRight = 0;
+    int16_t sumLeft = 0, sumReverbLeft = 0;
+    int16_t sumRight = 0, sumReverbRight = 0;
 
     noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
 
@@ -42,29 +54,28 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
         uint32_t step = voice.sampleRate._reg;
         if (voice.pitchModulation && v > 0) {
-            int32_t factor = static_cast<int32_t>(floatToInt(voices[v - 1].sample) + 0x8000);
+            int32_t factor = voices[v - 1].sample + 0x8000;
             step = (step * factor) >> 15;
             step &= 0xffff;
         }
         if (step > 0x3fff) step = 0x4000;
 
-        float sample;
-
+        int16_t sample;
         if (voice.mode == Voice::Mode::Noise) {
-            sample = intToFloat(noise.getNoiseLevel());
+            sample = noise.getNoiseLevel();
         } else {
-            sample = intToFloat(spu::interpolate(voice, voice.counter.sample, voice.counter.index));
+            sample = interpolate(voice, voice.counter.sample, voice.counter.index);
         }
-        sample *= intToFloat(voice.adsrVolume._reg);
+        sample = (sample * voice.adsrVolume._reg) >> 15;
         voice.sample = sample;
 
         if (voice.enabled) {
-            sumLeft += sample * voice.volume.getLeft();
-            sumRight += sample * voice.volume.getRight();
+            sumLeft += (sample * voice.volume.getLeft()) >> 15;
+            sumRight += (sample * voice.volume.getRight()) >> 15;
 
             if (voice.reverb) {
-                sumReverbLeft += sample * voice.volume.getLeft();
-                sumReverbRight += sample * voice.volume.getRight();
+                sumReverbLeft += (sample * voice.volume.getLeft()) >> 15;
+                sumReverbRight += (sample * voice.volume.getRight()) >> 15;
             }
         }
 
@@ -87,11 +98,16 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
-    sumLeft *= mainVolume.getLeft();
-    sumRight *= mainVolume.getRight();
+    sumLeft = (sumLeft * mainVolume.getLeft()) >> 15;
+    sumRight = (sumRight * mainVolume.getRight()) >> 15;
+
+    sumLeft = clamp(sumLeft, INT16_MIN, INT16_MAX);
+    sumRight = clamp(sumRight, INT16_MIN, INT16_MAX);
+    sumReverbLeft = clamp(sumReverbLeft, INT16_MIN, INT16_MAX);
+    sumReverbRight = clamp(sumReverbRight, INT16_MIN, INT16_MAX);
 
     if (!forceReverbOff && control.masterReverb) {
-        static float reverbLeft = 0.f, reverbRight = 0.f;
+        static int16_t reverbLeft = 0, reverbRight = 0;
         static int reverbCounter = 0;
         if (reverbCounter++ % 2 == 0) {
             std::tie(reverbLeft, reverbRight) = doReverb(this, std::make_tuple(sumReverbLeft, sumReverbRight));
@@ -101,8 +117,8 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
     }
 
     if (!control.unmute) {
-        sumLeft = 0.f;
-        sumRight = 0.f;
+        sumLeft = 0;
+        sumRight = 0;
     }
 
     // Mix with cd
@@ -111,9 +127,6 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         cdLeft = cdrom->audio.first.front();
         cdRight = cdrom->audio.second.front();
 
-        float left = intToFloat(cdLeft);
-        float right = intToFloat(cdRight);
-
         // TODO: Refactor to use ring buffer
         cdrom->audio.first.pop_front();
         cdrom->audio.second.pop_front();
@@ -121,21 +134,21 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         if (control.cdEnable) {
             // 0x80 - full volume
             // 0xff - 2x volume
-            float l_l = cdrom->volumeLeftToLeft / 128.f;
-            float l_r = cdrom->volumeLeftToRight / 128.f;
-            float r_l = cdrom->volumeRightToLeft / 128.f;
-            float r_r = cdrom->volumeRightToRight / 128.f;
+            int32_t l_l = 255 * cdrom->volumeLeftToLeft;
+            int32_t l_r = 255 * cdrom->volumeLeftToRight;
+            int32_t r_l = 255 * cdrom->volumeRightToLeft;
+            int32_t r_r = 255 * cdrom->volumeRightToRight;
 
-            sumLeft += left * l_l;
-            sumRight += left * l_r;
+            sumLeft += (cdLeft * l_l) >> 15;
+            sumRight += (cdLeft * l_r) >> 15;
 
-            sumLeft += right * r_l;
-            sumRight += right * r_r;
+            sumLeft += (cdLeft * r_l) >> 15;
+            sumRight += (cdLeft * r_r) >> 15;
         }
     }
 
-    audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));
-    audioBuffer[audioBufferPos + 1] = floatToInt(clamp(sumRight, -1.f, 1.f));
+    audioBuffer[audioBufferPos] = clamp(sumLeft, INT16_MIN, INT16_MAX);
+    audioBuffer[audioBufferPos + 1] = clamp(sumRight, INT16_MIN, INT16_MAX);
 
     audioBufferPos += 2;
     if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
@@ -152,8 +165,8 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
     memoryWrite16(cdLeftAddress, cdLeft);
     memoryWrite16(cdRightAddress, cdRight);
-    memoryWrite16(voice1Address, floatToInt(voices[1].sample));
-    memoryWrite16(voice3Address, floatToInt(voices[3].sample));
+    memoryWrite16(voice1Address, voices[1].sample);
+    memoryWrite16(voice3Address, voices[3].sample);
 }
 
 uint8_t SPU::readVoice(uint32_t address) const {
