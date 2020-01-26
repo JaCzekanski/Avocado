@@ -147,13 +147,17 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         bufferReady = true;
     }
 
-    uint32_t cdLeftAddress = captureBufferIndex;
-    uint32_t cdRightAddress = 0x400 + captureBufferIndex;
+    const uint32_t cdLeftAddress = 0x000 + captureBufferIndex;
+    const uint32_t cdRightAddress = 0x400 + captureBufferIndex;
+    const uint32_t voice1Address = 0x800 + captureBufferIndex;
+    const uint32_t voice3Address = 0xC00 + captureBufferIndex;
 
     captureBufferIndex = (captureBufferIndex + 2) & 0x3ff;
 
     memoryWrite16(cdLeftAddress, cdLeft);
     memoryWrite16(cdRightAddress, cdRight);
+    memoryWrite16(voice1Address, floatToInt(voices[1].sample));
+    memoryWrite16(voice3Address, floatToInt(voices[3].sample));
 }
 
 uint8_t SPU::readVoice(uint32_t address) const {
