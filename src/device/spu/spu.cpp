@@ -25,8 +25,6 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
     float sumLeft = 0, sumReverbLeft = 0;
     float sumRight = 0, sumReverbRight = 0;
 
-    int16_t cdLeft = 0, cdRight = 0;
-
     noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
 
     for (int v = 0; v < VOICE_COUNT; v++) {
@@ -112,7 +110,9 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         sumLeft = 0.f;
         sumRight = 0.f;
     }
+
     // Mix with cd
+    int16_t cdLeft = 0, cdRight = 0;
     if (!cdrom->audio.first.empty()) {
         cdLeft = cdrom->audio.first.front();
         cdRight = cdrom->audio.second.front();
@@ -124,6 +124,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         cdrom->audio.first.pop_front();
         cdrom->audio.second.pop_front();
 
+        if (control.cdEnable) {
         // 0x80 - full volume
         // 0xff - 2x volume
         float l_l = cdrom->volumeLeftToLeft / 128.f;
@@ -136,6 +137,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
         sumLeft += right * r_l;
         sumRight += right * r_r;
+    }
     }
 
     audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));
