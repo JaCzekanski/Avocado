@@ -381,8 +381,7 @@ void CDROM::cmdGetId() {
 void CDROM::cmdReadS() {
     readSector = seekSector;
 
-    audio.first.clear();
-    audio.second.clear();
+    audio.clear();
     stat.setMode(StatusCode::Mode::Reading);
 
     postInterrupt(3);

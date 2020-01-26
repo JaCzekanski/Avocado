@@ -87,8 +87,24 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
-    sumLeft *= mainVolume.getLeft();
-    sumRight *= mainVolume.getRight();
+    // Mix with cd
+    Sample cdLeft = 0, cdRight = 0;
+    if (!cdrom->audio.empty()) {
+        std::tie(cdLeft, cdRight) = cdrom->audio.front();
+
+        // TODO: Refactor to use ring buffer
+        cdrom->audio.pop_front();
+
+        if (control.cdEnable) {
+            sumLeft += cdLeft * cdVolume.getLeft();
+            sumRight += cdRight * cdVolume.getRight();
+
+            if (control.cdReverb) {
+                sumReverbLeft += cdLeft * cdVolume.getLeft();
+                sumReverbRight += cdRight * cdVolume.getRight();
+            }
+        }
+    }
 
     if (!forceReverbOff && control.masterReverb) {
         static int16_t reverbLeft = 0, reverbRight = 0;
@@ -100,35 +116,12 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         sumRight += reverbRight;
     }
 
+    sumLeft *= std::min<int16_t>(0x3fff, mainVolume.getLeft()) * 2;
+    sumRight *= std::min<int16_t>(0x3fff, mainVolume.getRight()) * 2;
+
     if (!control.unmute) {
         sumLeft = 0;
         sumRight = 0;
-    }
-
-    // Mix with cd
-    int16_t cdLeft = 0, cdRight = 0;
-    if (!cdrom->audio.first.empty()) {
-        cdLeft = cdrom->audio.first.front();
-        cdRight = cdrom->audio.second.front();
-
-        // TODO: Refactor to use ring buffer
-        cdrom->audio.first.pop_front();
-        cdrom->audio.second.pop_front();
-
-        if (control.cdEnable) {
-            // 0x80 - full volume
-            // 0xff - 2x volume
-            int32_t l_l = 255 * cdrom->volumeLeftToLeft;
-            int32_t l_r = 255 * cdrom->volumeLeftToRight;
-            int32_t r_l = 255 * cdrom->volumeRightToLeft;
-            int32_t r_r = 255 * cdrom->volumeRightToRight;
-
-            sumLeft += (cdLeft * l_l) >> 15;
-            sumRight += (cdLeft * l_r) >> 15;
-
-            sumLeft += (cdLeft * r_l) >> 15;
-            sumRight += (cdLeft * r_r) >> 15;
-        }
     }
 
     audioBuffer[audioBufferPos] = sumLeft;

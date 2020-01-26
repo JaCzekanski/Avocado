@@ -18,5 +18,5 @@ enum Flag {
                          // 0 - Nothing
 };
 std::vector<int16_t> decode(uint8_t buffer[16], int32_t prevSample[2]);
-std::pair<std::vector<int16_t>, std::vector<int16_t>> decodeXA(uint8_t buffer[128 * 18], cd::Codinginfo codinginfo);
+std::vector<std::pair<int16_t, int16_t>> decodeXA(uint8_t buffer[128 * 18], cd::Codinginfo codinginfo);
 };  // namespace ADPCM

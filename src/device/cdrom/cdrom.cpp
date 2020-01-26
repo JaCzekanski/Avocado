@@ -67,18 +67,13 @@ void CDROM::step() {
                 }
             }
 
-            if (!this->mute) {
+            if (!mute) {
                 // Decode Red Book Audio (16bit Stereo 44100Hz)
-                bool channel = true;
-                for (size_t i = 0; i < rawSector.size(); i += 2) {
-                    int16_t sample = rawSector[i] | (rawSector[i + 1] << 8);
+                for (size_t i = 0; i < rawSector.size(); i += 4) {
+                    int16_t left = rawSector[i + 0] | (rawSector[i + 1] << 8);
+                    int16_t right = rawSector[i + 2] | (rawSector[i + 3] << 8);
 
-                    if (channel) {
-                        audio.first.push_back(sample);
-                    } else {
-                        audio.second.push_back(sample);
-                    }
-                    channel = !channel;
+                    audio.push_back(mixSample(std::make_pair(left, right)));
                 }
             }
         } else if (trackType == disc::TrackType::DATA && stat.read) {
@@ -126,9 +121,11 @@ void CDROM::step() {
                 }
 
                 if (this->mode.xaEnabled && !this->mute) {
-                    auto [left, right] = ADPCM::decodeXA(rawSector.data() + 24, codinginfo);
-                    audio.first.insert(audio.first.end(), left.begin(), left.end());
-                    audio.second.insert(audio.second.end(), right.begin(), right.end());
+                    auto frame = ADPCM::decodeXA(rawSector.data() + 24, codinginfo);
+
+                    for (auto sample : frame) {
+                        audio.push_back(mixSample(sample));
+                    }
                 }
 
                 if (submode.endOfFile) {
@@ -374,5 +371,26 @@ void CDROM::write(uint32_t address, uint8_t data) {
 
     fmt::print("CDROM{}.{}<-W  UNIMPLEMENTED WRITE       0x{:02x}\n", address, static_cast<int>(status.index), data);
 }
+
+std::pair<int16_t, int16_t> CDROM::mixSample(std::pair<int16_t, int16_t> input) {
+    int16_t left = input.first;
+    int16_t right = input.second;
+
+    // TODO: Fixed-point + clipping
+    // TODO: Verify mixing with HW (capture channels)
+    // 0x00 - disabled
+    // 0x80 - 1x vol
+    // 0xff - 2x vol
+    float l_l = volumeLeftToLeft / (float)0x80;
+    float l_r = volumeLeftToRight / (float)0x80;
+    float r_l = volumeRightToLeft / (float)0x80;
+    float r_r = volumeRightToRight / (float)0x80;
+
+    int16_t mixedLeft = clamp<int32_t>((left * l_l) + (right * r_l), INT16_MIN, INT16_MAX);
+    int16_t mixedRight = clamp<int32_t>((left * l_r) + (right * r_r), INT16_MIN, INT16_MAX);
+
+    return std::make_pair(mixedLeft, mixedRight);
+}
+
 }  // namespace cdrom
 }  // namespace device

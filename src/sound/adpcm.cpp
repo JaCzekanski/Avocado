@@ -148,12 +148,11 @@ std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2], bo
     return decoded;
 }
 
-std::pair<std::vector<int16_t>, std::vector<int16_t>> decodeXA(uint8_t buffer[128 * 18], cd::Codinginfo codinginfo) {
+std::vector<std::pair<int16_t, int16_t>> decodeXA(uint8_t buffer[128 * 18], cd::Codinginfo codinginfo) {
     static int32_t prevSampleLeft[2] = {};
     static int32_t prevSampleRight[2] = {};
 
-    std::vector<int16_t> left;
-    std::vector<int16_t> right;
+    std::vector<std::pair<int16_t, int16_t>> frame;
 
     // Each sector contains of 18 128-byte portions
     for (int packet = 0; packet < 18; packet++) {
@@ -161,15 +160,17 @@ std::pair<std::vector<int16_t>, std::vector<int16_t>> decodeXA(uint8_t buffer[12
             auto l = decodePacket<Channel::left>(buffer + packet * 128, prevSampleLeft, codinginfo.sampleRate);
             auto r = decodePacket<Channel::right>(buffer + packet * 128, prevSampleRight, codinginfo.sampleRate);
 
-            left.insert(left.end(), l.begin(), l.end());
-            right.insert(right.end(), r.begin(), r.end());
+            for (int i = 0; i < l.size(); i++) {
+                frame.emplace_back(l[i], r[i]);
+            }
         } else {
             auto mono = decodePacket<Channel::mono>(buffer + packet * 128, prevSampleLeft, codinginfo.sampleRate);
-            left.insert(left.end(), mono.begin(), mono.end());
-            right.insert(right.end(), mono.begin(), mono.end());
+            for (auto sample : mono) {
+                frame.emplace_back(sample, sample);
+            }
         }
     }
 
-    return std::make_pair(left, right);
+    return frame;
 }
 }  // namespace ADPCM

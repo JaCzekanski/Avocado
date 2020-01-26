@@ -114,6 +114,10 @@ class CDROM {
 
     Mode mode;
     Filter filter;
+    uint8_t volumeLeftToLeft = 0;
+    uint8_t volumeLeftToRight = 0;
+    uint8_t volumeRightToLeft = 0;
+    uint8_t volumeRightToRight = 0;
 
     System* sys;
     int readSector = 0;
@@ -174,13 +178,10 @@ class CDROM {
     }
 
     std::string dumpFifo(const FIFO& f);
+    std::pair<int16_t, int16_t> mixSample(std::pair<int16_t, int16_t> sample);
 
    public:
-    uint8_t volumeLeftToLeft = 0;
-    uint8_t volumeLeftToRight = 0;
-    uint8_t volumeRightToLeft = 0;
-    uint8_t volumeRightToRight = 0;
-    std::pair<std::deque<int16_t>, std::deque<int16_t>> audio;
+    std::deque<std::pair<int16_t, int16_t>> audio;
     std::vector<uint8_t> rawSector;
 
     std::vector<uint8_t> dataBuffer;
