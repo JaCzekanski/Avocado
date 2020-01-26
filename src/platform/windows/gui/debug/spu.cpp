@@ -300,11 +300,6 @@ void renderSamples(spu::SPU* spu) {
     ImGui::PlotLines("Preview", samples.data(), (int)samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
 }
 
-void debugTools(spu::SPU* spu) {
-    ImGui::Checkbox("Force interpolation off", &spu->forceInterpolationOff);
-    ImGui::Checkbox("Force Pitch Modulation off", &spu->forcePitchModulationOff);
-}
-
 void SPU::spuWindow(spu::SPU* spu) {
     const auto treeFlags = ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_DefaultOpen;
     static bool parseValues = true;
@@ -314,7 +309,6 @@ void SPU::spuWindow(spu::SPU* spu) {
     if (ImGui::TreeNodeEx("Channels", treeFlags)) channelsInfo(spu, parseValues);
     if (ImGui::TreeNodeEx("Reverb", treeFlags)) reverbInfo(spu);
     if (ImGui::TreeNodeEx("Registers", treeFlags)) registersInfo(spu);
-    if (ImGui::TreeNodeEx("Debug tools", treeFlags)) debugTools(spu);
 
     ImGui::Checkbox("Parse values", &parseValues);
     renderSamples(spu);

@@ -45,7 +45,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         voice.processEnvelope();
 
         uint32_t step = voice.sampleRate._reg;
-        if (voice.pitchModulation && v > 0 && !forcePitchModulationOff) {
+        if (voice.pitchModulation && v > 0) {
             int32_t factor = static_cast<int32_t>(floatToInt(voices[v - 1].sample) + 0x8000);
             step = (step * factor) >> 15;
             step &= 0xffff;
@@ -56,8 +56,6 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
         if (voice.mode == Voice::Mode::Noise) {
             sample = intToFloat(noise.getNoiseLevel());
-        } else if (forceInterpolationOff) {
-            sample = intToFloat(voice.decodedSamples[voice.counter.sample]);
         } else {
             sample = intToFloat(spu::interpolate(voice, voice.counter.sample, voice.counter.index));
         }
