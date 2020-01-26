@@ -43,7 +43,7 @@ struct SPU {
 
     std::array<uint8_t, RAM_SIZE> ram;
 
-    bool forceReverbOff = false;           // Debug use
+    bool forceReverbOff = false;  // Debug use
     Reg16 reverbBase;
     std::array<Reg16, 32> reverbRegisters;
     uint32_t reverbCurrentAddress;
@@ -64,7 +64,7 @@ struct SPU {
 
     void memoryWrite8(uint32_t address, uint8_t data);
     void memoryWrite16(uint32_t address, uint16_t data);
-
+    std::array<uint8_t, 16> readBlock(uint32_t address);
     void dumpRam();
 
     template <class Archive>

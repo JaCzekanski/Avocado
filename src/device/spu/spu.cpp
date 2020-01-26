@@ -33,12 +33,8 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         if (voice.state == Voice::State::Off) continue;
 
         if (voice.decodedSamples.empty()) {
-            auto readAddress = voice.currentAddress._reg * 8;
-            if (control.irqEnable && readAddress == irqAddress._reg * 8) {
-                status.irqFlag = true;
-                sys->interrupt->trigger(interrupt::SPU);
-            }
-            voice.decodedSamples = ADPCM::decode(&ram[readAddress], voice.prevSample);
+            auto block = readBlock(voice.currentAddress._reg * 8);
+            voice.decodedSamples = ADPCM::decode(block.data(), voice.prevSample);
             voice.flagsParsed = false;
         }
 
@@ -467,6 +463,17 @@ void SPU::memoryWrite8(uint32_t address, uint8_t data) {
 void SPU::memoryWrite16(uint32_t address, uint16_t data) {
     memoryWrite8(address, (uint8_t)data);
     memoryWrite8(address + 1, (uint8_t)(data >> 8));
+}
+
+std::array<uint8_t, 16> SPU::readBlock(uint32_t address) {
+    if (control.irqEnable && address == irqAddress._reg * 8) {
+        status.irqFlag = true;
+        sys->interrupt->trigger(interrupt::SPU);
+    }
+
+    std::array<uint8_t, 16> buf;
+    std::copy(ram.begin() + address, ram.begin() + address + 16, buf.begin());
+    return buf;
 }
 
 void SPU::dumpRam() {
