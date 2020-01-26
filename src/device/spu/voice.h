@@ -17,7 +17,7 @@ struct Voice {
         };
         uint32_t _reg = 0;
     };
-    Volume volume;
+    SweepVolume volume;
     Reg16 sampleRate;
     Reg16 startAddress;
     ADSR adsr;

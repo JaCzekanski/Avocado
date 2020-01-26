@@ -22,14 +22,39 @@ union Volume {
         return _byte[n];
     }
 
+    int16_t getLeft() { return left; }
+
+    int16_t getRight() { return right; }
+};
+
+union SweepVolume {
+    struct {
+        uint16_t left;
+        uint16_t right;
+    };
+    uint32_t _reg;
+    uint8_t _byte[4];
+
+    SweepVolume() : left(0), right(0) {}
+
+    void write(int n, uint8_t v) {
+        if (n >= 4) return;
+        _byte[n] = v;
+    }
+
+    uint8_t read(int n) const {
+        if (n >= 4) return 0;
+        return _byte[n];
+    }
+
     int16_t getLeft() {
         if (left & 0x8000) return 0x7fff;  // TODO: Implement sweep
-        return (int16_t)(left);
+        return (int16_t)left * 2;
     }
 
     int16_t getRight() {
         if (right & 0x8000) return 0x7fff;  // TODO: Implement sweep
-        return (int16_t)(right);
+        return (int16_t)right * 2;
     }
 };
 

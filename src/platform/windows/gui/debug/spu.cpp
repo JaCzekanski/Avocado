@@ -129,19 +129,18 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             frameColor = ImGui::GetColorU32(ImVec4(0.4f, 0.4f, 0.4f, .25f));
         }
         int barHeight = 12;  // TODO: Do not hardcode!
-        int barWidth = 12;   // TODO: Use dynamic width!
-        if (parseValues) {
+        auto bar = [&](float w) {
             ImVec2 src = ImGui::GetCursorScreenPos();
-            drawList->AddRectFilled(src, ImVec2(src.x + (barWidth * v.volume.getLeft()), src.y + barHeight), frameColor);
-            column(fmt::format("{:.0f}", v.volume.getLeft() * 100.f));
+            drawList->AddRectFilled(src, ImVec2(src.x + ImGui::GetColumnWidth(n) * w, src.y + barHeight), frameColor);
+        };
+        if (parseValues) {
+            bar(intToFloat(v.volume.getLeft()));
+            column(fmt::format("{:.0f}", intToFloat(v.volume.getLeft()) * 100.f));
 
-            src = ImGui::GetCursorScreenPos();
-            drawList->AddRectFilled(src, ImVec2(src.x + (barWidth * v.volume.getRight()), src.y + barHeight), frameColor);
-            column(fmt::format("{:.0f}", v.volume.getRight() * 100.f));
+            bar(intToFloat(v.volume.getRight()));
+            column(fmt::format("{:.0f}", intToFloat(v.volume.getRight()) * 100.f));
 
-            src = ImGui::GetCursorScreenPos();
-            drawList->AddRectFilled(src, ImVec2(src.x + (barWidth * (v.adsrVolume._reg / static_cast<float>(0x7fff))), src.y + barHeight),
-                                    frameColor);
+            bar(intToFloat(v.adsrVolume._reg));
             column(fmt::format("{:.0f}", (v.adsrVolume._reg / static_cast<float>(0x7fff)) * 100.f));
         } else {
             column(fmt::format("{:04x}", v.volume.left));
@@ -155,16 +154,16 @@ void channelsInfo(spu::SPU* spu, bool parseValues) {
             column(fmt::format("{:04x}", v.sampleRate._reg));
         }
         ImVec2 src = ImGui::GetCursorScreenPos();
-        barWidth = 128;
 
         float startP = v.startAddress._reg * 8 / (float)spu::SPU::RAM_SIZE;
         float currP = v.currentAddress._reg * 8 / (float)spu::SPU::RAM_SIZE;
         float repeatP = v.repeatAddress._reg * 8 / (float)spu::SPU::RAM_SIZE;
-        drawList->AddRectFilled(ImVec2(src.x + barWidth * startP, src.y), ImVec2(src.x + barWidth * repeatP, src.y + barHeight),
-                                frameColor);
+        drawList->AddRectFilled(ImVec2(src.x + ImGui::GetColumnWidth(n) * startP, src.y),
+                                ImVec2(src.x + ImGui::GetColumnWidth(n) * repeatP, src.y + barHeight), frameColor);
 
         ImU32 lineColor = ImGui::GetColorU32(ImVec4(0.8f, 0.8f, 0.8f, 1.f));
-        drawList->AddLine(ImVec2(src.x + barWidth * currP, src.y), ImVec2(src.x + barWidth * currP, src.y + barHeight), lineColor);
+        drawList->AddLine(ImVec2(src.x + ImGui::GetColumnWidth(n) * currP, src.y),
+                          ImVec2(src.x + ImGui::GetColumnWidth(n) * currP, src.y + barHeight), lineColor);
 
         column(fmt::format("{:04x}", v.currentAddress._reg));
         column(fmt::format("{:04x}", v.startAddress._reg));

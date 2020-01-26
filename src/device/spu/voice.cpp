@@ -113,7 +113,7 @@ void Voice::keyOn(uint64_t cycles) {
     // ignoreLoadRepeatAddress is set to true on write to repeatAddress register
     if (!ignoreLoadRepeatAddress) {
         repeatAddress._reg = startAddress._reg;
-        ignoreLoadRepeatAddress = false;
+        ignoreLoadRepeatAddress = true;
     }
 
     currentAddress._reg = startAddress._reg;
