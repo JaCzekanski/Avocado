@@ -65,7 +65,7 @@ void Voice::processEnvelope() {
             cycles *= 4;
         }
         if (e.direction == Dir::Decrease) {
-            step = (int)(ceilf((float)adsrVolume._reg / (float)0x8000) * (float)step);
+            step = step * adsrVolume._reg / 0x8000;
         }
     }
 
@@ -85,15 +85,17 @@ void Voice::processEnvelope() {
 void Voice::parseFlags(uint8_t flags) {
     flagsParsed = true;
 
-    if (flags & ADPCM::Flag::Start) {
+    // Mark beginning of the loop
+    if (flags & ADPCM::Flag::LoopStart) {
         repeatAddress = currentAddress;
     }
 
-    if (flags & ADPCM::Flag::End) {
         // Jump to Repeat address AFTER playing current sample
+    if (flags & ADPCM::Flag::LoopEnd) {
         loopEnd = true;
         loadRepeatAddress = true;
 
+        // if Repeat == 0 - force Release
         if (!(flags & ADPCM::Flag::Repeat) && mode != Mode::Noise) {
             adsrVolume._reg = 0;
             keyOff();
