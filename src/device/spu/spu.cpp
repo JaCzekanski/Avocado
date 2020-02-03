@@ -119,19 +119,19 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         cdrom->audio.second.pop_front();
 
         if (control.cdEnable) {
-        // 0x80 - full volume
-        // 0xff - 2x volume
-        float l_l = cdrom->volumeLeftToLeft / 128.f;
-        float l_r = cdrom->volumeLeftToRight / 128.f;
-        float r_l = cdrom->volumeRightToLeft / 128.f;
-        float r_r = cdrom->volumeRightToRight / 128.f;
+            // 0x80 - full volume
+            // 0xff - 2x volume
+            float l_l = cdrom->volumeLeftToLeft / 128.f;
+            float l_r = cdrom->volumeLeftToRight / 128.f;
+            float r_l = cdrom->volumeRightToLeft / 128.f;
+            float r_r = cdrom->volumeRightToRight / 128.f;
 
-        sumLeft += left * l_l;
-        sumRight += left * l_r;
+            sumLeft += left * l_l;
+            sumRight += left * l_r;
 
-        sumLeft += right * r_l;
-        sumRight += right * r_r;
-    }
+            sumLeft += right * r_l;
+            sumRight += right * r_r;
+        }
     }
 
     audioBuffer[audioBufferPos] = floatToInt(clamp(sumLeft, -1.f, 1.f));
@@ -191,6 +191,25 @@ void SPU::writeVoice(uint32_t address, uint8_t data) {
     int voice = address / 0x10;
     int reg = address % 0x10;
 
+    const auto getRegInfo = [&](int reg) {
+        switch (reg) {
+            case 3: return fmt::format("Volume: 0x{:08x}", voices[voice].volume._reg);
+            case 5: return fmt::format("Sample rate: 0x{:04x}", voices[voice].sampleRate._reg);
+            case 7: return fmt::format("Start address: 0x{:04x}", voices[voice].startAddress._reg);
+            case 11: return fmt::format("ADSR: 0x{:08x}", voices[voice].adsr._reg);
+            case 13: return fmt::format("ADSR Volume: 0x{:04}", voices[voice].adsrVolume._reg);
+            case 15: return fmt::format("Repeat address: 0x{:04}", voices[voice].repeatAddress._reg);
+            default: return std::string();
+        }
+    };
+
+    if (verbose) {
+        auto regInfo = getRegInfo(reg);
+        if (!regInfo.empty()) {
+            fmt::print("[SPU] W Voice {:2d}, {}\n", voice + 1, regInfo);
+        }
+    }
+
     switch (reg) {
         case 0:
         case 1:
@@ -242,6 +261,8 @@ uint8_t SPU::read(uint32_t address) {
     }()
 
     address += BASE_ADDRESS;
+
+    if (verbose) fmt::print("[SPU] R 0x{:08x}\n", address);
 
     if (address >= 0x1f801c00 && address < 0x1f801c00 + 0x10 * VOICE_COUNT) {
         return readVoice(address - 0x1f801c00);
@@ -341,6 +362,15 @@ void SPU::write(uint32_t address, uint8_t data) {
         writeVoice(address - 0x1f801c00, data);
         return;
     }
+    if (verbose) {
+        if (address >= 0x1f801da8 && address <= 0x1f801da9) {
+        } else if (address >= 0x1f801d88 && address <= 0x1f801d8b) {
+        } else if (address >= 0x1f801d8c && address <= 0x1f801d8f) {
+        } else if (address >= 0x1f801d98 && address <= 0x1f801d9b) {
+        } else {
+            fmt::print("[SPU] W 0x{:08x}: 0x{:02x}\n", address, data);
+        }
+    }
 
     if (address >= 0x1f801d80 && address <= 0x1f801d83) {  // Main Volume L/R
         mainVolume.write(address - 0x1f801d80, data);
@@ -355,6 +385,7 @@ void SPU::write(uint32_t address, uint8_t data) {
     if (address >= 0x1f801d88 && address <= 0x1f801d8b) {  // Voices Key On
         FOR_EACH_VOICE(address - 0x1f801d88, [&](int v, bool bit) {
             if (bit) voices[v].keyOn(sys->cycles);
+            if (bit && verbose) fmt::print("[SPU] W Voice {:2d}, KeyOn\n", v + 1);
         });
         return;
     }
@@ -362,6 +393,7 @@ void SPU::write(uint32_t address, uint8_t data) {
     if (address >= 0x1f801d8c && address <= 0x1f801d8f) {  // Voices Key Off
         FOR_EACH_VOICE(address - 0x1f801d8c, [&](int v, bool bit) {
             if (bit) voices[v].keyOff(sys->cycles);
+            if (bit && verbose) fmt::print("[SPU] W Voice {:2d}, KeyOff\n", v + 1);
         });
         return;
     }
@@ -379,7 +411,10 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     if (address >= 0x1f801d98 && address <= 0x1f801d9b) {  // Voice Reverb
-        FOR_EACH_VOICE(address - 0x1f801d98, [&](int v, bool bit) { voices[v].reverb = bit; });
+        FOR_EACH_VOICE(address - 0x1f801d98, [&](int v, bool bit) {
+            voices[v].reverb = bit;
+            if (bit && verbose) fmt::print("[SPU] W Voice {:2d}, Reverb On\n", v + 1);
+        });
         return;
     }
 
