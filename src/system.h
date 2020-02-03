@@ -64,6 +64,8 @@ struct System {
     bool debugOutput = true;  // Print BIOS logs
     bool biosLoaded = false;
 
+    uint64_t cycles;
+
     // Devices
     std::unique_ptr<mips::CPU> cpu;
 

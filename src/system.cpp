@@ -34,6 +34,8 @@ System::System() {
 
     debugOutput = config["debug"]["log"]["system"].get<int>();
     biosLog = config["debug"]["log"]["bios"];
+
+    cycles = 0;
 }
 
 // Note: stupid static_casts and asserts are only to suppress MSVC warnings

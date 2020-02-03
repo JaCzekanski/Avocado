@@ -90,7 +90,7 @@ void Voice::parseFlags(uint8_t flags) {
         repeatAddress = currentAddress;
     }
 
-        // Jump to Repeat address AFTER playing current sample
+    // Jump to Repeat address AFTER playing current sample
     if (flags & ADPCM::Flag::LoopEnd) {
         loopEnd = true;
         loadRepeatAddress = true;
@@ -103,7 +103,7 @@ void Voice::parseFlags(uint8_t flags) {
     }
 }
 
-void Voice::keyOn() {
+void Voice::keyOn(uint64_t cycles) {
     decodedSamples.clear();
     counter.sample = 0;
     adsrVolume._reg = 0;
@@ -124,9 +124,18 @@ void Voice::keyOn() {
 
     prevSample[0] = prevSample[1] = 0;
     prevDecodedSamples.clear();
+
+    this->cycles = cycles;
 }
 
-void Voice::keyOff() {
+void Voice::keyOff(uint64_t cycles) {
+    // SPU seems to ignore KeyOff events that were fired close to KeyOn.
+    // Value of 384 cycles was picked by listening to Dragon Ball Final Bout - BGM 29
+    // and comparing it to recording from real HW.
+    // It's not verified by any tests for now
+    if (cycles != 0 && cycles - this->cycles < 384) {
+        return;
+    }
     state = Voice::State::Release;
     adsrWaitCycles = 0;
 }
