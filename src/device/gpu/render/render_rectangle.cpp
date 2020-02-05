@@ -45,9 +45,9 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
         gpu->minDrawingX(pos.x),  //
         gpu->minDrawingY(pos.y)   //
     );
-    const ivec2 max(                            //
-        gpu->maxDrawingX(pos.x + rect.size.x),  //
-        gpu->maxDrawingY(pos.y + rect.size.y)   //
+    const ivec2 max(                                //
+        gpu->maxDrawingX(pos.x + rect.size.x - 1),  //
+        gpu->maxDrawingY(pos.y + rect.size.y - 1)   //
     );
 
     const ivec2 uv(                   //
@@ -66,8 +66,8 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     }
 
     int x, y, u, v;
-    for (y = min.y, v = uv.y; y < max.y; y++, v += vStep) {
-        for (x = min.x, u = uv.x; x < max.x; x++, u += uStep) {
+    for (y = min.y, v = uv.y; y <= max.y; y++, v += vStep) {
+        for (x = min.x, u = uv.x; x <= max.x; x++, u += uStep) {
             PSXColor bg = VRAM[y][x];
             if (unlikely(checkMaskBeforeDraw)) {
                 if (bg.k) continue;
