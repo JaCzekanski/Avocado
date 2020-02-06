@@ -72,14 +72,18 @@ int16_t doZigzag(int p, int table) {
     return clamp_16bit(sum);
 }
 
+// sampleRate == false - 37800Hz
+// sampleRate == true  - 18900Hz - double output samples
 template <int ch>
-void interpolate(int16_t sample, std::vector<int16_t>& output) {
+void interpolate(int16_t sample, std::vector<int16_t>& output, bool sampleRate = false) {
     ringbuf[ch][p[ch]++ & 0x1f] = sample;
 
     if (--sixstep[ch] == 0) {
         sixstep[ch] = 6;
         for (int table = 0; table < 7; table++) {
-            output.push_back(doZigzag<ch>(p[ch], table));
+            int16_t v = doZigzag<ch>(p[ch], table);
+            output.push_back(v);
+            if (sampleRate) output.push_back(v);
         }
     }
 }
@@ -129,14 +133,9 @@ std::vector<int16_t> decodePacket(uint8_t buffer[128], int32_t prevSample[2], bo
             // clamp to -0x8000 +0x7fff
             // Intepolate 37800Hz to 44100Hz
             if (channel == Channel::mono || channel == Channel::left) {
-                interpolate<0>(clamp_16bit(sample), decoded);
-
-                // 18900Hz to 37800Hz
-                // FIXME: Doubling samples isn't how you should interpolate it, right?
-                if (sampleRate) interpolate<0>(clamp_16bit(sample), decoded);
+                interpolate<0>(clamp_16bit(sample), decoded, sampleRate);
             } else {
-                interpolate<1>(clamp_16bit(sample), decoded);
-                if (sampleRate) interpolate<0>(clamp_16bit(sample), decoded);
+                interpolate<1>(clamp_16bit(sample), decoded, sampleRate);
             }
 
             // Move previous samples forward
