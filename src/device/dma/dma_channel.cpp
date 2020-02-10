@@ -90,6 +90,7 @@ void DMAChannel::startTransfer() {
                 }
             }
         }
+        // TODO: Need proper Chopping implementation for SPU READ to work
         baseAddress.address = addr;
         count.syncMode1.blockCount = 0;
     } else if (control.syncMode == CHCR::SyncMode::linkedList) {

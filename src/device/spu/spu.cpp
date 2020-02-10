@@ -87,6 +87,11 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
+    if (!control.unmute) {
+        sumLeft = 0;
+        sumRight = 0;
+    }
+
     // Mix with cd
     Sample cdLeft = 0, cdRight = 0;
     if (!cdrom->audio.empty()) {
@@ -118,11 +123,6 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
     sumLeft *= std::min<int16_t>(0x3fff, mainVolume.getLeft()) * 2;
     sumRight *= std::min<int16_t>(0x3fff, mainVolume.getRight()) * 2;
-
-    if (!control.unmute) {
-        sumLeft = 0;
-        sumRight = 0;
-    }
 
     audioBuffer[audioBufferPos] = sumLeft;
     audioBuffer[audioBufferPos + 1] = sumRight;
@@ -313,6 +313,14 @@ uint8_t SPU::read(uint32_t address) {
         return reverbBase.read(address - 0x1F801DA2);
     }
 
+    if (address >= 0x1f801da8 && address <= 0x1f801da9) {  // SPU RAM read
+        if (currentDataAddress >= RAM_SIZE) {
+            currentDataAddress %= RAM_SIZE;
+        }
+
+        return memoryRead8(currentDataAddress++);
+    }
+
     if (address >= 0x1f801dac && address <= 0x1f801dad) {  // Data Transfer Control
         return dataTransferControl._byte[address - 0x1f801dac];
     }
@@ -474,6 +482,15 @@ void SPU::write(uint32_t address, uint8_t data) {
     }
 
     fmt::print("[SPU] Unhandled write at 0x{:08x}: 0x{:02x}\n", address, data);
+}
+
+uint8_t SPU::memoryRead8(uint32_t address) {
+    if (control.irqEnable && address == irqAddress._reg * 8) {
+        status.irqFlag = true;
+        sys->interrupt->trigger(interrupt::SPU);
+    }
+
+    return ram[address];
 }
 
 void SPU::memoryWrite8(uint32_t address, uint8_t data) {

@@ -114,10 +114,10 @@ class CDROM {
 
     Mode mode;
     Filter filter;
-    uint8_t volumeLeftToLeft = 0;
-    uint8_t volumeLeftToRight = 0;
-    uint8_t volumeRightToLeft = 0;
-    uint8_t volumeRightToRight = 0;
+    uint8_t volumeLeftToLeft = 0x80;    // BIOS never sets this registers with default values
+    uint8_t volumeLeftToRight = 0;      // but Audio CDs can be played
+    uint8_t volumeRightToLeft = 0;      // cdrom/volume-regs showed that these registers aren't
+    uint8_t volumeRightToRight = 0x80;  // zeroed on reset, but have 80 0 0 80 values
 
     System* sys;
     int readSector = 0;
