@@ -111,7 +111,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
-    if (!forceReverbOff && control.masterReverb) {
+    if (control.masterReverb) {
         static int16_t reverbLeft = 0, reverbRight = 0;
         static int reverbCounter = 0;
         if (reverbCounter++ % 2 == 0) {
@@ -260,6 +260,10 @@ uint8_t SPU::read(uint32_t address) {
 
     if (address >= 0x1f801d80 && address <= 0x1f801d83) {  // Main Volume L/R
         return mainVolume.read(address - 0x1f801d80);
+    }
+
+    if (address >= 0x1f801d84 && address <= 0x1f801d87) {  // Reverb Volume L/R
+        return reverbVolume.read(address - 0x1f801d84);
     }
 
     if (address >= 0x1f801da4 && address <= 0x1f801da5) {  // IRQ (used by Vib-Ribbon)

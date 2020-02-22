@@ -231,8 +231,6 @@ void reverbInfo(spu::SPU* spu) {
          "vRIN    - Reverb Input Volume Right"},
     };
 
-    ImGui::Checkbox("Force off", &spu->forceReverbOff);
-
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("Base: 0x%08x", spu->reverbBase._reg * 8);
     ImGui::Text("Current: 0x%08x", spu->reverbCurrentAddress);
