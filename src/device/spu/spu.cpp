@@ -386,7 +386,7 @@ void SPU::write(uint32_t address, uint8_t data) {
 
     if (address >= 0x1f801d88 && address <= 0x1f801d8b) {  // Voices Key On
         FOR_EACH_VOICE(address - 0x1f801d88, [&](int v, bool bit) {
-            if (bit) voices[v].keyOn(sys->cycles);
+            if (control.spuEnable && bit) voices[v].keyOn(sys->cycles);
             if (bit && verbose) fmt::print("[SPU] W Voice {:2d}, KeyOn\n", v + 1);
         });
         return;
@@ -394,7 +394,7 @@ void SPU::write(uint32_t address, uint8_t data) {
 
     if (address >= 0x1f801d8c && address <= 0x1f801d8f) {  // Voices Key Off
         FOR_EACH_VOICE(address - 0x1f801d8c, [&](int v, bool bit) {
-            if (bit) voices[v].keyOff(sys->cycles);
+            if (control.spuEnable && bit) voices[v].keyOff(sys->cycles);
             if (bit && verbose) fmt::print("[SPU] W Voice {:2d}, KeyOff\n", v + 1);
         });
         return;
@@ -459,6 +459,11 @@ void SPU::write(uint32_t address, uint8_t data) {
         status.currentMode = control._reg & 0x3f;
         if (!control.irqEnable) {
             status.irqFlag = false;
+        }
+        if (!control.spuEnable) {
+            for (auto& v : voices) {
+                v.adsrVolume._reg = 0;
+            }
         }
         return;
     }
