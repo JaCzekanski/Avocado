@@ -46,6 +46,9 @@ struct SPU {
     Reg16 reverbBase;
     std::array<Reg16, 32> reverbRegisters;
     uint32_t reverbCurrentAddress;
+    int16_t reverbLeft = 0;
+    int16_t reverbRight = 0;
+    int reverbCounter = 0;
 
     bool bufferReady = false;
     size_t audioBufferPos;

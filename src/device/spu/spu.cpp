@@ -91,6 +91,7 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         sumLeft = 0;
         sumRight = 0;
     }
+    // TODO: Check if SPU mute affect sumReverb for voices
 
     // Mix with cd
     Sample cdLeft = 0, cdRight = 0;
@@ -111,15 +112,11 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
         }
     }
 
-    if (control.masterReverb) {
-        static int16_t reverbLeft = 0, reverbRight = 0;
-        static int reverbCounter = 0;
-        if (reverbCounter++ % 2 == 0) {
-            std::tie(reverbLeft, reverbRight) = doReverb(this, std::make_tuple(sumReverbLeft, sumReverbRight));
-        }
-        sumLeft += reverbLeft;
-        sumRight += reverbRight;
+    if (reverbCounter++ % 2 == 0) {
+        std::tie(reverbLeft, reverbRight) = doReverb(this, std::make_tuple(sumReverbLeft, sumReverbRight));
     }
+    sumLeft += reverbLeft;
+    sumRight += reverbRight;
 
     sumLeft *= std::min<int16_t>(0x3fff, mainVolume.getLeft()) * 2;
     sumRight *= std::min<int16_t>(0x3fff, mainVolume.getRight()) * 2;

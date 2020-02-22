@@ -37,6 +37,7 @@ std::tuple<int16_t, int16_t> doReverb(SPU* spu, std::tuple<int16_t, int16_t> inp
         return read(spu, addr);
     };
     const auto W = [spu](uint32_t addr, Sample sample) {  //
+        if (!spu->control.masterReverb) return;
         return write(spu, addr, sample);
     };
 
