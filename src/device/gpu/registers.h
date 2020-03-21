@@ -11,7 +11,7 @@ enum class ReadMode { Register, Vram };
 
 // Draw Mode setting
 union GP0_E1 {
-    enum class TexturePageColors : uint32_t { bit4 = 0, bit8 = 1, bit15 = 2 };
+    enum class TexturePageColors : uint32_t { bit4 = 0, bit8 = 1, bit15 = 2, reserved = 3 };
     enum class DrawingToDisplayArea : uint32_t { prohibited = 0, allowed = 1 };
     struct {
         uint32_t texturePageBaseX : 4;  // N * 64
@@ -241,12 +241,13 @@ struct TextureInfo {
     int getBaseX() const { return ((texpage & 0x0f0000) >> 16) * 64; }   // N * 64
     int getBaseY() const { return ((texpage & 0x100000) >> 20) * 256; }  // N * 256
     int getBitcount() const {
-        int depth = (texpage & 0x1800000) >> 23;
+        using Bits = gpu::GP0_E1::TexturePageColors;
+        Bits depth = (Bits)((texpage & 0x1800000) >> 23);
         switch (depth) {
-            case 0: return 4;
-            case 1: return 8;
-            case 2: return 16;
-            case 3: return 16;
+            case Bits::bit4: return 4;
+            case Bits::bit8: return 8;
+            case Bits::bit15: return 16;
+            case Bits::reserved: return 16;
             default: return 0;
         }
     }

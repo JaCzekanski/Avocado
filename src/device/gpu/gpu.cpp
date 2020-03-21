@@ -386,6 +386,8 @@ void GPU::cmdRectangle(RectangleArgs arg) {
         rect.bits = 8;
     } else if (gp0_e1.texturePageColors == Bits::bit15) {
         rect.bits = 16;
+    } else if (gp0_e1.texturePageColors == Bits::reserved) {
+        rect.bits = 16;
     }
     rect.isSemiTransparent = arg.semiTransparency;
     rect.isRawTexture = arg.isRawTexture;
