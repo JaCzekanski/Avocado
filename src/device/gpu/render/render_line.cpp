@@ -76,7 +76,7 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
             c = PSXColor::blend(bg, c, transparency);
         }
 
-        c.k |= bg.k | setMaskWhileDrawing;
+        c.k |= setMaskWhileDrawing;
 
         VRAM[y][x] = c.raw;
     };

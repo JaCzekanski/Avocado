@@ -180,7 +180,7 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
                     c = PSXColor::blend(bg, c, transparency);
                 }
 
-                c.k |= bg.k | setMaskWhileDrawing;
+                c.k |= setMaskWhileDrawing;
 
                 VRAM[p.y][p.x] = c.raw;
 

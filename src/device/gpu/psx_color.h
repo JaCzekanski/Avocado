@@ -66,28 +66,28 @@ union PSXColor {
                     clamp_top((bg.r + c.r) >> 1, 31),  //
                     clamp_top((bg.g + c.g) >> 1, 31),  //
                     clamp_top((bg.b + c.b) >> 1, 31),  //
-                    0                                  //
+                    c.k                                //
                 );
             case gpu::SemiTransparency::BplusF:
                 return PSXColor(                //
                     clamp_top(bg.r + c.r, 31),  //
                     clamp_top(bg.g + c.g, 31),  //
                     clamp_top(bg.b + c.b, 31),  //
-                    0                           //
+                    c.k                         //
                 );
             case gpu::SemiTransparency::BminusF:
                 return PSXColor(                  //
                     clamp_bottom(bg.r - c.r, 0),  //
                     clamp_bottom(bg.g - c.g, 0),  //
                     clamp_bottom(bg.b - c.b, 0),  //
-                    0                             //
+                    c.k                           //
                 );
             case gpu::SemiTransparency::BplusFby4:
                 return PSXColor(                       //
                     clamp_top(bg.r + (c.r >> 2), 31),  //
                     clamp_top(bg.g + (c.g >> 2), 31),  //
                     clamp_top(bg.b + (c.b >> 2), 31),  //
-                    0                                  //
+                    c.k                                //
                 );
         }
     }

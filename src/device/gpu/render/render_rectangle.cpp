@@ -90,7 +90,7 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
                 c = PSXColor::blend(bg, c, transparency);
             }
 
-            c.k |= bg.k | setMaskWhileDrawing;
+            c.k |= setMaskWhileDrawing;
 
             VRAM[y][x] = c.raw;
         }
