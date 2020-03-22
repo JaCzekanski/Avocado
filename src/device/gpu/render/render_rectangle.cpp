@@ -25,14 +25,12 @@ INLINE glm::uvec2 calculateTexel(glm::ivec2 tex, const gpu::GP0_E2 textureWindow
     return tex;
 }
 
-template <ColorDepth bits>
+template <ColorDepth bits, bool isSemiTransparent, bool isBlended, bool checkMaskBeforeDraw>
 INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     // Extract common GPU state
     const auto transparency = gpu->gp0_e1.semiTransparency;
-    const bool checkMaskBeforeDraw = gpu->gp0_e6.checkMaskBeforeDraw;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
     const auto textureWindow = gpu->gp0_e2;
-    const bool isBlended = !rect.isRawTexture;
     constexpr bool isTextured = bits != ColorDepth::NONE;
 
     if (rect.size.x >= 1024 || rect.size.y >= 512) return;
@@ -69,7 +67,7 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     for (y = min.y, v = uv.y; y <= max.y; y++, v += vStep) {
         for (x = min.x, u = uv.x; x <= max.x; x++, u += uStep) {
             PSXColor bg = VRAM[y][x];
-            if (unlikely(checkMaskBeforeDraw)) {
+            if constexpr (checkMaskBeforeDraw) {
                 if (bg.k) continue;
             }
 
@@ -81,13 +79,15 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
                 c = fetchTex<bits>(gpu, texel, rect.texpage, rect.clut);
                 if (c.raw == 0x0000) continue;
 
-                if (isBlended) {
+                if constexpr (isBlended) {
                     c = c * ivec3(rect.color.r, rect.color.g, rect.color.b);
                 }
             }
 
-            if (rect.isSemiTransparent && (!isTextured || c.k)) {
-                c = PSXColor::blend(bg, c, transparency);
+            if constexpr (isSemiTransparent) {
+                if (!isTextured || c.k) {
+                    c = PSXColor::blend(bg, c, transparency);
+                }
             }
 
             c.k |= setMaskWhileDrawing;
@@ -96,14 +96,61 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
         }
     }
 }
+
+template <int bits>
+constexpr ColorDepth bitsToDepth() {
+    if constexpr (bits == 4)
+        return ColorDepth::BIT_4;
+    else if constexpr (bits == 8)
+        return ColorDepth::BIT_8;
+    else if constexpr (bits == 16)
+        return ColorDepth::BIT_16;
+    else
+        return ColorDepth::NONE;
+}
+
 void Render::drawRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
-    if (rect.bits == 0) {
-        rectangle<ColorDepth::NONE>(gpu, rect);
-    } else if (rect.bits == 4) {
-        rectangle<ColorDepth::BIT_4>(gpu, rect);
-    } else if (rect.bits == 8) {
-        rectangle<ColorDepth::BIT_8>(gpu, rect);
-    } else if (rect.bits == 16) {
-        rectangle<ColorDepth::BIT_16>(gpu, rect);
+    // clang-format off
+#define FOO(BITS, SEMITRANSPARENT, BLENDED, CHECK_MASK)                                                                                   \
+    else if (rect.bits == (BITS) && \
+        rect.isSemiTransparent == (SEMITRANSPARENT) && \
+        rect.isRawTexture == !(BLENDED) && \
+        gpu->gp0_e6.checkMaskBeforeDraw == (CHECK_MASK) ) { \
+        rectangle<bitsToDepth<BITS>(), SEMITRANSPARENT, BLENDED, CHECK_MASK>(gpu, rect);                                      \
     }
+
+    if constexpr (false) {}
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
+    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
+    // clang-format on
 }
