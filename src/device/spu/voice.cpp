@@ -65,7 +65,11 @@ void Voice::processEnvelope() {
             cycles *= 4;
         }
         if (e.direction == Dir::Decrease) {
-            step = step * adsrVolume._reg / 0x8000;
+            // Note: Division by 0x8000 might cause value to become 0,
+            // using right shift by 15 ensures that minimum it can go is -1.
+            // Games affected: Doom (when paused music does not fade out)
+            // Little Princess - Marl Oukoku no Ningyou-hime 2 (voices stop playing after a while)
+            step = (step * adsrVolume._reg) >> 15;
         }
     }
 
