@@ -1,6 +1,5 @@
 #pragma once
 #include <cassert>
-#include <cereal/access.hpp>
 #include "interrupt.h"
 
 namespace gui::debug {
@@ -70,7 +69,6 @@ union CounterMode {
 
 class Timer {
     friend class gui::debug::Timers;
-    friend class cereal::access;
 
     int which;
 

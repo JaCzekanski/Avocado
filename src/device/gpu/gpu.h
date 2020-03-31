@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <cereal/access.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 #include "primitive.h"
@@ -22,7 +21,6 @@ const int LINE_VBLANK_START_NTSC = 243;
 const int LINES_TOTAL_NTSC = 263;
 
 class GPU {
-    friend class cereal::access;
     friend struct ::System;
     friend class ::Render;
     friend class ::OpenGL;

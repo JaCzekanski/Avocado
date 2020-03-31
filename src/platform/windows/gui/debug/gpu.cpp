@@ -4,7 +4,6 @@
 #include <imgui.h>
 #include <math.h>
 #include <magic_enum.hpp>
-#include <nlohmann/json.hpp>
 #include "config.h"
 #include "platform/windows/gui/images.h"
 #include "renderer/opengl/opengl.h"
