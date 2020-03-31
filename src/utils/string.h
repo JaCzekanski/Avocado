@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
+#include <string_view>
 #include <vector>
 
-std::vector<std::string> split(const std::string& str, const std::string& delim);
-std::string trim(const std::string& str);
+std::vector<std::string_view> split(std::string_view str, std::string_view delim);
+std::string_view trim(std::string_view str);
