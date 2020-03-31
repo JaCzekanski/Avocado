@@ -10,18 +10,34 @@
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "AVOCADO", __VA_ARGS__);
 #endif
 
-struct avocado_config_t {
-    using string = std::string;
-    using KeyBindings = std::unordered_map<std::string, std::string>;
+using KeyBindings = std::unordered_map<std::string, std::string>;
 
-    string bios = "";
-    string extension = "";
-    string iso = "";
+namespace DefaultKeyBindings {
+KeyBindings none();
+KeyBindings keyboard_wadx();
+KeyBindings keyboard_numpad();
+KeyBindings mouse();
+KeyBindings controller(int n);
+}  // namespace DefaultKeyBindings
+
+struct avocado_config_t {
+    std::string bios = "";
+    std::string extension = "";
+    std::string iso = "";
 
     struct {
         ControllerType type;
         KeyBindings keys;
-    } controller[2];
+    } controller[2]{
+        {
+            .type = ControllerType::analog,
+            .keys = DefaultKeyBindings::keyboard_numpad(),
+        },
+        {
+            .type = ControllerType::none,
+            .keys = DefaultKeyBindings::none(),
+        },
+    };
 
     struct {
         struct {
@@ -42,7 +58,7 @@ struct avocado_config_t {
 
         struct {
             bool preserveState = true;
-            bool timeTravel = false;  // Change it?
+            bool timeTravel = false;
         } emulator;
 
     } options;
@@ -63,28 +79,18 @@ struct avocado_config_t {
     } debug;
 
     struct {
-        string path;
-    } memoryCard[2];
+        std::string path;
+    } memoryCard[2]{
+        {.path = "data/memory/card1.mcr"},  //
+        {.path = ""},                       //
+    };
 
     struct {
-        string lastPath = "";
+        std::string lastPath = "";
     } gui;
+
+    // Methods
+    bool isEmulatorConfigured() const { return !bios.empty(); }
 };
 
 extern avocado_config_t config;
-
-namespace DefaultKeyBindings {
-avocado_config_t::KeyBindings none();
-avocado_config_t::KeyBindings keyboard_wadx();
-avocado_config_t::KeyBindings keyboard_numpad();
-avocado_config_t::KeyBindings mouse();
-avocado_config_t::KeyBindings controller(int n);
-}  // namespace DefaultKeyBindings
-
-extern const char* CONFIG_NAME;
-extern const avocado_config_t defaultConfig;
-// extern nlohmann::json config;
-void saveConfigFile(const char* configName);
-void loadConfigFile(const char* configName);
-
-bool isEmulatorConfigured();

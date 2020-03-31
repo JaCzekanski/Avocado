@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <string>
 #include "config.h"
+#include "config_parser.h"
 #include "gui/gui.h"
 #include "input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"

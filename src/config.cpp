@@ -1,16 +1,9 @@
 #include "config.h"
 #include <fmt/core.h>
-#include <nlohmann/json.hpp>
-#include "device/controller/controller_type.h"
-#include "device/gpu/rendering_mode.h"
-#include "utils/file.h"
-// TODO: json enums!
-
-const char* CONFIG_NAME = "config.json";
 
 namespace DefaultKeyBindings {
 // clang-format off
-avocado_config_t::KeyBindings none() {
+KeyBindings none() {
     return {
         {"dpad_up",    ""},
         {"dpad_right", ""},
@@ -40,7 +33,7 @@ avocado_config_t::KeyBindings none() {
     };
 }
 
-avocado_config_t::KeyBindings keyboard_wadx() {
+KeyBindings keyboard_wadx() {
     return {
         {"dpad_up",    "keyboard|Up"},
         {"dpad_right", "keyboard|Right"},
@@ -69,7 +62,7 @@ avocado_config_t::KeyBindings keyboard_wadx() {
         {"r_left",     ""},
     };
 }
-avocado_config_t::KeyBindings keyboard_numpad() {
+KeyBindings keyboard_numpad() {
     return {
         {"dpad_up",    "keyboard|Up"},
         {"dpad_right", "keyboard|Right"},
@@ -99,7 +92,7 @@ avocado_config_t::KeyBindings keyboard_numpad() {
     };
 }
 
-avocado_config_t::KeyBindings controller(int n) {
+KeyBindings controller(int n) {
     auto C = [n](const char* key) {
         return fmt::format("controller{}|{}", n, key);
     };
@@ -132,7 +125,7 @@ avocado_config_t::KeyBindings controller(int n) {
     };
 }
 
-avocado_config_t::KeyBindings mouse() {
+KeyBindings mouse() {
     return {
         {"dpad_up",    ""},
         {"dpad_right", ""},
@@ -164,71 +157,5 @@ avocado_config_t::KeyBindings mouse() {
 // clang-format on
 }  // namespace DefaultKeyBindings
 
-const avocado_config_t defaultConfig {
-    .bios = "",
-    .extension = "",
-    .iso = "",
-    .controller = {
-        {
-            .type  = ControllerType::analog,
-            .keys = DefaultKeyBindings::keyboard_numpad(),
-        },
-        {
-            .type  = ControllerType::none,
-            .keys = DefaultKeyBindings::none(),
-        },
-    },
-    .memoryCard = {
-        {
-            .path = "data/memory/card1.mcr"
-        }, 
-        {
-            .path = ""
-        },
-    },
-};
-
+const avocado_config_t defaultConfig;
 avocado_config_t config = defaultConfig;
-
-using json = nlohmann::json;
-json fixObject(json oldconfig, json newconfig) {
-    for (auto oldField = oldconfig.begin(); oldField != oldconfig.end(); ++oldField) {
-        auto newField = newconfig.find(oldField.key());
-
-        // Add nonexisting fields
-        if (newField == newconfig.end()) {
-            newconfig.emplace(oldField.key(), oldField.value());
-            continue;
-        }
-
-        // Repair these with invalid types
-        if (newField.value().type() != oldField.value().type()) {
-            newconfig[oldField.key()] = oldField.value();
-            continue;
-        }
-
-        // If field is an object or an array - fix it recursively
-        if (newField.value().is_object() || newField.value().is_array()) {
-            newconfig[oldField.key()] = fixObject(oldField.value(), newField.value());
-        }
-    }
-    return newconfig;
-}
-
-void saveConfigFile(const char* configName) {
-    // putFileContents(configName, config.dump(4));
-}
-
-void loadConfigFile(const char* configName) {
-    auto file = getFileContents(configName);
-    if (file.empty()) {
-        saveConfigFile(configName);
-        return;
-    }
-    nlohmann::json newconfig = json::parse(file.begin(), file.end());
-
-    // Add missing and repair invalid fields
-    // config = fixObject(config, newconfig);
-}
-
-bool isEmulatorConfigured() { return !config.bios.empty(); }

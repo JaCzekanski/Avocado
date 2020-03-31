@@ -213,7 +213,7 @@ void GUI::render(System* sys) {
         aboutHelp.displayWindows();
     }
 
-    if (!isEmulatorConfigured() && !notInitializedWindowShown) {
+    if (!config.isEmulatorConfigured() && !notInitializedWindowShown) {
         notInitializedWindowShown = true;
         ImGui::OpenPopup("Avocado");
     }
