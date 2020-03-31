@@ -47,7 +47,7 @@ void SdlInputManager::vibrationThreadFunc() {
 
 void SdlInputManager::onVibrationEvent(Event::Controller::Vibration e) {
     // Vibration output is choosen by DPAD_UP mapped game controller
-    std::string keyName = config["controller"][std::to_string(e.port)]["keys"]["dpad_up"];
+    std::string keyName = config.controller[e.port - 1].keys["dpad_up"];
     Key key(keyName);
 
     if (key.type != Key::Type::ControllerMove && key.type != Key::Type::ControllerButton) {
@@ -72,10 +72,10 @@ bool SdlInputManager::handleKey(Key key, AnalogValue value) {
     bool result = false;
 
     for (int c = 1; c <= 2; c++) {
-        auto controller = config["controller"][std::to_string(c)]["keys"];
+        auto controller = config.controller[c - 1].keys;
         for (auto it = controller.begin(); it != controller.end(); ++it) {
-            auto button = it.key();
-            auto keyName = it.value().get<std::string>();
+            auto button = it->first;
+            auto keyName = it->second;
 
             if (Key(keyName) == key) {
                 auto path = fmt::format("controller/{}/{}", c, button);

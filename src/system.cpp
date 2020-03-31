@@ -32,8 +32,8 @@ System::System() {
         timer[t] = std::make_unique<device::timer::Timer>(this, t);
     }
 
-    debugOutput = config["debug"]["log"]["system"].get<int>();
-    biosLog = config["debug"]["log"]["bios"];
+    debugOutput = config.debug.log.system;
+    biosLog = config.debug.log.bios;
 
     cycles = 0;
 }

@@ -17,8 +17,8 @@ constexpr std::array<uint8_t, 0x101> GTE::generateUnrTable() {
 }
 
 void GTE::reload() {
-    widescreenHack = config["options"]["graphics"]["forceWidescreen"];
-    logging = config["debug"]["log"]["gte"].get<int>();
+    widescreenHack = config.options.graphics.forceWidescreen;
+    logging = config.debug.log.gte;
 }
 
 uint32_t GTE::read(uint8_t n) {

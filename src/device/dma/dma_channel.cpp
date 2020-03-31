@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 namespace device::dma {
-DMAChannel::DMAChannel(Channel channel, System* sys) : channel(channel), sys(sys) { verbose = config["debug"]["log"]["dma"]; }
+DMAChannel::DMAChannel(Channel channel, System* sys) : channel(channel), sys(sys) { verbose = config.debug.log.dma; }
 
 DMAChannel::~DMAChannel() {}
 

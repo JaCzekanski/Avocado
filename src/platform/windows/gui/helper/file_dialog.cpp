@@ -128,17 +128,11 @@ void FileDialog::readDirectory(const fs::path& _path) {
     pathInput = path.string();
 }
 
-std::string FileDialog::getDefaultPath() {
-    return config["gui"]["lastPath"].get<std::string>();
-}
+std::string FileDialog::getDefaultPath() { return config.gui.lastPath; }
 
-bool FileDialog::isFileSupported(const File& f) {
-    return true;
-}
+bool FileDialog::isFileSupported(const File& f) { return true; }
 
-bool FileDialog::onFileSelected(const File& f) {
-    return false;
-}
+bool FileDialog::onFileSelected(const File& f) { return false; }
 
 // Close on false
 void FileDialog::display(bool& windowOpen) {

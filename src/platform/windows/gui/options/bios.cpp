@@ -35,7 +35,7 @@ bool Bios::onFileSelected(const gui::helper::File& f) {
 #ifdef ANDROID
     biosPath = fs::absolute(biosPath).string();
 #endif
-    config["bios"] = biosPath;
+    config.bios = biosPath;
     bus.notify(Event::System::HardReset{});
     return true;
 }

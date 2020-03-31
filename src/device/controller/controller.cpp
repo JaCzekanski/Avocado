@@ -54,7 +54,7 @@ Controller::~Controller() { bus.unlistenAll(busToken); }
 void Controller::reload() {
     auto createDevice = [](int num) -> std::unique_ptr<peripherals::AbstractDevice> {
         num += 1;
-        ControllerType type = config["controller"][std::to_string(num)]["type"];
+        ControllerType type = config.controller[num - 1].type;
         if (type == ControllerType::digital) {
             return std::make_unique<peripherals::DigitalController>(num);
         } else if (type == ControllerType::analog) {

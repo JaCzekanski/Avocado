@@ -48,6 +48,15 @@ filter "options:ubsan"
 	buildoptions {"-fsanitize=undefined"}
 	linkoptions {"-fsanitize=undefined"}
 
+newoption {
+	trigger = "time-trace",
+	description = "Build with -ftime-trace (clang only)"
+}
+filter "options:time-trace"
+	buildoptions {"-ftime-trace"}
+	linkoptions {"-ftime-trace"}
+
+
 filter {}
 	language "c++"
 	cppdialect "C++17"

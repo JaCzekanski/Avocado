@@ -1,12 +1,16 @@
 #include "config.h"
 #include <fmt/core.h>
+#include <nlohmann/json.hpp>
+#include "device/controller/controller_type.h"
+#include "device/gpu/rendering_mode.h"
 #include "utils/file.h"
+// TODO: json enums!
 
 const char* CONFIG_NAME = "config.json";
 
 namespace DefaultKeyBindings {
 // clang-format off
-json none() {
+avocado_config_t::KeyBindings none() {
     return {
         {"dpad_up",    ""},
         {"dpad_right", ""},
@@ -36,7 +40,7 @@ json none() {
     };
 }
 
-json keyboard_wadx() {
+avocado_config_t::KeyBindings keyboard_wadx() {
     return {
         {"dpad_up",    "keyboard|Up"},
         {"dpad_right", "keyboard|Right"},
@@ -65,7 +69,7 @@ json keyboard_wadx() {
         {"r_left",     ""},
     };
 }
-json keyboard_numpad() {
+avocado_config_t::KeyBindings keyboard_numpad() {
     return {
         {"dpad_up",    "keyboard|Up"},
         {"dpad_right", "keyboard|Right"},
@@ -95,7 +99,7 @@ json keyboard_numpad() {
     };
 }
 
-json controller(int n) {
+avocado_config_t::KeyBindings controller(int n) {
     auto C = [n](const char* key) {
         return fmt::format("controller{}|{}", n, key);
     };
@@ -128,7 +132,7 @@ json controller(int n) {
     };
 }
 
-json mouse() {
+avocado_config_t::KeyBindings mouse() {
     return {
         {"dpad_up",    ""},
         {"dpad_right", ""},
@@ -160,67 +164,33 @@ json mouse() {
 // clang-format on
 }  // namespace DefaultKeyBindings
 
-// clang-format off
-const json defaultConfig = {
-	{"bios", ""},
-	{"extension", ""},
-	{"iso", ""},
-    {"controller", {
-        {"1", {
-            {"type", ControllerType::analog},
-            {"keys", DefaultKeyBindings::keyboard_numpad()}
-        }},
-        {"2", {
-            {"type", ControllerType::none},
-            {"keys", DefaultKeyBindings::none()}
-        }}
-    }},
-    {"options", {
-        {"graphics", {
-            {"rendering_mode", RenderingMode::software},
-            {"widescreen", false},
-            {"forceWidescreen", false},
-            {"resolution", {
-                {"width", 640u},
-                {"height", 480u}
-            }},
-            {"vsync", false},
-            {"forceNtsc", false},
-        }},
-        {"sound", {
-            {"enabled", true},
-        }},
-        {"emulator", {
-            {"preserveState", true},
-            {"timeTravel", true},
-        }},
-    }},
-    {"debug", {
-        {"log", {
-            { "bios",  0u },
-            { "cdrom", 0u },
-            { "controller", 0u },
-            { "dma", 0u },
-            { "gpu", 0u },
-            { "gte", 0u },
-            { "mdec", 0u },
-            { "memoryCard", 0u },
-            { "spu", 0u },
-            { "system", 1u },
-        }}
-    }},
-    {"memoryCard", {
-        {"1", "data/memory/card1.mcr"},
-        {"2", ""}
-    }},
-    {"gui", {
-        {"lastPath", ""},
-    }},
+const avocado_config_t defaultConfig {
+    .bios = "",
+    .extension = "",
+    .iso = "",
+    .controller = {
+        {
+            .type  = ControllerType::analog,
+            .keys = DefaultKeyBindings::keyboard_numpad(),
+        },
+        {
+            .type  = ControllerType::none,
+            .keys = DefaultKeyBindings::none(),
+        },
+    },
+    .memoryCard = {
+        {
+            .path = "data/memory/card1.mcr"
+        }, 
+        {
+            .path = ""
+        },
+    },
 };
-// clang-format on
 
-json config = defaultConfig;
+avocado_config_t config = defaultConfig;
 
+using json = nlohmann::json;
 json fixObject(json oldconfig, json newconfig) {
     for (auto oldField = oldconfig.begin(); oldField != oldconfig.end(); ++oldField) {
         auto newField = newconfig.find(oldField.key());
@@ -245,7 +215,9 @@ json fixObject(json oldconfig, json newconfig) {
     return newconfig;
 }
 
-void saveConfigFile(const char* configName) { putFileContents(configName, config.dump(4)); }
+void saveConfigFile(const char* configName) {
+    // putFileContents(configName, config.dump(4));
+}
 
 void loadConfigFile(const char* configName) {
     auto file = getFileContents(configName);
@@ -256,7 +228,7 @@ void loadConfigFile(const char* configName) {
     nlohmann::json newconfig = json::parse(file.begin(), file.end());
 
     // Add missing and repair invalid fields
-    config = fixObject(config, newconfig);
+    // config = fixObject(config, newconfig);
 }
 
-bool isEmulatorConfigured() { return !config["bios"].get<std::string>().empty(); }
+bool isEmulatorConfigured() { return !config.bios.empty(); }
