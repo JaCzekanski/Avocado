@@ -30,12 +30,12 @@ struct avocado_config_t {
         KeyBindings keys;
     } controller[2]{
         {
-            .type = ControllerType::analog,
-            .keys = DefaultKeyBindings::keyboard_numpad(),
+            ControllerType::analog,
+            DefaultKeyBindings::keyboard_numpad(),
         },
         {
-            .type = ControllerType::none,
-            .keys = DefaultKeyBindings::none(),
+            ControllerType::none,
+            DefaultKeyBindings::none(),
         },
     };
 
@@ -81,8 +81,8 @@ struct avocado_config_t {
     struct {
         std::string path;
     } memoryCard[2]{
-        {.path = "data/memory/card1.mcr"},  //
-        {.path = ""},                       //
+        {"data/memory/card1.mcr"},  //
+        {""},                       //
     };
 
     struct {

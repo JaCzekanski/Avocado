@@ -74,7 +74,7 @@ void FileDialog::getDriveList() {
                 continue;
             }
 
-            auto volume = fs::path(components[1]);
+            auto volume = fs::path(std::string(components[1]));
             auto name = volume.filename().string();
             if (name.empty()) {
                 name = "/";
