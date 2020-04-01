@@ -9,22 +9,20 @@
 
 namespace bios {
 
-Function::Function(const std::string& prototype, std::function<bool(System* sys)> callback) : callback(callback) {
+Function::Function(std::string_view prototype, std::function<bool(System* sys)> callback) : callback(callback) {
     auto argStart = prototype.find('(');
     auto argEnd = prototype.find(')');
 
-    assert(argStart != std::string::npos && argEnd != std::string::npos);
-    std::string sArgs = prototype.substr(argStart + 1, argEnd - argStart - 1);
-    std::vector<std::string> args = split(sArgs, ", ");  // TODO: do trimming
+    assert(argStart != std::string_view::npos && argEnd != std::string_view::npos);
+    auto sArgs = prototype.substr(argStart + 1, argEnd - argStart - 1);
+    auto args = split(sArgs, ", ");
 
-    std::string sFuncName = prototype.substr(0, argStart);
-
-    this->name = sFuncName.c_str();
+    this->name = prototype.substr(0, argStart);
     for (auto sArg : args) {
         sArg = trim(sArg);
         auto delim = sArg.find_last_of(' ');
 
-        if (delim == std::string::npos) {
+        if (delim == std::string_view::npos) {
             throw std::runtime_error(fmt::format("{} -> Invalid parameter without type", prototype));
         }
 
@@ -363,7 +361,7 @@ const std::unordered_map<uint8_t, Function> B0 = {
 };
 
 const std::unordered_map<uint8_t, Function> C0 = {
-    //
+
     {0x00, {"EnqueueTimerAndVblankIrqs(int priority)"}},
     {0x01, {"EnqueueSyscallHandler(int priority)"}},
     {0x02, {"SysEnqIntRP(int priority, void* struc)"}},  // ;bugged, use with care
@@ -399,7 +397,7 @@ const std::unordered_map<uint8_t, Function> C0 = {
 const std::array<std::unordered_map<uint8_t, Function>, 3> tables = {{A0, B0, C0}};
 
 const std::unordered_map<uint8_t, Function> SYSCALL = {
-    //
+
     {0x00, {"NoFunction()"}},          {0x01, {"EnterCriticalSection()"}},
     {0x02, {"ExitCriticalSection()"}}, {0x03, {"ChangeThreadSubFunction(int addr)"}},
     {0x04, {"DeliverEvent()"}},

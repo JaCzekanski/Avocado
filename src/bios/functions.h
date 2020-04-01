@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <functional>
-#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -18,15 +18,15 @@ enum class Type {
 
 struct Arg {
     Type type;
-    std::string name;
+    std::string_view name;
 };
 
 struct Function {
-    std::string name;
+    std::string_view name;
     std::vector<Arg> args;
     std::function<bool(System* sys)> callback;
 
-    Function(const std::string& prototype, std::function<bool(System* sys)> callback = nullptr);
+    Function(std::string_view prototype, std::function<bool(System* sys)> callback = nullptr);
 };
 
 extern const std::unordered_map<uint8_t, Function> A0;

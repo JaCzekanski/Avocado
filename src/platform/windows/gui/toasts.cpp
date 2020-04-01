@@ -23,16 +23,20 @@ std::string Toasts::getToasts() {
 
         for (auto it = toasts.begin(); it != toasts.end();) {
             auto toast = *it;
+            bool isLast = it == toasts.end();
 
             if (now > toast.expire) {
                 it = toasts.erase(it);
             } else {
-                msg += toast.msg + "\n";
+                msg += toast.msg;
+                if (!isLast) {
+                    msg += "\n";
+                }
                 ++it;
             }
         }
     }
-    return trim(msg);
+    return msg;
 }
 
 void Toasts::display() {

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <string>
 #include "config.h"
+#include "config_parser.h"
 #include "gui/gui.h"
 #include "input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
@@ -168,7 +169,7 @@ int main(int argc, char** argv) {
     });
 
     bus.listen<Event::Config::Spu>(busToken, [&](auto) {
-        bool soundEnabled = config["options"]["sound"]["enabled"];
+        bool soundEnabled = config.options.sound.enabled;
         if (soundEnabled) {
             Sound::play();
         } else {
@@ -176,7 +177,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    if (config["options"]["sound"]["enabled"]) {
+    if (config.options.sound.enabled) {
         Sound::play();
     }
 
@@ -197,7 +198,7 @@ int main(int argc, char** argv) {
         if (argc > 1) {
             system_tools::loadFile(sys, argv[1]);
         } else {
-            if (config["options"]["emulator"]["preserveState"]) {
+            if (config.options.emulator.preserveState) {
                 if (state::loadLastState(sys.get())) {
                     toast("Loaded last state");
                 }
@@ -326,7 +327,7 @@ int main(int argc, char** argv) {
 
         limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc(), inputManager->mouseLocked);
     }
-    if (config["options"]["emulator"]["preserveState"]) {
+    if (config.options.emulator.preserveState) {
         state::saveLastState(sys.get());
     }
     system_tools::saveMemoryCards(sys, true);

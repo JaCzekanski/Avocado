@@ -4,7 +4,6 @@
 #include <imgui.h>
 #include <math.h>
 #include <magic_enum.hpp>
-#include <nlohmann/json.hpp>
 #include "config.h"
 #include "platform/windows/gui/images.h"
 #include "renderer/opengl/opengl.h"
@@ -303,54 +302,6 @@ void GPU::logWindow(System *sys) {
     }
     ImGui::PopStyleVar();
     ImGui::EndChild();
-
-    if (ImGui::Button("Dump")) {
-        ImGui::OpenPopup("Save dump dialog");
-    }
-
-    if (ImGui::BeginPopupModal("Save dump dialog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        char filename[32];
-        ImGui::Text("File: ");
-        ImGui::SameLine();
-
-        ImGui::PushItemWidth(140);
-        if (ImGui::InputText("", filename, 31, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            auto gpu = sys->gpu.get();
-            auto gpuLog = gpu->gpuLogList;
-            nlohmann::json j;
-
-            for (size_t i = 0; i < gpuLog.size(); i++) {
-                auto e = gpuLog[i];
-                j.push_back({
-                    {"command", e.command},                  //
-                    {"cmd", (int)e.cmd},                     //
-                    {"name", magic_enum::enum_name(e.cmd)},  //
-                    {"args", e.args},                        //
-                });
-            }
-
-            putFileContents(fmt::format("{}.json", filename), j.dump(2));
-
-            // Binary vram dump
-            std::vector<uint8_t> vram;
-            for (auto d : gpu->vram) {
-                vram.push_back(d & 0xff);
-                vram.push_back((d >> 8) & 0xff);
-            }
-            putFileContents(fmt::format("{}.bin", filename), vram);
-
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-        if (ImGui::Button("Close")) {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::Text("(press Enter to add)");
-        ImGui::EndPopup();
-    }
-
     ImGui::End();
 
     if (sys->state != System::State::run && renderTo >= 0) {

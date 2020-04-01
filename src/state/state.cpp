@@ -173,7 +173,7 @@ void manageTimeTravel(System* sys) {
     if (now - lastTime >= timeTravelInterval) {
         lastTime = now;
 
-        bool timeTravelEnabled = config["options"]["emulator"]["timeTravel"];
+        bool timeTravelEnabled = config.options.emulator.timeTravel;
         if (!timeTravelEnabled) {
             return;
         }

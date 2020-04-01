@@ -10,7 +10,7 @@ namespace gui::debug {
 void GTE::logWindow(System* sys) {
     static char filterBuffer[16];
     static bool searchActive = false;
-    bool enabled = config["debug"]["log"]["gte"].get<int>();
+    bool enabled = config.debug.log.gte;
     bool filterActive = strlen(filterBuffer) > 0;
 
     ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
@@ -42,7 +42,7 @@ void GTE::logWindow(System* sys) {
     ImGui::EndChild();
 
     if (ImGui::Checkbox("Log enabled", &enabled)) {
-        config["debug"]["log"]["gte"] = (int)enabled;
+        config.debug.log.gte = enabled;
         bus.notify(Event::Config::Gte{});
     }
     ImGui::SameLine();

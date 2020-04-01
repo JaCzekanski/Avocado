@@ -11,7 +11,7 @@ MDEC::MDEC() { reset(); }
 void MDEC::step() {}
 
 void MDEC::reset() {
-    verbose = config["debug"]["log"]["mdec"];
+    verbose = config.debug.log.mdec;
     command._reg = 0;
     status._reg = 0x80040000;
 

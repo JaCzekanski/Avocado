@@ -102,7 +102,7 @@ void MemoryCard::parseAndDisplayCard(peripherals::MemoryCard* card) {
 void MemoryCard::memoryCardWindow(System* sys) {
     if (loadPaths) {
         for (size_t i = 0; i < cardPaths.size(); i++) {
-            cardPaths[i] = config["memoryCard"][std::to_string(i + 1)];
+            cardPaths[i] = config.memoryCard[i].path;
         }
         loadPaths = false;
     }
@@ -112,7 +112,7 @@ void MemoryCard::memoryCardWindow(System* sys) {
     for (size_t i = 0; i < sys->controller->card.size(); i++) {
         if (ImGui::BeginTabItem(fmt::format("Slot {}", i + 1).c_str())) {
             if (ImGui::InputText("Path", &cardPaths[i])) {
-                config["memoryCard"][std::to_string(i + 1)] = cardPaths[i];
+                config.memoryCard[i].path = cardPaths[i];
             }
             // TODO: Reload contents on change?
             // TODO: Check if card exists, override or reload?

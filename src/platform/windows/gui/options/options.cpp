@@ -42,8 +42,8 @@ void graphicsOptionsWindow() {
         if (sscanf(_width, "%u", &width) != 1 || width < 1) return;
         if (sscanf(_height, "%u", &height) != 1 || height < 1) return;
 
-        config["options"]["graphics"]["resolution"]["width"] = width;
-        config["options"]["graphics"]["resolution"]["height"] = height;
+        config.options.graphics.resolution.width = width;
+        config.options.graphics.resolution.height = height;
         bus.notify(Event::Config::Graphics{});
     };
 
@@ -51,8 +51,8 @@ void graphicsOptionsWindow() {
     if (!initialized) {
         initialized = true;
 
-        int w = config["options"]["graphics"]["resolution"]["width"];
-        int h = config["options"]["graphics"]["resolution"]["height"];
+        int w = config.options.graphics.resolution.width;
+        int h = config.options.graphics.resolution.height;
 
         float mulW = static_cast<float>(w) / baseWidth;
         float mulH = static_cast<float>(h) / baseHeight;
@@ -62,7 +62,7 @@ void graphicsOptionsWindow() {
             selectedResolution = static_cast<int>(mulW);
         }
 
-        selectedRenderingMode = (int)config["options"]["graphics"]["rendering_mode"].get<RenderingMode>() - 1;
+        selectedRenderingMode = (int)config.options.graphics.renderingMode - 1;
 
         setResolutionToEditText(w, h);
     }
@@ -72,7 +72,7 @@ void graphicsOptionsWindow() {
     ImGui::Text("Rendering mode");
     ImGui::SameLine();
     if (ImGui::Combo("##rendering_mode", &selectedRenderingMode, renderingModes.data(), renderingModes.size())) {
-        config["options"]["graphics"]["rendering_mode"] = static_cast<RenderingMode>(selectedRenderingMode + 1);
+        config.options.graphics.renderingMode = static_cast<RenderingMode>(selectedRenderingMode + 1);
         bus.notify(Event::Config::Graphics{});
     }
 
@@ -106,27 +106,27 @@ void graphicsOptionsWindow() {
         }
     }
 
-    bool widescreen = config["options"]["graphics"]["widescreen"];
+    bool widescreen = config.options.graphics.widescreen;
     if (ImGui::Checkbox("Widescreen (16/9)", &widescreen)) {
-        config["options"]["graphics"]["widescreen"] = widescreen;
+        config.options.graphics.widescreen = widescreen;
         if (!widescreen) {
-            config["options"]["graphics"]["forceWidescreen"] = false;
+            config.options.graphics.forceWidescreen = false;
         }
         bus.notify(Event::Config::Gte{});
     }
 
-    bool vsync = config["options"]["graphics"]["vsync"];
+    bool vsync = config.options.graphics.vsync;
     if (ImGui::Checkbox("VSync", &vsync)) {
-        config["options"]["graphics"]["vsync"] = vsync;
+        config.options.graphics.vsync = vsync;
         bus.notify(Event::Config::Graphics{});
     }
 
     ImGui::Separator();
     ImGui::Text("Hacks");
 
-    bool forceNtsc = config["options"]["graphics"]["forceNtsc"];
+    bool forceNtsc = config.options.graphics.forceNtsc;
     if (ImGui::Checkbox("Force NTSC", &forceNtsc)) {
-        config["options"]["graphics"]["forceNtsc"] = forceNtsc;
+        config.options.graphics.forceNtsc = forceNtsc;
         bus.notify(Event::Config::Graphics{});
     }
 
@@ -144,9 +144,9 @@ void graphicsOptionsWindow() {
     }
 
     if (widescreen) {
-        bool forceWidescreen = config["options"]["graphics"]["forceWidescreen"];
+        bool forceWidescreen = config.options.graphics.forceWidescreen;
         if (ImGui::Checkbox("Force widescreen in 3d", &forceWidescreen)) {
-            config["options"]["graphics"]["forceWidescreen"] = forceWidescreen;
+            config.options.graphics.forceWidescreen = forceWidescreen;
             bus.notify(Event::Config::Gte{});
         }
     }
@@ -177,14 +177,14 @@ void button(int controller, const std::string& button, const char* tooltip = nul
     auto inputManager = static_cast<SdlInputManager*>(InputManager::getInstance());
     static std::string currentButton = "";
     if (controller < 1 || controller > 4) return;
-    std::string ctrl = std::to_string(controller);
+    int ctrl = controller - 1;
 
     if (button == currentButton && inputManager->lastPressedKey.type != Key::Type::None) {
-        config["controller"][ctrl]["keys"][button] = inputManager->lastPressedKey.to_string();
+        config.controller[ctrl].keys[button] = inputManager->lastPressedKey.to_string();
         inputManager->lastPressedKey = Key();
     }
 
-    std::string key = config["controller"][ctrl]["keys"][button];
+    std::string key = config.controller[ctrl].keys[button];
 
     const float iconSize = 20.f;
     drawImage(getImage(button, "data/assets/buttons"), iconSize);
@@ -259,7 +259,7 @@ void controllerSetupWindow() {
     }
     ImGui::PopItemWidth();
 
-    auto currentType = config["controller"][std::to_string(selectedController)]["type"];
+    auto currentType = config.controller[selectedController - 1].type;
 
     const float leftGroupWidth = 256.f;
     ImGui::BeginGroup();
@@ -268,10 +268,10 @@ void controllerSetupWindow() {
     ImGui::SameLine();
     ImGui::PushItemWidth(-1);
 
-    if (ImGui::BeginCombo("##type", std::string(currentType).c_str())) {
+    if (ImGui::BeginCombo("##type", std::string(magic_enum::enum_name(currentType)).c_str())) {
         for (auto& type : controllerTypes) {
             if (ImGui::Selectable(std::string(type.second).c_str())) {
-                config["controller"][std::to_string(selectedController)]["type"] = type.first;
+                config.controller[selectedController - 1].type = type.first;
                 bus.notify(Event::Config::Controller{});
             }
         }
@@ -280,14 +280,14 @@ void controllerSetupWindow() {
     ImGui::PopItemWidth();
 
     if (currentType != ControllerType::none) {
-        drawImage(getImage(currentType), leftGroupWidth);
+        drawImage(getImage(std::string(magic_enum::enum_name(currentType))), leftGroupWidth);
     }
     ImGui::EndChild();
 
     if (currentType != ControllerType::none) {
         ImGui::PushItemWidth(leftGroupWidth);
         if (int pos = 0; ImGui::Combo("##defaults", &pos, defaults.data(), (int)defaults.size())) {
-            auto& keysConfig = config["controller"][std::to_string(selectedController)]["keys"];
+            auto& keysConfig = config.controller[selectedController - 1].keys;
             switch (pos) {
                 case 1: keysConfig = DefaultKeyBindings::none(); break;
                 case 2: keysConfig = DefaultKeyBindings::keyboard_wadx(); break;

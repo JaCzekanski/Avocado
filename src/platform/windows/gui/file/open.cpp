@@ -22,7 +22,7 @@ bool Open::isFileSupported(const gui::helper::File& f) {
 
 bool Open::onFileSelected(const gui::helper::File& f) {
     auto path = f.entry.path();
-    config["gui"]["lastPath"] = path.parent_path().string();
+    config.gui.lastPath = path.parent_path().string();
 
     bus.notify(Event::File::Load{path.string(), true});
     return true;

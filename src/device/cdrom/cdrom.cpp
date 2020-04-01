@@ -12,7 +12,7 @@ namespace device {
 namespace cdrom {
 
 CDROM::CDROM(System* sys) : sys(sys) {
-    verbose = config["debug"]["log"]["cdrom"];
+    verbose = config.debug.log.cdrom;
     disc = std::make_unique<disc::Empty>();
 }
 

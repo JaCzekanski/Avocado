@@ -16,7 +16,7 @@
 using namespace spu;
 
 SPU::SPU(System* sys) : sys(sys) {
-    verbose = config["debug"]["log"]["spu"];
+    verbose = config.debug.log.spu;
     ram.fill(0);
     audioBufferPos = 0;
     captureBufferIndex = 0;

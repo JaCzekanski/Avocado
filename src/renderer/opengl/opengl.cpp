@@ -72,7 +72,7 @@ bool OpenGL::setup() {
 
     if (!loadShaders()) return false;
 
-    bool vsync = config["options"]["graphics"]["vsync"];
+    bool vsync = config.options.graphics.vsync;
     if (vsync) {
         if (SDL_GL_SetSwapInterval(-1) != 0) {  // Try adaptive VSync
             SDL_GL_SetSwapInterval(1);          // Normal VSync
@@ -88,11 +88,11 @@ bool OpenGL::setup() {
     vao = std::make_unique<VertexArrayObject>();
     vao->bind();
 
-    auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
+    auto mode = config.options.graphics.renderingMode;
     hardwareRendering = (mode & RenderingMode::hardware) != 0;
 
-    renderWidth = config["options"]["graphics"]["resolution"]["width"];
-    renderHeight = config["options"]["graphics"]["resolution"]["height"];
+    renderWidth = config.options.graphics.resolution.width;
+    renderHeight = config.options.graphics.resolution.height;
 
     renderBuffer = std::make_unique<Buffer>(bufferSize * sizeof(gpu::Vertex));
     renderTex = std::make_unique<Texture>(renderWidth, renderHeight, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false);
@@ -327,7 +327,7 @@ void OpenGL::renderBlit(gpu::GPU* gpu, bool software) {
     blitShader->use();
 
     // Viewport settings
-    aspect = config["options"]["graphics"]["widescreen"] ? RATIO_16_9 : RATIO_4_3;
+    aspect = config.options.graphics.widescreen ? RATIO_16_9 : RATIO_4_3;
 
     int x = 0;
     int y = 0;

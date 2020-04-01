@@ -98,10 +98,10 @@ void GUI::mainMenu(System* sys) {
     }
     if (ImGui::BeginMenu("Debug")) {
         if (ImGui::MenuItem("System log", nullptr, &sys->debugOutput)) {
-            config["debug"]["log"]["system"] = (int)sys->debugOutput;
+            config.debug.log.system = (int)sys->debugOutput;
         }
         if (ImGui::MenuItem("Syscall log", nullptr, (bool*)&sys->biosLog)) {
-            config["debug"]["log"]["bios"] = sys->biosLog;
+            config.debug.log.bios = sys->biosLog;
         }
 #ifdef ENABLE_IO_LOG
         ImGui::MenuItem("IO log", nullptr, &ioDebug.logWindowOpen);
@@ -141,22 +141,22 @@ void GUI::mainMenu(System* sys) {
         if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
         ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
 
-        bool soundEnabled = config["options"]["sound"]["enabled"];
+        bool soundEnabled = config.options.sound.enabled;
         if (ImGui::MenuItem("Sound", nullptr, &soundEnabled)) {
-            config["options"]["sound"]["enabled"] = soundEnabled;
+            config.options.sound.enabled = soundEnabled;
             bus.notify(Event::Config::Spu{});
         }
 
         ImGui::Separator();
 
-        bool preserveState = config["options"]["emulator"]["preserveState"];
+        bool preserveState = config.options.emulator.preserveState;
         if (ImGui::MenuItem("Save state on close", nullptr, &preserveState)) {
-            config["options"]["emulator"]["preserveState"] = preserveState;
+            config.options.emulator.preserveState = preserveState;
         }
 
-        bool timeTravel = config["options"]["emulator"]["timeTravel"];
+        bool timeTravel = config.options.emulator.timeTravel;
         if (ImGui::MenuItem("Time travel", "backspace", &timeTravel)) {
-            config["options"]["emulator"]["timeTravel"] = timeTravel;
+            config.options.emulator.timeTravel = timeTravel;
         }
 
         ImGui::EndMenu();
@@ -213,7 +213,7 @@ void GUI::render(System* sys) {
         aboutHelp.displayWindows();
     }
 
-    if (!isEmulatorConfigured() && !notInitializedWindowShown) {
+    if (!config.isEmulatorConfigured() && !notInitializedWindowShown) {
         notInitializedWindowShown = true;
         ImGui::OpenPopup("Avocado");
     }

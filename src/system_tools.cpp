@@ -13,7 +13,7 @@ namespace system_tools {
 void bootstrap(std::unique_ptr<System>& sys) {
     Sound::clearBuffer();
     sys = std::make_unique<System>();
-    sys->loadBios(config["bios"]);
+    sys->loadBios(config.bios);
 
     // Breakpoint on BIOS Shell execution
     sys->cpu->breakpoints.emplace(0x80030000, mips::CPU::Breakpoint(true));
@@ -55,29 +55,6 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
         return;
     }
 
-    if (ext == "json") {
-        auto file = getFileContents(path);
-        if (file.empty()) {
-            return;
-        }
-        nlohmann::json j = json::parse(file.begin(), file.end());
-
-        auto& gpuLog = sys->gpu->gpuLogList;
-        gpuLog.clear();
-        for (size_t i = 0; i < j.size(); i++) {
-            gpu::LogEntry e;
-            e.command = j[i]["command"];
-            e.cmd = (gpu::Command)(int)j[i]["cmd"];
-
-            for (uint32_t a : j[i]["args"]) {
-                e.args.push_back(a);
-            }
-
-            gpuLog.push_back(e);
-        }
-        return;
-    }
-
     if (ext == "state") {
         if (state::loadFromFile(sys.get(), path)) {
             return;
@@ -98,8 +75,7 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force) {
     auto saveMemoryCard = [&](int slot) {
         if (!force && !sys->controller->card[slot]->dirty) return;
 
-        auto configEntry = config["memoryCard"][std::to_string(slot + 1)];
-        std::string pathCard = configEntry.is_null() ? "" : configEntry;
+        std::string pathCard = config.memoryCard[slot].path;
 
         if (pathCard.empty()) {
             fmt::print("[INFO] No memory card {} path in config, skipping save\n", slot + 1);
@@ -124,17 +100,17 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force) {
 std::unique_ptr<System> hardReset() {
     auto sys = std::make_unique<System>();
 
-    std::string bios = config["bios"];
+    std::string bios = config.bios;
     if (!bios.empty() && sys->loadBios(bios)) {
         fmt::print("[INFO] Using bios {}\n", getFilenameExt(bios));
     }
 
-    std::string extension = config["extension"];
+    std::string extension = config.extension;
     if (!extension.empty() && sys->loadExpansion(getFileContents(extension))) {
         fmt::print("[INFO] Using extension {}\n", getFilenameExt(extension));
     }
 
-    std::string iso = config["iso"];
+    std::string iso = config.iso;
     if (!iso.empty()) {
         loadFile(sys, iso);
         fmt::print("[INFO] Using iso {}\n", iso);
@@ -144,8 +120,7 @@ std::unique_ptr<System> hardReset() {
         assert(slot == 0 || slot == 1);
         auto card = sys->controller->card[slot].get();
 
-        auto configEntry = config["memoryCard"][std::to_string(slot + 1)];
-        std::string pathCard = configEntry.is_null() ? "" : configEntry;
+        std::string pathCard = config.memoryCard[slot].path;
 
         card->inserted = false;
 

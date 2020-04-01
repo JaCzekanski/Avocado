@@ -28,7 +28,7 @@ void DigitalController::ButtonState::setByName(const std::string& name, bool val
 }
 
 DigitalController::DigitalController(Type type, int port)
-    : AbstractDevice(type, port), verbose(config["debug"]["log"]["controller"]), path(fmt::format("controller/{}/", port)) {}
+    : AbstractDevice(type, port), verbose(config.debug.log.controller), path(fmt::format("controller/{}/", port)) {}
 
 DigitalController::DigitalController(int port) : DigitalController(Type::Digital, port) {}
 

@@ -4,7 +4,7 @@
 
 namespace peripherals {
 
-MemoryCard::MemoryCard(int port) : AbstractDevice(Type::MemoryCard, port) { verbose = config["debug"]["log"]["memoryCard"]; }
+MemoryCard::MemoryCard(int port) : AbstractDevice(Type::MemoryCard, port) { verbose = config.debug.log.memoryCard; }
 
 uint8_t MemoryCard::handle(uint8_t byte) {
     if (state == 0) command = Command::None;

@@ -21,9 +21,9 @@ GPU::GPU(System* sys) : sys(sys) {
 GPU::~GPU() { bus.unlistenAll(busToken); }
 
 void GPU::reload() {
-    verbose = config["debug"]["log"]["gpu"];
-    forceNtsc = config["options"]["graphics"]["forceNtsc"];
-    auto mode = config["options"]["graphics"]["rendering_mode"].get<RenderingMode>();
+    verbose = config.debug.log.gpu;
+    forceNtsc = config.options.graphics.forceNtsc;
+    auto mode = config.options.graphics.renderingMode;
     softwareRendering = (mode & RenderingMode::software) != 0;
     hardwareRendering = (mode & RenderingMode::hardware) != 0;
 }
