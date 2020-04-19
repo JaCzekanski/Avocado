@@ -179,23 +179,14 @@ void addYDeltas(Attributes& attrib, AttributeDeltas& deltas, int count = 1) {
     }
 }
 
-template <bool isGouroudShaded, bool isBlended, bool dithering>
-INLINE PSXColor doShading(const ivec3 colorInterpolated, const ivec2 p, const ivec3 color[3]) {
-    if constexpr (!isGouroudShaded) {
-        return to15bit(color[0].r, color[0].g, color[0].b);
-    }
-
-    ivec3 outColor = colorInterpolated;
-
-    if constexpr (dithering && isBlended) {
-        outColor += ditherTable[p.y & 3u][p.x & 3u];
-        outColor = glm::clamp(outColor, 0, 255);
-    }
-
-    return to15bit(outColor.r, outColor.g, outColor.b);
+PSXColor dither(const RGB color, const ivec2 p) {
+    uint8_t r = ditherLUT[p.y & 3u][p.x & 3u][color.r];
+    uint8_t g = ditherLUT[p.y & 3u][p.x & 3u][color.g];
+    uint8_t b = ditherLUT[p.y & 3u][p.x & 3u][color.b];
+    return PSXColor(r, g, b);
 }
 
-INLINE glm::uvec2 calculateTexel(glm::uvec2 texel, const gpu::GP0_E2 textureWindow) {
+glm::uvec2 calculateTexel(glm::uvec2 texel, const gpu::GP0_E2 textureWindow) {
     // Texture is repeated outside of 256x256 window
     texel.x %= 256u;
     texel.y %= 256u;
@@ -217,6 +208,7 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
     constexpr bool isTextured = bits != ColorDepth::NONE;
 
     glm::ivec2 pos[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
+    const RGB colorFlat = triangle.v[0].color;
 
     const int area = orient2d(pos[0], pos[1], pos[2]);
     if (area == 0) return;
@@ -261,11 +253,6 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
         orient2d(pos[0], pos[1], min) + bias[2]   //
     };
 
-    ivec3 COLOR[3];
-    for (int i = 0; i < 3; i++) {
-        COLOR[i] = ivec3(triangle.v[i].color.r, triangle.v[i].color.g, triangle.v[i].color.b);
-    }
-
     Attributes startAttributes = calculateStartAttributes<isGouroudShaded, isTextured>(triangle);
     AttributeDeltas deltas = calculateDeltas<isGouroudShaded, isTextured>(triangle);
 
@@ -279,26 +266,32 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
 
         for (p.x = min.x; p.x <= max.x; p.x++) {
             if ((CX[0] | CX[1] | CX[2]) > 0) {
-                PSXColor bg = VRAM[p.y][p.x];
+                const PSXColor bg = VRAM[p.y][p.x];
                 if constexpr (checkMaskBeforeDraw) {
                     if (bg.k) goto DONE;
                 }
 
-                ivec3 colorInterpolated = ivec3(  //
-                    FROM_FP(attrib.r),            //
-                    FROM_FP(attrib.g),            //
-                    FROM_FP(attrib.b)             //
+                const RGB colorInterpolated(  //
+                    FROM_FP(attrib.r),        //
+                    FROM_FP(attrib.g),        //
+                    FROM_FP(attrib.b)         //
                 );
 
                 PSXColor c;
                 if constexpr (bits == ColorDepth::NONE) {
-                    c = doShading<isGouroudShaded, isBlended, dithering>(colorInterpolated, p, COLOR);
+                    if constexpr (!isGouroudShaded) {
+                        c = colorFlat;
+                    } else if constexpr (dithering && isBlended) {
+                        c = dither(colorInterpolated, p);
+                    } else {
+                        c = colorInterpolated;
+                    }
                 } else {
-                    auto UV = ivec2(        //
+                    auto UV = uvec2(        //
                         FROM_FP(attrib.u),  //
                         FROM_FP(attrib.v)   //
                     );
-                    uvec2 texel = calculateTexel(UV, textureWindow);
+                    const uvec2 texel = calculateTexel(UV, textureWindow);
                     c = fetchTex<bits>(gpu, texel, triangle.texpage, triangle.clut);
                     if (c.raw == 0x0000) goto DONE;
 
@@ -306,7 +299,7 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
                         if constexpr (isGouroudShaded) {
                             c = c * colorInterpolated;
                         } else {  // Flat shading
-                            c = c * COLOR[0];
+                            c = c * colorFlat;
                         }
                     }
                     // TODO: Textured polygons are not dithered

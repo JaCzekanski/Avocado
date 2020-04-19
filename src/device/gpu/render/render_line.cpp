@@ -65,11 +65,9 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
 
         PSXColor c(fullColor.r, fullColor.g, fullColor.b);
         if (dithering) {
-            glm::ivec3 col(fullColor.r, fullColor.g, fullColor.b);
-            col += ditherTable[y & 3u][x & 3u];
-            col = glm::clamp(col, 0, 255);
-
-            c = PSXColor(col.r, col.g, col.b);
+            c.r = ditherLUT[y & 3u][x & 3u][fullColor.r];
+            c.g = ditherLUT[y & 3u][x & 3u][fullColor.g];
+            c.b = ditherLUT[y & 3u][x & 3u][fullColor.b];
         }
 
         if (line.isSemiTransparent) {
