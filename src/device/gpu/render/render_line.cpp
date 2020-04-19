@@ -12,10 +12,10 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
     const bool dithering = gpu->gp0_e1.dither24to15;
 
-    int x0 = line.pos[0].x + gpu->drawingOffsetX;
-    int y0 = line.pos[0].y + gpu->drawingOffsetY;
-    int x1 = line.pos[1].x + gpu->drawingOffsetX;
-    int y1 = line.pos[1].y + gpu->drawingOffsetY;
+    int x0 = line.pos[0].x;
+    int y0 = line.pos[0].y;
+    int x1 = line.pos[1].x;
+    int y1 = line.pos[1].y;
     RGB c0 = line.color[0];
     RGB c1 = line.color[1];
 

@@ -35,9 +35,9 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
 
     if (rect.size.x >= 1024 || rect.size.y >= 512) return;
 
-    const ivec2 pos(                       //
-        rect.pos.x + gpu->drawingOffsetX,  //
-        rect.pos.y + gpu->drawingOffsetY   //
+    const ivec2 pos(  //
+        rect.pos.x,   //
+        rect.pos.y    //
     );
     const ivec2 min(              //
         gpu->minDrawingX(pos.x),  //

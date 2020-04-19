@@ -82,11 +82,6 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
     const int area = orient2d(pos[0], pos[1], pos[2]);
     if (area == 0) return;
 
-    for (int i = 0; i < 3; i++) {
-        pos[i].x += gpu->drawingOffsetX;
-        pos[i].y += gpu->drawingOffsetY;
-    }
-
     ivec2 min(                                     //
         std::min({pos[0].x, pos[1].x, pos[2].x}),  //
         std::min({pos[0].y, pos[1].y, pos[2].y})   //
