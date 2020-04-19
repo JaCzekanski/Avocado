@@ -3,16 +3,13 @@
 #include "texture_utils.h"
 #include "utils/macros.h"
 
-using glm::ivec2;
-using glm::ivec3;
-using glm::uvec2;
 using gpu::GPU;
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
 // Duplicated code, unify
-INLINE glm::uvec2 calculateTexel(glm::ivec2 tex, const gpu::GP0_E2 textureWindow) {
+static ivec2 calculateTexel(ivec2 tex, const gpu::GP0_E2 textureWindow) {
     // Texture is repeated outside of 256x256 window
     tex.x %= 256u;
     tex.y %= 256u;
@@ -75,12 +72,12 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
             if constexpr (bits == ColorDepth::NONE) {
                 c = PSXColor(rect.color.r, rect.color.g, rect.color.b);
             } else {
-                uvec2 texel = calculateTexel(ivec2(u, v), textureWindow);
+                ivec2 texel = calculateTexel(ivec2(u, v), textureWindow);
                 c = fetchTex<bits>(gpu, texel, rect.texpage, rect.clut);
                 if (c.raw == 0x0000) continue;
 
                 if constexpr (isBlended) {
-                    c = c * ivec3(rect.color.r, rect.color.g, rect.color.b);
+                    c = c * rect.color;
                 }
             }
 

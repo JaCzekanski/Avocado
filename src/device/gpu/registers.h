@@ -234,7 +234,7 @@ struct TextureInfo {
 
     uint32_t palette;
     uint32_t texpage;
-    glm::ivec2 uv[4];
+    ivec2 uv[4];
 
     int getClutX() const { return ((palette & 0x003f0000) >> 16) * 16; }
     int getClutY() const { return ((palette & 0x7fc00000) >> 22); }

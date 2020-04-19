@@ -152,7 +152,6 @@ project "core"
 
 	includedirs { 
 		"src", 
-		"externals/glm",
 		"externals/json/include",
 		"externals/stb",
 		"externals/miniz",
@@ -196,7 +195,6 @@ project "avocado"
 		"src", 
 		"externals/imgui",
 		"externals/glad/include",
-		"externals/glm",
 		"externals/json/include",
 		"externals/stb",
 		"externals/libchdr/src",

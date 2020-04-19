@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <glm/glm.hpp>
 #include <vector>
 #include "primitive.h"
 #include "psx_color.h"

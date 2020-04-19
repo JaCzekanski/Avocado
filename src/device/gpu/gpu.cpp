@@ -85,7 +85,7 @@ void GPU::drawTriangle(const primitive::Triangle& triangle) {
 
 void GPU::drawLine(const primitive::Line& line) {
     if (hardwareRendering) {
-        glm::ivec2 p[2]{line.pos[0], line.pos[1]};
+        vec2 p[2]{line.pos[0], line.pos[1]};
         auto c = line.color;
         int flags = 0;
 
@@ -96,9 +96,9 @@ void GPU::drawLine(const primitive::Line& line) {
         }
 
         // Calculate vector b perpendicular to p0p1 line
-        glm::vec2 angle(p[1] - p[0]);
+        vec2 angle(p[1] - p[0]);
         // Rotate 90°, normalize and make it half size
-        glm::vec2 b = glm::normalize(glm::vec2(angle.y, -angle.x)) / 2.f;
+        vec2 b = vec2::normalize(vec2(angle.y, -angle.x)) / 2.f;
 
         auto pushVertex = [&](float x, float y, const RGB c) {
             vertices.push_back({
@@ -130,9 +130,9 @@ void GPU::drawLine(const primitive::Line& line) {
 
 void GPU::drawRectangle(const primitive::Rect& rect) {
     if (hardwareRendering) {
-        glm::ivec2 p;
+        ivec2 p;
         float x[4], y[4];
-        glm::ivec2 uv[4];
+        ivec2 uv[4];
 
         p.x = rect.pos.x;
         p.y = rect.pos.y;
@@ -215,7 +215,7 @@ void GPU::cmdFillRectangle() {
     cmd = Command::None;
 
     if (hardwareRendering) {
-        glm::ivec2 p[4] = {
+        ivec2 p[4] = {
             {startX, startY},
             {endX, startY},
             {startX, endY},
@@ -354,7 +354,6 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     arg[1] = pos              (0xYYYY XXXX)
     arg[2] = Palette + tex UV (0xCLUT VVUU) (*if textured)
     arg[3] = size             (0xHHHH WWWW) (*if variable size) */
-    using vec2 = glm::ivec2;
     using Bits = gpu::GP0_E1::TexturePageColors;
 
     int16_t w = arg.getSize();
@@ -369,8 +368,8 @@ void GPU::cmdRectangle(RectangleArgs arg) {
     int16_t y = drawingOffsetY + extend_sign<11>((arguments[1] & 0xffff0000) >> 16);
 
     primitive::Rect rect;
-    rect.pos = vec2(x, y);
-    rect.size = vec2(w, h);
+    rect.pos = ivec2(x, y);
+    rect.size = ivec2(w, h);
     rect.color.raw = (arguments[0] & 0xffffff);
 
     if (!arg.isTextureMapped) {
@@ -401,9 +400,9 @@ void GPU::cmdRectangle(RectangleArgs arg) {
         };
         Argument2 p = arguments[2];
 
-        rect.uv = vec2(p.u, p.v);
-        rect.clut = vec2(p.clutX * 16, p.clutY);
-        rect.texpage = vec2(gp0_e1.texturePageBaseX * 64, gp0_e1.texturePageBaseY * 256);
+        rect.uv = ivec2(p.u, p.v);
+        rect.clut = ivec2(p.clutX * 16, p.clutY);
+        rect.texpage = ivec2(gp0_e1.texturePageBaseX * 64, gp0_e1.texturePageBaseY * 256);
     }
 
     drawRectangle(rect);

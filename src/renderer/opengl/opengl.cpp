@@ -3,7 +3,6 @@
 #include <fmt/core.h>
 #include <imgui.h>
 #include <algorithm>
-#include <glm/gtc/type_ptr.hpp>
 #include "config.h"
 
 OpenGL::OpenGL() {
@@ -242,7 +241,7 @@ void OpenGL::updateVramTexture(gpu::GPU* gpu) {
 }
 
 void OpenGL::renderVertices(gpu::GPU* gpu) {
-    static glm::vec2 lastPos;
+    static vec2 lastPos;
     auto& buffer = gpu->vertices;
     if (buffer.empty()) {
         return;
@@ -316,7 +315,7 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
 
         glDrawArrays(GL_TRIANGLES, i, count);
     }
-    lastPos = glm::vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
+    lastPos = vec2(gpu->displayAreaStartX, gpu->displayAreaStartY);
 
     glBlendColor(1.f, 1.f, 1.f, 1.f);
     glDisable(GL_BLEND);

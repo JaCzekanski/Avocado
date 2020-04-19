@@ -1,17 +1,8 @@
-#include <algorithm>
-#include <glm/glm.hpp>
+#include "render.h"
 #include "device/gpu/psx_color.h"
 #include "dither.h"
-#include "render.h"
 #include "texture_utils.h"
 #include "utils/macros.h"
-
-using glm::ivec2;
-using glm::ivec3;
-using glm::uvec2;
-using glm::vec3;
-using gpu::GPU;
-using gpu::Vertex;
 
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
@@ -22,8 +13,7 @@ int orient2d(const ivec2& a, const ivec2& b, const ivec2& c) {  //
 
 static bool isTopLeft(const ivec2 e) { return e.y < 0 || (e.y == 0 && e.x < 0); }
 
-// Fill rule bias
-void calculateFillRuleBias(int bias[3], glm::ivec2 pos[3]) {
+void calculateFillRuleBias(int bias[3], const ivec2 pos[3]) {
     // Delta constants
     const ivec2 D01(pos[1].x - pos[0].x, pos[0].y - pos[1].y);
     const ivec2 D12(pos[2].x - pos[1].x, pos[1].y - pos[2].y);
@@ -69,22 +59,22 @@ struct AttributeDeltas {
  * p - vertex position
  * a - attribute values per vertex
  */
-delta_t calculateXDelta(const glm::ivec2 p[3], const int a[3]) {
+delta_t calculateXDelta(const ivec2 p[3], const int a[3]) {
     return (p[1].y - p[2].y) * a[0] + (p[2].y - p[0].y) * a[1] + (p[0].y - p[1].y) * a[2];
 }
 
-delta_t calculateYDelta(const glm::ivec2 p[3], const int a[3]) {
+delta_t calculateYDelta(const ivec2 p[3], const int a[3]) {
     return (p[2].x - p[1].x) * a[0] + (p[0].x - p[2].x) * a[1] + (p[1].x - p[0].x) * a[2];
 }
 
-AttributeDeltas::Delta calculateDelta(const int area, const glm::ivec2 p[3], const int a[3]) {
+AttributeDeltas::Delta calculateDelta(const int area, const ivec2 p[3], const int a[3]) {
     delta_t x = TO_FP(calculateXDelta(p, a)) / area;
     delta_t y = TO_FP(calculateYDelta(p, a)) / area;
 
     return {x, y};
 }
 
-delta_t calculateStartAttribute(const int area, const glm::ivec2 p[3], const int bias[3], const int a[3]) {
+delta_t calculateStartAttribute(const int area, const ivec2 p[3], const int bias[3], const int a[3]) {
     float A = (p[1].x * p[2].y - p[2].x * p[1].y) * a[0] - bias[0];
     float B = (p[2].x * p[0].y - p[0].x * p[2].y) * a[1] - bias[1];
     float C = (p[0].x * p[1].y - p[1].x * p[0].y) * a[2] - bias[2];
@@ -94,7 +84,7 @@ delta_t calculateStartAttribute(const int area, const glm::ivec2 p[3], const int
 
 template <bool isGouroudShaded, bool isTextured>
 Attributes calculateStartAttributes(const primitive::Triangle& triangle) {
-    glm::ivec2 p[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
+    ivec2 p[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
 
     const int area = orient2d(p[0], p[1], p[2]);
     if (area == 0) return {};
@@ -126,7 +116,7 @@ Attributes calculateStartAttributes(const primitive::Triangle& triangle) {
 
 template <bool isGouroudShaded, bool isTextured>
 AttributeDeltas calculateDeltas(const primitive::Triangle& triangle) {
-    glm::ivec2 p[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
+    ivec2 p[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
 
     const int area = orient2d(p[0], p[1], p[2]);
     if (area == 0) return {};
@@ -186,7 +176,7 @@ PSXColor dither(const RGB color, const ivec2 p) {
     return PSXColor(r, g, b);
 }
 
-glm::uvec2 calculateTexel(glm::uvec2 texel, const gpu::GP0_E2 textureWindow) {
+ivec2 calculateTexel(ivec2 texel, const gpu::GP0_E2 textureWindow) {
     // Texture is repeated outside of 256x256 window
     texel.x %= 256u;
     texel.y %= 256u;
@@ -200,14 +190,14 @@ glm::uvec2 calculateTexel(glm::uvec2 texel, const gpu::GP0_E2 textureWindow) {
 }
 
 template <ColorDepth bits, bool isSemiTransparent, bool isGouroudShaded, bool isBlended, bool checkMaskBeforeDraw, bool dithering>
-void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
+void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
     // Extract common GPU state
     const auto transparency = triangle.transparency;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
     const auto textureWindow = gpu->gp0_e2;
     constexpr bool isTextured = bits != ColorDepth::NONE;
 
-    glm::ivec2 pos[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
+    const ivec2 pos[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
     const RGB colorFlat = triangle.v[0].color;
 
     const int area = orient2d(pos[0], pos[1], pos[2]);
@@ -287,11 +277,8 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
                         c = colorInterpolated;
                     }
                 } else {
-                    auto UV = uvec2(        //
-                        FROM_FP(attrib.u),  //
-                        FROM_FP(attrib.v)   //
-                    );
-                    const uvec2 texel = calculateTexel(UV, textureWindow);
+                    const ivec2 UV(FROM_FP(attrib.u), FROM_FP(attrib.v));
+                    const ivec2 texel = calculateTexel(UV, textureWindow);
                     c = fetchTex<bits>(gpu, texel, triangle.texpage, triangle.clut);
                     if (c.raw == 0x0000) goto DONE;
 
@@ -314,8 +301,6 @@ void rasterizeTriangle(GPU* gpu, const primitive::Triangle& triangle) {
                 c.k |= setMaskWhileDrawing;
 
                 VRAM[p.y][p.x] = c.raw;
-
-                //////////////////////////////////////////////////////////////////////
             }
 
         DONE:

@@ -1,13 +1,14 @@
 #pragma once
-#include <glm/glm.hpp>
+#include <cmath>
 #include <utility>
 #include "device/gpu/semi_transparency.h"
 #include "psx_color.h"
+#include "utils/vector.h"
 
 namespace primitive {
 struct Rect {
-    glm::ivec2 pos;
-    glm::ivec2 size;
+    ivec2 pos;
+    ivec2 size;
     RGB color;
 
     // Flags
@@ -16,13 +17,13 @@ struct Rect {
     bool isRawTexture;
 
     // Texture, valid if bits != 0
-    glm::ivec2 uv;
-    glm::ivec2 texpage;  // Texture page position in VRAM (from GP0_E1)
-    glm::ivec2 clut;     // Texture palette position in VRAM
+    ivec2 uv;
+    ivec2 texpage;  // Texture page position in VRAM (from GP0_E1)
+    ivec2 clut;     // Texture palette position in VRAM
 };
 
 struct Line {
-    glm::ivec2 pos[2];
+    ivec2 pos[2];
     RGB color[2];
 
     // Flags
@@ -32,9 +33,9 @@ struct Line {
 
 struct Triangle {
     struct Vertex {
-        glm::ivec2 pos;
-        RGB color;      // Valid if bits == 0 or !isRawTexture
-        glm::ivec2 uv;  // Valid if bits != 0
+        ivec2 pos;
+        RGB color;  // Valid if bits == 0 or !isRawTexture
+        ivec2 uv;   // Valid if bits != 0
     };
     Vertex v[3];
 
@@ -46,8 +47,8 @@ struct Triangle {
     bool gouroudShading = false;
 
     // Texture, valid if bits != 0
-    glm::ivec2 texpage;  // Texture page position in VRAM
-    glm::ivec2 clut;     // Texture palette position in VRAM
+    ivec2 texpage;  // Texture page position in VRAM
+    ivec2 clut;     // Texture palette position in VRAM
 
     void assureCcw() {
         if (isCw()) {

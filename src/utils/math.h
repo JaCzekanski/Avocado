@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 
 template <typename T>
 T clamp(T number, size_t range) {
