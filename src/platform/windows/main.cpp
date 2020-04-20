@@ -327,7 +327,6 @@ int main(int argc, char** argv) {
 
         limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc(), inputManager->mouseLocked);
     }
-    sys->gpu->dumpVram();
     if (config.options.emulator.preserveState) {
         state::saveLastState(sys.get());
     }
