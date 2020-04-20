@@ -129,7 +129,7 @@ union PolygonArgs {
         uint8_t semiTransparency : 1;
         uint8_t isTextureMapped : 1;
         uint8_t isQuad : 1;
-        uint8_t gouroudShading : 1;
+        uint8_t gouraudShading : 1;
         uint8_t : 3;
     };
     uint8_t _;
@@ -139,7 +139,7 @@ union PolygonArgs {
     int getArgumentCount() const {
         int size = isQuad ? 4 : 3;
         if (isTextureMapped) size *= 2;
-        if (gouroudShading) size += (isQuad ? 4 : 3) - 1;
+        if (gouraudShading) size += (isQuad ? 4 : 3) - 1;
 
         return size;
     }
@@ -153,7 +153,7 @@ union LineArgs {
         uint8_t semiTransparency : 1;
         uint8_t : 1;
         uint8_t polyLine : 1;
-        uint8_t gouroudShading : 1;
+        uint8_t gouraudShading : 1;
         uint8_t : 3;
     };
     uint8_t _;
@@ -161,7 +161,7 @@ union LineArgs {
     LineArgs(uint8_t arg) : _(arg) {}
 
     int getArgumentCount() const {
-        if (gouroudShading) {
+        if (gouraudShading) {
             return 3;
         } else {
             return 2;
@@ -205,7 +205,7 @@ enum class Command : int {
 };
 
 struct Vertex {
-    enum Flags { SemiTransparency = 1 << 0, RawTexture = 1 << 1, Dithering = 1 << 2, GouroudShading = 1 << 3 };
+    enum Flags { SemiTransparency = 1 << 0, RawTexture = 1 << 1, Dithering = 1 << 2, GouraudShading = 1 << 3 };
 
     float position[2];
     int color[3];

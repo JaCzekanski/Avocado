@@ -47,7 +47,7 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
 
     // TODO: Precalculate color stepping
     auto getColor = [&](int x, int y) -> RGB {
-        if (!line.gouroudShading) {
+        if (!line.gouraudShading) {
             return c0;
         }
         float relPos = sqrtf(powf(x0 - x, 2) + powf(y0 - y, 2));

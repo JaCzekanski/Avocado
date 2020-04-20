@@ -11,7 +11,7 @@ const uint BIT_16 = 16u;
 const uint SemiTransparency = 1u << 0u;
 const uint RawTexture = 1u << 1u;
 const uint Dithering = 1u << 2u;
-const uint GouroudShading = 1u << 3u;
+const uint GouraudShading = 1u << 3u;
 
 const uint Bby2plusFby2 = 0u;
 const uint BplusF = 1u;
@@ -134,7 +134,7 @@ void main() {
     if (fragBitcount != BIT_NONE && !((fragFlags & RawTexture) == RawTexture)) {
         vec4 brightness;
 
-        if ((fragFlags & GouroudShading) == GouroudShading) {
+        if ((fragFlags & GouraudShading) == GouraudShading) {
             brightness = doShading(fragColor, 0u);
         } else {  // Flat shading
             brightness = vec4(float(fragFlatColor.r) / 255.f, float(fragFlatColor.g) / 255.f, float(fragFlatColor.b) / 255.f, 1.f);

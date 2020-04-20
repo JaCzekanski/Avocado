@@ -130,7 +130,7 @@ void GPU::logWindow(System *sys) {
                         v[i].pos.x = extend_sign<11>(arguments[ptr] & 0xffff);
                         v[i].pos.y = extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
-                        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
+                        if (!arg.isRawTexture && (!arg.gouraudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
                         if (arg.isTextureMapped) {
                             if (i == 0) tex.palette = arguments[ptr];
                             if (i == 1) tex.texpage = arguments[ptr];
@@ -138,7 +138,7 @@ void GPU::logWindow(System *sys) {
                             v[i].uv.y = (arguments[ptr] >> 8) & 0xff;
                             ptr++;
                         }
-                        if (arg.gouroudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
+                        if (arg.gouraudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
                     }
 
                     if (nodeOpen) {
@@ -146,7 +146,7 @@ void GPU::logWindow(System *sys) {
                         if (arg.semiTransparency) flags += "semi-transparent, ";  // TODO: print WHICH transperancy is used, magic enum
                         if (arg.isTextureMapped) flags += "textured, ";           // TODO: Bits?
                         if (!arg.isRawTexture) flags += "color-blended, ";
-                        if (arg.gouroudShading) flags += "gouroud-shaded";
+                        if (arg.gouraudShading) flags += "gouraud-shaded";
                         ImGui::Text("Flags: %s", flags.c_str());
                         for (int i = 0; i < arg.getVertexCount(); i++) {
                             auto text = fmt::format("v{}: {}x{}", i, v[i].pos.x + last_offset_x, v[i].pos.y + last_offset_y);

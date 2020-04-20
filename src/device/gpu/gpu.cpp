@@ -56,7 +56,7 @@ void GPU::drawTriangle(const primitive::Triangle& triangle) {
         int flags = 0;
         if (triangle.isRawTexture) flags |= Vertex::Flags::RawTexture;
         if (gp0_e1.dither24to15) flags |= Vertex::Flags::Dithering;
-        if (triangle.gouroudShading) flags |= Vertex::Flags::GouroudShading;
+        if (triangle.gouraudShading) flags |= Vertex::Flags::GouraudShading;
         if (triangle.isSemiTransparent) {
             flags |= Vertex::Flags::SemiTransparency;
             flags |= static_cast<int>(triangle.transparency) << 5;
@@ -89,7 +89,7 @@ void GPU::drawLine(const primitive::Line& line) {
         auto c = line.color;
         int flags = 0;
 
-        if (line.gouroudShading) flags |= Vertex::Flags::GouroudShading;
+        if (line.gouraudShading) flags |= Vertex::Flags::GouraudShading;
         if (line.isSemiTransparent) {
             flags |= Vertex::Flags::SemiTransparency;
             flags |= static_cast<int>(gp0_e1.semiTransparency) << 5;
@@ -256,7 +256,7 @@ void GPU::cmdPolygon(PolygonArgs arg) {
         v[i].pos.x = drawingOffsetX + extend_sign<11>(arguments[ptr] & 0xffff);
         v[i].pos.y = drawingOffsetY + extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
-        if (!arg.isRawTexture && (!arg.gouroudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
+        if (!arg.isRawTexture && (!arg.gouraudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
             if (i == 0) tex.palette = arguments[ptr];
             if (i == 1) tex.texpage = arguments[ptr];
@@ -264,7 +264,7 @@ void GPU::cmdPolygon(PolygonArgs arg) {
             v[i].uv.y = (arguments[ptr] >> 8) & 0xff;
             ptr++;
         }
-        if (arg.gouroudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
+        if (arg.gouraudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
     }
 
     primitive::Triangle triangle;
@@ -275,7 +275,7 @@ void GPU::cmdPolygon(PolygonArgs arg) {
     triangle.isSemiTransparent = arg.semiTransparency;
     triangle.transparency = gp0_e1.semiTransparency;
     triangle.isRawTexture = arg.isRawTexture;
-    triangle.gouroudShading = arg.gouroudShading;
+    triangle.gouraudShading = arg.gouraudShading;
 
     if (arg.isTextureMapped) {
         triangle.bits = tex.getBitcount();
@@ -316,13 +316,13 @@ void GPU::cmdLine(LineArgs arg) {
 
     primitive::Line line;
     line.isSemiTransparent = arg.semiTransparency;
-    line.gouroudShading = arg.gouroudShading;
+    line.gouraudShading = arg.gouraudShading;
 
     line.pos[0].x = drawingOffsetX + extend_sign<11>(arguments[ptr] & 0xffff);
     line.pos[0].y = drawingOffsetY + extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
     line.color[0].raw = (arguments[0] & 0xffffff);
 
-    if (arg.gouroudShading) {
+    if (arg.gouraudShading) {
         line.color[1].raw = arguments[ptr++];
     } else {
         line.color[1] = line.color[0];
@@ -339,7 +339,7 @@ void GPU::cmdLine(LineArgs arg) {
     }
 
     // Swap pos[1] to pos[0] (and color if shaded), so that next lines can be rendered
-    if (!arg.gouroudShading) {
+    if (!arg.gouraudShading) {
         arguments[1] = arguments[2];  // Pos
     } else {
         arguments[1] = arguments[3];  // Pos

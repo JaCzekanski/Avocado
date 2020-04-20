@@ -28,7 +28,7 @@ struct Line {
 
     // Flags
     bool isSemiTransparent;
-    bool gouroudShading;
+    bool gouraudShading;
 };
 
 struct Triangle {
@@ -44,7 +44,7 @@ struct Triangle {
     gpu::SemiTransparency transparency;  // Valid if isSemiTransparent
     bool isSemiTransparent = false;
     bool isRawTexture = false;
-    bool gouroudShading = false;
+    bool gouraudShading = false;
 
     // Texture, valid if bits != 0
     ivec2 texpage;  // Texture page position in VRAM
