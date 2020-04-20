@@ -3,27 +3,11 @@
 #include "texture_utils.h"
 #include "utils/macros.h"
 
-using gpu::GPU;
-
 #undef VRAM
 #define VRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
-// Duplicated code, unify
-static ivec2 calculateTexel(ivec2 tex, const gpu::GP0_E2 textureWindow) {
-    // Texture is repeated outside of 256x256 window
-    tex.x %= 256u;
-    tex.y %= 256u;
-
-    // Texture masking
-    // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
-    tex.x = (tex.x & ~(textureWindow.maskX * 8)) | ((textureWindow.offsetX & textureWindow.maskX) * 8);
-    tex.y = (tex.y & ~(textureWindow.maskY * 8)) | ((textureWindow.offsetY & textureWindow.maskY) * 8);
-
-    return tex;
-}
-
 template <ColorDepth bits, bool isSemiTransparent, bool isBlended, bool checkMaskBeforeDraw>
-INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
+INLINE void rasterizeRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
     // Extract common GPU state
     const auto transparency = gpu->gp0_e1.semiTransparency;
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
@@ -72,7 +56,7 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
             if constexpr (bits == ColorDepth::NONE) {
                 c = PSXColor(rect.color.r, rect.color.g, rect.color.b);
             } else {
-                ivec2 texel = calculateTexel(ivec2(u, v), textureWindow);
+                const ivec2 texel = maskTexel(ivec2(u, v), textureWindow);
                 c = fetchTex<bits>(gpu, texel, rect.texpage, rect.clut);
                 if (c.raw == 0x0000) continue;
 
@@ -94,60 +78,43 @@ INLINE void rectangle(GPU* gpu, const primitive::Rect& rect) {
     }
 }
 
-template <int bits>
-constexpr ColorDepth bitsToDepth() {
-    if constexpr (bits == 4)
-        return ColorDepth::BIT_4;
-    else if constexpr (bits == 8)
-        return ColorDepth::BIT_8;
-    else if constexpr (bits == 16)
-        return ColorDepth::BIT_16;
-    else
-        return ColorDepth::NONE;
-}
+// Generate all permutations of rasterizeRectangle
+using rasterizeRectangle_t = void(gpu::GPU* gpu, const primitive::Rect& rect);
+
+#define E(bits, isSemiTransparent, isBlended, checkMaskBit) \
+    &rasterizeRectangle<bitsToDepth<bits>(), isSemiTransparent, isBlended, checkMaskBit>
+
+/* Kotlin script for lookup array generation:
+
+    fun Iterable<Int>.wrap(f: (Int) -> String): String =
+        "{" + joinToString(",", transform = f) + "}"
+
+    fun generateTable(): String =
+        setOf(0, 4, 8, 16).wrap { bits ->
+        (0..1).wrap { isSemiTransparent ->
+        (0..1).wrap { isBlended ->
+        (0..1).wrap { checkMaskBit ->
+            "E($bits, $isSemiTransparent, $isGouraudShaded, $isBlended, $checkMaskBit, $dithering)"
+        }}}}
+
+    generateTable()
+*/
+
+static constexpr rasterizeRectangle_t* rasterizeRectangleDispatchTable[4][2][2][2] =  //
+    {{{{E(0, 0, 0, 0), E(0, 0, 0, 1)}, {E(0, 0, 1, 0), E(0, 0, 1, 1)}}, {{E(0, 1, 0, 0), E(0, 1, 0, 1)}, {E(0, 1, 1, 0), E(0, 1, 1, 1)}}},
+     {{{E(4, 0, 0, 0), E(4, 0, 0, 1)}, {E(4, 0, 1, 0), E(4, 0, 1, 1)}}, {{E(4, 1, 0, 0), E(4, 1, 0, 1)}, {E(4, 1, 1, 0), E(4, 1, 1, 1)}}},
+     {{{E(8, 0, 0, 0), E(8, 0, 0, 1)}, {E(8, 0, 1, 0), E(8, 0, 1, 1)}}, {{E(8, 1, 0, 0), E(8, 1, 0, 1)}, {E(8, 1, 1, 0), E(8, 1, 1, 1)}}},
+     {{{E(16, 0, 0, 0), E(16, 0, 0, 1)}, {E(16, 0, 1, 0), E(16, 0, 1, 1)}},
+      {{E(16, 1, 0, 0), E(16, 1, 0, 1)}, {E(16, 1, 1, 0), E(16, 1, 1, 1)}}}};
+#undef E
 
 void Render::drawRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
-    // clang-format off
-#define FOO(BITS, SEMITRANSPARENT, BLENDED, CHECK_MASK)                                                                                   \
-    else if (rect.bits == (BITS) && \
-        rect.isSemiTransparent == (SEMITRANSPARENT) && \
-        rect.isRawTexture == !(BLENDED) && \
-        gpu->gp0_e6.checkMaskBeforeDraw == (CHECK_MASK) ) { \
-        rectangle<bitsToDepth<BITS>(), SEMITRANSPARENT, BLENDED, CHECK_MASK>(gpu, rect);                                      \
-    }
+    auto bits = (int)bitsToDepth(rect.bits);
+    auto isSemiTransparent = rect.isSemiTransparent;
+    auto isBlended = !rect.isRawTexture;
+    auto checkMaskBit = gpu->gp0_e6.checkMaskBeforeDraw;
 
-    if constexpr (false) {}
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ false, /* checkMaskBit = */ true )
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isBlended = */ true , /* checkMaskBit = */ true )
-    // clang-format on
+    auto rasterize = rasterizeRectangleDispatchTable[bits][isSemiTransparent][isBlended][checkMaskBit];
+
+    rasterize(gpu, rect);
 }

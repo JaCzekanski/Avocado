@@ -176,19 +176,6 @@ PSXColor dither(const RGB color, const ivec2 p) {
     return PSXColor(r, g, b);
 }
 
-ivec2 calculateTexel(ivec2 texel, const gpu::GP0_E2 textureWindow) {
-    // Texture is repeated outside of 256x256 window
-    texel.x %= 256u;
-    texel.y %= 256u;
-
-    // Texture masking
-    // texel = (texel AND(NOT(Mask * 8))) OR((Offset AND Mask) * 8)
-    texel.x = (texel.x & ~(textureWindow.maskX * 8)) | ((textureWindow.offsetX & textureWindow.maskX) * 8);
-    texel.y = (texel.y & ~(textureWindow.maskY * 8)) | ((textureWindow.offsetY & textureWindow.maskY) * 8);
-
-    return texel;
-}
-
 template <ColorDepth bits, bool isSemiTransparent, bool isGouraudShaded, bool isBlended, bool checkMaskBeforeDraw, bool dithering>
 void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
     // Extract common GPU state
@@ -277,19 +264,18 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
                         c = colorInterpolated;
                     }
                 } else {
-                    const ivec2 UV(FROM_FP(attrib.u), FROM_FP(attrib.v));
-                    const ivec2 texel = calculateTexel(UV, textureWindow);
+                    const ivec2 uv(FROM_FP(attrib.u), FROM_FP(attrib.v));
+                    const ivec2 texel = maskTexel(uv, textureWindow);
                     c = fetchTex<bits>(gpu, texel, triangle.texpage, triangle.clut);
                     if (c.raw == 0x0000) goto DONE;
 
                     if constexpr (isBlended) {
                         if constexpr (isGouraudShaded) {
-                            c = c * colorInterpolated;
-                        } else {  // Flat shading
+                            c = c * colorInterpolated;  // TODO: Handle dithering
+                        } else {                        // Flat shading
                             c = c * colorFlat;
                         }
                     }
-                    // TODO: Textured polygons are not dithered
                 }
 
                 if constexpr (isSemiTransparent) {
@@ -316,157 +302,74 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
     }
 }
 
-template <int bits>
-constexpr ColorDepth bitsToDepth() {
-    if constexpr (bits == 4)
-        return ColorDepth::BIT_4;
-    else if constexpr (bits == 8)
-        return ColorDepth::BIT_8;
-    else if constexpr (bits == 16)
-        return ColorDepth::BIT_16;
-    else
-        return ColorDepth::NONE;
-}
+// Generate all permutations of rasterizeTriangle so that compiler can provide optimized versions of the function (no ifs in loop)
+using rasterizeTriangle_t = void(gpu::GPU* gpu, const primitive::Triangle& triangle);
+
+#define E(bits, isSemiTransparent, isGouraudShaded, isBlended, checkMaskBit, dithering) \
+    &rasterizeTriangle<bitsToDepth<bits>(), isSemiTransparent, isGouraudShaded, isBlended, checkMaskBit, dithering>
+
+/* Kotlin script for lookup array generation:
+
+    fun Iterable<Int>.wrap(f: (Int) -> String): String =
+        "{" + joinToString(",", transform = f) + "}"
+
+    fun generateTable(): String =
+        setOf(0, 4, 8, 16).wrap { bits ->
+        (0..1).wrap { isSemiTransparent ->
+        (0..1).wrap { isGouraudShaded ->
+        (0..1).wrap { isBlended ->
+        (0..1).wrap { checkMaskBit ->
+        (0..1).wrap { dithering ->
+            "E($bits, $isSemiTransparent, $isGouraudShaded, $isBlended, $checkMaskBit, $dithering)"
+        }}}}}}
+
+    generateTable()
+*/
+
+static constexpr rasterizeTriangle_t* rasterizeTriangleDispatchTable[4][2][2][2][2][2] =  //
+    {{{{{{E(0, 0, 0, 0, 0, 0), E(0, 0, 0, 0, 0, 1)}, {E(0, 0, 0, 0, 1, 0), E(0, 0, 0, 0, 1, 1)}},
+        {{E(0, 0, 0, 1, 0, 0), E(0, 0, 0, 1, 0, 1)}, {E(0, 0, 0, 1, 1, 0), E(0, 0, 0, 1, 1, 1)}}},
+       {{{E(0, 0, 1, 0, 0, 0), E(0, 0, 1, 0, 0, 1)}, {E(0, 0, 1, 0, 1, 0), E(0, 0, 1, 0, 1, 1)}},
+        {{E(0, 0, 1, 1, 0, 0), E(0, 0, 1, 1, 0, 1)}, {E(0, 0, 1, 1, 1, 0), E(0, 0, 1, 1, 1, 1)}}}},
+      {{{{E(0, 1, 0, 0, 0, 0), E(0, 1, 0, 0, 0, 1)}, {E(0, 1, 0, 0, 1, 0), E(0, 1, 0, 0, 1, 1)}},
+        {{E(0, 1, 0, 1, 0, 0), E(0, 1, 0, 1, 0, 1)}, {E(0, 1, 0, 1, 1, 0), E(0, 1, 0, 1, 1, 1)}}},
+       {{{E(0, 1, 1, 0, 0, 0), E(0, 1, 1, 0, 0, 1)}, {E(0, 1, 1, 0, 1, 0), E(0, 1, 1, 0, 1, 1)}},
+        {{E(0, 1, 1, 1, 0, 0), E(0, 1, 1, 1, 0, 1)}, {E(0, 1, 1, 1, 1, 0), E(0, 1, 1, 1, 1, 1)}}}}},
+     {{{{{E(4, 0, 0, 0, 0, 0), E(4, 0, 0, 0, 0, 1)}, {E(4, 0, 0, 0, 1, 0), E(4, 0, 0, 0, 1, 1)}},
+        {{E(4, 0, 0, 1, 0, 0), E(4, 0, 0, 1, 0, 1)}, {E(4, 0, 0, 1, 1, 0), E(4, 0, 0, 1, 1, 1)}}},
+       {{{E(4, 0, 1, 0, 0, 0), E(4, 0, 1, 0, 0, 1)}, {E(4, 0, 1, 0, 1, 0), E(4, 0, 1, 0, 1, 1)}},
+        {{E(4, 0, 1, 1, 0, 0), E(4, 0, 1, 1, 0, 1)}, {E(4, 0, 1, 1, 1, 0), E(4, 0, 1, 1, 1, 1)}}}},
+      {{{{E(4, 1, 0, 0, 0, 0), E(4, 1, 0, 0, 0, 1)}, {E(4, 1, 0, 0, 1, 0), E(4, 1, 0, 0, 1, 1)}},
+        {{E(4, 1, 0, 1, 0, 0), E(4, 1, 0, 1, 0, 1)}, {E(4, 1, 0, 1, 1, 0), E(4, 1, 0, 1, 1, 1)}}},
+       {{{E(4, 1, 1, 0, 0, 0), E(4, 1, 1, 0, 0, 1)}, {E(4, 1, 1, 0, 1, 0), E(4, 1, 1, 0, 1, 1)}},
+        {{E(4, 1, 1, 1, 0, 0), E(4, 1, 1, 1, 0, 1)}, {E(4, 1, 1, 1, 1, 0), E(4, 1, 1, 1, 1, 1)}}}}},
+     {{{{{E(8, 0, 0, 0, 0, 0), E(8, 0, 0, 0, 0, 1)}, {E(8, 0, 0, 0, 1, 0), E(8, 0, 0, 0, 1, 1)}},
+        {{E(8, 0, 0, 1, 0, 0), E(8, 0, 0, 1, 0, 1)}, {E(8, 0, 0, 1, 1, 0), E(8, 0, 0, 1, 1, 1)}}},
+       {{{E(8, 0, 1, 0, 0, 0), E(8, 0, 1, 0, 0, 1)}, {E(8, 0, 1, 0, 1, 0), E(8, 0, 1, 0, 1, 1)}},
+        {{E(8, 0, 1, 1, 0, 0), E(8, 0, 1, 1, 0, 1)}, {E(8, 0, 1, 1, 1, 0), E(8, 0, 1, 1, 1, 1)}}}},
+      {{{{E(8, 1, 0, 0, 0, 0), E(8, 1, 0, 0, 0, 1)}, {E(8, 1, 0, 0, 1, 0), E(8, 1, 0, 0, 1, 1)}},
+        {{E(8, 1, 0, 1, 0, 0), E(8, 1, 0, 1, 0, 1)}, {E(8, 1, 0, 1, 1, 0), E(8, 1, 0, 1, 1, 1)}}},
+       {{{E(8, 1, 1, 0, 0, 0), E(8, 1, 1, 0, 0, 1)}, {E(8, 1, 1, 0, 1, 0), E(8, 1, 1, 0, 1, 1)}},
+        {{E(8, 1, 1, 1, 0, 0), E(8, 1, 1, 1, 0, 1)}, {E(8, 1, 1, 1, 1, 0), E(8, 1, 1, 1, 1, 1)}}}}},
+     {{{{{E(16, 0, 0, 0, 0, 0), E(16, 0, 0, 0, 0, 1)}, {E(16, 0, 0, 0, 1, 0), E(16, 0, 0, 0, 1, 1)}},
+        {{E(16, 0, 0, 1, 0, 0), E(16, 0, 0, 1, 0, 1)}, {E(16, 0, 0, 1, 1, 0), E(16, 0, 0, 1, 1, 1)}}},
+       {{{E(16, 0, 1, 0, 0, 0), E(16, 0, 1, 0, 0, 1)}, {E(16, 0, 1, 0, 1, 0), E(16, 0, 1, 0, 1, 1)}},
+        {{E(16, 0, 1, 1, 0, 0), E(16, 0, 1, 1, 0, 1)}, {E(16, 0, 1, 1, 1, 0), E(16, 0, 1, 1, 1, 1)}}}},
+      {{{{E(16, 1, 0, 0, 0, 0), E(16, 1, 0, 0, 0, 1)}, {E(16, 1, 0, 0, 1, 0), E(16, 1, 0, 0, 1, 1)}},
+        {{E(16, 1, 0, 1, 0, 0), E(16, 1, 0, 1, 0, 1)}, {E(16, 1, 0, 1, 1, 0), E(16, 1, 0, 1, 1, 1)}}},
+       {{{E(16, 1, 1, 0, 0, 0), E(16, 1, 1, 0, 0, 1)}, {E(16, 1, 1, 0, 1, 0), E(16, 1, 1, 0, 1, 1)}},
+        {{E(16, 1, 1, 1, 0, 0), E(16, 1, 1, 1, 0, 1)}, {E(16, 1, 1, 1, 1, 0), E(16, 1, 1, 1, 1, 1)}}}}}};
+#undef E
 
 void Render::drawTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
-// clang-format off
-#define FOO(BITS, SEMITRANSPARENT, Gouraud, BLENDED, CHECK_MASK, DITHERING)                                                                                   \
-    else if (triangle.bits == (BITS) && \
-        triangle.isSemiTransparent == (SEMITRANSPARENT) && \
-        triangle.gouraudShading == (Gouraud) && \
-        triangle.isRawTexture == !(BLENDED) && \
-        gpu->gp0_e6.checkMaskBeforeDraw == (CHECK_MASK) && \
-        gpu->gp0_e1.dither24to15 == (DITHERING) ) { \
-        rasterizeTriangle<bitsToDepth<BITS>(), SEMITRANSPARENT, Gouraud, BLENDED, CHECK_MASK, DITHERING>(gpu, triangle);                                      \
-    }
-    if constexpr (false) {}
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ false)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ false, /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ false, /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ false, /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ false, /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 0,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 4,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 8,  /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    FOO(/* bits = */ 16, /* isSemiTransparent = */ true , /* isGouraudShaded = */ true , /* isBlended = */ true , /* checkMaskBit = */ true , /* dithering = */ true)
-    // clang-format on
+    auto bits = (int)bitsToDepth(triangle.bits);
+    auto isSemiTransparent = triangle.isSemiTransparent;
+    auto isGouraudShaded = triangle.gouraudShading;
+    auto isBlended = !triangle.isRawTexture;
+    auto checkMaskBit = gpu->gp0_e6.checkMaskBeforeDraw;
+    auto dithering = gpu->gp0_e1.dither24to15;
+
+    auto rasterize = rasterizeTriangleDispatchTable[bits][isSemiTransparent][isGouraudShaded][isBlended][checkMaskBit][dithering];
+
+    rasterize(gpu, triangle);
 }
