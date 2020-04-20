@@ -177,11 +177,11 @@ void addYDeltas(Attributes& attrib, AttributeDeltas& deltas, int count = 1) {
     }
 }
 
-PSXColor dither(const RGB color, const ivec2 p) {
+RGB dither(const RGB color, const ivec2 p) {
     uint8_t r = ditherLUT[p.y & 3u][p.x & 3u][color.r];
     uint8_t g = ditherLUT[p.y & 3u][p.x & 3u][color.g];
     uint8_t b = ditherLUT[p.y & 3u][p.x & 3u][color.b];
-    return PSXColor(r, g, b);
+    return RGB(r, g, b);
 }
 
 template <ColorDepth bits, bool isSemiTransparent, bool isGouraudShaded, bool isBlended, bool checkMaskBeforeDraw, bool dithering>
@@ -191,6 +191,7 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
     const bool setMaskWhileDrawing = gpu->gp0_e6.setMaskWhileDrawing;
     const auto textureWindow = gpu->gp0_e2;
     constexpr bool isTextured = bits != ColorDepth::NONE;
+    constexpr bool isDithered = dithering && isBlended;
 
     const ivec2 pos[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
     const RGB colorFlat = triangle.v[0].color;
@@ -256,18 +257,20 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
                     if (bg.k) goto DONE;
                 }
 
-                const RGB colorInterpolated(  //
-                    FROM_FP(attrib.r),        //
-                    FROM_FP(attrib.g),        //
-                    FROM_FP(attrib.b)         //
+                RGB colorInterpolated(  //
+                    FROM_FP(attrib.r),  //
+                    FROM_FP(attrib.g),  //
+                    FROM_FP(attrib.b)   //
                 );
+
+                if constexpr (isDithered) {
+                    colorInterpolated = dither(colorInterpolated, p);
+                }
 
                 PSXColor c;
                 if constexpr (bits == ColorDepth::NONE) {
                     if constexpr (!isGouraudShaded) {
                         c = colorFlat;
-                    } else if constexpr (dithering && isBlended) {
-                        c = dither(colorInterpolated, p);
                     } else {
                         c = colorInterpolated;
                     }
@@ -279,9 +282,13 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
 
                     if constexpr (isBlended) {
                         if constexpr (isGouraudShaded) {
-                            c = c * colorInterpolated;  // TODO: Handle dithering
-                        } else {                        // Flat shading
+                            c = c * colorInterpolated;
+                        } else {
                             c = c * colorFlat;
+                        }
+
+                        if constexpr (dithering) {
+                            // Handle dither for Blended-flat
                         }
                     }
                 }
