@@ -39,10 +39,12 @@ class GUI {
     gui::Toasts toasts;
 
     void mainMenu(System* sys);
+    void drawControls(System* sys);
 
    public:
     bool singleFrame = false;
     bool showGui = true;
+    bool showMenu = true;
 
     GUI(SDL_Window* window, void* glContext);
     ~GUI();

@@ -224,8 +224,9 @@ int main(int argc, char** argv) {
     while (running && !exitProgram) {
         bool newEvent = false;
         if (!forceRedraw && sys->state != System::State::run) {
-            SDL_WaitEvent(&event);
-            newEvent = true;
+            if (SDL_WaitEventTimeout(&event, 1000)) {
+                newEvent = true;
+            }
         }
         forceRedraw = false;
 
@@ -248,7 +249,7 @@ int main(int argc, char** argv) {
             }
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
-                if (event.key.keysym.sym == SDLK_F1) gui->showGui = !gui->showGui;
+                if (event.key.keysym.sym == SDLK_F1) gui->showMenu = !gui->showMenu;
                 if (event.key.keysym.sym == SDLK_F2) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
                         sys = system_tools::hardReset();

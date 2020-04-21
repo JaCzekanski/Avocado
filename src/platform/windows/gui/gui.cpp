@@ -5,6 +5,7 @@
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_sdl.h"
 #include "platform/windows/input/key.h"
+#include "platform/windows/gui/icons.h"
 #include "system.h"
 #include "utils/file.h"
 #include "utils/string.h"
@@ -12,8 +13,8 @@
 GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    {
         ImGuiIO& io = ImGui::GetIO();
+    {
         ImGuiStyle& style = ImGui::GetStyle();
 
         ImFontConfig config;
@@ -35,6 +36,26 @@ GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
         auto font = getFileContents("data/assets/roboto-mono.ttf");
         io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
         io.Fonts->AddFontDefault();
+    }
+
+    {
+        auto font = getFileContents("data/assets/fa-solid-900.ttf");
+        int fontSize = 14.f;
+        ImFontConfig config;
+        config.FontDataOwnedByAtlas = false;
+
+        const char* glyphs[] = {
+            ICON_FA_PLAY, ICON_FA_PAUSE, ICON_FA_SAVE, ICON_FA_COMPACT_DISC, ICON_FA_GAMEPAD, ICON_FA_COMPRESS, ICON_FA_COG,
+        };
+
+        ImVector<ImWchar> ranges;
+        ImFontGlyphRangesBuilder builder;
+        for (auto glyph : glyphs) {
+            builder.AddText(glyph);
+        }
+        builder.BuildRanges(&ranges);
+        io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config, ranges.Data);
+        io.Fonts->Build();
     }
 
     ImGui_ImplSDL2_InitForOpenGL(window, glContext);
@@ -186,7 +207,7 @@ void GUI::render(System* sys) {
     }
 
     if (showGui) {
-        mainMenu(sys);
+        if (showMenu) mainMenu(sys);
 
         // File
         openFile.displayWindows();
@@ -220,6 +241,139 @@ void GUI::render(System* sys) {
 
     toasts.display();
 
+    drawControls(sys);
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void GUI::drawControls(System* sys) {
+    auto symbolButton = [](const char* hint, const char* symbol, ImVec4 bg = ImVec4(1, 1, 1, 0.08f)) -> bool {
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 6.f));
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(bg.x, bg.y, bg.z, bg.w));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(bg.x, bg.y, bg.z, 0.5));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(bg.x, bg.y, bg.z, 0.75));
+
+        bool clicked = ImGui::Button(symbol);
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopFont();
+        ImGui::PopStyleVar();
+
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", hint);
+        }
+
+        return clicked;
+    };
+    auto button = [](const char* hint, const char* image) -> bool {
+        auto img = getImage(image);
+
+        bool pressed = false;
+
+        if (img) {
+            pressed = ImGui::ImageButton((ImTextureID)(uintptr_t)img->id, ImVec2(img->w / 1.f, img->h / 1.f));
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("%s", hint);
+            }
+        } else {
+            pressed = ImGui::Button(hint);
+        }
+
+        return pressed;
+    };
+    auto io = ImGui::GetIO();
+
+    static auto lastTime = std::chrono::steady_clock::now();
+    // Reset timer if mouse was moved
+    if (io.MouseDelta.x != 0 || io.MouseDelta.y != 0) {
+        lastTime = std::chrono::steady_clock::now();
+    }
+
+    auto now = std::chrono::steady_clock::now();
+    float timeDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTime).count() / 1000.f;
+
+    const float visibleFor = 1.5f;       // Seconds
+    const float fadeoutDuration = 0.5f;  // Seconds
+
+    // Display for 1.5 seconds, then fade out 0.5 second, then hide
+    float alpha;
+    if (timeDiff < visibleFor) {
+        alpha = 1.f;
+    } else if (timeDiff < visibleFor + fadeoutDuration) {
+        alpha = lerp(1.f, 0.f, (timeDiff - visibleFor) / fadeoutDuration);
+    } else {
+        return;
+    }
+
+    auto displaySize = io.DisplaySize;
+    auto pos = ImVec2(displaySize.x / 2.f, displaySize.y * 0.9f);
+    ImGui::SetNextWindowPos(pos, 0, ImVec2(.5f, .5f));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.f);
+    ImGui::Begin("##controls", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImVec4 pauseColor = ImVec4(1, 0, 0, 0.25f);
+    if (sys->state == System::State::run) {
+        if (symbolButton("Pause emulation", ICON_FA_PAUSE, pauseColor)) {
+            sys->state = System::State::pause;
+        }
+    } else {
+        if (symbolButton("Resume emulation", ICON_FA_PLAY, pauseColor)) {
+            sys->state = System::State::run;
+        }
+    }
+
+    ImGui::SameLine();
+
+    symbolButton("Save/Load", ICON_FA_SAVE);
+    if (ImGui::BeginPopupContextItem(nullptr, 0)) {
+        if (ImGui::Selectable("Quick load")) bus.notify(Event::System::LoadState{});
+        ImGui::Separator();
+        if (ImGui::Selectable("Quick save")) bus.notify(Event::System::SaveState{});
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+
+    std::string game{};
+
+    // Can lead to use-after-free when loading a new game and recrating the system
+    if (sys->cdrom->disc) {
+        auto cdPath = sys->cdrom->disc->getFile();
+        if (!cdPath.empty()) {
+            game = getFilename(cdPath);
+        }
+    }
+    if (!game.empty()) {
+        ImGui::TextUnformatted(game.c_str());
+    } else {
+        if (symbolButton("Open", ICON_FA_COMPACT_DISC, ImVec4(0.25f,0.5f,1,0.4f))) {
+            openFile.openWindowOpen = true;
+        }
+    }
+
+    ImGui::SameLine();
+
+    symbolButton("Settings", ICON_FA_COG);
+    if (ImGui::BeginPopupContextItem(nullptr, 0)) {
+        if (ImGui::Selectable("Controller")) showControllerSetupWindow = !showControllerSetupWindow;
+        ImGui::Separator();
+        ImGui::MenuItem("Show menu", "F1", &showMenu);
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (symbolButton("Toggle fullscreen", ICON_FA_COMPRESS)) {
+        bus.notify(Event::Gui::ToggleFullscreen{});
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
 }
