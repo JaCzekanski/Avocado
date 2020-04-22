@@ -13,35 +13,43 @@
 GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-        ImGuiIO& io = ImGui::GetIO();
-    {
-        ImGuiStyle& style = ImGui::GetStyle();
-
-        ImFontConfig config;
-        config.OversampleH = 4;
-        config.OversampleV = 4;
-        config.FontDataOwnedByAtlas = false;
-        int fontSize = 16.f;
-
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 #ifdef ANDROID
-        fontSize = 40.f;
-        style.ScrollbarSize = 40.f;
-        style.GrabMinSize = 20.f;
-        style.TouchExtraPadding = ImVec2(10.f, 10.f);
+    io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
 #endif
 
-        style.GrabRounding = 6.f;
-        style.FrameRounding = 6.f;
+    ImGuiStyle& style = ImGui::GetStyle();
+#ifdef ANDROID
+    style.ScrollbarSize = 40.f;
+    style.GrabMinSize = 20.f;
+    style.TouchExtraPadding = ImVec2(10.f, 10.f);
+#endif
+    style.GrabRounding = 6.f;
+    style.FrameRounding = 6.f;
 
+    ImFontConfig config;
+    config.OversampleH = 2;
+    config.OversampleV = 2;
+    config.FontDataOwnedByAtlas = false;
+    float fontSize = 16.f;
+#ifdef ANDROID
+    fontSize = 40.f;
+#endif
+
+    {
         auto font = getFileContents("data/assets/roboto-mono.ttf");
         io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
-        io.Fonts->AddFontDefault();
     }
+
+    io.Fonts->AddFontDefault();
 
     {
         auto font = getFileContents("data/assets/fa-solid-900.ttf");
-        int fontSize = 14.f;
+        int fontSize = 16.f;
         ImFontConfig config;
+        config.OversampleH = 2;
+        config.OversampleV = 2;
         config.FontDataOwnedByAtlas = false;
 
         const char* glyphs[] = {
@@ -267,22 +275,6 @@ void GUI::drawControls(System* sys) {
 
         return clicked;
     };
-    auto button = [](const char* hint, const char* image) -> bool {
-        auto img = getImage(image);
-
-        bool pressed = false;
-
-        if (img) {
-            pressed = ImGui::ImageButton((ImTextureID)(uintptr_t)img->id, ImVec2(img->w / 1.f, img->h / 1.f));
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", hint);
-            }
-        } else {
-            pressed = ImGui::Button(hint);
-        }
-
-        return pressed;
-    };
     auto io = ImGui::GetIO();
 
     static auto lastTime = std::chrono::steady_clock::now();
@@ -306,6 +298,8 @@ void GUI::drawControls(System* sys) {
     } else {
         return;
     }
+
+    // TODO: Handle gamepad "home" button
 
     auto displaySize = io.DisplaySize;
     auto pos = ImVec2(displaySize.x / 2.f, displaySize.y * 0.9f);
@@ -351,7 +345,7 @@ void GUI::drawControls(System* sys) {
     if (!game.empty()) {
         ImGui::TextUnformatted(game.c_str());
     } else {
-        if (symbolButton("Open", ICON_FA_COMPACT_DISC, ImVec4(0.25f,0.5f,1,0.4f))) {
+        if (symbolButton("Open", ICON_FA_COMPACT_DISC, ImVec4(0.25f, 0.5f, 1, 0.4f))) {
             openFile.openWindowOpen = true;
         }
     }
