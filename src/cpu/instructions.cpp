@@ -574,6 +574,7 @@ void op_cop0(CPU *cpu, Opcode i) {
             // Move to co-processor zero (from cpu reg)
             // MTC0 rt, cop0.rd
             cpu->cop0.write(i.rd, cpu->reg[i.rt]);
+            cpu->updateBreakpointsFlag();
             break;
 
         case 16:

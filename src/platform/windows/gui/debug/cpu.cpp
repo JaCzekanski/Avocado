@@ -77,7 +77,7 @@ void CPU::debuggerWindow(System* sys) {
     }
     ImGui::SameLine();
     if (ImGui::Button("Step over")) {
-        sys->cpu->breakpoints.emplace(sys->cpu->PC + 4, mips::CPU::Breakpoint(true));
+        sys->cpu->addBreakpoint(sys->cpu->PC + 4);
         sys->state = System::State::run;
     }
     ImGui::SameLine();
@@ -229,9 +229,9 @@ void CPU::debuggerWindow(System* sys) {
                                       .c_str())) {
                 auto bp = sys->cpu->breakpoints.find(address);
                 if (bp == sys->cpu->breakpoints.end()) {
-                    sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+                    sys->cpu->addBreakpoint(address, {});
                 } else {
-                    sys->cpu->breakpoints.erase(bp);
+                    sys->cpu->removeBreakpoint(address);
                 }
             }
 
@@ -256,13 +256,12 @@ void CPU::debuggerWindow(System* sys) {
         auto breakpointExist = bp != sys->cpu->breakpoints.end();
 
         if (ImGui::Selectable("Run to line")) {
-            sys->cpu->breakpoints.emplace(contextMenuAddress, mips::CPU::Breakpoint(true));
+            sys->cpu->addBreakpoint(contextMenuAddress);
             sys->state = System::State::run;
         }
 
-        if (breakpointExist && ImGui::Selectable("Remove breakpoint")) sys->cpu->breakpoints.erase(bp);
-        if (!breakpointExist && ImGui::Selectable("Add breakpoint"))
-            sys->cpu->breakpoints.emplace(contextMenuAddress, mips::CPU::Breakpoint());
+        if (breakpointExist && ImGui::Selectable("Remove breakpoint")) sys->cpu->removeBreakpoint(contextMenuAddress);
+        if (!breakpointExist && ImGui::Selectable("Add breakpoint")) sys->cpu->addBreakpoint(contextMenuAddress, {});
 
         ImGui::EndPopup();
     }
@@ -335,7 +334,7 @@ void CPU::breakpointsWindow(System* sys) {
     if (ImGui::BeginPopupContextItem("breakpoint_menu")) {
         auto breakpointExist = sys->cpu->breakpoints.find(selectedBreakpoint) != sys->cpu->breakpoints.end();
 
-        if (breakpointExist && ImGui::Selectable("Remove")) sys->cpu->breakpoints.erase(selectedBreakpoint);
+        if (breakpointExist && ImGui::Selectable("Remove")) sys->cpu->removeBreakpoint(selectedBreakpoint);
         if (ImGui::Selectable("Add")) showPopup = true;
 
         ImGui::EndPopup();
@@ -351,7 +350,7 @@ void CPU::breakpointsWindow(System* sys) {
         ImGui::PushItemWidth(80);
         if (ImGui::InputText("", addressInput, 10, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)
             && sscanf(addressInput, "%x", &address) == 1) {
-            sys->cpu->breakpoints.emplace(address, mips::CPU::Breakpoint());
+            sys->cpu->addBreakpoint(address, {});
             ImGui::CloseCurrentPopup();
         }
         ImGui::PopItemWidth();

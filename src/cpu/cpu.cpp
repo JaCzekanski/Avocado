@@ -32,37 +32,26 @@ void CPU::saveStateForException() {
 }
 
 void CPU::handleHardwareBreakpoints() {
-    if (cop0.dcic.codeBreakpointEnabled()) {
-        if (((PC ^ cop0.bpcm) & cop0.bpc) == 0) {
-            cop0.dcic.codeBreakpointHit = 1;
-            cop0.dcic.breakpointHit = 1;
-            instructions::exception(this, COP0::CAUSE::Exception::breakpoint);
-        }
+    if (((PC ^ cop0.bpcm) & cop0.bpc) == 0) {
+        cop0.dcic.codeBreakpointHit = 1;
+        cop0.dcic.breakpointHit = 1;
+        instructions::exception(this, COP0::CAUSE::Exception::breakpoint);
     }
 }
 
-INLINE bool CPU::handleSoftwareBreakpoints() {
-    if (breakpoints.empty()) {
-        return false;
-    }
+bool CPU::handleSoftwareBreakpoints() {
+    if (breakpoints.empty()) return false;
 
     auto bp = breakpoints.find(PC);
-    if (bp != breakpoints.end() && bp->second.enabled) {
-        if (bp->second.singleTime) {
-            breakpoints.erase(bp);
-            sys->state = System::State::pause;
-            return true;
-        }
-        if (!bp->second.hit) {
-            bp->second.hitCount++;
-            bp->second.hit = true;
-            sys->state = System::State::pause;
+    if (bp == breakpoints.end()) return false;
+    if (!bp->second.enabled) return false;
 
-            return true;
-        }
-        bp->second.hit = false;
+    bp->second.hitCount++;
+    if (bp->second.singleTime) {
+        removeBreakpoint(PC);
     }
-    return false;
+    sys->state = System::State::pause;
+    return true;
 }
 
 INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
@@ -95,9 +84,10 @@ bool CPU::executeInstructions(int count) {
 
         saveStateForException();
         checkForInterrupts();
-        handleHardwareBreakpoints();
-
-        if (unlikely(handleSoftwareBreakpoints())) return false;
+        if (unlikely(breakpointsEnabled)) {
+            handleHardwareBreakpoints();
+            if (handleSoftwareBreakpoints()) return false;
+        }
 
         _opcode = Opcode(fetchInstruction(PC));
         const auto& op = instructions::OpcodeTable[_opcode.op];

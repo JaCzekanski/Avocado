@@ -87,6 +87,8 @@ struct CPU {
     bool icacheEnabled;
     CacheLine icache[1024];
 
+    bool breakpointsEnabled = false;
+
     CPU(System* sys);
     void checkForInterrupts();
     INLINE void moveLoadDelaySlots();
@@ -118,7 +120,7 @@ struct CPU {
 
     void saveStateForException();
     void handleHardwareBreakpoints();
-    INLINE bool handleSoftwareBreakpoints();
+    bool handleSoftwareBreakpoints();
     INLINE uint32_t fetchInstruction(uint32_t address);
     bool executeInstructions(int count);
 
@@ -127,13 +129,23 @@ struct CPU {
     struct Breakpoint {
         bool enabled = true;
         int hitCount = 0;
-        bool hit = false;
         bool singleTime = false;
 
         Breakpoint() = default;
         Breakpoint(bool singleTime) : singleTime(singleTime) {}
     };
     std::unordered_map<uint32_t, Breakpoint> breakpoints;
+
+    // Helper
+    void addBreakpoint(uint32_t address, Breakpoint bp = Breakpoint(true)) {
+        breakpoints[address] = bp;
+        updateBreakpointsFlag();
+    }
+    void removeBreakpoint(uint32_t address) {
+        breakpoints.erase(address);
+        updateBreakpointsFlag();
+    }
+    void updateBreakpointsFlag() { breakpointsEnabled = !breakpoints.empty() || cop0.dcic.codeBreakpointEnabled(); }
 
     template <class Archive>
     void serialize(Archive& ar) {

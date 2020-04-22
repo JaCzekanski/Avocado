@@ -16,7 +16,7 @@ void bootstrap(std::unique_ptr<System>& sys) {
     sys->loadBios(config.bios);
 
     // Breakpoint on BIOS Shell execution
-    sys->cpu->breakpoints.emplace(0x80030000, mips::CPU::Breakpoint(true));
+    sys->cpu->addBreakpoint(0x80030000);
 
     // Execute BIOS till breakpoint hit (shell is about to be executed)
     while (sys->state == System::State::run) sys->emulateFrame();

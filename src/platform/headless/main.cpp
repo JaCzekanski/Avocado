@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     }
 
     // Breakpoint on BIOS Shell execution
-    cpu->breakpoints.emplace(0x80030000, mips::CPU::Breakpoint(true));
+    cpu->addBreakpoint(0x80030000);
 
     cpu->biosLog = false;
     cpu->debugOutput = false;
