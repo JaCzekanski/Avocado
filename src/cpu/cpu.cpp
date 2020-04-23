@@ -32,7 +32,7 @@ void CPU::saveStateForException() {
 }
 
 void CPU::handleHardwareBreakpoints() {
-    if (((PC ^ cop0.bpcm) & cop0.bpc) == 0) {
+    if (cop0.dcic.codeBreakpointEnabled() && ((PC ^ cop0.bpcm) & cop0.bpc) == 0) {
         cop0.dcic.codeBreakpointHit = 1;
         cop0.dcic.breakpointHit = 1;
         instructions::exception(this, COP0::CAUSE::Exception::breakpoint);
