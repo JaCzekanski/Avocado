@@ -98,18 +98,34 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
 #define LOG_IO(mode, size, addr, data, pc)
 #endif
 
-#define READ_IO(begin, end, periph)                                              \
+template <typename T, int deviceBusWidth>
+void System::timing(int accessDelay) {
+    const auto hostBits = sizeof(T);
+    const auto deviceBits = deviceBusWidth / 8;
+
+    if constexpr (hostBits <= deviceBits) {
+        cpuStalledCycles += accessDelay;
+    } else {
+        cpuStalledCycles += accessDelay * (hostBits / deviceBits);
+    }
+}
+
+#define TIMING(BITS, CYCLES) timing<T, (BITS)>(CYCLES)
+
+#define READ_IO(begin, end, periph, bits, cycles)                                \
     if (addr >= (begin) && addr < (end)) {                                       \
+        TIMING(bits, cycles);                                                    \
         auto data = read_io<T>((periph), addr - (begin));                        \
                                                                                  \
         LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC); \
         return data;                                                             \
     }
 
-#define READ_IO32(begin, end, periph)                                                                                    \
+#define READ_IO32(begin, end, periph, cycles)                                                                            \
     if (addr >= (begin) && addr < (end)) {                                                                               \
         T data = 0;                                                                                                      \
         if (sizeof(T) == 4) {                                                                                            \
+            TIMING(32, cycles);                                                                                          \
             data = (periph)->read(addr - (begin));                                                                       \
         } else {                                                                                                         \
             fmt::print("[SYS] R Unsupported access to " #periph " with bit size {}\n", static_cast<int>(sizeof(T) * 8)); \
@@ -119,17 +135,19 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
         return data;                                                                                                     \
     }
 
-#define WRITE_IO(begin, end, periph)                                              \
+#define WRITE_IO(begin, end, periph, bits, cycles)                                \
     if (addr >= (begin) && addr < (end)) {                                        \
+        TIMING(bits, cycles);                                                     \
         write_io<T>((periph), addr - (begin), data);                              \
                                                                                   \
         LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC); \
         return;                                                                   \
     }
 
-#define WRITE_IO32(begin, end, periph)                                                                                   \
+#define WRITE_IO32(begin, end, periph, cycles)                                                                           \
     if (addr >= (begin) && addr < (end)) {                                                                               \
         if (sizeof(T) == 4) {                                                                                            \
+            TIMING(32, cycles);                                                                                          \
             (periph)->write(addr - (begin), data);                                                                       \
         } else {                                                                                                         \
             fmt::print("[SYS] W Unsupported access to " #periph " with bit size {}\n", static_cast<int>(sizeof(T) * 8)); \
@@ -146,34 +164,39 @@ INLINE T System::readMemory(uint32_t address) {
     uint32_t addr = align_mips<T>(address);
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
+        TIMING(32, 4);
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
+        TIMING(8, 6);
         return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
     }
     if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
+        TIMING(32, 1);
         return read_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE);
     }
     if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
+        TIMING(8, 7);
         return read_fast<T>(bios.data(), addr - BIOS_BASE);
     }
 
-    READ_IO(0x1f801000, 0x1f801024, memoryControl);
-    READ_IO(0x1f801040, 0x1f801050, controller);
-    READ_IO(0x1f801050, 0x1f801060, serial);
-    READ_IO(0x1f801060, 0x1f801064, memoryControl);
-    READ_IO(0x1f801070, 0x1f801078, interrupt);
-    READ_IO(0x1f801080, 0x1f801100, dma);
-    READ_IO(0x1f801100, 0x1f801110, timer[0]);
-    READ_IO(0x1f801110, 0x1f801120, timer[1]);
-    READ_IO(0x1f801120, 0x1f801130, timer[2]);
-    READ_IO(0x1f801800, 0x1f801804, cdrom);
-    READ_IO32(0x1f801810, 0x1f801818, gpu);
-    READ_IO32(0x1f801820, 0x1f801828, mdec);
-    READ_IO(0x1f801C00, 0x1f802000, spu);
-    READ_IO(0x1f802000, 0x1f802067, expansion2);
+    READ_IO(0x1f801000, 0x1f801024, memoryControl, 32, 2);
+    READ_IO(0x1f801040, 0x1f801050, controller, 32, 2);
+    READ_IO(0x1f801050, 0x1f801060, serial, 32, 2);
+    READ_IO(0x1f801060, 0x1f801064, memoryControl, 32, 2);
+    READ_IO(0x1f801070, 0x1f801078, interrupt, 32, 2);
+    READ_IO(0x1f801080, 0x1f801100, dma, 32, 2);
+    READ_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
+    READ_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
+    READ_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
+    READ_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
+    READ_IO32(0x1f801810, 0x1f801818, gpu, 2);
+    READ_IO32(0x1f801820, 0x1f801828, mdec, 3);
+    READ_IO(0x1f801C00, 0x1f802000, spu, 16, 17);
+    READ_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
 
     if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
+        TIMING(32, 1);
         auto data = cacheControl->read(0);
         LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);
         return data;
@@ -198,31 +221,35 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     uint32_t addr = align_mips<T>(address);
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
+        TIMING(32, 4);
         return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
+        TIMING(8, 6);
         return write_fast<T>(expansion.data(), addr - EXPANSION_BASE, data);
     }
     if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
+        TIMING(32, 1);
         return write_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE, data);
     }
 
-    WRITE_IO(0x1f801000, 0x1f801024, memoryControl);
-    WRITE_IO(0x1f801040, 0x1f801050, controller);
-    WRITE_IO(0x1f801050, 0x1f801060, serial);
-    WRITE_IO(0x1f801060, 0x1f801064, memoryControl);
-    WRITE_IO(0x1f801070, 0x1f801078, interrupt);
-    WRITE_IO(0x1f801080, 0x1f801100, dma);
-    WRITE_IO(0x1f801100, 0x1f801110, timer[0]);
-    WRITE_IO(0x1f801110, 0x1f801120, timer[1]);
-    WRITE_IO(0x1f801120, 0x1f801130, timer[2]);
-    WRITE_IO(0x1f801800, 0x1f801804, cdrom);
-    WRITE_IO32(0x1f801810, 0x1f801818, gpu);
-    WRITE_IO32(0x1f801820, 0x1f801828, mdec);
-    WRITE_IO(0x1f801C00, 0x1f802000, spu);
-    WRITE_IO(0x1f802000, 0x1f802067, expansion2);
+    WRITE_IO(0x1f801000, 0x1f801024, memoryControl, 32, 2);
+    WRITE_IO(0x1f801040, 0x1f801050, controller, 32, 2);
+    WRITE_IO(0x1f801050, 0x1f801060, serial, 32, 2);
+    WRITE_IO(0x1f801060, 0x1f801064, memoryControl, 32, 2);
+    WRITE_IO(0x1f801070, 0x1f801078, interrupt, 32, 2);
+    WRITE_IO(0x1f801080, 0x1f801100, dma, 32, 2);
+    WRITE_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
+    WRITE_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
+    WRITE_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
+    WRITE_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
+    WRITE_IO32(0x1f801810, 0x1f801818, gpu, 2);
+    WRITE_IO32(0x1f801820, 0x1f801828, mdec, 3);
+    WRITE_IO(0x1f801C00, 0x1f802000, spu, 16, 17);
+    WRITE_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
 
     if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
+        TIMING(32, 1);
         cacheControl->write(0, data);
         LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);
         return;
@@ -326,16 +353,16 @@ void System::handleSyscallFunction() {
 
 void System::singleStep() {
     state = State::run;
-    cpu->executeInstructions(1);
+    cpu->executeInstructions(3);
     state = State::pause;
 
     dma->step();
-    cdrom->step();
+    cdrom->step(0);
     timer[0]->step(3);
     timer[1]->step(3);
     timer[2]->step(3);
-    controller->step();
-    spu->step(cdrom.get());
+    controller->step(3);
+    spu->step(3, cdrom.get());
 
     if (gpu->emulateGpuCycles(3)) {
         interrupt->trigger(interrupt::VBLANK);
@@ -349,59 +376,48 @@ void System::emulateFrame() {
     cpu->gte.log.clear();
     gpu->gpuLogList.clear();
 
-    gpu->prevVram = gpu->vram;
-    int systemCycles = 300;
+    //    gpu->prevVram = gpu->vram;
     for (;;) {
-        if (!cpu->executeInstructions(systemCycles / 3)) {
+        int systemCycles = 0x100;
+        cpuStalledCycles = 0;
+        if (!cpu->executeInstructions(systemCycles)) {
             return;
         }
+        systemCycles += cpuStalledCycles;
 
         dma->step();
-        cdrom->step();
+        cdrom->step(systemCycles);
         timer[0]->step(systemCycles);
         timer[1]->step(systemCycles);
         timer[2]->step(systemCycles);
+        spu->step(systemCycles, cdrom.get());
 
-        static float spuCounter = 0;
+        //        if (spu->bufferReady) {
+        //            spu->bufferReady = false;
+        //            Sound::appendBuffer(spu->audioBuffer.begin(), spu->audioBuffer.end());
+        //        }
 
-        float magicNumber = 1.575f;
-        if (!gpu->isNtsc()) {
-            // Hack to prevent crackling audio on PAL games
-            // Note - this overclocks SPU clock, bugs might appear.
-            magicNumber *= 50.f / 60.f;
-        }
-        spuCounter += (float)systemCycles / magicNumber / (float)0x300;
-        if (spuCounter >= 1.f) {
-            spu->step(cdrom.get());
-            spuCounter -= 1.0f;
-        }
-
-        if (spu->bufferReady) {
-            spu->bufferReady = false;
-            Sound::appendBuffer(spu->audioBuffer.begin(), spu->audioBuffer.end());
-        }
-
-        controller->step();
+        controller->step(systemCycles);
 
         if (gpu->emulateGpuCycles(systemCycles)) {
             interrupt->trigger(interrupt::VBLANK);
             return;  // frame emulated
         }
-
-        // TODO: Move this code to Timer class
-        if (gpu->gpuLine > gpu::LINE_VBLANK_START_NTSC) {
-            auto& t = *timer[1];
-            if (t.mode.syncEnabled) {
-                using modes = device::timer::CounterMode::SyncMode1;
-                auto mode1 = static_cast<modes>(timer[1]->mode.syncMode);
-                if (mode1 == modes::resetAtVblank || mode1 == modes::resetAtVblankAndPauseOutside) {
-                    timer[1]->current._reg = 0;
-                } else if (mode1 == modes::pauseUntilVblankAndFreerun) {
-                    timer[1]->paused = false;
-                    timer[1]->mode.syncEnabled = false;
-                }
-            }
-        }
+        //
+        //        // TODO: Move this code to Timer class
+        //        if (gpu->gpuLine > gpu::LINE_VBLANK_START_NTSC) {
+        //            auto& t = *timer[1];
+        //            if (t.mode.syncEnabled) {
+        //                using modes = device::timer::CounterMode::SyncMode1;
+        //                auto mode1 = static_cast<modes>(timer[1]->mode.syncMode);
+        //                if (mode1 == modes::resetAtVblank || mode1 == modes::resetAtVblankAndPauseOutside) {
+        //                    timer[1]->current._reg = 0;
+        //                } else if (mode1 == modes::pauseUntilVblankAndFreerun) {
+        //                    timer[1]->paused = false;
+        //                    timer[1]->mode.syncEnabled = false;
+        //                }
+        //            }
+        //        }
         // Handle Timer1 - Reset on VBlank
     }
 }

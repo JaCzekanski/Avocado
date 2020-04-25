@@ -791,15 +791,33 @@ void GPU::writeGP1(uint32_t data) {
     }
 }
 
-bool GPU::emulateGpuCycles(int cycles) {
-    gpuDot += cycles;
+int GPU::cyclesPerLine() {
+    if (isNtsc())
+        return CYCLES_PER_LINE_NTSC;
+    else
+        return CYCLES_PER_LINE_PAL;
+}
 
-    int newLines = gpuDot / 3413;
+int GPU::linesPerFrame() {
+    if (isNtsc())
+        return LINES_TOTAL_NTSC;
+    else
+        return LINES_TOTAL_PAL;
+}
+
+bool GPU::emulateGpuCycles(int cpuCycles) {
+    rawCycles += cpuCycles * 11;
+    int gpuCycles = rawCycles / 7;
+    if (gpuCycles == 0) return false;
+    rawCycles %= 7;
+
+    gpuDot += gpuCycles;
+    int newLines = gpuDot / cyclesPerLine();
     if (newLines == 0) return false;
-    gpuDot %= 3413;
+    gpuDot %= cyclesPerLine();
     gpuLine += newLines;
 
-    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
+    if (gpuLine < linesPerFrame() - 20 - 1) {
         if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
             odd = (frames % 2) != 0;
         } else {
@@ -809,7 +827,7 @@ bool GPU::emulateGpuCycles(int cycles) {
         odd = false;
     }
 
-    if (gpuLine == LINES_TOTAL_NTSC - 1) {
+    if (gpuLine >= linesPerFrame() - 1) {
         gpuLine = 0;
         frames++;
         return true;

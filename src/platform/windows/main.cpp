@@ -37,7 +37,11 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
     double currentTime = SDL_GetPerformanceCounter() / counterFrequency;
     double deltaTime = currentTime - startTime;
 
+#ifdef USE_EXACT_FPS
+    double frameTime = ntsc ? (1.0 / 59.29) : (1.0 / 49.76);
+#else
     double frameTime = ntsc ? (1.0 / 60.0) : (1.0 / 50.0);
+#endif
 
     if (framelimiter && deltaTime < frameTime) {
         // If deltaTime was shorter than frameTime - spin
@@ -238,6 +242,13 @@ int main(int argc, char** argv) {
             if (event.type == SDL_WINDOWEVENT) {
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
                 if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
+            }
+            if (event.type == SDL_AUDIODEVICEADDED || event.type == SDL_AUDIODEVICEREMOVED) {
+                Sound::close();
+                Sound::init();
+                if (config.options.sound.enabled) {
+                    Sound::play();
+                }
             }
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;

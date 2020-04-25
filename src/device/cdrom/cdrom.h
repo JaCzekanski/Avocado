@@ -127,6 +127,8 @@ class CDROM {
 
     int scexCounter = 0;
 
+    uint64_t cycles;
+
     void cmdGetstat();
     void cmdSetloc();
     void cmdPlay();
@@ -197,7 +199,7 @@ class CDROM {
     bool mute = false;
 
     CDROM(System* sys);
-    void step();
+    void step(int cpuCycles);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 

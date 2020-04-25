@@ -55,12 +55,13 @@ struct SPU {
     std::array<int16_t, AUDIO_BUFFER_SIZE> audioBuffer;
 
     System* sys;
+    uint64_t cycles = 0;
 
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);
 
     SPU(System* sys);
-    void step(device::cdrom::CDROM* cdrom);
+    void step(uint64_t cpuCycles, device::cdrom::CDROM* cdrom);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 

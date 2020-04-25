@@ -16,9 +16,19 @@ namespace gpu {
 
 const int VRAM_WIDTH = 1024;
 const int VRAM_HEIGHT = 512;
-
-const int LINE_VBLANK_START_NTSC = 243;
+#define USE_EXACT_FPS
+#ifdef USE_EXACT_FPS
+const int CYCLES_PER_LINE_NTSC = 3413;
+const int CYCLES_PER_LINE_PAL = 3406;
 const int LINES_TOTAL_NTSC = 263;
+const int LINES_TOTAL_PAL = 314;
+#else
+const int CYCLES_PER_LINE_NTSC = 3372;
+const int CYCLES_PER_LINE_PAL = 3389;
+const int LINES_TOTAL_NTSC = 263;
+const int LINES_TOTAL_PAL = 314;
+#endif
+#undef USE_EXACT_FPS
 
 class GPU {
     friend struct ::System;
@@ -48,6 +58,7 @@ class GPU {
     int argumentCount = 0;
 
     // Timing
+    uint64_t rawCycles = 0;
     int gpuLine = 0;
     int gpuDot = 0;
     bool odd = false;
@@ -139,7 +150,7 @@ class GPU {
     GPU(System* sys);
     ~GPU();
     void step();
-    bool emulateGpuCycles(int cycles);
+    bool emulateGpuCycles(int cpuCycles);
     uint32_t read(uint32_t address);
     void write(uint32_t address, uint32_t data);
     bool isNtsc();
@@ -191,6 +202,8 @@ class GPU {
 
         ar(vram);
     }
+    int cyclesPerLine();
+    int linesPerFrame();
 };
 
 }  // namespace gpu

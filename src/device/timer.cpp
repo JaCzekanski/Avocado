@@ -16,33 +16,42 @@ void Timer::step(int cycles) {
         using modes = CounterMode::ClockSource0;
 
         if (clock == modes::dotClock) {
+            // TODO: Handle hblanks from gpu timings and resolution
             tval += cnt / 6;
             cnt %= 6;
         } else {  // System Clock
-            tval += (int)(cnt / 1.5f);
-            cnt %= (int)1.5f;
+            tval += cnt;
+            cnt = 0;
         }
     } else if (which == 1) {
         auto clock = static_cast<CounterMode::ClockSource1>(mode.clockSource & 1);
         using modes = CounterMode::ClockSource1;
 
         if (clock == modes::hblank) {
-            tval += cnt / 3413;
-            cnt %= 3413;
+            // TODO: Handle hblanks from gpu timings
+            auto cpuToGpuClock = [](int cpuCycles) { return cpuCycles * 11 / 7; };
+            auto gpuToCpuCock = [](int gpuCycles) { return gpuCycles * 7 / 11; };
+            const int GPU_CYCLES_PER_HBLANK = 3413;
+
+            int hblanks = cpuToGpuClock(cnt) / GPU_CYCLES_PER_HBLANK;
+            if (hblanks > 0) {
+                tval += hblanks;
+                cnt %= gpuToCpuCock(hblanks * GPU_CYCLES_PER_HBLANK);
+            }
         } else {  // System Clock
-            tval += (int)(cnt / 1.5f);
-            cnt %= (int)1.5f;
+            tval += cnt;
+            cnt = 0;
         }
     } else if (which == 2) {
         auto clock = static_cast<CounterMode::ClockSource2>((mode.clockSource >> 1) & 1);
         using modes = CounterMode::ClockSource2;
 
         if (clock == modes::systemClock_8) {
-            tval += (int)(cnt / (8 * 1.5f));
-            cnt %= (int)(8 * 1.5f);
+            tval += cnt / 8;
+            cnt %= 8;
         } else {  // System Clock
-            tval += (int)(cnt * 1.5f);
-            cnt %= (int)1.5f;
+            tval += cnt;
+            cnt = 0;
         }
     }
 

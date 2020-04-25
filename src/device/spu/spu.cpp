@@ -3,6 +3,7 @@
 #include <array>
 #include <functional>
 #include <vector>
+#include <sound/sound.h>
 #include "device/cdrom/cdrom.h"
 #include "interpolation.h"
 #include "reverb.h"
@@ -21,126 +22,142 @@ SPU::SPU(System* sys) : sys(sys) {
     audioBufferPos = 0;
     captureBufferIndex = 0;
 }
+void SPU::step(uint64_t cpuCycles, device::cdrom::CDROM* cdrom) {
+    // CPU is running at 44100 * 0x300
+    // SPU is running at 44100
+    // Simulate SPU every 0x300 cpu cycles
+    const int CPU_CYCLES_PER_SPU_CYCLE = 0x300;
+    this->cycles += cpuCycles;
 
-void SPU::step(device::cdrom::CDROM* cdrom) {
-    Sample sumLeft = 0, sumReverbLeft = 0;
-    Sample sumRight = 0, sumReverbRight = 0;
+    int spuCycles = this->cycles / CPU_CYCLES_PER_SPU_CYCLE;
+    if (spuCycles == 0) return;
 
-    noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
+    this->cycles %= CPU_CYCLES_PER_SPU_CYCLE;
+    for (; spuCycles > 0; spuCycles--) {
+        Sample sumLeft = 0, sumReverbLeft = 0;
+        Sample sumRight = 0, sumReverbRight = 0;
 
-    for (int v = 0; v < VOICE_COUNT; v++) {
-        Voice& voice = voices[v];
+        noise.doNoise(control.noiseFrequencyStep, control.noiseFrequencyShift);
 
-        if (voice.state == Voice::State::Off) continue;
+        for (int v = 0; v < VOICE_COUNT; v++) {
+            Voice& voice = voices[v];
 
-        if (voice.decodedSamples.empty()) {
-            auto block = readBlock(voice.currentAddress._reg * 8);
-            voice.decodedSamples = ADPCM::decode(block.data(), voice.prevSample);
-            voice.flagsParsed = false;
-        }
+            if (voice.state == Voice::State::Off) continue;
 
-        voice.processEnvelope();
+            if (voice.decodedSamples.empty()) {
+                auto block = readBlock(voice.currentAddress._reg * 8);
+                voice.decodedSamples = ADPCM::decode(block.data(), voice.prevSample);
+                voice.flagsParsed = false;
+            }
 
-        uint32_t step = voice.sampleRate._reg;
-        if (voice.pitchModulation && v > 0) {
-            int32_t factor = voices[v - 1].sample + 0x8000;
-            step = (step * factor) >> 15;
-            step &= 0xffff;
-        }
-        if (step > 0x3fff) step = 0x4000;
+            voice.processEnvelope();
 
-        Sample sample;
-        if (voice.mode == Voice::Mode::Noise) {
-            sample = noise.getNoiseLevel();
-        } else {
-            sample = interpolate(voice, voice.counter.sample, voice.counter.index);
-        }
-        sample *= voice.adsrVolume._reg;
-        voice.sample = sample;
+            uint32_t step = voice.sampleRate._reg;
+            if (voice.pitchModulation && v > 0) {
+                int32_t factor = voices[v - 1].sample + 0x8000;
+                step = (step * factor) >> 15;
+                step &= 0xffff;
+            }
+            if (step > 0x3fff) step = 0x4000;
 
-        if (voice.enabled) {
-            sumLeft += sample * voice.volume.getLeft();
-            sumRight += sample * voice.volume.getRight();
+            Sample sample;
+            if (voice.mode == Voice::Mode::Noise) {
+                sample = noise.getNoiseLevel();
+            } else {
+                sample = interpolate(voice, voice.counter.sample, voice.counter.index);
+            }
+            sample *= voice.adsrVolume._reg;
+            voice.sample = sample;
 
-            if (voice.reverb) {
-                sumReverbLeft += sample * voice.volume.getLeft();
-                sumReverbRight += sample * voice.volume.getRight();
+            if (voice.enabled) {
+                sumLeft += sample * voice.volume.getLeft();
+                sumRight += sample * voice.volume.getRight();
+
+                if (voice.reverb) {
+                    sumReverbLeft += sample * voice.volume.getLeft();
+                    sumReverbRight += sample * voice.volume.getRight();
+                }
+            }
+
+            voice.counter._reg += step;
+            if (voice.counter.sample >= 28) {
+                // Overflow, parse next ADPCM block
+                voice.counter.sample -= 28;
+                voice.currentAddress._reg += 2;
+                voice.prevDecodedSamples = voice.decodedSamples;
+                voice.decodedSamples.clear();
+
+                if (voice.loadRepeatAddress) {
+                    voice.loadRepeatAddress = false;
+                    voice.currentAddress = voice.repeatAddress;
+                }
+            }
+
+            if (!voice.flagsParsed) {
+                voice.parseFlags(ram[voice.currentAddress._reg * 8 + 1]);
             }
         }
 
-        voice.counter._reg += step;
-        if (voice.counter.sample >= 28) {
-            // Overflow, parse next ADPCM block
-            voice.counter.sample -= 28;
-            voice.currentAddress._reg += 2;
-            voice.prevDecodedSamples = voice.decodedSamples;
-            voice.decodedSamples.clear();
+        if (!control.unmute) {
+            sumLeft = 0;
+            sumRight = 0;
+        }
+        // TODO: Check if SPU mute affect sumReverb for voices
 
-            if (voice.loadRepeatAddress) {
-                voice.loadRepeatAddress = false;
-                voice.currentAddress = voice.repeatAddress;
+        // Mix with cd
+        Sample cdLeft = 0, cdRight = 0;
+        if (!cdrom->audio.empty()) {
+            std::tie(cdLeft, cdRight) = cdrom->audio.front();
+
+            // TODO: Refactor to use ring buffer
+            cdrom->audio.pop_front();
+
+            if (control.cdEnable) {
+                sumLeft += cdLeft * cdVolume.getLeft();
+                sumRight += cdRight * cdVolume.getRight();
+
+                if (control.cdReverb) {
+                    sumReverbLeft += cdLeft * cdVolume.getLeft();
+                    sumReverbRight += cdRight * cdVolume.getRight();
+                }
             }
         }
 
-        if (!voice.flagsParsed) {
-            voice.parseFlags(ram[voice.currentAddress._reg * 8 + 1]);
+        if (reverbCounter++ % 2 == 0) {
+            std::tie(reverbLeft, reverbRight) = doReverb(this, std::make_tuple(sumReverbLeft, sumReverbRight));
         }
-    }
+        sumLeft += reverbLeft;
+        sumRight += reverbRight;
 
-    if (!control.unmute) {
-        sumLeft = 0;
-        sumRight = 0;
-    }
-    // TODO: Check if SPU mute affect sumReverb for voices
+        sumLeft *= std::min<int16_t>(0x3fff, mainVolume.getLeft()) * 2;
+        sumRight *= std::min<int16_t>(0x3fff, mainVolume.getRight()) * 2;
 
-    // Mix with cd
-    Sample cdLeft = 0, cdRight = 0;
-    if (!cdrom->audio.empty()) {
-        std::tie(cdLeft, cdRight) = cdrom->audio.front();
+        audioBuffer[audioBufferPos] = sumLeft;
+        audioBuffer[audioBufferPos + 1] = sumRight;
 
-        // TODO: Refactor to use ring buffer
-        cdrom->audio.pop_front();
-
-        if (control.cdEnable) {
-            sumLeft += cdLeft * cdVolume.getLeft();
-            sumRight += cdRight * cdVolume.getRight();
-
-            if (control.cdReverb) {
-                sumReverbLeft += cdLeft * cdVolume.getLeft();
-                sumReverbRight += cdRight * cdVolume.getRight();
-            }
+        audioBufferPos += 2;
+        if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
+            audioBufferPos = 0;
+            //            bufferReady = true;
+            //
+            //            if (spu->bufferReady) {
+            //                spu->bufferReady = false;
+            Sound::appendBuffer(audioBuffer.begin(), audioBuffer.end());
+            //            }
         }
+
+        const uint32_t cdLeftAddress = 0x000 + captureBufferIndex;
+        const uint32_t cdRightAddress = 0x400 + captureBufferIndex;
+        const uint32_t voice1Address = 0x800 + captureBufferIndex;
+        const uint32_t voice3Address = 0xC00 + captureBufferIndex;
+
+        captureBufferIndex = (captureBufferIndex + 2) & 0x3ff;
+
+        memoryWrite16(cdLeftAddress, cdLeft);
+        memoryWrite16(cdRightAddress, cdRight);
+        memoryWrite16(voice1Address, voices[1].sample);
+        memoryWrite16(voice3Address, voices[3].sample);
     }
-
-    if (reverbCounter++ % 2 == 0) {
-        std::tie(reverbLeft, reverbRight) = doReverb(this, std::make_tuple(sumReverbLeft, sumReverbRight));
-    }
-    sumLeft += reverbLeft;
-    sumRight += reverbRight;
-
-    sumLeft *= std::min<int16_t>(0x3fff, mainVolume.getLeft()) * 2;
-    sumRight *= std::min<int16_t>(0x3fff, mainVolume.getRight()) * 2;
-
-    audioBuffer[audioBufferPos] = sumLeft;
-    audioBuffer[audioBufferPos + 1] = sumRight;
-
-    audioBufferPos += 2;
-    if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
-        audioBufferPos = 0;
-        bufferReady = true;
-    }
-
-    const uint32_t cdLeftAddress = 0x000 + captureBufferIndex;
-    const uint32_t cdRightAddress = 0x400 + captureBufferIndex;
-    const uint32_t voice1Address = 0x800 + captureBufferIndex;
-    const uint32_t voice3Address = 0xC00 + captureBufferIndex;
-
-    captureBufferIndex = (captureBufferIndex + 2) & 0x3ff;
-
-    memoryWrite16(cdLeftAddress, cdLeft);
-    memoryWrite16(cdRightAddress, cdRight);
-    memoryWrite16(voice1Address, voices[1].sample);
-    memoryWrite16(voice3Address, voices[3].sample);
 }
 
 uint8_t SPU::readVoice(uint32_t address) const {

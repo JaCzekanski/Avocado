@@ -16,7 +16,17 @@ CDROM::CDROM(System* sys) : sys(sys) {
     disc = std::make_unique<disc::Empty>();
 }
 
-void CDROM::step() {
+void CDROM::step(int cpuCycles) {
+    // Simulate CDROM in similar way as SPU - running internally at 44100Hz
+    const int CPU_CYCLES_PER_CDROM_CYCLE = 0x300;
+    this->cycles += cpuCycles;
+
+    int cdromCycles = this->cycles / CPU_CYCLES_PER_CDROM_CYCLE;
+    if (cdromCycles == 0) return;
+
+    this->cycles %= CPU_CYCLES_PER_CDROM_CYCLE;
+    // There should be a loop ;)
+
     status.transmissionBusy = 0;
     if (!interruptQueue.empty()) {
         if ((interruptEnable & 7) & (interruptQueue.peek() & 7)) {
@@ -25,7 +35,7 @@ void CDROM::step() {
     }
 
     // TODO: Calculate correct interval using delta cycles
-    int MAGIC_NUMBER = 1150;  // FIXME: yey, magic numbers
+    int MAGIC_NUMBER = 1150 / 8;  // FIXME: yey, magic numbers
     if (!mode.speed) MAGIC_NUMBER *= 2;
 
     if ((stat.read || stat.play) && readcnt++ == MAGIC_NUMBER) {

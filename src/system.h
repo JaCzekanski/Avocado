@@ -82,6 +82,11 @@ struct System {
     std::unique_ptr<Serial> serial;
     std::array<std::unique_ptr<device::timer::Timer>, 3> timer;
 
+    int cpuStalledCycles = 0;
+
+    template <typename T, int deviceBusWidth = 8>
+    void timing(int accessDelay);
+
     template <typename T>
     INLINE T readMemory(uint32_t address);
     template <typename T>
