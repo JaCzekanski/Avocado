@@ -3,12 +3,17 @@ project(Avocado)
 
 set(CMAKE_CXX_STANDARD 17)
 
+option(FORCE_BUILD_SDL "Force build SDL2 from sources." OFF)
+
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+add_compile_options(-mavx2 -m64)
+add_link_options(-mavx2 -m64)
+
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif()
-
 
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "Building as Release")
@@ -36,7 +41,10 @@ target_include_directories(event_bus INTERFACE externals/EventBus/lib/include)
 
 ##############################################
 # stb_image
-add_library(stb_image INTERFACE)
+add_library(stb_image STATIC
+        externals/stb/stb_image.c
+        externals/stb/stb_image_write.c
+)
 target_include_directories(stb_image INTERFACE externals/stb)
 
 ##############################################
@@ -162,6 +170,21 @@ add_library(filesystem INTERFACE)
 target_include_directories(filesystem INTERFACE externals/filesystem/include)
 
 ##############################################
+# SDL
+if (FORCE_BUILD_SDL)
+    message(STATUS "Force building SDL2 from sources")
+    add_subdirectory(externals/SDL2)
+else()
+    find_package(SDL2)
+    if (NOT SDL2_FOUND)
+        message(STATUS "SDL2 not found, compiling from source")
+        add_subdirectory(externals/SDL2)
+    else()
+        message(STATUS "SDL2 found")
+    endif()
+endif()
+
+##############################################
 # core
 add_library(core STATIC
         src/bios/functions.cpp
@@ -278,7 +301,6 @@ set(SOURCES
         src/platform/windows/gui/options/bios.cpp
         src/platform/windows/gui/options/memory_card.cpp
         src/platform/windows/gui/options/options.cpp
-        src/platform/windows/gui/stb_image.cpp
         src/platform/windows/gui/toasts.cpp
         src/platform/windows/input/key.cpp
         src/platform/windows/input/sdl_input_manager.cpp
@@ -294,8 +316,6 @@ set(SOURCES
         src/renderer/opengl/shader/uniform.cpp
         src/renderer/opengl/shader/vertex_array_object.cpp
         )
-
-find_package(SDL2 REQUIRED)
 
 add_executable(avocado ${SOURCES})
 
@@ -313,3 +333,5 @@ target_link_libraries(avocado
         SDL2::SDL2
         filesystem
         )
+
+# set_property(TARGET avocado PROPERTY INTERPROCEDURAL_OPTIMIZATION True)

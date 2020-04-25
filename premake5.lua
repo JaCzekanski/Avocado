@@ -144,6 +144,7 @@ include "premake/imgui.lua"
 include "premake/lzma.lua"
 include "premake/miniz.lua"
 include "premake/fmt.lua"
+include "premake/stb.lua"
 
 project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
@@ -179,6 +180,7 @@ project "core"
 		"flac",
 		"chdr",
 		"fmt",
+		"stb",
 	}
 
 	if _ACTION ~= nil then
@@ -212,6 +214,7 @@ project "avocado"
 		"lzma",
 		"flac",
 		"fmt",
+		"stb",
 	}
 
 	filter "options:headless"
