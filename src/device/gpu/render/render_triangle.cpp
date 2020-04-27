@@ -1,4 +1,5 @@
 #include "render.h"
+#include <algorithm>
 #include "device/gpu/psx_color.h"
 #include "dither.h"
 #include "texture_utils.h"
