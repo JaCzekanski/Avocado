@@ -1,3 +1,4 @@
+#include <fmt/core.h>
 #include "cpu.h"
 #include "bios/functions.h"
 #include "cpu/instructions.h"
@@ -106,6 +107,9 @@ bool CPU::executeInstructions(int count) {
 
 void CPU::checkForInterrupts() {
     if ((cop0.cause.interruptPending & cop0.status.interruptMask) && cop0.status.interruptEnable) {
+        if (sys->biosLog) {
+            fmt::print("IRQ: 0b{:08b}\n", cop0.cause.interruptPending & cop0.status.interruptMask);
+        }
         instructions::exception(this, COP0::CAUSE::Exception::interrupt);
     }
 }

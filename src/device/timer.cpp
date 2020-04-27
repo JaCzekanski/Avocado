@@ -91,27 +91,25 @@ void Timer::checkIrq() {
 }
 
 uint8_t Timer::read(uint32_t address) {
-    if (address < 2) {
+    if (address < 4) {
         return current.read(address);
-    }
-    if (address >= 4 && address < 6) {
+    } else if (address >= 4 && address < 8) {
         uint8_t v = mode.read(address - 4);
         if (address == 5) {
             mode.reachedFFFF = false;
             mode.reachedTarget = false;
         }
         return v;
-    }
-    if (address >= 8 && address < 10) {
+    } else if (address >= 8 && address < 12) {
         return target.read(address - 8);
     }
     return 0;
 }
 
 void Timer::write(uint32_t address, uint8_t data) {
-    if (address < 2) {
+    if (address < 4) {
         current.write(address, data);
-    } else if (address >= 4 && address < 6) {
+    } else if (address >= 4 && address < 8) {
         current._reg = 0;
         mode.write(address - 4, data);  // BIOS uses 0x0148 for TIMER1
 
@@ -122,28 +120,28 @@ void Timer::write(uint32_t address, uint8_t data) {
             if (mode.syncEnabled) {
                 if (which == 0) {
                     using modes = CounterMode::SyncMode0;
-                    auto mode0 = static_cast<CounterMode::SyncMode0>(mode.syncMode);
+                    auto mode0 = static_cast<modes>(mode.syncMode);
                     if (mode0 == modes::pauseUntilHblankAndFreerun) paused = true;
-
-                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode0);
+                    //
+                    //                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode0);
                 }
                 if (which == 1) {
                     using modes = CounterMode::SyncMode1;
-                    auto mode1 = static_cast<CounterMode::SyncMode1>(mode.syncMode);
+                    auto mode1 = static_cast<modes>(mode.syncMode);
                     if (mode1 == modes::pauseUntilVblankAndFreerun) paused = true;
-
-                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode1);
+                    //
+                    //                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode1);
                 }
                 if (which == 2) {
                     using modes = CounterMode::SyncMode2;
-                    auto mode2 = static_cast<CounterMode::SyncMode2>(mode.syncMode);
+                    auto mode2 = static_cast<modes>(mode.syncMode);
                     if (mode2 == modes::stopCounter || mode2 == modes::stopCounter_) paused = true;
-
-                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode2);
+                    //
+                    //                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode2);
                 }
             }
         }
-    } else if (address >= 8 && address < 10) {
+    } else if (address >= 8 && address < 12) {
         target.write(address - 8, data);
     }
 }

@@ -817,7 +817,7 @@ bool GPU::emulateGpuCycles(int cpuCycles) {
     gpuDot %= cyclesPerLine();
     gpuLine += newLines;
 
-    if (gpuLine < linesPerFrame() - 20 - 1) {
+    if (gpuLine < linesPerFrame() - 20) {
         if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
             odd = (frames % 2) != 0;
         } else {
@@ -827,7 +827,7 @@ bool GPU::emulateGpuCycles(int cpuCycles) {
         odd = false;
     }
 
-    if (gpuLine >= linesPerFrame() - 1) {
+    if (gpuLine >= linesPerFrame()) {
         gpuLine = 0;
         frames++;
         return true;

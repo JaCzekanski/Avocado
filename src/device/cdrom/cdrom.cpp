@@ -35,7 +35,7 @@ void CDROM::step(int cpuCycles) {
     }
 
     // TODO: Calculate correct interval using delta cycles
-    int MAGIC_NUMBER = 1150 / 8;  // FIXME: yey, magic numbers
+    int MAGIC_NUMBER = 1150 / 4;  // FIXME: yey, magic numbers
     if (!mode.speed) MAGIC_NUMBER *= 2;
 
     if ((stat.read || stat.play) && readcnt++ == MAGIC_NUMBER) {
@@ -206,7 +206,6 @@ bool CDROM::isBufferEmpty() {
 
 uint8_t CDROM::readByte() {
     if (dataBuffer.empty()) {
-        fmt::print("[CDROM] Buffer empty\n");
         return 0;
     }
 

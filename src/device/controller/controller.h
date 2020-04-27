@@ -32,7 +32,7 @@ union Mode {
     uint8_t _byte[2];
     Mode() : _reg(0) {}
 
-    int getPrescaler() {
+    int getPrescaler() const {
         switch (baudrateReloadFactor) {
             case BaudrateReloadFactor::mul1:
             case BaudrateReloadFactor::_mul1: return 1;
@@ -41,7 +41,7 @@ union Mode {
             default: return 1;  // Unreachable
         }
     }
-    int getBits() {
+    int getBits() const {
         switch (bits) {
             case Bits::bit5: return 5;
             case Bits::bit6: return 6;
@@ -53,7 +53,7 @@ union Mode {
 };
 union Status {
     struct {
-        uint32_t txStarted : 1;
+        uint32_t txReady : 1;
         uint32_t rxPending : 1;
         uint32_t txFinished : 1;
         uint32_t rxParityError : 1;
@@ -109,13 +109,10 @@ class Controller {
     int rxDelay = 0;      // CPU cycles
     int ackDelay = 0;     // CPU cycles
     int ackDuration = 0;  // CPU cycles
-
-    void handleByte(uint8_t byte);
-
     uint8_t rxData = 0;
 
+    void handleByte(uint8_t byte);
     uint8_t getData();
-
     void postByte(uint8_t data);
 
     // Measured delay was between 6.8us and 13.7us for controller
@@ -130,6 +127,7 @@ class Controller {
 
     Controller(System* sys);
     ~Controller();
+    void reset();
     void reload();
     void step(int cpuCycles);
     uint8_t read(uint32_t address);
@@ -138,7 +136,7 @@ class Controller {
 
     template <class Archive>
     void serialize(Archive& ar) {
-        //        ar(deviceSelected, mode, control, baud, irq, ackDelay, rxData, rxPending, ack);
+        ar(deviceSelected, mode._reg, control._reg, baud._reg, status._reg, rxDelay, ackDelay, ackDuration, rxData);
         // TODO: serialize controller && card state
     }
 };

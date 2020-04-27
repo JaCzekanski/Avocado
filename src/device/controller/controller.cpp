@@ -20,41 +20,26 @@ Controller::Controller(System* sys) : sys(sys) {
         card[i] = std::make_unique<peripherals::MemoryCard>(i + 1);
     }
 
-    status.txStarted = true;
-    status.txFinished = true;
-}
-
-void Controller::handleByte(uint8_t byte) {
-    if (!control.select) return;
-    status.txStarted = true;
-    status.txFinished = false;
-    if (deviceSelected == DeviceSelected::None) {
-        if (byte == 0x01) {
-            deviceSelected = DeviceSelected::Controller;
-        } else if (byte == 0x81) {
-            deviceSelected = DeviceSelected::MemoryCard;
-        }
-    }
-
-    if (deviceSelected == DeviceSelected::Controller) {
-        postByte(controller[control.port]->handle(byte));
-        if (controller[control.port]->getAck()) {
-            postAck();
-        } else {
-            deviceSelected = DeviceSelected::None;
-        }
-    }
-    if (deviceSelected == DeviceSelected::MemoryCard) {
-        postByte(card[control.port]->handle(byte));
-        if (card[control.port]->getAck()) {
-            postAck();
-        } else {
-            deviceSelected = DeviceSelected::None;
-        }
-    }
+    reset();
 }
 
 Controller::~Controller() { bus.unlistenAll(busToken); }
+
+void Controller::reset() {
+    mode._reg = 0;
+    control._reg = 0;
+    baud._reg = 0;
+    status._reg = 0;
+    status.txReady = true;
+
+    rxDelay = 0;
+    ackDelay = 0;
+    ackDuration = 0;
+
+    for (auto& ctrl : controller) ctrl->resetState();
+    for (auto& crd : card) crd->resetState();
+}
+
 void Controller::reload() {
     auto createDevice = [](int num) -> std::unique_ptr<peripherals::AbstractDevice> {
         num += 1;
@@ -72,6 +57,40 @@ void Controller::reload() {
 
     for (auto i = 0; i < (int)controller.size(); i++) {
         controller[i] = createDevice(i);
+    }
+}
+
+void Controller::handleByte(uint8_t byte) {
+    if (!control.select) return;
+    status.txReady = true;
+    status.txFinished = false;
+    if (deviceSelected == DeviceSelected::None) {
+        if (byte == 0x01) {
+            deviceSelected = DeviceSelected::Controller;
+        } else if (byte == 0x81) {
+            deviceSelected = DeviceSelected::MemoryCard;
+        }
+    }
+
+    if (deviceSelected == DeviceSelected::Controller) {
+        postByte(controller[control.port]->handle(byte));
+
+        status.ack = false;
+        if (controller[control.port]->getAck()) {
+            postAck();
+        } else {
+            deviceSelected = DeviceSelected::None;
+        }
+    }
+    if (deviceSelected == DeviceSelected::MemoryCard) {
+        postByte(card[control.port]->handle(byte));
+
+        status.ack = false;
+        if (card[control.port]->getAck()) {
+            postAck();
+        } else {
+            deviceSelected = DeviceSelected::None;
+        }
     }
 }
 
@@ -169,11 +188,7 @@ void Controller::write(uint32_t address, uint8_t data) {
         }
 
         if (control.reset) {
-            control.reset = false;
-            status.txStarted = true;
-            status.rxPending = false;
-            status.txFinished = true;
-            fmt::print("[WARNING] [CTRL] control.reset, should not be used...\n");
+            reset();
         }
 
     } else if (address >= 14 && address < 16) {
@@ -208,7 +223,6 @@ void Controller::postByte(uint8_t data) {
 }
 
 void Controller::postAck(int delayUs, int durationUs) {
-    status.ack = false;
     ackDelay = timing::usToCpuCycles(delayUs);
     ackDuration = timing::usToCpuCycles(durationUs);
 }

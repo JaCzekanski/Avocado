@@ -85,7 +85,16 @@ struct System {
     int cpuStalledCycles = 0;
 
     template <typename T, int deviceBusWidth = 8>
-    void timing(int accessDelay);
+    constexpr void timing(int accessDelay) {
+        constexpr auto hostBits = sizeof(T);
+        constexpr auto deviceBits = deviceBusWidth / 8;
+
+        if constexpr (hostBits <= deviceBits) {
+            cpuStalledCycles += accessDelay;
+        } else {
+            cpuStalledCycles += accessDelay * (hostBits / deviceBits);
+        }
+    }
 
     template <typename T>
     INLINE T readMemory(uint32_t address);

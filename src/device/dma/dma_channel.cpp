@@ -66,6 +66,9 @@ void DMAChannel::startTransfer() {
             }
         }
         control.enabled = CHCR::Enabled::stop;
+
+        sys->cpuStalledCycles += count.syncMode0.wordCount * 4;  // Hardcoded RAM access time
+        sys->cpuStalledCycles += count.syncMode0.wordCount * 2;  // Hardcoded Device access time
     } else if (control.syncMode == CHCR::SyncMode::sync) {
         int blockCount = count.syncMode1.blockCount;
         int blockSize = count.syncMode1.blockSize;
@@ -93,6 +96,9 @@ void DMAChannel::startTransfer() {
         // TODO: Need proper Chopping implementation for SPU READ to work
         baseAddress.address = addr;
         count.syncMode1.blockCount = 0;
+
+        sys->cpuStalledCycles += blockCount * blockSize / 4 * 4;  // Hardcoded RAM access time
+        sys->cpuStalledCycles += blockCount * blockSize / 4 * 2;  // Hardcoded Device access time
     } else if (control.syncMode == CHCR::SyncMode::linkedList) {
         if (verbose) {
             fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}\n", (int)channel, enum_name(channel), control.dir(), addr,
@@ -100,7 +106,8 @@ void DMAChannel::startTransfer() {
         }
 
         std::unordered_set<uint32_t> visited;
-        for (;;) {
+        int wordsRead = 0;
+        for (;; wordsRead++) {
             uint32_t blockInfo = sys->readMemory32(addr);
             int commandCount = blockInfo >> 24;
             int nextAddr = blockInfo & 0xffffff;
@@ -111,7 +118,7 @@ void DMAChannel::startTransfer() {
             }
 
             addr += step;
-            for (int i = 0; i < commandCount; i++, addr += step) {
+            for (int i = 0; i < commandCount; i++, addr += step, wordsRead++) {
                 writeDevice(sys->readMemory32(addr));
             }
 
@@ -125,6 +132,9 @@ void DMAChannel::startTransfer() {
             visited.insert(addr);
         }
         baseAddress.address = addr;
+
+        sys->cpuStalledCycles += wordsRead * 4;  // Hardcoded RAM access time
+        sys->cpuStalledCycles += wordsRead * 2;  // Hardcoded Device access time
     }
 
     irqFlag = true;

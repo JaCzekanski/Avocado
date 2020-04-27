@@ -98,18 +98,6 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
 #define LOG_IO(mode, size, addr, data, pc)
 #endif
 
-template <typename T, int deviceBusWidth>
-void System::timing(int accessDelay) {
-    const auto hostBits = sizeof(T);
-    const auto deviceBits = deviceBusWidth / 8;
-
-    if constexpr (hostBits <= deviceBits) {
-        cpuStalledCycles += accessDelay;
-    } else {
-        cpuStalledCycles += accessDelay * (hostBits / deviceBits);
-    }
-}
-
 #define TIMING(BITS, CYCLES) timing<T, (BITS)>(CYCLES)
 
 #define READ_IO(begin, end, periph, bits, cycles)                                \
@@ -162,44 +150,47 @@ INLINE T System::readMemory(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
     uint32_t addr = align_mips<T>(address);
+    uint16_t part = (address & 0x0fe00000) >> 20;
+    uint8_t segment = (address & 0xf0000000) >> 28;
 
-    if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        TIMING(32, 4);
-        return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
-    }
-    if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
-        TIMING(8, 6);
-        return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
-    }
-    if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
-        TIMING(32, 1);
-        return read_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE);
-    }
-    if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
-        TIMING(8, 7);
-        return read_fast<T>(bios.data(), addr - BIOS_BASE);
-    }
+    if (segment < 0xf) {
+        switch (part) {
+            case 0: TIMING(32, 4); return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
 
-    READ_IO(0x1f801000, 0x1f801024, memoryControl, 32, 2);
-    READ_IO(0x1f801040, 0x1f801050, controller, 32, 2);
-    READ_IO(0x1f801050, 0x1f801060, serial, 32, 2);
-    READ_IO(0x1f801060, 0x1f801064, memoryControl, 32, 2);
-    READ_IO(0x1f801070, 0x1f801078, interrupt, 32, 2);
-    READ_IO(0x1f801080, 0x1f801100, dma, 32, 2);
-    READ_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
-    READ_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
-    READ_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
-    READ_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
-    READ_IO32(0x1f801810, 0x1f801818, gpu, 2);
-    READ_IO32(0x1f801820, 0x1f801828, mdec, 3);
-    READ_IO(0x1f801C00, 0x1f802000, spu, 16, 17);
-    READ_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
+            case 0xf0: TIMING(8, 6); return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
 
-    if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
-        TIMING(32, 1);
-        auto data = cacheControl->read(0);
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);
-        return data;
+            case 0xf8:  // scratch/ io / exp
+                if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
+                    TIMING(32, 0);
+                    return read_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE);
+                }
+
+                READ_IO(0x1f801000, 0x1f801024, memoryControl, 32, 2);
+                READ_IO(0x1f801040, 0x1f801050, controller, 32, 2);
+                READ_IO(0x1f801050, 0x1f801060, serial, 32, 2);
+                READ_IO(0x1f801060, 0x1f801064, memoryControl, 32, 2);
+                READ_IO(0x1f801070, 0x1f801078, interrupt, 32, 2);
+                READ_IO(0x1f801080, 0x1f801100, dma, 32, 2);
+                READ_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
+                READ_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
+                READ_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
+                READ_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
+                READ_IO32(0x1f801810, 0x1f801818, gpu, 2);
+                READ_IO32(0x1f801820, 0x1f801828, mdec, 3);
+                READ_IO(0x1f801C00, 0x1f802000, spu, 16, 16);
+                READ_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
+                break;
+
+            case 0xfc: TIMING(8, 6); return read_fast<T>(bios.data(), addr - BIOS_BASE);
+        }
+
+    } else {
+        if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
+            TIMING(32, 1);
+            auto data = cacheControl->read(0);
+            LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);
+            return data;
+        }
     }
 
     fmt::print("[SYS] R Unhandled address at 0x{:08x}\n", address);
@@ -245,7 +236,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     WRITE_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
     WRITE_IO32(0x1f801810, 0x1f801818, gpu, 2);
     WRITE_IO32(0x1f801820, 0x1f801828, mdec, 3);
-    WRITE_IO(0x1f801C00, 0x1f802000, spu, 16, 17);
+    WRITE_IO(0x1f801C00, 0x1f802000, spu, 16, 16);
     WRITE_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
 
     if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
@@ -353,18 +344,18 @@ void System::handleSyscallFunction() {
 
 void System::singleStep() {
     state = State::run;
-    cpu->executeInstructions(3);
+    cpu->executeInstructions(1);
     state = State::pause;
 
     dma->step();
-    cdrom->step(0);
-    timer[0]->step(3);
-    timer[1]->step(3);
-    timer[2]->step(3);
-    controller->step(3);
-    spu->step(3, cdrom.get());
+    cdrom->step(1);
+    timer[0]->step(1);
+    timer[1]->step(1);
+    timer[2]->step(1);
+    spu->step(1, cdrom.get());
+    controller->step(1);
 
-    if (gpu->emulateGpuCycles(3)) {
+    if (gpu->emulateGpuCycles(1)) {
         interrupt->trigger(interrupt::VBLANK);
     }
 }
@@ -377,13 +368,15 @@ void System::emulateFrame() {
     gpu->gpuLogList.clear();
 
     //    gpu->prevVram = gpu->vram;
+    int cpuCyclesConsumed = 0;
     for (;;) {
-        int systemCycles = 0x100;
+        int systemCycles = 0x1000;
         cpuStalledCycles = 0;
         if (!cpu->executeInstructions(systemCycles)) {
             return;
         }
         systemCycles += cpuStalledCycles;
+        cpuCyclesConsumed += systemCycles;
 
         dma->step();
         cdrom->step(systemCycles);
@@ -400,6 +393,7 @@ void System::emulateFrame() {
         controller->step(systemCycles);
 
         if (gpu->emulateGpuCycles(systemCycles)) {
+            //            fmt::print("cpuCyclesConsumed: {} (*60 == {})\n",cpuCyclesConsumed, cpuCyclesConsumed*60);
             interrupt->trigger(interrupt::VBLANK);
             return;  // frame emulated
         }
