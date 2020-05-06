@@ -13,6 +13,7 @@ class SdlInputManager : public InputManager {
     std::unordered_map<int, SDL_GameController*> controllers;
     int32_t mouseX = 0;  // Track mouse movement in frame
     int32_t mouseY = 0;
+    bool shouldCaptureMouse = false;
 
     bool handleKey(Key key, AnalogValue value);
     void fixControllerId(SDL_Event& event);
@@ -31,6 +32,8 @@ class SdlInputManager : public InputManager {
 
     void vibrationThreadFunc();
     void onVibrationEvent(Event::Controller::Vibration e);
+
+    bool isMouseBound();
 
    public:
     bool mouseCaptured = false;

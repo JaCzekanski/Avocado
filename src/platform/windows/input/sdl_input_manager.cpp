@@ -46,7 +46,7 @@ void SdlInputManager::vibrationThreadFunc() {
 }
 
 void SdlInputManager::onVibrationEvent(Event::Controller::Vibration e) {
-    // Vibration output is choosen by DPAD_UP mapped game controller
+    // Vibration output is chosen by DPAD_UP mapped game controller
     std::string keyName = config.controller[e.port - 1].keys["dpad_up"];
     Key key(keyName);
 
@@ -60,6 +60,18 @@ void SdlInputManager::onVibrationEvent(Event::Controller::Vibration e) {
         vibrationData = {controller, e};
         vibrationHasNewData.notify_one();
     }
+}
+
+bool SdlInputManager::isMouseBound() {
+    // Check if mouse axis is bound anywhere
+    for (auto& c : config.controller) {
+        for (auto& k : c.keys) {
+            if (k.second.rfind("mouse", 0) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool SdlInputManager::handleKey(Key key, AnalogValue value) {
@@ -104,6 +116,12 @@ void SdlInputManager::newFrame() {
     mouseX = 0;
     mouseY = 0;
 
+#ifdef ANDROID
+    shouldCaptureMouse = false;
+#else
+    shouldCaptureMouse = isMouseBound();
+#endif
+
     if (waitingForKeyPress) return;
 
     Key key;
@@ -126,10 +144,8 @@ bool SdlInputManager::handleEvent(SDL_Event& event) {
     auto type = event.type;
 
     if ((!mouseCaptured || waitingForKeyPress) && event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT
-        && event.button.clicks == 2) {
-#ifndef ANDROID
+        && event.button.clicks == 2 && shouldCaptureMouse) {
         mouseLocked = true;
-#endif
         return true;
     }
 
