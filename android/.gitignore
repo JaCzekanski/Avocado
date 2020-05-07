@@ -145,6 +145,6 @@ captures/
 fastlane/report.xml
 fastlane/README.md
 
-
 app/obj
 app/.externalNativeBuild/
+app/.cxx/
