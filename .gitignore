@@ -62,6 +62,7 @@ spu.bin
 
 .vs/
 imgui.ini
+/vram.png
 
 todo.txt
 config.json

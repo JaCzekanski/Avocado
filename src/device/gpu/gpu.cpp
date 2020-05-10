@@ -49,6 +49,8 @@ void GPU::reset() {
     drawingOffsetY = 0;
 
     gp0_e6._reg = 0;
+
+    clutCachePos = ivec2(-1, -1);
 }
 
 void GPU::drawTriangle(const primitive::Triangle& triangle) {
@@ -607,6 +609,7 @@ void GPU::writeGP0(uint32_t data) {
             }
         } else if (command == 0x01) {
             // Clear Cache
+            clutCachePos = ivec2(-1, -1);
         } else if (command == 0x02) {
             // Fill rectangle
             cmd = Command::FillRectangle;

@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <vector>
+#include "color_depth.h"
 #include "primitive.h"
 #include "psx_color.h"
 #include "registers.h"
@@ -97,6 +98,11 @@ class GPU {
     bool textureDisableAllowed = false;
 
     std::array<uint16_t, VRAM_WIDTH * VRAM_HEIGHT> vram{};
+
+    // TODO: Serialize?
+    std::array<uint16_t, 256> clutCache{};
+    ivec2 clutCachePos{-1, -1};
+    ColorDepth clutCacheColorDepth = ColorDepth::NONE;
 
    private:
     // Hardware rendering

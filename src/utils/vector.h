@@ -7,6 +7,8 @@ struct ivec2 {
 
     ivec2 operator-(const ivec2& b) const { return {x - b.x, y - b.y}; }
     ivec2 operator+(const ivec2& b) const { return {x + b.x, y + b.y}; }
+    bool operator==(const ivec2& b) const { return x == b.x && y == b.y; }
+    bool operator!=(const ivec2& b) const { return x != b.x || y != b.y; }
 };
 
 struct ivec3 {
@@ -15,6 +17,8 @@ struct ivec3 {
 
     ivec3 operator-(const ivec3& b) const { return {x - b.x, y - b.y, z - b.z}; }
     ivec3 operator+(const ivec3& b) const { return {x + b.x, y + b.y, z - b.z}; }
+    bool operator==(const ivec3& b) const { return x == b.x && y == b.y && z == b.z; }
+    bool operator!=(const ivec3& b) const { return x != b.x || y != b.y || z != b.z; }
 };
 
 struct vec2 {
@@ -27,6 +31,8 @@ struct vec2 {
     vec2 operator+(const vec2& b) const { return {x + b.x, y + b.y}; }
     vec2 operator*(const float b) const { return {x * b, y * b}; }
     vec2 operator/(const float b) const { return {x / b, y / b}; }
+    bool operator==(const vec2& b) const { return x == b.x && y == b.y; }
+    bool operator!=(const vec2& b) const { return x != b.x || y != b.y; }
 
     float length() const;
     static vec2 normalize(const vec2& v);

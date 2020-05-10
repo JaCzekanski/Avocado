@@ -44,6 +44,8 @@ INLINE void rasterizeRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
         vStep = -1;
     }
 
+    loadClutCacheIfRequired<bits>(gpu, rect.clut);
+
     int x, y, u, v;
     for (y = min.y, v = uv.y; y <= max.y; y++, v += vStep) {
         for (x = min.x, u = uv.x; x <= max.x; x++, u += uStep) {
@@ -57,7 +59,7 @@ INLINE void rasterizeRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
                 c = PSXColor(rect.color.r, rect.color.g, rect.color.b);
             } else {
                 const ivec2 texel = maskTexel(ivec2(u, v), textureWindow);
-                c = fetchTex<bits>(gpu, texel, rect.texpage, rect.clut);
+                c = fetchTex<bits>(gpu, texel, rect.texpage);
                 if (c.raw == 0x0000) continue;
 
                 if constexpr (isBlended) {

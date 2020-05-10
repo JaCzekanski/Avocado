@@ -1,4 +1,4 @@
-#include "texture_utils.h"
+#include "color_depth.h"
 
 ColorDepth bitsToDepth(int bits) {
     switch (bits) {

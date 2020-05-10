@@ -1,48 +1,55 @@
 #pragma once
 #include "device/gpu/gpu.h"
 #include "utils/macros.h"
+#include "../color_depth.h"
 #include "../primitive.h"
 
 #define gpuVRAM ((uint16_t(*)[gpu::VRAM_WIDTH])gpu->vram.data())
 
-enum class ColorDepth { NONE, BIT_4, BIT_8, BIT_16 };
+template <ColorDepth bits>
+void loadClutCacheIfRequired(gpu::GPU* gpu, ivec2 clut) {
+    // Only paletted textures should reload the color look-up table cache
+    if constexpr (bits != ColorDepth::BIT_4 && bits != ColorDepth::BIT_8) {
+        return;
+    }
 
-ColorDepth bitsToDepth(int bits);
+    bool textureFormatRequireReload = bits > gpu->clutCacheColorDepth;
+    bool clutPositionChanged = gpu->clutCachePos != clut;
 
-template <int bits>
-constexpr ColorDepth bitsToDepth() {
-    if constexpr (bits == 4)
-        return ColorDepth::BIT_4;
-    else if constexpr (bits == 8)
-        return ColorDepth::BIT_8;
-    else if constexpr (bits == 16)
-        return ColorDepth::BIT_16;
-    else
-        return ColorDepth::NONE;
+    if (!textureFormatRequireReload && !clutPositionChanged) {
+        return;
+    }
+
+    gpu->clutCacheColorDepth = bits;
+    gpu->clutCachePos = clut;
+
+    constexpr int entries = (bits == ColorDepth::BIT_8) ? 256 : 16;
+    for (int i = 0; i < entries; i++) {
+        gpu->clutCache[i] = gpuVRAM[clut.y][clut.x + i];
+    }
 }
 
 namespace {
-// Using unsigned vectors allows compiler to generate slightly faster division code
-INLINE uint16_t tex4bit(gpu::GPU* gpu, ivec2 tex, ivec2 texPage, ivec2 clut) {
+INLINE uint16_t tex4bit(gpu::GPU* gpu, ivec2 tex, ivec2 texPage) {
     uint16_t index = gpuVRAM[(texPage.y + tex.y) & 511][(texPage.x + tex.x / 4) & 1023];
     uint8_t entry = (index >> ((tex.x & 3) * 4)) & 0xf;
-    return gpuVRAM[clut.y][clut.x + entry];
+    return gpu->clutCache[entry];
 }
 
-INLINE uint16_t tex8bit(gpu::GPU* gpu, ivec2 tex, ivec2 texPage, ivec2 clut) {
+INLINE uint16_t tex8bit(gpu::GPU* gpu, ivec2 tex, ivec2 texPage) {
     uint16_t index = gpuVRAM[(texPage.y + tex.y) & 511][(texPage.x + tex.x / 2) & 1023];
     uint8_t entry = (index >> ((tex.x & 1) * 8)) & 0xff;
-    return gpuVRAM[clut.y][clut.x + entry];
+    return gpu->clutCache[entry];
 }
 
 INLINE uint16_t tex16bit(gpu::GPU* gpu, ivec2 tex, ivec2 texPage) { return gpuVRAM[(texPage.y + tex.y) & 511][(texPage.x + tex.x) & 1023]; }
 
 template <ColorDepth bits>
-INLINE PSXColor fetchTex(gpu::GPU* gpu, ivec2 texel, const ivec2 texPage, const ivec2 clut) {
+INLINE PSXColor fetchTex(gpu::GPU* gpu, ivec2 texel, const ivec2 texPage) {
     if constexpr (bits == ColorDepth::BIT_4) {
-        return tex4bit(gpu, texel, texPage, clut);
+        return tex4bit(gpu, texel, texPage);
     } else if constexpr (bits == ColorDepth::BIT_8) {
-        return tex8bit(gpu, texel, texPage, clut);
+        return tex8bit(gpu, texel, texPage);
     } else if constexpr (bits == ColorDepth::BIT_16) {
         return tex16bit(gpu, texel, texPage);
     } else {

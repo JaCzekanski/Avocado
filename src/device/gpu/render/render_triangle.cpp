@@ -200,6 +200,8 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
     const int area = orient2d(pos[0], pos[1], pos[2]);
     if (area == 0) return;
 
+    loadClutCacheIfRequired<bits>(gpu, triangle.clut);
+
     ivec2 min(                                     //
         std::min({pos[0].x, pos[1].x, pos[2].x}),  //
         std::min({pos[0].y, pos[1].y, pos[2].y})   //
@@ -278,7 +280,7 @@ void rasterizeTriangle(gpu::GPU* gpu, const primitive::Triangle& triangle) {
                 } else {
                     const ivec2 uv(FROM_FP(attrib.u), FROM_FP(attrib.v));
                     const ivec2 texel = maskTexel(uv, textureWindow);
-                    c = fetchTex<bits>(gpu, texel, triangle.texpage, triangle.clut);
+                    c = fetchTex<bits>(gpu, texel, triangle.texpage);
                     if (c.raw == 0x0000) goto DONE;
 
                     if constexpr (isBlended) {
