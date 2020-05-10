@@ -95,7 +95,9 @@ void fatalError(const std::string& error) {
 
 void changeWorkingDirectory() {
     std::string workingDirectory = ".";
-#ifdef ANDROID
+#if defined(__linux__)
+    return;  // AppImage, no change
+#elif defined(ANDROID)
     workingDirectory = "/sdcard/avocado";
 #else
     char* basePath = SDL_GetBasePath();

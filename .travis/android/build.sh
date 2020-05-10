@@ -3,12 +3,17 @@
 
 cd /home/build
 
+export BUILD_MODE=release
+if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then 
+    export BUILD_MODE=debug
+fi
+
 export OS=android
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT.apk
 export ASSETS_DIR=android/app/src/main/assets
-export TARGET_DIR=android/app/build/outputs/apk/release
+export TARGET_DIR=android/app/build/outputs/apk/$BUILD_MODE
 export NDK_CCACHE="$(which ccache)"
 
 # Configure cache
@@ -23,7 +28,7 @@ find $ASSETS_DIR -type f -name .gitignore -exec rm {} \;
 
 # Build
 pushd android
-./gradlew assembleRelease
+./gradlew assemble$BUILD_MODE
 popd
 
 # Tests
@@ -31,4 +36,4 @@ popd
 
 # Package and prepare upload artifact
 mkdir -p upload
-cp $TARGET_DIR/app-release.apk upload/$ARTIFACT
+cp $TARGET_DIR/app-$BUILD_MODE.apk upload/$ARTIFACT

@@ -2,6 +2,7 @@
 #include <array>
 #include <string>
 #include <map>
+#include <vector>
 #include "platform/windows/gui/filesystem.h"
 
 namespace gui::helper {

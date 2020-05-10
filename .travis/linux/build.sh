@@ -13,10 +13,6 @@ export CXX="ccache c++ -fcolor-diagnostics"
 # Configure cache
 ccache --set-config=sloppiness=pch_defines,time_macros
 
-# Download SDL2
-apt -qq update 
-apt -qq install -y --no-install-recommends libsdl2-dev > /dev/null
-
 # Generate Makefile
 premake5 gmake
 
@@ -32,11 +28,22 @@ wget -nv https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/ra
 
 # Package
 mkdir -p $ARTIFACT
-cp build/release_x64/avocado $ARTIFACT/avocado
 cp -r data $ARTIFACT/
+cp android/app/src/main/ic_launcher-web.png $ARTIFACT/avocado.png
 
 # Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
 
+wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+chmod +x ./linuxdeploy-x86_64.AppImage
+
+APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy-x86_64.AppImage \
+    --appdir=$ARTIFACT \
+    --executable=./build/release_x64/avocado \
+    --create-desktop-file \
+    --icon-file=$ARTIFACT/avocado.png \
+    --output=appimage
+
+# Upload
 mkdir -p upload
-tar -zcf upload/$ARTIFACT.tar.gz $ARTIFACT
+mv avocado-*.AppImage upload/

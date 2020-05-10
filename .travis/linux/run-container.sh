@@ -10,4 +10,3 @@ docker run \
     -v "$HOME/.ccache":/root/.ccache \
     avocadoemu/linux-clang$CLANG_VERSION \
     /bin/bash -ex /home/build/.travis/linux/build.sh
-
