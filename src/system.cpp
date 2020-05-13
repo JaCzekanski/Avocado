@@ -101,7 +101,7 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
 #define TIMING(BITS, CYCLES) timing<T, (BITS)>(CYCLES)
 
 #define READ_IO(begin, end, periph, bits, cycles)                                \
-    if (addr >= (begin) && addr < (end)) {                                       \
+    {                                                                            \
         TIMING(bits, cycles);                                                    \
         auto data = read_io<T>((periph), addr - (begin));                        \
                                                                                  \
@@ -109,18 +109,16 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
         return data;                                                             \
     }
 
-#define READ_IO32(begin, end, periph, cycles)                                                                            \
-    if (addr >= (begin) && addr < (end)) {                                                                               \
-        T data = 0;                                                                                                      \
-        if (sizeof(T) == 4) {                                                                                            \
-            TIMING(32, cycles);                                                                                          \
-            data = (periph)->read(addr - (begin));                                                                       \
-        } else {                                                                                                         \
-            fmt::print("[SYS] R Unsupported access to " #periph " with bit size {}\n", static_cast<int>(sizeof(T) * 8)); \
-        }                                                                                                                \
-                                                                                                                         \
-        LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);                                         \
-        return data;                                                                                                     \
+#define READ_IO32(begin, end, periph, cycles)                                        \
+    {                                                                                \
+        if constexpr (sizeof(T) == 4) {                                              \
+            TIMING(32, cycles);                                                      \
+            auto data = (periph)->read(addr - (begin));                              \
+            LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC); \
+            return data;                                                             \
+        } else {                                                                     \
+            return 0;                                                                \
+        }                                                                            \
     }
 
 #define WRITE_IO(begin, end, periph, bits, cycles)                                \
@@ -132,60 +130,79 @@ constexpr void write_io(Device& periph, uint32_t addr, T data) {
         return;                                                                   \
     }
 
-#define WRITE_IO32(begin, end, periph, cycles)                                                                           \
-    if (addr >= (begin) && addr < (end)) {                                                                               \
-        if (sizeof(T) == 4) {                                                                                            \
-            TIMING(32, cycles);                                                                                          \
-            (periph)->write(addr - (begin), data);                                                                       \
-        } else {                                                                                                         \
-            fmt::print("[SYS] W Unsupported access to " #periph " with bit size {}\n", static_cast<int>(sizeof(T) * 8)); \
-        }                                                                                                                \
-                                                                                                                         \
-        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC);                                        \
-        return;                                                                                                          \
+#define WRITE_IO32(begin, end, periph, cycles)                                    \
+    if (addr >= (begin) && addr < (end)) {                                        \
+        if (sizeof(T) == 4) {                                                     \
+            TIMING(32, cycles);                                                   \
+            (periph)->write(addr - (begin), data);                                \
+        } else {                                                                  \
+        }                                                                         \
+                                                                                  \
+        LOG_IO(IO_LOG_ENTRY::MODE::WRITE, sizeof(T) * 8, address, data, cpu->PC); \
+        return;                                                                   \
     }
 
+#define BIOS_BASE (0x1fc00000)
+#define RAM_BASE (0x00000000)
+#define SCRATCHPAD_BASE (0x1f800000)
+#define EXPANSION_BASE (0x1f000000)
+#define IO_BASE (0x1f801000)
+
+#define BIOS_SIZE (512 * 1024)
+#define RAM_SIZE (2 * 1024 * 1024)
+#define SCRATCHPAD_SIZE (1024)
+#define EXPANSION_SIZE (1 * 1024 * 1024)
+#define IO_SIZE (0x2000)
 template <typename T>
 INLINE T System::readMemory(uint32_t address) {
     static_assert(std::is_same<T, uint8_t>() || std::is_same<T, uint16_t>() || std::is_same<T, uint32_t>(), "Invalid type used");
 
-    uint32_t addr = align_mips<T>(address);
-    uint16_t part = (address & 0x0fe00000) >> 20;
-    uint8_t segment = (address & 0xf0000000) >> 28;
-
-    if (segment < 0xf) {
+    uint8_t segment = (address & 0xf000'0000) >> 28;
+    if (segment < 0xc) {
+        uint8_t part = (address & 0x0fc0'0000) >> 22;
+        uint32_t addr = align_mips<T>(address);
         switch (part) {
-            case 0: TIMING(32, 4); return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
-
-            case 0xf0: TIMING(8, 6); return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
-
-            case 0xf8:  // scratch/ io / exp
+            case (0x00 >> 2): TIMING(32, 4); return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
+            case (0xf0 >> 2): TIMING(8, 6); return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
+            case (0xf8 >> 2): {  // scratch/ io / exp
                 if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
                     TIMING(32, 0);
                     return read_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE);
+                } else {
+                    uint8_t dev = (addr & 0xff0) >> 4;
+                    switch (dev) {
+                        case 0x0 ... 0x3: READ_IO(0x1f801000, 0x1f801024, memoryControl, 32, 2);
+                        case 0x4: READ_IO(0x1f801040, 0x1f801050, controller, 32, 2);
+                        case 0x5: READ_IO(0x1f801050, 0x1f801060, serial, 32, 2);
+                        case 0x6: READ_IO(0x1f801060, 0x1f801064, memoryControl, 32, 2);
+                        case 0x7: READ_IO(0x1f801070, 0x1f801078, interrupt, 32, 2);
+                        case 0x8 ... 0xf: READ_IO(0x1f801080, 0x1f801100, dma, 32, 2);
+                        case 0x10: READ_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
+                        case 0x11: READ_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
+                        case 0x12: READ_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
+                        case 0x80: READ_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
+                        case 0x81: READ_IO32(0x1f801810, 0x1f801818, gpu, 2);
+                        case 0x82: READ_IO32(0x1f801820, 0x1f801828, mdec, 3);
+                        case 0xc0 ... 0xff: READ_IO(0x1f801C00, 0x1f802000, spu, 16, 16);
+                        default:
+                            fmt::print("[SYS] R Unhandled address at 0x{:08x}\n", address);
+                            cpu->busError();
+                            break;
+                            // case 0x13 - 0x7f - unmapped
+                            // case 0x83 - 0xbf - unmapped
+                    }
                 }
+                //                READ_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
+            }
 
-                READ_IO(0x1f801000, 0x1f801024, memoryControl, 32, 2);
-                READ_IO(0x1f801040, 0x1f801050, controller, 32, 2);
-                READ_IO(0x1f801050, 0x1f801060, serial, 32, 2);
-                READ_IO(0x1f801060, 0x1f801064, memoryControl, 32, 2);
-                READ_IO(0x1f801070, 0x1f801078, interrupt, 32, 2);
-                READ_IO(0x1f801080, 0x1f801100, dma, 32, 2);
-                READ_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
-                READ_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
-                READ_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
-                READ_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
-                READ_IO32(0x1f801810, 0x1f801818, gpu, 2);
-                READ_IO32(0x1f801820, 0x1f801828, mdec, 3);
-                READ_IO(0x1f801C00, 0x1f802000, spu, 16, 16);
-                READ_IO(0x1f802000, 0x1f802067, expansion2, 8, 10);
+            case (0xfc >> 2): TIMING(8, 6); return read_fast<T>(bios.data(), addr - BIOS_BASE);
+            default:
+                fmt::print("[SYS] R Unhandled address at 0x{:08x}\n", address);
+                cpu->busError();
                 break;
-
-            case 0xfc: TIMING(8, 6); return read_fast<T>(bios.data(), addr - BIOS_BASE);
         }
-
     } else {
-        if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
+        if (sizeof(T) == 4 && address == 0xfffe0130) {
             TIMING(32, 1);
             auto data = cacheControl->read(0);
             LOG_IO(IO_LOG_ENTRY::MODE::READ, sizeof(T) * 8, address, data, cpu->PC);
@@ -368,15 +385,13 @@ void System::emulateFrame() {
     gpu->gpuLogList.clear();
 
     //    gpu->prevVram = gpu->vram;
-    int cpuCyclesConsumed = 0;
     for (;;) {
-        int systemCycles = 0x1000;
+        int systemCycles = 0x100;
         cpuStalledCycles = 0;
         if (!cpu->executeInstructions(systemCycles)) {
             return;
         }
         systemCycles += cpuStalledCycles;
-        cpuCyclesConsumed += systemCycles;
 
         dma->step();
         cdrom->step(systemCycles);
@@ -393,7 +408,6 @@ void System::emulateFrame() {
         controller->step(systemCycles);
 
         if (gpu->emulateGpuCycles(systemCycles)) {
-            //            fmt::print("cpuCyclesConsumed: {} (*60 == {})\n",cpuCyclesConsumed, cpuCyclesConsumed*60);
             interrupt->trigger(interrupt::VBLANK);
             return;  // frame emulated
         }
