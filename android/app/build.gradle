@@ -47,15 +47,24 @@ android {
             }
         }
     }
-    
+
     externalNativeBuild {
         ndkBuild {
             path 'jni/Android.mk'
         }
     }
+
+    compileOptions {
+        encoding = 'UTF-8'
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        disable 'GoogleAppIndexingWarning'
+    }
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.1.0-alpha05'
-    implementation 'androidx.core:core:1.2.0-alpha01'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
 }
