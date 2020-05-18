@@ -6,6 +6,7 @@ cd /home/build
 export OS=linux64
 export DATE=`date +%Y%m%d`
 export COMMIT=`git rev-parse --short=7 HEAD`
+export VERSION=$COMMIT
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT
 export CC="ccache cc -fcolor-diagnostics"
 export CXX="ccache c++ -fcolor-diagnostics"
@@ -28,7 +29,8 @@ wget -nv https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/ra
 
 # Package
 mkdir -p $ARTIFACT
-cp -r data $ARTIFACT/
+mkdir -p $ARTIFACT/usr/share/avocado
+cp -r data $ARTIFACT/usr/share/avocado/
 cp android/app/src/main/ic_launcher-web.png $ARTIFACT/avocado.png
 
 # Remove .gitignore

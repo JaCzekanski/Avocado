@@ -3,9 +3,11 @@
 #include <imgui.h>
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include "config.h"
 #include "config_parser.h"
+#include "gui/filesystem.h"
 #include "gui/gui.h"
 #include "input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
@@ -88,22 +90,26 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
 }
 
 void fatalError(const std::string& error) {
-    fmt::print(stderr, "[FATAL] %s", error);
+    fmt::print(stderr, "[FATAL] {}", error);
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Avocado", error.c_str(), nullptr);
     SDL_Quit();
 }
 
 void changeWorkingDirectory() {
-    std::string workingDirectory = ".";
-#if defined(__linux__)
-    return;  // AppImage, no change
-#elif defined(ANDROID)
-    workingDirectory = "/sdcard/avocado";
+    fs::path workingDirectory;
+
+#if defined(ANDROID)
+    workingDirectory = fs::path("/sdcard/avocado");
 #else
     char* basePath = SDL_GetBasePath();
-    workingDirectory = basePath;
+    workingDirectory = fs::path(basePath);
     SDL_free(basePath);
 #endif
+
+    if (getenv("APPIMAGE") != nullptr) {
+        workingDirectory = workingDirectory / ".." / "share" / "avocado";
+    }
+
     chdir(workingDirectory.c_str());
 }
 
