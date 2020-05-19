@@ -216,13 +216,13 @@ add_library(core STATIC
         src/device/dma/dma6_channel.cpp
         src/device/dma/dma_channel.cpp
         src/device/expansion2.cpp
+        src/device/gpu/color_depth.cpp
         src/device/gpu/gpu.cpp
         src/device/gpu/psx_color.cpp
         src/device/gpu/render/dither.cpp
         src/device/gpu/render/render_line.cpp
         src/device/gpu/render/render_rectangle.cpp
         src/device/gpu/render/render_triangle.cpp
-        src/device/gpu/render/texture_utils.cpp
         src/device/interrupt.cpp
         src/device/mdec/algorithm.cpp
         src/device/mdec/mdec.cpp
