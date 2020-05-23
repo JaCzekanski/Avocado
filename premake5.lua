@@ -61,6 +61,7 @@ filter {}
 	language "c++"
 	cppdialect "C++17"
 	defines { 'BUILD_ARCH="%{cfg.system}"' }
+	flags { "MultiProcessorCompile" }
 	exceptionhandling "On"
 	rtti "On"
 
@@ -129,12 +130,17 @@ filter "configurations:Debug"
 filter "configurations:Release"
 	staticruntime "on"
 	defines { "NDEBUG" }
-	flags { "MultiProcessorCompile" }
 	optimize "Full"
 
-filter {"configurations:Release"}
-	if os.getenv("CI") == true then
+-- LTO on Linux fails with "error adding symbols: Archive has no index; run ranlib to add one"
+filter {"configurations:Release", "not system:linux"}
+	if os.getenv("CI") ~= nil then
 		flags { "LinkTimeOptimization" }
+	end
+
+filter {"configurations:Release", "system:linux"}
+	if os.getenv("CI") ~= nil then
+		linkoptions { "-static-libstdc++" }
 	end
 
 include "premake/chdr.lua"

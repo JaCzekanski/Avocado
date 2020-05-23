@@ -6,6 +6,7 @@ CLANG_VERSION=${1:-6}
 mkdir -p "$HOME/.ccache"
 
 docker run \
+    -e CI=$CI \
     -v $(pwd):/home/build \
     -v "$HOME/.ccache":/root/.ccache \
     avocadoemu/linux-clang$CLANG_VERSION \
