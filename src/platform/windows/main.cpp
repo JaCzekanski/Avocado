@@ -110,7 +110,7 @@ void changeWorkingDirectory() {
         workingDirectory = workingDirectory / ".." / "share" / "avocado";
     }
 
-    chdir(workingDirectory.c_str());
+    chdir(workingDirectory.string().c_str());
 }
 
 int main(int argc, char** argv) {
