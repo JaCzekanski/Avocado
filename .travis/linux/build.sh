@@ -1,6 +1,16 @@
 #!/bin/bash -ex
 # Run by run-container.sh, builds Avocado in Docker container and runs tests
 
+function buildSDL2 {
+    pushd externals/SDL2
+
+    ./configure
+    make -j4
+    make install
+
+    popd
+}
+
 cd /home/build
 
 export OS=linux64
@@ -13,6 +23,8 @@ export CXX="ccache c++ -fcolor-diagnostics"
 
 # Configure cache
 ccache --set-config=sloppiness=pch_defines,time_macros
+
+buildSDL2
 
 # Generate Makefile
 premake5 gmake

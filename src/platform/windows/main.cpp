@@ -16,6 +16,7 @@
 #include "system.h"
 #include "system_tools.h"
 #include "utils/file.h"
+#include "version.h"
 
 #ifdef _WIN32
 #include <direct.h>
