@@ -56,7 +56,7 @@ Despite this emulator being in early development, some 3D games can run. [Game c
 Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make audio stutter**). The timer implementation does not function properly (**games fail to boot** or run at wrong speed). Many games won't boot or crash shortly after booting.
 
 ## Requirements
-- OS: Windows 7 or later, macOS 10.13 or later, Linux
+- OS: Windows 7 or later, macOS 10.13 or later, Linux (Ubuntu 16.04 or later)
 - GPU: Graphics card supporting **OpenGL 3.2**
 - CPU: [SSE3 compatible (CPUs after 2004)](https://en.wikipedia.org/wiki/SSE3#CPUs_with_SSE3) x64 or x86 processor
 
@@ -102,28 +102,27 @@ Configure controls under Options->Controller menu.
 
 ### Windows
 Requirements:
-- Visual Studio 2017
+- Visual Studio 2019 (2017 should work as well)
 - [Premake5](https://premake.github.io/download.html)
-- [SDL2 dev library](https://www.libsdl.org/download-2.0.php)
 
 First build: 
 ```
-> git clone https://github.com/JaCzekanski/Avocado.git
-> cd Avocado
-> git submodule update --init --recursive
-> premake5 vs2017
+git clone https://github.com/JaCzekanski/Avocado.git
+cd Avocado
+git submodule update --init --recursive
+premake5 vs2019
 
-# Open Visual Studio solution and build it
+# Open avocado.sln with Visual Studio, make sure that Release build is selected, build it
 ```
 
 See appveyor.yml in case of problems.
 
 Update:
 ```
-> git pull && git submodule update --init --recursive
-> premake5 vs2017
+git pull && git submodule update --init --recursive
+premake5 vs2019
 
-# Open Visual Studio solution and build it
+# Open avocado.sln, build it
 ```
 
 ### Linux
@@ -133,25 +132,25 @@ Requirements:
 
 First build: 
 ```
-> sudo apt update
-> sudo apt install libsdl2-dev
-> git clone https://github.com/JaCzekanski/Avocado.git
-> cd Avocado
-> git submodule update --init --recursive
-> premake5 gmake
-> make config=release_x64 -j4
+sudo apt update
+sudo apt install libsdl2-dev
+git clone https://github.com/JaCzekanski/Avocado.git
+cd Avocado
+git submodule update --init --recursive
+premake5 gmake
+make config=release_x64 -j4
 
 # Running
-> ./build/release_x64/avocado
+./build/release_x64/avocado
 ```
 
 See .travis/linux/build.sh in case of problems.
 
 Update:
 ```
-> git pull && git submodule update --init --recursive
-> premake5 gmake
-> make config=release_x64 -j4
+git pull && git submodule update --init --recursive
+premake5 gmake
+make config=release_x64 -j4
 ```
 
 ### macOS
@@ -162,25 +161,25 @@ Requirements:
 
 First build:
 ```
-> brew update
-> brew install sdl2
-> git clone https://github.com/JaCzekanski/Avocado.git
-> cd Avocado
-> git submodule update --init --recursive
-> premake5 gmake
-> make config=release_x64 -j4
+brew update
+brew install sdl2
+git clone https://github.com/JaCzekanski/Avocado.git
+cd Avocado
+git submodule update --init --recursive
+premake5 gmake
+make config=release_x64 -j4
 
 # Running
-> ./build/release_x64/avocado.app
+./build/release_x64/avocado.app
 ```
 
 See .travis/macos/build.sh in case of problems.
 
 Update:
 ```
-> git pull && git submodule update --init --recursive
-> premake5 gmake
-> make config=release_x64 -j4
+git pull && git submodule update --init --recursive
+premake5 gmake
+make config=release_x64 -j4
 ```
 
 ## Bugs

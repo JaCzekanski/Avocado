@@ -152,6 +152,10 @@ include "premake/miniz.lua"
 include "premake/fmt.lua"
 include "premake/stb.lua"
 
+if os.istarget("windows") then
+	include "premake/sdl2.lua"
+end
+
 project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
 	kind "StaticLib"
@@ -239,24 +243,11 @@ project "avocado"
 			"src/platform/windows/**.*"
 		}
 		links { 
-			"SDL2",
+			"sdl2",
 			"glad",
 			"imgui",
 			"OpenGL32"
 		}
-
-	filter {"system:windows", "not options:headless", "platforms:x86"}
-		libdirs {
-			"externals/SDL2/lib/x86",
-			"externals/SDL2/VisualC/Win32/Release",
-		}
-		
-	filter {"system:windows", "not options:headless", "platforms:x64"}
-		libdirs {
-			"externals/SDL2/lib/x64",
-			"externals/SDL2/VisualC/x64/Release",
-		}
-
 
 	filter {"system:linux", "not options:headless"}
 		files { 

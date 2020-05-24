@@ -29,14 +29,6 @@ before_build:
   - ps: Start-FileDownload "https://github.com/premake/premake-core/releases/download/v$($env:PREMAKE_VERSION)/premake-$($env:PREMAKE_VERSION)-windows.zip" "premake.zip"
   - 7z x premake.zip
 
-  # SDL
-  - cd externals
-  - rmdir /Q /S SDL2
-  - ps: Start-FileDownload "https://www.libsdl.org/release/SDL2-devel-$($env:SDL_VERSION)-VC.zip" "SDL.zip"
-  - 7z x SDL.zip 
-  - ren SDL2-%SDL_VERSION% SDL2
-  - cd ..
-  
   # generate solution
   - premake5.exe %TOOLSET%
 
@@ -59,12 +51,10 @@ after_build:
   # Premake renames x86 to Win32 - undo that
   - ps: if ($env:platform -eq "Win32") { $env:platform = "x86" } 
 
-  # copy avocado.exe, SDL2.dll and data directory
+  # copy avocado.exe and data directory
   - ps: $env:TARGETDIR = "build\$($env:CONFIGURATION)"
   - ps: if ($env:platform -ne "x86") { $env:TARGETDIR = $env:TARGETDIR + "_" + $env:platform }
   - ps: Copy-Item $env:TARGETDIR\avocado.exe artifact\avocado.exe
-  # - ps: Copy-Item $env:TARGETDIR\avocado.pdb artifact\avocado.pdb
-  - ps: Copy-Item externals\SDL2\lib\$env:platform\SDL2.dll artifact\SDL2.dll
   - ps: Copy-Item data artifact\ -recurse
 
   # remove .gitignore
