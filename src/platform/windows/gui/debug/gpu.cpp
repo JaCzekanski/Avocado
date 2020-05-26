@@ -87,7 +87,7 @@ void GPU::logWindow(System *sys) {
     ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
     ImGui::Begin("GPU Log", &logWindowOpen);
 
-    ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
+    ImGui::BeginChild("GPU Log", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     // TODO: Find last values
@@ -333,10 +333,10 @@ void GPU::vramWindow(gpu::GPU *gpu) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0, 0.0, 0.0, 1.0));
 
-    auto defaultSize = ImVec2(1024, 512 + ImGui::GetItemsLineHeightWithSpacing() * 2);
+    auto defaultSize = ImVec2(1024, 512 + ImGui::GetFrameHeightWithSpacing() * 2);
     ImGui::SetNextWindowSizeConstraints(
         ImVec2(defaultSize.x / 2, defaultSize.y / 2), ImVec2(defaultSize.x * 2, defaultSize.y * 2),
-        [](ImGuiSizeCallbackData *data) { data->DesiredSize.y = (data->DesiredSize.x / 2) + ImGui::GetItemsLineHeightWithSpacing() * 2; });
+        [](ImGuiSizeCallbackData *data) { data->DesiredSize.y = (data->DesiredSize.x / 2) + ImGui::GetFrameHeightWithSpacing() * 2; });
 
     ImGui::SetNextWindowSize(defaultSize);
     ImGui::Begin("VRAM", &vramWindowOpen, ImGuiWindowFlags_NoScrollbar);

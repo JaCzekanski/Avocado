@@ -34,7 +34,7 @@ void IO::logWindow(System *sys) {
     ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
     ImGui::Begin("IO Log", &logWindowOpen);
 
-    ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::BeginChild("IO Log", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     ImGuiListClipper clipper((int)sys->ioLogList.size());

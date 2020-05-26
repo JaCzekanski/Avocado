@@ -134,7 +134,7 @@ void CPU::debuggerWindow(System* sys) {
 
     ImGui::NewLine();
 
-    ImGui::BeginChild("##scrolling", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()));
+    ImGui::BeginChild("##scrolling", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
@@ -308,7 +308,7 @@ void CPU::breakpointsWindow(System* sys) {
     ImGui::Begin("Breakpoints", &breakpointsWindowOpen);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
-    ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    ImGui::BeginChild("Breakpoints", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), true);
     for (auto& bp : sys->cpu->breakpoints) {
         mips::Opcode opcode(sys->readMemory32(bp.first));
 
@@ -374,7 +374,7 @@ void CPU::watchWindow(System* sys) {
     ImGui::Begin("Watch", &watchWindowOpen);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
-    ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), true);
+    ImGui::BeginChild("Watch", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), true);
     int i = 0;
     for (auto& watch : watches) {
         uint32_t value = 0;
