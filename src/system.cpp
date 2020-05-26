@@ -171,7 +171,7 @@ INLINE T System::readMemory(uint32_t address) {
     READ_IO32(0x1f801810, 0x1f801818, gpu);
     READ_IO32(0x1f801820, 0x1f801828, mdec);
     READ_IO(0x1f801C00, 0x1f802000, spu);
-    READ_IO(0x1f802000, 0x1f802067, expansion2);
+    READ_IO(0x1f802000, 0x1f804000, expansion2);
 
     if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
         auto data = cacheControl->read(0);
@@ -220,7 +220,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     WRITE_IO32(0x1f801810, 0x1f801818, gpu);
     WRITE_IO32(0x1f801820, 0x1f801828, mdec);
     WRITE_IO(0x1f801C00, 0x1f802000, spu);
-    WRITE_IO(0x1f802000, 0x1f802067, expansion2);
+    WRITE_IO(0x1f802000, 0x1f804000, expansion2);
 
     if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
         cacheControl->write(0, data);
