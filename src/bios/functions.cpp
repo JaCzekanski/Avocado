@@ -251,7 +251,7 @@ const std::unordered_map<uint8_t, Function> A0 = {
     {0x9D, {"GetConf(int numb_EvCB, int numb_TCB, void* stacktop_dst)"}},
     {0x9E, {"SetCdromIrqAutoAbort(int type, int flag)"}},
     {0x9F, {"SetMemSize(int size)"}},
-    {0xA1, {"BootFailed()", haltSystem}},  // Called when booting CD fails
+    {0xA1, {"BootFailed(int code1, int code2)", haltSystem}},  // Called when booting CD fails
     {0xA0, {"WarmBoot()"}},
     {0xA1, {"SystemErrorBootOrDiskFailure(char type, int errorcode)", haltSystem}},  // Called when booting CD fails
     {0xA2, {"EnqueueCdIntr()"}},
