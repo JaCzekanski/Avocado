@@ -600,7 +600,7 @@ void GPU::write(uint32_t address, uint32_t data) {
 void GPU::writeGP0(uint32_t data) {
     if (cmd == Command::None) {
         command = data >> 24;
-        arguments[0] = data & 0xffffff;
+        arguments[0] = data;
         argumentCount = 0;
         currentArgument = 1;
 
@@ -673,16 +673,11 @@ void GPU::writeGP0(uint32_t data) {
         }
 
         if (gpuLogEnabled && cmd == Command::None) {
-            LogEntry entry;
-            entry.cmd = Command::Extra;
-            entry.command = command;
-            entry.args = std::vector<uint32_t>();
-            entry.args.push_back(arguments[0]);
-            gpuLogList.push_back(entry);
+            gpuLogList.push_back(LogEntry(arguments[0]));
         }
-        if (verbose && cmd == Command::None) {
-            fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
-        }
+        //        if (verbose && cmd == Command::None) {
+        //            fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
+        //        }
         // TODO: Refactor gpu log to handle copies && multiline
         // TODO: Refactor gpu log to store initial state
         // TODO: Refactor gpu log to store gp1 writes
@@ -692,7 +687,7 @@ void GPU::writeGP0(uint32_t data) {
     }
 
     if (currentArgument < argumentCount) {
-        // Multi line draw call is handled separatly
+        // Multi line draw call is handled separately
         // as it line count is not known beforehand
         if (cmd == Command::Line && LineArgs(command).polyLine && ((data & 0xf000f000) == 0x50005000)) {
             cmd = Command::None;
@@ -705,13 +700,20 @@ void GPU::writeGP0(uint32_t data) {
         }
     }
 
-    // TODO: Make it work with multiline, include vram transfer data
-    if (gpuLogEnabled && cmd != Command::CopyCpuToVram2) {
-        LogEntry entry;
-        entry.cmd = cmd;
-        entry.command = command;
-        entry.args = std::vector<uint32_t>(arguments.begin(), arguments.begin() + argumentCount);
-        gpuLogList.push_back(entry);
+    if (gpuLogEnabled) {
+        if (cmd == Command::CopyCpuToVram2) {
+            gpuLogList.back().args.push_back(arguments[0]);
+        } else if (cmd == Command::Line && LineArgs(command).polyLine)) {
+                // TODO: Command not pushed!
+                gpuLogList.back().args.push_back(arguments[currentArgument - 1]);  // Invalid
+            }
+        else if (cmd == Command::CopyVramToCpu) {
+            // Ignore
+        } else {
+            LogEntry entry;
+            entry.args = std::vector<uint32_t>(arguments.begin(), arguments.begin() + argumentCount);
+            gpuLogList.push_back(entry);
+        }
     }
     if (verbose && cmd != Command::CopyCpuToVram2) {
         fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
@@ -737,7 +739,7 @@ void GPU::writeGP0(uint32_t data) {
 }
 
 void GPU::writeGP1(uint32_t data) {
-    uint32_t command = (data >> 24) & 0x3f;
+    uint8_t command = (data >> 24) & 0x3f;
     uint32_t argument = data & 0xffffff;
 
     if (command == 0x00) {  // Reset GPU

@@ -257,9 +257,12 @@ struct TextureInfo {
 
 // Debug/rewind
 struct LogEntry {
-    uint8_t command;
-    Command cmd;
     std::vector<uint32_t> args;
+
+    LogEntry() = default;
+    LogEntry(uint32_t cmd) { args.push_back(cmd); }
+
+    uint8_t cmd() const { return (args[0] >> 24) & 0xff; }
 };
 
 }  // namespace gpu
