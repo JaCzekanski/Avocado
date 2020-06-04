@@ -43,7 +43,7 @@ wget -ncv https://gist.github.com/JaCzekanski/d7a6e06295729a3f81bd9bd488e9d37d/r
 mkdir -p $ARTIFACT
 mkdir -p $ARTIFACT/usr/share/avocado
 cp -r data $ARTIFACT/usr/share/avocado/
-cp android/app/src/main/ic_launcher-web.png $ARTIFACT/avocado.png
+cp misc/avocado.png $ARTIFACT/avocado.png
 
 # Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
