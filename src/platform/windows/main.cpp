@@ -162,10 +162,9 @@ int main(int argc, char** argv) {
     });
 
     bool exitProgram = false;
-    bool doHardReset = false;
     bus.listen<Event::File::Exit>(busToken, [&](auto) { exitProgram = true; });
     bus.listen<Event::System::SoftReset>(busToken, [&](auto) { sys->softReset(); });
-    bus.listen<Event::System::HardReset>(busToken, [&](auto) { doHardReset = true; });
+    bus.listen<Event::System::HardReset>(busToken, [&](auto) { sys = system_tools::hardReset(); });
     bus.listen<Event::System::SaveState>(busToken, [&](auto e) { state::quickSave(sys.get(), e.slot); });
     bus.listen<Event::System::LoadState>(busToken, [&](auto e) { state::quickLoad(sys.get(), e.slot); });
 
@@ -216,8 +215,6 @@ int main(int argc, char** argv) {
     }
 
     bool frameLimitEnabled = true;
-    bool windowFocused = true;
-
     bool forceRedraw = false;
 
     SDL_Event event;
@@ -243,10 +240,6 @@ int main(int argc, char** argv) {
             newEvent = false;
             if (inputManager->handleEvent(event)) continue;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
-            if (event.type == SDL_WINDOWEVENT) {
-                if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) windowFocused = false;
-                if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) windowFocused = true;
-            }
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_F1) gui->showMenu = !gui->showMenu;
@@ -310,11 +303,6 @@ int main(int argc, char** argv) {
             forceRedraw = true;
         }
 
-        if (doHardReset) {
-            doHardReset = false;
-            sys = system_tools::hardReset();
-        }
-
         if (sys->state == System::State::run) {
             sys->gpu->clear();
             sys->controller->update();
@@ -331,7 +319,7 @@ int main(int argc, char** argv) {
         SDL_GL_GetDrawableSize(window, &opengl->width, &opengl->height);
         opengl->render(sys->gpu.get());
 
-        gui->render(sys.get());
+        gui->render(sys);
 
         SDL_GL_SwapWindow(window);
 

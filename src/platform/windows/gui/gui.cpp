@@ -74,7 +74,7 @@ GUI::~GUI() { ImGui::DestroyContext(); }
 
 void GUI::processEvent(SDL_Event* e) { ImGui_ImplSDL2_ProcessEvent(e); }
 
-void GUI::mainMenu(System* sys) {
+void GUI::mainMenu(std::unique_ptr<System>& sys) {
     if (!ImGui::BeginMainMenuBar()) {
         return;
     }
@@ -197,7 +197,7 @@ void GUI::mainMenu(System* sys) {
     ImGui::EndMainMenuBar();
 }
 
-void GUI::render(System* sys) {
+void GUI::render(std::unique_ptr<System>& sys) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
@@ -221,22 +221,22 @@ void GUI::render(System* sys) {
         openFile.displayWindows();
 
         // Debug
-        if (showKernelWindow) kernelWindow(sys);
+        if (showKernelWindow) kernelWindow(sys.get());
 
-        cdromDebug.displayWindows(sys);
-        cpuDebug.displayWindows(sys);
-        gpuDebug.displayWindows(sys);
-        timersDebug.displayWindows(sys);
-        gteDebug.displayWindows(sys);
-        spuDebug.displayWindows(sys);
-        ioDebug.displayWindows(sys);
+        cdromDebug.displayWindows(sys.get());
+        cpuDebug.displayWindows(sys.get());
+        gpuDebug.displayWindows(sys.get());
+        timersDebug.displayWindows(sys.get());
+        gteDebug.displayWindows(sys.get());
+        spuDebug.displayWindows(sys.get());
+        ioDebug.displayWindows(sys.get());
 
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
         if (showControllerSetupWindow) controllerSetupWindow();
 
         biosOptions.displayWindows();
-        memoryCardOptions.displayWindows(sys);
+        memoryCardOptions.displayWindows(sys.get());
 
         // Help
         aboutHelp.displayWindows();
@@ -255,7 +255,7 @@ void GUI::render(System* sys) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GUI::drawControls(System* sys) {
+void GUI::drawControls(std::unique_ptr<System>& sys) {
     auto symbolButton = [](const char* hint, const char* symbol, ImVec4 bg = ImVec4(1, 1, 1, 0.08f)) -> bool {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 6.f));
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
@@ -335,7 +335,6 @@ void GUI::drawControls(System* sys) {
 
     std::string game{};
 
-    // Can lead to use-after-free when loading a new game and recrating the system
     if (sys->cdrom->disc) {
         auto cdPath = sys->cdrom->disc->getFile();
         if (!cdPath.empty()) {
@@ -367,7 +366,5 @@ void GUI::drawControls(System* sys) {
     }
 
     ImGui::End();
-    ImGui::PopStyleVar();
-    ImGui::PopStyleVar();
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(3);
 }

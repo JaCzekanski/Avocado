@@ -38,8 +38,8 @@ class GUI {
 
     gui::Toasts toasts;
 
-    void mainMenu(System* sys);
-    void drawControls(System* sys);
+    void mainMenu(std::unique_ptr<System>& sys);
+    void drawControls(std::unique_ptr<System>& sys);
 
    public:
     bool singleFrame = false;
@@ -50,5 +50,5 @@ class GUI {
     ~GUI();
 
     void processEvent(SDL_Event* e);
-    void render(System* sys);
+    void render(std::unique_ptr<System>& sys);
 };
