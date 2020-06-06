@@ -299,7 +299,9 @@ void GUI::render(std::unique_ptr<System>& sys) {
 
     toasts.display();
 
-    drawControls(sys);
+    if (config.isEmulatorConfigured()) {
+        drawControls(sys);
+    }
 
     // Work in progress
     //    renderController();
