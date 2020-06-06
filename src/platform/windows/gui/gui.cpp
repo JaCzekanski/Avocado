@@ -14,46 +14,51 @@ GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    iniPath = avocado::PATH_USER + "imgui.ini";
+    io.IniFilename = iniPath.c_str();
+//    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 #ifdef ANDROID
     io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
 #endif
 
-    ImGuiStyle& style = ImGui::GetStyle();
+    float scaleFactor = 1.f;
 #ifdef ANDROID
-    style.ScrollbarSize = 40.f;
-    style.GrabMinSize = 20.f;
-    style.TouchExtraPadding = ImVec2(10.f, 10.f);
+    float dpi = 1.f;
+    if (SDL_GetDisplayDPI(0, &dpi, nullptr, nullptr) == 0) {
+        scaleFactor = dpi / 160.f;
+    }
 #endif
+    float fontSize = 16.f * scaleFactor;
+
+    ImGuiStyle& style = ImGui::GetStyle();
     style.GrabRounding = 6.f;
     style.FrameRounding = 6.f;
+    style.ScaleAllSizes(scaleFactor);
+#ifdef ANDROID
+    style.TouchExtraPadding = ImVec2(10.f, 10.f);
+#endif
 
     ImFontConfig config;
     config.OversampleH = 2;
     config.OversampleV = 2;
     config.FontDataOwnedByAtlas = false;
-    float fontSize = 16.f;
-#ifdef ANDROID
-    fontSize = 40.f;
-#endif
+    config.SizePixels = fontSize;
 
     {
-        auto font = getFileContents("data/assets/roboto-mono.ttf");
+        auto font = getFileContents(avocado::assetsPath("roboto-mono.ttf"));
         io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
     }
 
-    io.Fonts->AddFontDefault();
+    {
+        ImFontConfig config;
+        config.SizePixels = 13.f * scaleFactor;
+        io.Fonts->AddFontDefault(&config);
+    }
 
     {
-        auto font = getFileContents("data/assets/fa-solid-900.ttf");
-        int fontSize = 16.f;
-        ImFontConfig config;
-        config.OversampleH = 2;
-        config.OversampleV = 2;
-        config.FontDataOwnedByAtlas = false;
-
+        auto font = getFileContents(avocado::assetsPath("fa-solid-900.ttf"));
         const char* glyphs[] = {
-            ICON_FA_PLAY, ICON_FA_PAUSE, ICON_FA_SAVE, ICON_FA_COMPACT_DISC, ICON_FA_GAMEPAD, ICON_FA_COMPRESS, ICON_FA_COG,
+            ICON_FA_PLAY, ICON_FA_PAUSE, ICON_FA_SAVE, ICON_FA_COMPACT_DISC, ICON_FA_GAMEPAD, ICON_FA_COMPRESS, ICON_FA_COG, ICON_FA_SYNC,
         };
 
         ImVector<ImWchar> ranges;
@@ -194,6 +199,12 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         ImGui::MenuItem("About", nullptr, &aboutHelp.aboutWindowOpen);
         ImGui::EndMenu();
     }
+
+    // Print info
+    auto info = fmt::format("fps: {:.2f}", 60.f);
+    auto size = ImGui::CalcTextSize(info.c_str());
+    ImGui::SameLine(ImGui::GetWindowWidth() - size.x * 1.2f);
+    ImGui::TextUnformatted(info.c_str());
     ImGui::EndMainMenuBar();
 }
 
@@ -257,7 +268,10 @@ void GUI::render(std::unique_ptr<System>& sys) {
 
 void GUI::drawControls(std::unique_ptr<System>& sys) {
     auto symbolButton = [](const char* hint, const char* symbol, ImVec4 bg = ImVec4(1, 1, 1, 0.08f)) -> bool {
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 6.f));
+        auto padding = ImGui::GetStyle().FramePadding;
+        padding.x *= 3.f;
+        padding.y *= 2.5f;
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(bg.x, bg.y, bg.z, bg.w));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(bg.x, bg.y, bg.z, 0.5));

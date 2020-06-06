@@ -6,18 +6,18 @@
 #include "device/gpu/rendering_mode.h"
 #include "utils/file.h"
 #include "utils/json_enum.h"
+#include "config.h"
 
 // For now .json format is used for config serialization.
 // Might switch to .toml some day
 
 const char* CONFIG_NAME = "config.json";
-void saveConfigFile(const char* configName);
-void loadConfigFile(const char* configName);
+std::string configPath() { return avocado::PATH_USER + CONFIG_NAME; }
 
 JSON_ENUM(ControllerType);
 JSON_ENUM(RenderingMode);
 
-void saveConfigFile(const char* configName) {
+void saveConfigFile() {
     nlohmann::json json;
     json["bios"] = config.bios;
     json["extension"] = config.extension;
@@ -77,13 +77,13 @@ void saveConfigFile(const char* configName) {
         {"lastPath", config.gui.lastPath},
     };
 
-    putFileContents(configName, json.dump(4));
+    putFileContents(configPath(), json.dump(4));
 }
 
-void loadConfigFile(const char* configName) {
-    auto file = getFileContents(configName);
+void loadConfigFile() {
+    auto file = getFileContents(configPath());
     if (file.empty()) {
-        saveConfigFile(configName);
+        saveConfigFile();
         return;
     }
     nlohmann::json json = nlohmann::json::parse(file.begin(), file.end());
@@ -145,6 +145,6 @@ void loadConfigFile(const char* configName) {
         }
 
     } catch (nlohmann::json::exception& e) {
-        fmt::print("[ERROR] Cannot load {} - {}\n", configName, e.what());
+        fmt::print("[ERROR] Cannot load {} - {}\n", configPath(), e.what());
     }
 }

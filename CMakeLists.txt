@@ -306,6 +306,7 @@ set(SOURCES
         src/platform/windows/input/sdl_input_manager.cpp
         src/platform/windows/main.cpp
         src/platform/windows/sound/sound.cpp
+        src/platform/windows/utils/platform_tools.cpp
         src/renderer/opengl/opengl.cpp
         src/renderer/opengl/shader/attribute.cpp
         src/renderer/opengl/shader/buffer.cpp

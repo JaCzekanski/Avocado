@@ -2,6 +2,7 @@
 #include <fmt/core.h>
 #include <stb_image.h>
 #include <unordered_map>
+#include <config.h>
 #include "utils/file.h"
 
 Image::Image(GLuint id, int w, int h) : id(id), w(w), h(h) {}
@@ -39,14 +40,14 @@ std::optional<Image> loadImage(const std::string& file) {
 
 }  // namespace
 
-std::optional<Image> getImage(const std::string& button, const std::string& path) {
-    auto image = images.find(path + button);
+std::optional<Image> getImage(const std::string& filename, const std::string& path) {
+    auto image = images.find(path + filename);
     if (image != images.end()) {
         return image->second;
     }
 
-    auto loaded = loadImage(fmt::format("{}/{}.png", path, button));
-    images[path + button] = loaded;
+    auto loaded = loadImage(fmt::format("{}/{}.png", path, filename));
+    images[path + filename] = loaded;
 
     return loaded;
 }

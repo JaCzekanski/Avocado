@@ -20,6 +20,7 @@ struct System;
 class GUI {
     SDL_Window* window;
     bool notInitializedWindowShown = false;
+    std::string iniPath;
 
     gui::file::Open openFile;
 

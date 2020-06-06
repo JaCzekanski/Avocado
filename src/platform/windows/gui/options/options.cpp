@@ -187,7 +187,7 @@ void button(int controller, const std::string& button, const char* tooltip = nul
     std::string key = config.controller[ctrl].keys[button];
 
     const float iconSize = 20.f;
-    drawImage(getImage(button, "data/assets/buttons"), iconSize);
+    drawImage(getImage(button, avocado::assetsPath("buttons/")), iconSize);
     if (ImGui::IsItemHovered() && tooltip != nullptr) {
         ImGui::BeginTooltip();
         ImGui::TextUnformatted(tooltip);

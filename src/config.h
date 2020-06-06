@@ -5,10 +5,17 @@
 #include "device/gpu/rendering_mode.h"
 #include "utils/event.h"
 
-#ifdef ANDROID
-#include <android/log.h>
-#define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "AVOCADO", __VA_ARGS__);
-#endif
+namespace avocado {
+extern std::string PATH_DATA;  // Read-only directory, distributed with emulator
+extern std::string PATH_USER;  // Writable directory for storing saves, config, etc
+
+inline std::string assetsPath(const char* file = "") { return PATH_DATA + "assets/" + file; }
+inline std::string shaderPath(const char* file = "") { return PATH_DATA + "shader/" + file; }
+inline std::string biosPath() { return PATH_USER + "bios/"; }
+inline std::string statePath(const char* file = "") { return PATH_USER + "state/" + file; }
+inline std::string memoryPath(const char* file = "") { return PATH_USER + "memory/" + file; }
+inline std::string isoPath(const char* file = "") { return PATH_USER + "iso/" + file; }
+};  // namespace avocado
 
 using KeyBindings = std::unordered_map<std::string, std::string>;
 
@@ -81,8 +88,8 @@ struct avocado_config_t {
     struct {
         std::string path;
     } memoryCard[2]{
-        {"data/memory/card1.mcr"},  //
-        {""},                       //
+        {avocado::memoryPath("card1.mcr")},  //
+        {""},                                //
     };
 
     struct {

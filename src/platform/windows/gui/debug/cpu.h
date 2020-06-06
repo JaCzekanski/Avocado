@@ -20,7 +20,7 @@ class CPU {
         {0x1F801074, 2, "IMASK"},
     };
 
-    char addrInputBuffer[32];
+    std::string addrInputBuffer;
     uint32_t contextMenuAddress = 0;
     uint32_t goToAddr = 0;
     uint32_t prevPC = 0;
@@ -38,6 +38,7 @@ class CPU {
     bool watchWindowOpen = false;
     bool ramWindowOpen = false;
 
+    CPU();
     void displayWindows(System* sys);
 };
 }  // namespace gui::debug

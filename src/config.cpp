@@ -159,3 +159,8 @@ KeyBindings mouse() {
 
 const avocado_config_t defaultConfig;
 avocado_config_t config = defaultConfig;
+
+namespace avocado {
+std::string PATH_DATA = "data/";
+std::string PATH_USER = "data/";
+}  // namespace avocado

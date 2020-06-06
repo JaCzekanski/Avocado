@@ -7,7 +7,7 @@ Bios::Bios() {
     windowName = "Select BIOS##file_dialog";
 }
 
-std::string Bios::getDefaultPath() { return "data/bios"; }
+std::string Bios::getDefaultPath() { return avocado::biosPath(); }
 
 bool Bios::isFileSupported(const gui::helper::File& f) {
     constexpr std::array<const char*, 2> supportedFiles = {

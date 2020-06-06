@@ -9,8 +9,8 @@ if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
 fi
 
 export OS=android
-export DATE=`date +%Y%m%d`
-export COMMIT=`git rev-parse --short=7 HEAD`
+export DATE=$(date +%Y%m%d)
+export COMMIT=$(git rev-parse --short=7 HEAD)
 export ARTIFACT=avocado-$OS-$DATE-$COMMIT.apk
 export ASSETS_DIR=android/app/src/main/assets
 export TARGET_DIR=android/app/build/outputs/apk/$BUILD_MODE

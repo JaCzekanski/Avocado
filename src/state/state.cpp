@@ -17,8 +17,7 @@
 using namespace std::chrono_literals;
 
 namespace state {
-const std::string basePath = "data/state/";
-const std::string lastSavePath = basePath + "last.state";
+const char* lastSaveName = "last.state";
 
 struct StateMetadata {
     inline static const uint32_t SAVESTATE_VERSION = 4;
@@ -133,7 +132,7 @@ std::string getStatePath(System* sys, int slot = 0) {
         name = getFilename(sys->biosPath);
     }
 
-    return fmt::format("{}/{}_{}.state", basePath, name, slot);
+    return avocado::statePath(fmt::format("{}_{}.state", name, slot).c_str());
 }
 
 void quickSave(System* sys, int slot) {
@@ -159,9 +158,9 @@ void quickLoad(System* sys, int slot) {
     }
 }
 
-bool saveLastState(System* sys) { return saveToFile(sys, lastSavePath); }
+bool saveLastState(System* sys) { return saveToFile(sys, avocado::statePath(lastSaveName)); }
 
-bool loadLastState(System* sys) { return loadFromFile(sys, lastSavePath); }
+bool loadLastState(System* sys) { return loadFromFile(sys, avocado::statePath(lastSaveName)); }
 
 const auto timeTravelInterval = 1s;
 const int timeTravelHistorySize = 60;  // 1 minute of state history

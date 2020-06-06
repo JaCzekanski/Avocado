@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <platform/windows/utils/platform_tools.h>
 #include "config.h"
 #include "platform/windows/gui/filesystem.h"
 #include "utils/file.h"
@@ -17,7 +18,7 @@
 
 namespace gui::helper {
 
-File::File(const fs::directory_entry& f) : entry(f) {
+File::File(const fs::directory_entry& f, bool isSupported) : entry(f), isSupported(isSupported) {
     filename = f.path().filename().string();
     extension = f.path().extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
@@ -33,7 +34,7 @@ File::File(const fs::directory_entry& f) : entry(f) {
 void FileDialog::getDriveList() {
     drivesInitialized = true;
 
-    drivePaths["Avocado"] = fs::current_path().string();
+    drivePaths["Avocado"] = avocado::PATH_USER;
 
 #ifdef _WIN32
     DWORD drives = GetLogicalDrives();
@@ -85,7 +86,9 @@ void FileDialog::getDriveList() {
 #endif
 
 #ifdef __ANDROID__
-    drivePaths["SD card"] = "/sdcard";
+    if (hasExternalStoragePermission()) {
+        drivePaths["SD card"] = "/sdcard";
+    }
 #endif
 
     for (auto const& [name, path] : drivePaths) {
@@ -108,7 +111,7 @@ void FileDialog::readDirectory(const fs::path& _path) {
 
         files.push_back(fs::directory_entry(path / ".."));
         for (auto& f : it) {
-            files.push_back(f);
+            files.push_back(File(f, isFileSupported(f)));
         }
     } catch (fs::filesystem_error& err) {
         fmt::print("{}\n", err.what());
@@ -173,7 +176,7 @@ void FileDialog::display(bool& windowOpen) {
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    ImGui::BeginChild("##files", ImVec2(0, 0));
+    ImGui::BeginChild("##files", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
     ImGui::Columns(2, nullptr, false);
 
     float maxColumnWidth = 0.f;
@@ -185,7 +188,7 @@ void FileDialog::display(bool& windowOpen) {
             color = ImVec4(0.34f, 0.54f, 0.56f, 1.f);
         } else if (f.isHidden) {
             color = ImVec4(color.x - 0.3f, color.y - 0.3f, color.z - 0.3f, 1.f);
-        } else if (!isFileSupported(f)) {
+        } else if (!f.isSupported) {
             color = ImVec4(0.3f, 0.3f, 0.3f, 1.f);
         }
 
@@ -194,11 +197,15 @@ void FileDialog::display(bool& windowOpen) {
             if (f.isDirectory) {
                 path = f.entry.path();
                 refreshDirectory = true;
-            } else if (fs::exists(f.entry) && isFileSupported(f)) {
-                bool fileHandled = onFileSelected(f);
+            } else if (f.isSupported) {
+                if (fs::exists(f.entry)) {
+                    bool fileHandled = onFileSelected(f);
 
-                if (fileHandled) {
-                    if (autoClose) windowOpen = false;
+                    if (fileHandled) {
+                        if (autoClose) windowOpen = false;
+                    }
+                } else {
+                    refreshDirectory = true;
                 }
             }
         }
@@ -219,6 +226,20 @@ void FileDialog::display(bool& windowOpen) {
     ImGui::EndChild();
     ImGui::PopStyleVar();
     ImGui::PopStyleVar();
+
+#if defined(__APPLE__)
+    if (ImGui::Button("Reveal in Finder")) {
+        openFileBrowser(path.string().c_str());
+    }
+#elif defined(__WIN32__) || defined(__WIN64__)
+    if (ImGui::Button("Open in Explorer")) {
+        openFileBrowser(path.string().c_str());
+    }
+#elif defined(__LINUX__)
+    if (ImGui::Button("Open in file explorer")) {
+        openFileBrowser(path.string().c_str());
+    }
+#endif
 
     ImGui::End();
 

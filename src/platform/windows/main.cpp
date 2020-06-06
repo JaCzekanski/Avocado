@@ -16,6 +16,8 @@
 #include "system.h"
 #include "system_tools.h"
 #include "utils/file.h"
+#include "utils/string.h"
+#include "utils/platform_tools.h"
 #include "version.h"
 
 #ifdef _WIN32
@@ -28,7 +30,7 @@
 
 bool running = true;
 
-// Warning: this method might have 1 or more miliseconds of inaccuracy.
+// Warning: this method might have 1 or more milliseconds of inaccuracy.
 void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool framelimiter, bool ntsc, bool mouseLocked) {
     static double timeToSkip = 0;
     static double counterFrequency = (double)SDL_GetPerformanceFrequency();
@@ -97,36 +99,98 @@ void fatalError(const std::string& error) {
 }
 
 void changeWorkingDirectory() {
-    fs::path workingDirectory;
-
 #if defined(ANDROID)
-    workingDirectory = fs::path("/sdcard/avocado");
+    avocado::PATH_DATA = "data";  // Search assets by default
 #else
-    char* basePath = SDL_GetBasePath();
-    workingDirectory = fs::path(basePath);
-    SDL_free(basePath);
-#endif
+    fs::path workingDirectory = fs::current_path();
 
+#if defined(BUILD_IS_RELEASE)
+    char* basePath = SDL_GetBasePath();
+    if (basePath != nullptr) {
+        workingDirectory = basePath;
+        SDL_free(basePath);
+    }
+#endif
     if (getenv("APPIMAGE") != nullptr) {
         workingDirectory = workingDirectory / ".." / "share" / "avocado";
     }
 
-    chdir(workingDirectory.string().c_str());
+    workingDirectory /= "data";
+
+    avocado::PATH_DATA = workingDirectory.string();
+#endif
+
+    auto ensureDirectoryExist = [](const fs::path& path) -> bool {
+        if (fs::exists(path) && fs::is_directory(path)) {
+            return true;
+        }
+        try {
+            if (fs::create_directory(path)) {
+                return true;
+            }
+        } catch (fs::filesystem_error& err) {
+        }
+        return false;
+    };
+
+#if defined(ANDROID)
+    auto getAndroidExternalPath = [ensureDirectoryExist]() -> std::string {
+        if (hasExternalStoragePermission() && (SDL_AndroidGetExternalStorageState() & SDL_ANDROID_EXTERNAL_STORAGE_WRITE) != 0) {
+            // Try - /sdcard/avocado
+            auto path = fs::path("/sdcard/avocado");
+            if (ensureDirectoryExist(path)) {
+                return path.string();
+            }
+
+            // Try external storage
+            path = fs::path(SDL_AndroidGetExternalStoragePath());
+            if (ensureDirectoryExist(path)) {
+                return path.string();
+            }
+        }
+        return SDL_AndroidGetInternalStoragePath();  // Almost the same as SDL_GetPrefPath
+    };
+    avocado::PATH_USER = getAndroidExternalPath();
+#else
+    char* prefPath = SDL_GetPrefPath(nullptr, "avocado");
+    if (prefPath != nullptr) {
+        avocado::PATH_USER = prefPath;
+        SDL_free(prefPath);
+    }
+#endif
+
+    if (!endsWith(avocado::PATH_DATA, "/")) {
+        avocado::PATH_DATA += "/";
+    }
+    if (!endsWith(avocado::PATH_USER, "/")) {
+        avocado::PATH_USER += "/";
+    }
+
+    std::string dirsToCreate[] = {
+        avocado::biosPath(),
+        avocado::statePath(),
+        avocado::memoryPath(),
+        avocado::isoPath(),
+    };
+
+    for (auto& d : dirsToCreate) {
+        ensureDirectoryExist(fs::path(d));
+    }
+
+    chdir(avocado::PATH_USER.c_str());
 }
 
 int main(int argc, char** argv) {
-#ifdef BUILD_IS_RELEASE
     changeWorkingDirectory();
-#endif
 
-    loadConfigFile(CONFIG_NAME);
+    loadConfigFile();
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) != 0) {
         fatalError(fmt::format("Cannot init SDL ({})", SDL_GetError()));
         return 1;
     }
 
-    SDL_GameControllerAddMappingsFromFile("data/assets/gamecontrollerdb.txt");
+    SDL_GameControllerAddMappingsFromFile((avocado::assetsPath("gamecontrollerdb.txt")).c_str());
 
     auto opengl = std::make_unique<OpenGL>();
 
@@ -242,6 +306,7 @@ int main(int argc, char** argv) {
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
+                if (event.key.keysym.sym == SDLK_AC_BACK) running = false;
                 if (event.key.keysym.sym == SDLK_F1) gui->showMenu = !gui->showMenu;
                 if (event.key.keysym.sym == SDLK_F2) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
@@ -329,7 +394,7 @@ int main(int argc, char** argv) {
         state::saveLastState(sys.get());
     }
     system_tools::saveMemoryCards(sys, true);
-    saveConfigFile(CONFIG_NAME);
+    saveConfigFile();
 
     bus.unlistenAll(busToken);
     Sound::close();

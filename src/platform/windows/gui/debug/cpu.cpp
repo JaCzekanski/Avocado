@@ -2,6 +2,7 @@
 #include <fmt/core.h>
 #include <imgui.h>
 #include <algorithm>
+#include <utils/string.h>
 #include "debugger/debugger.h"
 #include "system.h"
 #include "utils/address.h"
@@ -57,6 +58,8 @@ std::string formatOpcode(mips::Opcode& opcode) {
     auto disasm = debugger::decodeInstruction(opcode);
     return fmt::format("{} {:{}c} {}", disasm.mnemonic, ' ', std::max(0, 6 - (int)disasm.mnemonic.length()), disasm.parameters);
 }
+
+CPU::CPU() { addrInputBuffer.reserve(8); }
 
 void CPU::debuggerWindow(System* sys) {
     bool goToPc = false;
@@ -274,13 +277,14 @@ void CPU::debuggerWindow(System* sys) {
     bool doScroll = false;
     goToAddr = 0;
 
-    if (ImGui::InputText("##addr", addrInputBuffer, 32, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
-        if (sscanf(addrInputBuffer, "%x", &goToAddr) == 1) {
-            goToAddr = (goToAddr - base) / 4;
-            doScroll = true;
-            debugger::followPC = false;
-            // TODO: Change segment if necessary
-        }
+    if (ImGui::InputTextWithHint("##addr", "Hex address", (char*)addrInputBuffer.c_str(), 8 + 1,
+                                 ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue)) {
+        goToAddr = std::stol(addrInputBuffer, 0, 16);
+        goToAddr = (goToAddr - base) / 4;
+        doScroll = true;
+        debugger::followPC = false;
+        addrInputBuffer.clear();
+        // TODO: Change segment if necessary
     }
     ImGui::PopItemWidth();
 

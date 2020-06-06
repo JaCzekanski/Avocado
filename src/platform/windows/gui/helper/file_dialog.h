@@ -13,8 +13,9 @@ struct File {
     std::string size = "";
     bool isDirectory;
     bool isHidden;
+    bool isSupported;
 
-    File(const fs::directory_entry& f);
+    File(const fs::directory_entry& f, bool isSupported = false);
 };
 
 class FileDialog {

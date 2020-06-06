@@ -4,6 +4,7 @@
 #include <cstring>
 #include <memory>
 #include <string_view>
+#include <string>
 
 std::vector<std::string_view> split(std::string_view str, std::string_view delim) {
     std::vector<std::string_view> parts;
@@ -38,4 +39,11 @@ std::string_view trim(std::string_view str) {
     }
 
     return trimmed;
+}
+bool endsWith(const std::string& a, const std::string& b) {
+    if (a.length() >= b.length()) {
+        return a.compare(a.length() - b.length(), b.length(), b) == 0;
+    } else {
+        return false;
+    }
 }
