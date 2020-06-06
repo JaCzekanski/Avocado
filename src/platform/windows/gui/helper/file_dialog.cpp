@@ -235,7 +235,7 @@ void FileDialog::display(bool& windowOpen) {
     if (ImGui::Button("Open in Explorer")) {
         openFileBrowser(path.string().c_str());
     }
-#elif defined(__LINUX__)
+#elif defined(__linux__)
     if (ImGui::Button("Open in file explorer")) {
         openFileBrowser(path.string().c_str());
     }

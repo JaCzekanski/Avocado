@@ -2,9 +2,11 @@
 #include <fmt/core.h>
 #include <imgui.h>
 #include <magic_enum.hpp>
+#include <platform/windows/gui/gui.h>
 #include "config.h"
 #include "device/controller/controller_type.h"
 #include "platform/windows/gui/filesystem.h"
+#include "platform/windows/gui/gui.h"
 #include "platform/windows/gui/images.h"
 #include "platform/windows/input/sdl_input_manager.h"
 #include "renderer/opengl/opengl.h"
@@ -169,6 +171,8 @@ void drawImage(const std::optional<Image> image, float w = 0.f, float h = 0.f) {
         } else {
             size = ImVec2((float)img->w, (float)img->h);
         }
+        size.x *= GUI::scale;
+        size.y *= GUI::scale;
         ImGui::Image((ImTextureID)(uintptr_t)img->id, size);
     }
 }
@@ -261,7 +265,7 @@ void controllerSetupWindow() {
 
     auto currentType = config.controller[selectedController - 1].type;
 
-    const float leftGroupWidth = 256.f;
+    const float leftGroupWidth = 192.f * GUI::scale;
     ImGui::BeginGroup();
     ImGui::BeginChild("##controller_image", ImVec2(leftGroupWidth, -ImGui::GetFrameHeightWithSpacing()));
     ImGui::Text("Type");
@@ -280,7 +284,7 @@ void controllerSetupWindow() {
     ImGui::PopItemWidth();
 
     if (currentType != ControllerType::none) {
-        drawImage(getImage(std::string(magic_enum::enum_name(currentType))), leftGroupWidth);
+        drawImage(getImage(std::string(magic_enum::enum_name(currentType))), leftGroupWidth / GUI::scale);
     }
     ImGui::EndChild();
 

@@ -83,6 +83,7 @@ void saveConfigFile() {
 void loadConfigFile() {
     auto file = getFileContents(configPath());
     if (file.empty()) {
+        config = avocado_config_t();
         saveConfigFile();
         return;
     }

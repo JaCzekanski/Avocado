@@ -28,15 +28,13 @@
 
 #undef main
 
-bool running = true;
-
 // Warning: this method might have 1 or more milliseconds of inaccuracy.
-void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool framelimiter, bool ntsc, bool mouseLocked) {
+double limitFramerate(bool framelimiter, bool ntsc) {
     static double timeToSkip = 0;
     static double counterFrequency = (double)SDL_GetPerformanceFrequency();
     static double startTime = SDL_GetPerformanceCounter() / counterFrequency;
-    static double fps;
     static double fpsTime = 0.0;
+    static double fps = 0;
     static int deltaFrames = 0;
 
     double currentTime = SDL_GetPerformanceCounter() / counterFrequency;
@@ -68,28 +66,9 @@ void limitFramerate(std::unique_ptr<System>& sys, SDL_Window* window, bool frame
         fps = (double)deltaFrames / fpsTime;
         deltaFrames = 0;
         fpsTime = 0.0;
-
-        std::string title = "";
-        if (mouseLocked) {
-            title += "Press Alt to unlock mouse | ";
-        }
-
-        title += "Avocado";
-
-        if (sys->cdrom->disc) {
-            auto cdPath = sys->cdrom->disc->getFile();
-            if (!cdPath.empty()) {
-                title += " | " + getFilename(cdPath);
-            }
-        }
-
-        title += fmt::format(" | FPS: {:.0f} ({:.2f} ms) {}", fps, (1.0 / fps) * 1000.0, !framelimiter ? "unlimited" : "");
-
-        if (sys->state == System::State::pause) {
-            title += " | paused";
-        }
-        SDL_SetWindowTitle(window, title.c_str());
     }
+
+    return fps;
 }
 
 void fatalError(const std::string& error) {
@@ -278,6 +257,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    bool running = true;
     bool frameLimitEnabled = true;
     bool forceRedraw = false;
 
@@ -384,11 +364,13 @@ int main(int argc, char** argv) {
         SDL_GL_GetDrawableSize(window, &opengl->width, &opengl->height);
         opengl->render(sys->gpu.get());
 
+        gui->statusFramelimitter = frameLimitEnabled;
+        gui->statusMouseLocked = inputManager->mouseLocked;
         gui->render(sys);
 
         SDL_GL_SwapWindow(window);
 
-        limitFramerate(sys, window, frameLimitEnabled, sys->gpu->isNtsc(), inputManager->mouseLocked);
+        gui->statusFps = limitFramerate(frameLimitEnabled, sys->gpu->isNtsc());
     }
     if (config.options.emulator.preserveState) {
         state::saveLastState(sys.get());

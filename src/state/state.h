@@ -6,6 +6,8 @@ struct System;
 namespace state {
 using SaveState = std::string;
 
+std::string getStatePath(System* sys, int slot = 0);
+
 SaveState save(System* sys);
 bool load(System* sys, const SaveState& state);
 

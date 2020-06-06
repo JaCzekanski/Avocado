@@ -41,11 +41,19 @@ class GUI {
 
     void mainMenu(std::unique_ptr<System>& sys);
     void drawControls(std::unique_ptr<System>& sys);
+    void renderController();
 
    public:
+    static float scale;
+
     bool singleFrame = false;
     bool showGui = true;
     bool showMenu = true;
+
+    // Status
+    double statusFps = 0.0;
+    bool statusFramelimitter = true;
+    bool statusMouseLocked = false;
 
     GUI(SDL_Window* window, void* glContext);
     ~GUI();

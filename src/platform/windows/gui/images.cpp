@@ -46,7 +46,7 @@ std::optional<Image> getImage(const std::string& filename, const std::string& pa
         return image->second;
     }
 
-    auto loaded = loadImage(fmt::format("{}/{}.png", path, filename));
+    auto loaded = loadImage(fmt::format("{}{}.png", path, filename));
     images[path + filename] = loaded;
 
     return loaded;

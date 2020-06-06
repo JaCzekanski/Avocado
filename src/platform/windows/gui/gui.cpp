@@ -1,14 +1,19 @@
 #include "gui.h"
 #include <fmt/core.h>
 #include <imgui.h>
+#include <platform/windows/utils/platform_tools.h>
 #include "config.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "imgui/imgui_impl_sdl.h"
 #include "platform/windows/input/key.h"
 #include "platform/windows/gui/icons.h"
 #include "system.h"
+#include "state/state.h"
 #include "utils/file.h"
 #include "utils/string.h"
+#include "images.h"
+
+float GUI::scale = 1.f;
 
 GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
     ImGui::CreateContext();
@@ -21,19 +26,19 @@ GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
     io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
 #endif
 
-    float scaleFactor = 1.f;
+    scale = 1.f;
 #ifdef ANDROID
     float dpi = 1.f;
     if (SDL_GetDisplayDPI(0, &dpi, nullptr, nullptr) == 0) {
-        scaleFactor = dpi / 160.f;
+        scale = dpi / 160.f;
     }
 #endif
-    float fontSize = 16.f * scaleFactor;
+    float fontSize = 16.f * scale;
 
     ImGuiStyle& style = ImGui::GetStyle();
     style.GrabRounding = 6.f;
     style.FrameRounding = 6.f;
-    style.ScaleAllSizes(scaleFactor);
+    style.ScaleAllSizes(scale);
 #ifdef ANDROID
     style.TouchExtraPadding = ImVec2(10.f, 10.f);
 #endif
@@ -51,7 +56,7 @@ GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
 
     {
         ImFontConfig config;
-        config.SizePixels = 13.f * scaleFactor;
+        config.SizePixels = 13.f * scale;
         io.Fonts->AddFontDefault(&config);
     }
 
@@ -85,6 +90,13 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
     }
     if (ImGui::BeginMenu("File")) {
         ImGui::MenuItem("Open", nullptr, &openFile.openWindowOpen);
+#if defined(__APPLE__) || defined(__WIN32__) || defined(__WIN64__) || defined(__linux__)
+        ImGui::Separator();
+        if (ImGui::MenuItem("Open Avocado directory")) {
+            openFileBrowser(avocado::PATH_USER.c_str());
+        }
+#endif
+        ImGui::Separator();
         if (ImGui::MenuItem("Exit", "Esc")) bus.notify(Event::File::Exit{});
         ImGui::EndMenu();
     }
@@ -112,7 +124,9 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         ImGui::Separator();
 
         if (ImGui::MenuItem("Quick save", "F5")) bus.notify(Event::System::SaveState{});
-        if (ImGui::MenuItem("Quick load", "F7")) bus.notify(Event::System::LoadState{});
+
+        bool quickLoadStateExists = fs::exists(state::getStatePath(sys.get()));
+        if (ImGui::MenuItem("Quick load", "F7", nullptr, quickLoadStateExists)) bus.notify(Event::System::LoadState{});
 
         if (ImGui::BeginMenu("Save")) {
             for (int i = 1; i <= 5; i++) {
@@ -122,8 +136,17 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         }
 
         if (ImGui::BeginMenu("Load")) {
+            bool anySaveExists = false;
             for (int i = 1; i <= 5; i++) {
-                if (ImGui::MenuItem(fmt::format("Slot {}##load", i).c_str())) bus.notify(Event::System::LoadState{i});
+                auto path = state::getStatePath(sys.get(), i);
+                if (fs::exists(path)) {
+                    anySaveExists = true;
+                    if (ImGui::MenuItem(fmt::format("Slot {}##load", i).c_str())) bus.notify(Event::System::LoadState{i});
+                }
+            }
+
+            if (!anySaveExists) {
+                ImGui::TextUnformatted("No save states");
             }
             ImGui::EndMenu();
         }
@@ -200,11 +223,27 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         ImGui::EndMenu();
     }
 
-    // Print info
-    auto info = fmt::format("fps: {:.2f}", 60.f);
+    std::string info;
+    if (statusMouseLocked) {
+        info += " | Press Alt to unlock mouse";
+    }
+    if (sys->state == System::State::pause) {
+        info += " | Paused";
+    } else {
+        info += fmt::format(" | {:.0f} FPS", statusFps);
+        if (!statusFramelimitter) {
+            info += " (Unlimited)";
+        }
+    }
     auto size = ImGui::CalcTextSize(info.c_str());
-    ImGui::SameLine(ImGui::GetWindowWidth() - size.x * 1.2f);
+    ImGui::SameLine(ImGui::GetWindowWidth() - size.x - ImGui::GetStyle().FramePadding.x * 4);
     ImGui::TextUnformatted(info.c_str());
+
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(fmt::format("Frame time: {:.2f} ms\nTab to disable frame limiting", (1000.0 / statusFps)).c_str());
+        ImGui::EndTooltip();
+    }
     ImGui::EndMainMenuBar();
 }
 
@@ -261,6 +300,9 @@ void GUI::render(std::unique_ptr<System>& sys) {
     toasts.display();
 
     drawControls(sys);
+
+    // Work in progress
+    //    renderController();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -339,8 +381,10 @@ void GUI::drawControls(std::unique_ptr<System>& sys) {
 
     symbolButton("Save/Load", ICON_FA_SAVE);
     if (ImGui::BeginPopupContextItem(nullptr, 0)) {
-        if (ImGui::Selectable("Quick load")) bus.notify(Event::System::LoadState{});
-        ImGui::Separator();
+        if (fs::exists(state::getStatePath(sys.get()))) {
+            if (ImGui::Selectable("Quick load")) bus.notify(Event::System::LoadState{});
+            ImGui::Separator();
+        }
         if (ImGui::Selectable("Quick save")) bus.notify(Event::System::SaveState{});
         ImGui::EndPopup();
     }
@@ -381,4 +425,38 @@ void GUI::drawControls(std::unique_ptr<System>& sys) {
 
     ImGui::End();
     ImGui::PopStyleVar(3);
+}
+
+void GUI::renderController() {
+    ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+    float size = 64.f;
+    auto button = [drawList, size](const char* button, float _x, float _y) {
+        auto btn = getImage(button, avocado::assetsPath("buttons/"));
+        if (!btn) return;
+        // AddImage(ImTextureID user_texture_id, const ImVec2& p_min, const ImVec2& p_max, const ImVec2& uv_min = ImVec2(0, 0), const
+        // ImVec2& uv_max = ImVec2(1, 1), ImU32 col = IM_COL32_WHITE);
+        float x = ImGui::GetIO().DisplaySize.x * _x;
+        float y = ImGui::GetIO().DisplaySize.y * lerp(0.3f, 0.6f, _y);
+        float r = size / 2 * 1.2;
+
+        drawList->AddCircleFilled(ImVec2(x, y), r, ImColor(0, 0, 0, 128));
+        drawList->AddImage((ImTextureID)btn->id, ImVec2(x - size / 2, y - size / 2), ImVec2(x + size / 2, y + size / 2), ImVec2(0, 0),
+                           ImVec2(1, 1), ImColor(0xff, 0xff, 0xff, 192));
+    };
+
+    float COL = 1.f / 12.f;
+    float ROW = 1.f / 3.f;
+
+    button("dpad_up", 2 * COL, 1 * ROW);
+    button("dpad_left", 1 * COL, 2 * ROW);
+    button("dpad_right", 3 * COL, 2 * ROW);
+    button("dpad_down", 2 * COL, 3 * ROW);
+
+    button("select", 5 * COL, 3 * ROW);
+    button("start", 7 * COL, 3 * ROW);
+
+    button("triangle", 1 - 2 * COL, 1 * ROW);
+    button("square", 1 - 1 * COL, 2 * ROW);
+    button("circle", 1 - 3 * COL, 2 * ROW);
+    button("cross", 1 - 2 * COL, 3 * ROW);
 }

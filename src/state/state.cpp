@@ -119,7 +119,7 @@ bool loadFromFile(System* sys, const std::string& path) {
     return state::load(sys, state);
 }
 
-std::string getStatePath(System* sys, int slot = 0) {
+std::string getStatePath(System* sys, int slot) {
     std::string name;
     if (sys->cdrom->disc) {
         std::string discPath = sys->cdrom->disc->getFile();

@@ -157,8 +157,7 @@ KeyBindings mouse() {
 // clang-format on
 }  // namespace DefaultKeyBindings
 
-const avocado_config_t defaultConfig;
-avocado_config_t config = defaultConfig;
+avocado_config_t config;
 
 namespace avocado {
 std::string PATH_DATA = "data/";

@@ -35,7 +35,7 @@ void openFileBrowser(const char* path) {
     system(fmt::format("open \"{}\"", path).c_str());
 #elif defined(__WIN32__) || defined(__WIN64__)
     system(fmt::format("explorer \"{}\"", path).c_str());
-#elif defined(__LINUX__)
+#elif defined(__linux__)
     system(fmt::format("xdg-open \"{}\"", path).c_str());
 #endif
 }
