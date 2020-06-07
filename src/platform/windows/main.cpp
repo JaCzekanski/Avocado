@@ -7,6 +7,7 @@
 #include <string>
 #include "config.h"
 #include "config_parser.h"
+#include "disc/load.h"
 #include "gui/filesystem.h"
 #include "gui/gui.h"
 #include "input/sdl_input_manager.h"
@@ -191,15 +192,56 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    auto gui = std::make_unique<GUI>(window, glContext);
     Sound::init();
 
     std::unique_ptr<System> sys = system_tools::hardReset();
 
     int busToken = bus.listen<Event::File::Load>([&](auto e) {
-        bool isPaused = sys->state == System::State::pause;
-        if (e.reset) {
-            sys = system_tools::hardReset();
+        if (disc::isDiscImage(e.file)) {
+            if (e.action == Event::File::Load::Action::ask) {
+                // Show dialog and decide what to do
+                gui->droppedItem = e.file;
+                return;
+            }
+
+            std::unique_ptr<disc::Disc> disc = disc::load(e.file);
+            if (!disc) {
+                toast(fmt::format("Cannot load {}", getFilenameExt(e.file)));
+                return;
+            }
+
+            if (e.action == Event::File::Load::Action::slowboot) {
+                system_tools::bootstrap(sys);
+                sys->cdrom->disc = std::move(disc);
+                sys->cdrom->setShell(false);
+                sys->state = System::State::run;
+
+                toast("System restarted");
+                return;
+            } else if (e.action == Event::File::Load::Action::fastboot) {
+                system_tools::bootstrap(sys);
+                sys->cdrom->disc = std::move(disc);
+                sys->cdrom->setShell(false);
+
+                // BIOS is at 0x80030000 after bootstrap, forcing CPU to return
+                // will skip the boot animation and go straight to the CD boot
+
+                sys->cpu->setPC(sys->cpu->reg[31]);
+                sys->state = System::State::run;
+
+                toast("Fastboot");
+                return;
+            } else if (e.action == Event::File::Load::Action::swap) {
+                sys->cdrom->disc = std::move(disc);
+                sys->cdrom->setShell(false);
+
+                toast("Disc swapped");
+                return;
+            }
         }
+
+        bool isPaused = sys->state == System::State::pause;
         system_tools::loadFile(sys, e.file);
         sys->state = isPaused ? System::State::pause : System::State::run;
     });
@@ -237,8 +279,6 @@ int main(int argc, char** argv) {
 
     auto inputManager = std::make_unique<SdlInputManager>();
     InputManager::setInstance(inputManager.get());
-
-    auto gui = std::make_unique<GUI>(window, glContext);
 
     if (!sys->isSystemReady()) {
         sys->state = System::State::stop;
@@ -335,7 +375,8 @@ int main(int argc, char** argv) {
             if (event.type == SDL_DROPFILE) {
                 std::string path = event.drop.file;
                 SDL_free(event.drop.file);
-                system_tools::loadFile(sys, path);
+
+                bus.notify(Event::File::Load{path});
             }
             if (event.type == SDL_WINDOWEVENT
                 && (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED || event.window.event == SDL_WINDOWEVENT_RESIZED)) {

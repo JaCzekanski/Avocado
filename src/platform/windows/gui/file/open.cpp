@@ -24,7 +24,7 @@ bool Open::onFileSelected(const gui::helper::File& f) {
     auto path = f.entry.path();
     config.gui.lastPath = path.parent_path().string();
 
-    bus.notify(Event::File::Load{path.string(), true});
+    bus.notify(Event::File::Load{path.string()});
     return true;
 }
 

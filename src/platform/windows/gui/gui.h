@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include <optional>
 #include "file/open.h"
 #include "debug/cdrom.h"
 #include "debug/cpu.h"
@@ -40,6 +41,7 @@ class GUI {
     gui::Toasts toasts;
 
     void mainMenu(std::unique_ptr<System>& sys);
+    void discDialog();
     void drawControls(std::unique_ptr<System>& sys);
     void renderController();
 
@@ -54,6 +56,10 @@ class GUI {
     double statusFps = 0.0;
     bool statusFramelimitter = true;
     bool statusMouseLocked = false;
+
+    // Drag&drop
+    std::optional<std::string> droppedItem;
+    bool droppedItemDialogShown = false;
 
     GUI(SDL_Window* window, void* glContext);
     ~GUI();

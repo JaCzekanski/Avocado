@@ -69,20 +69,12 @@ Currently Avocado requires OpenGL 3.2. In the future this limitation will be lif
 
 ## Running
 
-Avocado requires the BIOS from real console in the data/bios directory.
-Selection of a BIOS rom will be required on the first run. The rom can be changed under Options->BIOS or by modifying the **config.json** file.
+Avocado requires the BIOS from real console in the `data/bios` directory. (use `File->Open Avocado directory` to locate the directory on your system)
+Selection of a BIOS rom will be required on the first run. The rom can be changed under `Options->BIOS` or by modifying the **config.json** file.
 
-Avocado doesn't support fast booting. [UniROM](http://www.psxdev.net/forum/viewtopic.php?t=722) can be used as a work around. Place the .rom file in the data/bios directory and modify **config.json**:
-```
-"extension": "data/bios/unirom_caetlaNTSC_plugin.rom"
-```
+To load a `.cue/.bin/.img/.chd` or `.exe/.psexe/.psf/.minipsf` file just drag and drop it.
 
-Press the **Start** button (Enter by default) to fastboot, or **R2** (keypad *) to slowboot a game.
-You can run the included Playstation firmware replacement *Caetla* with the **Select** button (Right shift) then run the .exe directly from the disk.
-
-To load a .cue/.bin/.img/.chd file just drag and drop it.
-
-PAL games with LibCrypt protection need additional subchannel info - download proper file .SBI or .LSD file from [Redump](http://redump.org/discs/system/psx/), place it in the same folder as game image and make sure has identical name as .cue/.bin/... file.
+PAL games with LibCrypt protection need additional subchannel info - download proper file `.SBI` or `.LSD` file from [Redump](http://redump.org/discs/system/psx/), place it in the same folder as game image and make sure has identical name as `.cue/.bin/...` file.
 
 ## Controls
 

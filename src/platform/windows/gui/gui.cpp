@@ -292,15 +292,22 @@ void GUI::render(std::unique_ptr<System>& sys) {
         aboutHelp.displayWindows();
     }
 
+    toasts.display();
+
     if (!config.isEmulatorConfigured() && !notInitializedWindowShown) {
         notInitializedWindowShown = true;
         ImGui::OpenPopup("Avocado");
+    } else if (droppedItem) {
+        if (!droppedItemDialogShown) {
+            droppedItemDialogShown = true;
+            ImGui::OpenPopup("Disc");
+        }
+    } else {
+        drawControls(sys);
     }
 
-    toasts.display();
-
-    if (config.isEmulatorConfigured()) {
-        drawControls(sys);
+    if (droppedItem) {
+        discDialog();
     }
 
     // Work in progress
@@ -308,6 +315,44 @@ void GUI::render(std::unique_ptr<System>& sys) {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void GUI::discDialog() {
+    if (!ImGui::BeginPopupModal("Disc", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+
+    ImGui::Text("%s", getFilenameExt(*droppedItem).c_str());
+    if (ImGui::Button("Boot")) {
+        bus.notify(Event::File::Load{*droppedItem, Event::File::Load::Action::slowboot});
+        ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart console and boot the CD");
+
+    ImGui::SameLine();
+    if (ImGui::Button("Fast boot")) {
+        bus.notify(Event::File::Load{*droppedItem, Event::File::Load::Action::fastboot});
+        ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart console and boot the CD (skipping BIOS intro)");
+
+    ImGui::SameLine();
+    if (ImGui::Button("Swap disc")) {
+        bus.notify(Event::File::Load{*droppedItem, Event::File::Load::Action::swap});
+        ImGui::CloseCurrentPopup();
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Swap currently inserted disc");
+    ImGui::SameLine();
+
+    if (ImGui::Button("Cancel")) {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+
+    if (!ImGui::IsPopupOpen("Disc")) {
+        droppedItem = {};
+        droppedItemDialogShown = false;
+    }
 }
 
 void GUI::drawControls(std::unique_ptr<System>& sys) {

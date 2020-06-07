@@ -1,9 +1,21 @@
 #include "load.h"
+#include <array>
 #include "disc/format/chd_format.h"
 #include "disc/format/cue_parser.h"
 #include "utils/file.h"
 
 namespace disc {
+const std::array<std::string, 5> discFormats = {
+    "chd", "cue", "iso", "bin", "img",
+};
+
+bool isDiscImage(const std::string& path) {
+    std::string ext = getExtension(path);
+    transform(ext.begin(), ext.end(), ext.begin(), tolower);
+
+    return std::find(discFormats.begin(), discFormats.end(), ext) != discFormats.end();
+}
+
 std::unique_ptr<disc::Disc> load(const std::string& path) {
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);

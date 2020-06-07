@@ -14,8 +14,14 @@ struct Spu {};
 
 namespace File {
 struct Load {
+    enum class Action {
+        ask,
+        slowboot,
+        fastboot,
+        swap,
+    };
     std::string file;
-    bool reset;
+    Action action = Action::ask;
 };
 struct Exit {};
 };  // namespace File
