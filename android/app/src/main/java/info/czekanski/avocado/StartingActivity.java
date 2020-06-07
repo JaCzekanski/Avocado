@@ -25,6 +25,7 @@ public class StartingActivity extends Activity {
 
     private void runAvocado() {
         startActivity(new Intent(this, MainActivity.class));
+        overridePendingTransition(0, 0);
         finish();
     }
 
