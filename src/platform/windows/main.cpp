@@ -96,7 +96,6 @@ void changeWorkingDirectory() {
     }
 
     workingDirectory /= "data";
-
     avocado::PATH_DATA = workingDirectory.string();
 #endif
 
@@ -138,6 +137,8 @@ void changeWorkingDirectory() {
         SDL_free(prefPath);
     }
 #endif
+    avocado::PATH_DATA = replaceAll(avocado::PATH_DATA, "\\", "/");
+    avocado::PATH_USER = replaceAll(avocado::PATH_USER, "\\", "/");
 
     if (!endsWith(avocado::PATH_DATA, "/")) {
         avocado::PATH_DATA += "/";

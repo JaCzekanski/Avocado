@@ -229,15 +229,15 @@ void FileDialog::display(bool& windowOpen) {
 
 #if defined(__APPLE__)
     if (ImGui::Button("Reveal in Finder")) {
-        openFileBrowser(path.string().c_str());
+        openFileBrowser(path.string());
     }
-#elif defined(__WIN32__) || defined(__WIN64__)
+#elif defined(_WIN32)
     if (ImGui::Button("Open in Explorer")) {
-        openFileBrowser(path.string().c_str());
+        openFileBrowser(path.string());
     }
 #elif defined(__linux__)
     if (ImGui::Button("Open in file explorer")) {
-        openFileBrowser(path.string().c_str());
+        openFileBrowser(path.string());
     }
 #endif
 

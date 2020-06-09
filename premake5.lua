@@ -156,6 +156,7 @@ if os.istarget("windows") then
 	include "premake/sdl2.lua"
 end
 
+group "avocado"
 project "core"
 	uuid "176665c5-37ff-4a42-bef8-02edaeb1b426"
 	kind "StaticLib"
@@ -302,6 +303,7 @@ project "avocado"
 			"SDL2",
 		}
 
+group "tests"
 project "avocado_test"
 	uuid "07e62c76-7617-4add-bfb5-a5dba4ef41ce"
 	kind "ConsoleApp"

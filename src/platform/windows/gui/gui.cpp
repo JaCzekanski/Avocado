@@ -90,10 +90,10 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
     }
     if (ImGui::BeginMenu("File")) {
         ImGui::MenuItem("Open", nullptr, &openFile.openWindowOpen);
-#if defined(__APPLE__) || defined(__WIN32__) || defined(__WIN64__) || defined(__linux__)
+#if defined(__APPLE__) || defined(_WIN32) || defined(__linux__)
         ImGui::Separator();
         if (ImGui::MenuItem("Open Avocado directory")) {
-            openFileBrowser(avocado::PATH_USER.c_str());
+            openFileBrowser(avocado::PATH_USER);
         }
 #endif
         ImGui::Separator();

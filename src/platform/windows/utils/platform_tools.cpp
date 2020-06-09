@@ -1,5 +1,7 @@
 #include "platform_tools.h"
 #include <fmt/core.h>
+#include <utils/string.h>
+
 #if defined(ANDROID)
 #include <jni.h>
 #include <SDL.h>
@@ -30,11 +32,11 @@ bool hasExternalStoragePermission() {
 }
 #endif
 
-void openFileBrowser(const char* path) {
+void openFileBrowser(const std::string& path) {
 #if defined(__APPLE__)
     system(fmt::format("open \"{}\"", path).c_str());
-#elif defined(__WIN32__) || defined(__WIN64__)
-    system(fmt::format("explorer \"{}\"", path).c_str());
+#elif defined(_WIN32)
+    system(fmt::format("explorer \"{}\"", replaceAll(path, "/", "\\")).c_str());
 #elif defined(__linux__)
     system(fmt::format("xdg-open \"{}\"", path).c_str());
 #endif
