@@ -81,7 +81,6 @@ class GTE {
     Reg32 rgb[3];
     uint32_t res1 = 0;     // prohibited
     int32_t mac[4] = {0};  // Sum of products
-    uint16_t irgb = 0;
     int32_t lzcs = 0;
     int32_t lzcr = 0;
 
@@ -186,7 +185,6 @@ class GTE {
         ar(rgb);
         ar(res1);
         ar(mac);
-        ar(irgb);
         ar(lzcs);
         ar(lzcr);
 

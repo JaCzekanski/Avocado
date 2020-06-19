@@ -56,11 +56,13 @@ uint32_t GTE::read(uint8_t n) {
             case 26: return mac[2];
             case 27: return mac[3];
             case 28:
-            case 29:
-                irgb = clip(ir[1] / 0x80, 0x1f, 0x00);
+            case 29: {
+                uint32_t irgb = 0;
+                irgb |= clip(ir[1] / 0x80, 0x1f, 0x00);
                 irgb |= clip(ir[2] / 0x80, 0x1f, 0x00) << 5;
                 irgb |= clip(ir[3] / 0x80, 0x1f, 0x00) << 10;
                 return irgb;
+            }
             case 30: return lzcs;
             case 31: return lzcr;
 
@@ -173,7 +175,6 @@ void GTE::write(uint8_t n, uint32_t d) {
         case 26: mac[2] = d; break;
         case 27: mac[3] = d; break;
         case 28:
-            irgb = d & 0x00007fff;
             ir[1] = (d & 0x1f) * 0x80;
             ir[2] = ((d >> 5) & 0x1f) * 0x80;
             ir[3] = ((d >> 10) & 0x1f) * 0x80;
