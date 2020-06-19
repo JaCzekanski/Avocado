@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
 
         gui->statusFps = limitFramerate(frameLimitEnabled, sys->gpu->isNtsc());
     }
-    if (config.options.emulator.preserveState) {
+    if (config.options.emulator.preserveState && sys->state != System::State::halted) {
         state::saveLastState(sys.get());
     }
     system_tools::saveMemoryCards(sys, true);
