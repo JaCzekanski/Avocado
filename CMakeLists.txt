@@ -239,6 +239,8 @@ add_library(core STATIC
         src/disc/format/chd_format.cpp
         src/disc/format/cue.cpp
         src/disc/format/cue_parser.cpp
+        src/disc/format/ecm.cpp
+        src/disc/format/ecm_parser.cpp
         src/disc/load.cpp
         src/disc/position.cpp
         src/disc/subchannel_q.cpp

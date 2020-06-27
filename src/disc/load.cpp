@@ -1,13 +1,12 @@
 #include "load.h"
 #include <array>
+#include <disc/format/ecm_parser.h>
 #include "disc/format/chd_format.h"
 #include "disc/format/cue_parser.h"
 #include "utils/file.h"
 
 namespace disc {
-const std::array<std::string, 5> discFormats = {
-    "chd", "cue", "iso", "bin", "img",
-};
+const std::array<std::string, 6> discFormats = {"chd", "cue", "iso", "bin", "img", "ecm"};
 
 bool isDiscImage(const std::string& path) {
     std::string ext = getExtension(path);
@@ -28,6 +27,9 @@ std::unique_ptr<disc::Disc> load(const std::string& path) {
         disc = parser.parse(path.c_str());
     } else if (ext == "iso" || ext == "bin" || ext == "img") {
         disc = disc::format::Cue::fromBin(path.c_str());
+    } else if (ext == "ecm") {
+        disc::format::EcmParser parser;
+        disc = parser.parse(path.c_str());
     }
 
     return disc;

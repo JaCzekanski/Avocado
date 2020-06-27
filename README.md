@@ -16,6 +16,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
+*28.06.2020* - .ecm format support
+
 *16.09.2019* - Save states
 
 *5.09.2019* - Vibration support
@@ -72,7 +74,7 @@ Currently Avocado requires OpenGL 3.2. In the future this limitation will be lif
 Avocado requires the BIOS from real console in the `data/bios` directory. (use `File->Open Avocado directory` to locate the directory on your system)
 Selection of a BIOS rom will be required on the first run. The rom can be changed under `Options->BIOS` or by modifying the **config.json** file.
 
-To load a `.cue/.bin/.img/.chd` or `.exe/.psexe/.psf/.minipsf` file just drag and drop it.
+To load a `.cue/.bin/.img/.chd/.ecm` or `.exe/.psexe/.psf/.minipsf` file just drag and drop it.
 
 PAL games with LibCrypt protection need additional subchannel info - download proper file `.SBI` or `.LSD` file from [Redump](http://redump.org/discs/system/psx/), place it in the same folder as game image and make sure has identical name as `.cue/.bin/...` file.
 
