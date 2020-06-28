@@ -57,6 +57,7 @@ struct avocado_config_t {
             } resolution;
             bool vsync = false;
             bool forceNtsc = false;
+            bool nativeTextureFormat = true;
         } graphics;
 
         struct {

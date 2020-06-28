@@ -103,13 +103,15 @@ bool OpenGL::setup() {
 
     // Try native texture
 #ifdef GL_UNSIGNED_SHORT_1_5_5_5_REV
-    vramTex = std::make_unique<Texture>(gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, false);
+    if (config.options.graphics.nativeTextureFormat) {
+        vramTex = std::make_unique<Texture>(gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, false);
+    }
 #endif
 
     if (vramTex && vramTex->isCreated()) {
         supportNativeTexture = true;
     } else {
-        // Use compability mode
+        // Use compatibility mode
         vramTex = std::make_unique<Texture>(gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, GL_RGBA, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, false);
         if (!vramTex || !vramTex->isCreated()) {
             fmt::print("[GL] Unable to create VRAM texture\n");

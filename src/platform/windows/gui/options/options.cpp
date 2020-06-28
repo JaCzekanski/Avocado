@@ -37,6 +37,18 @@ void graphicsOptionsWindow() {
         snprintf(_height, MAX_LEN, "%u", h);
     };
 
+    auto tooltip = [](const char* text) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(text);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    };
+
     auto parseResolution = [&] {
         int width = 0;
         int height = 0;
@@ -132,18 +144,10 @@ void graphicsOptionsWindow() {
         bus.notify(Event::Config::Graphics{});
     }
 
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(
-            "Force 60Hz mode for PAL games (50Hz)\n"
-            "Since some PAL games are slowed down versions of NTSC equivalent,\n"
-            "this option might be useful to bring back such titles to the original speed.");
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
+    tooltip(
+        "Force 60Hz mode for PAL games (50Hz)\n"
+        "Since some PAL games are slowed down versions of NTSC equivalent,\n"
+        "this option might be useful to bring back such titles to the original speed.");
 
     if (widescreen) {
         bool forceWidescreen = config.options.graphics.forceWidescreen;
@@ -152,6 +156,17 @@ void graphicsOptionsWindow() {
             bus.notify(Event::Config::Gte{});
         }
     }
+
+    bool nativeTextureFormat = config.options.graphics.nativeTextureFormat;
+    if (ImGui::Checkbox("Use native VRAM texture format", &nativeTextureFormat)) {
+        config.options.graphics.nativeTextureFormat = nativeTextureFormat;
+        bus.notify(Event::Config::Graphics{});
+    }
+    tooltip(
+        "Select between GL_UNSIGNED_SHORT_1_5_5_5_REV OpenGL VRAM texture format (native) "
+        "and GL_UNSIGNED_SHORT_5_5_5_1. The first one maps 1:1 with PS1 VRAM format allowing for faster copy, "
+        "but some drivers might not support it or it might be slower then doing the conversion manually.\n"
+        "Should be left checked.");
 
     ImGui::End();
 }
