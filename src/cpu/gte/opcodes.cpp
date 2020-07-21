@@ -303,7 +303,6 @@ uint32_t GTE::divideUNR(uint32_t lhs, uint32_t rhs) {
     uint32_t result = ((uint64_t)lhs * reciprocal + 0x8000) >> 16;
 
     if (result > 0x1ffff) {
-        flag.divide_overflow = 1;
         return 0x1ffff;
     }
     return result;
