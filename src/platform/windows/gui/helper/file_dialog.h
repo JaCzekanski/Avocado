@@ -48,4 +48,6 @@ class FileDialog {
 };
 
 const std::string formatFileSize(uintmax_t bytes);
+
+void openFileBrowserButton(const std::string& path);
 };  // namespace gui::helper

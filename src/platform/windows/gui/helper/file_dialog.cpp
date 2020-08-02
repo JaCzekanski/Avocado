@@ -227,20 +227,7 @@ void FileDialog::display(bool& windowOpen) {
     ImGui::PopStyleVar();
     ImGui::PopStyleVar();
 
-#if defined(__APPLE__)
-    if (ImGui::Button("Reveal in Finder")) {
-        openFileBrowser(path.string());
-    }
-#elif defined(_WIN32)
-    if (ImGui::Button("Open in Explorer")) {
-        openFileBrowser(path.string());
-    }
-#elif defined(__linux__)
-    if (ImGui::Button("Open in file explorer")) {
-        openFileBrowser(path.string());
-    }
-#endif
-
+    openFileBrowserButton(path.string());
     ImGui::End();
 
     if (!windowOpen) {
@@ -258,5 +245,21 @@ const std::string formatFileSize(uintmax_t bytes) {
     char pre = units.at(exp - 1);
 
     return fmt::format("{:4.0f} {}B", (float)bytes / std::pow(unit, exp), pre);
+}
+
+void openFileBrowserButton(const std::string& path) {
+#if defined(__APPLE__)
+    if (ImGui::Button("Reveal in Finder")) {
+        openFileBrowser(path);
+    }
+#elif defined(_WIN32)
+    if (ImGui::Button("Open in Explorer")) {
+        openFileBrowser(path);
+    }
+#elif defined(__linux__)
+    if (ImGui::Button("Open in file explorer")) {
+        openFileBrowser(path);
+    }
+#endif
 };
 };  // namespace gui::helper

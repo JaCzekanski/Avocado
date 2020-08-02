@@ -56,6 +56,10 @@ struct SPU {
 
     System* sys;
 
+    // Debug
+    bool recording;
+    std::vector<uint16_t> recordBuffer;
+
     uint8_t readVoice(uint32_t address) const;
     void writeVoice(uint32_t address, uint8_t data);
 

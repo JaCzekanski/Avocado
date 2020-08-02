@@ -126,6 +126,9 @@ void SPU::step(device::cdrom::CDROM* cdrom) {
 
     audioBufferPos += 2;
     if (audioBufferPos >= AUDIO_BUFFER_SIZE) {
+        if (recording) {
+            std::copy(audioBuffer.begin(), audioBuffer.end(), std::back_inserter(recordBuffer));
+        }
         audioBufferPos = 0;
         bufferReady = true;
     }

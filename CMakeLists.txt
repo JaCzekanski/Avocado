@@ -247,6 +247,7 @@ add_library(core STATIC
         src/input/input_manager.cpp
         src/sound/adpcm.cpp
         src/sound/tables.cpp
+        src/sound/wave.cpp
         src/state/state.cpp
         src/stdafx.cpp
         src/system.cpp

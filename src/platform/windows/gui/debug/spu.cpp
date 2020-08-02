@@ -4,7 +4,13 @@
 #include <vector>
 #include "device/spu/spu.h"
 #include "system.h"
+#include "sound/wave.h"
 #include <SDL.h>
+#include <utils/event.h>
+#include <iomanip>
+#include <config.h>
+#include <sstream>
+#include "platform/windows/gui/helper/file_dialog.h"
 
 namespace ImGui {
 template <typename... Args>
@@ -297,6 +303,38 @@ void renderSamples(spu::SPU* spu) {
     ImGui::PlotLines("Preview", samples.data(), (int)samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(400, 80));
 }
 
+void SPU::recordingWindow(spu::SPU* spu) {
+    if (ImGui::Button(spu->recording ? "Pause" : "Record")) {
+        spu->recording = !spu->recording;
+    }
+    if (!spu->recordBuffer.empty()) {
+        if (!spu->recording) {
+            ImGui::SameLine();
+            if (ImGui::Button("Save")) {
+                auto t = std::time(nullptr);
+                std::stringstream ss;
+                ss << std::put_time(std::localtime(&t), "spu-%Y-%m-%d_%H-%M-%S.wav");
+                auto file = ss.str();
+
+                bool saved = wave::writeToFile(spu->recordBuffer, fmt::format("{}/{}", avocado::PATH_USER, file).c_str());
+                toast(saved ? fmt::format("Saved to {}", file) : fmt::format("Problem saving to {}", file));
+                if (saved) {
+                    spu->recordBuffer.clear();
+                    showOpenDirectory = true;
+                }
+            }
+        }
+
+        ImGui::SameLine();
+        ImGui::TextUnformatted(fmt::format("{:.2f} seconds captured...", spu->recordBuffer.size() / 44100.f / 2).c_str());
+    }
+
+    if (showOpenDirectory) {
+        ImGui::SameLine();
+        gui::helper::openFileBrowserButton(avocado::PATH_USER);
+    }
+}
+
 void SPU::spuWindow(spu::SPU* spu) {
     const auto treeFlags = ImGuiTreeNodeFlags_CollapsingHeader | ImGuiTreeNodeFlags_DefaultOpen;
     static bool parseValues = true;
@@ -309,6 +347,8 @@ void SPU::spuWindow(spu::SPU* spu) {
 
     ImGui::Checkbox("Parse values", &parseValues);
     renderSamples(spu);
+
+    if (ImGui::TreeNodeEx("Recording", treeFlags)) recordingWindow(spu);
     ImGui::End();
 }
 
