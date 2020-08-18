@@ -1,5 +1,6 @@
 #include "wave.h"
 #include <cstring>
+#include <cstdio> // for FILE, fwrite, fclose
 
 namespace wave {
 bool writeToFile(const std::vector<uint16_t>& buffer, const char* filename, int channels) {
