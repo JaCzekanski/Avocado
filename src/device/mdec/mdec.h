@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <vector>
+#include <optional>
 #include "device/device.h"
 
 namespace mdec {
