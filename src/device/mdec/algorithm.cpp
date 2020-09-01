@@ -75,19 +75,20 @@ void MDEC::yuvToRgb(decodedBlock& output, int blockX, int blockY) {
 void MDEC::decodeMacroblocks() {
     for (auto src = input.begin(); src != input.end();) {
         auto block = decodeMacroblock(src);
+        if (!block) continue;
 
-        output.insert(output.end(), block.begin(), block.end());
+        output.insert(output.end(), (*block).begin(), (*block).end());
     }
 }
 
-decodedBlock MDEC::decodeMacroblock(std::vector<uint16_t>::iterator& src) {
-    decodeBlock(crblk, src, colorQuantTable);
-    decodeBlock(cbblk, src, colorQuantTable);
+std::optional<decodedBlock> MDEC::decodeMacroblock(std::vector<uint16_t>::iterator& src) {
+    if (!decodeBlock(crblk, src, colorQuantTable)) return std::nullopt;
+    if (!decodeBlock(cbblk, src, colorQuantTable)) return std::nullopt;
 
-    decodeBlock(yblk[0], src, luminanceQuantTable);
-    decodeBlock(yblk[1], src, luminanceQuantTable);
-    decodeBlock(yblk[2], src, luminanceQuantTable);
-    decodeBlock(yblk[3], src, luminanceQuantTable);
+    if (!decodeBlock(yblk[0], src, luminanceQuantTable)) return std::nullopt;
+    if (!decodeBlock(yblk[1], src, luminanceQuantTable)) return std::nullopt;
+    if (!decodeBlock(yblk[2], src, luminanceQuantTable)) return std::nullopt;
+    if (!decodeBlock(yblk[3], src, luminanceQuantTable)) return std::nullopt;
 
     decodedBlock out;
     yuvToRgb(out, 0, 0);
@@ -95,7 +96,7 @@ decodedBlock MDEC::decodeMacroblock(std::vector<uint16_t>::iterator& src) {
     yuvToRgb(out, 8, 0);
     yuvToRgb(out, 8, 8);
 
-    return out;
+    return std::optional<decodedBlock>(out);
     // Handle format conversion
 }
 
@@ -119,7 +120,7 @@ union RLE {
     RLE(uint16_t val) : _(val){};
 };
 
-void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iterator& src, const std::array<uint8_t, 64>& table) {
+bool MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iterator& src, const std::array<uint8_t, 64>& table) {
     blk.fill(0);
 
     // Block structure:
@@ -132,7 +133,7 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iter
         src++;  // Skip padding
     }
 
-    if (src == input.end()) return;
+    if (src == input.end()) return false;
     DCT dct = *src++;
     int32_t current = extend_sign<10>(dct.dc);
 
@@ -151,7 +152,7 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iter
             blk.at(n) = value;
         }
 
-        if (src == input.end()) break;
+        if (src == input.end()) return false;
         RLE rle = *src++;
         current = extend_sign<10>(rle.ac);
         n += rle.zeroes + 1;
@@ -160,6 +161,7 @@ void MDEC::decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iter
     }
 
     idct(blk);
+    return true;
 }
 
 void MDEC::idct(std::array<int16_t, 64>& src) {
