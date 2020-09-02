@@ -10,6 +10,7 @@ mkdir -p "$HOME/.ccache"
 
 docker run \
     -e CI=$CI \
+    -e TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST \
     -v $(pwd):/home/build \
     -v "$HOME/.ccache":/root/.ccache \
     -e keystore_password="$keystore_password" \
