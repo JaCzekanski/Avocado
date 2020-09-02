@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <vector>
+#include <optional>
 #include "device/device.h"
 
 namespace mdec {
@@ -65,8 +66,8 @@ class MDEC {
     // Algorithm
     void decodeMacroblocks();
     void yuvToRgb(decodedBlock& output, int blockX, int blockY);
-    decodedBlock decodeMacroblock(std::vector<uint16_t>::iterator& src);
-    void decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iterator& src, const std::array<uint8_t, 64>& table);
+    std::optional<decodedBlock> decodeMacroblock(std::vector<uint16_t>::iterator& src);
+    bool decodeBlock(std::array<int16_t, 64>& blk, std::vector<uint16_t>::iterator& src, const std::array<uint8_t, 64>& table);
     void idct(std::array<int16_t, 64>& src);
 
    public:
