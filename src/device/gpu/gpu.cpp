@@ -561,8 +561,8 @@ uint32_t GPU::getStat() {
     GPUSTAT |= displayDisable << 23;
     GPUSTAT |= irqRequest << 24;
     GPUSTAT |= dataRequest << 25;
-    GPUSTAT |= 1 << 26;  // Ready for DMA command
-    GPUSTAT |= (cmd != Command::CopyCpuToVram2) << 27;
+    GPUSTAT |= (cmd == Command::None) << 26;  // Ready for DMA command
+    GPUSTAT |= (readMode == ReadMode::Vram) << 27;
     GPUSTAT |= 1 << 28;  // Ready for receive DMA block
     GPUSTAT |= (dmaDirection & 3) << 29;
     GPUSTAT |= odd << 31;
