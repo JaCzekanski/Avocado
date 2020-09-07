@@ -546,7 +546,7 @@ uint32_t GPU::getStat() {
     else if (dmaDirection == 2)
         dataRequest = 1;  // Same as bit28, ready to receive dma block
     else if (dmaDirection == 3)
-        dataRequest = cmd != Command::CopyCpuToVram2;  // Same as bit27, ready to send VRAM to CPU
+        dataRequest = readMode == ReadMode::Vram;  // Same as bit27, ready to send VRAM to CPU
 
     GPUSTAT = gp0_e1._reg & 0x7FF;
     GPUSTAT |= gp0_e6.setMaskWhileDrawing << 11;
