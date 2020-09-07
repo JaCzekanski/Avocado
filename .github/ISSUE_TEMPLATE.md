@@ -1,14 +1,15 @@
-**Game**: What game you're trying to play/test (including the game ID, listed as "Serial" here http://redump.org/discs/system/psx/)
+#### Informations
 
-
-**Version**: specify what build of Avocado you're using. (see Help->About)
-
+**Game**: Name, serial (see http://redump.org/discs/system/psx/)
+**Version**: Build number (see Help->About)
 **Hardware**: CPU, GPU, RAM, Operating system
 
 
-**Behavior**: give details about what is happening with game/emulator 
+## Behavior 
+What is happening with the game/emulator? 
 
-**Attachments**:
-  * **Screenshots/Videos**: (if possible (and when applicable), add a screenshot or video about the issue)
-  * **Save state**: (use Backspace to rewind emulation few seconds before the issue happend and make quick save using F5, state can be found in data/state/GAME_ID_0.state)
-  * **Logs**: (if available)
+
+#### Attachments
+  * **Screenshots/Videos**: If possible, add a screenshot or video presenting the issue
+  * **Save state**: Optional (Emulation->Quick save, state can be found in data/state/GAME_ID_0.state)
+  * **Logs**: If available (upload as file, do not paste directly here)
