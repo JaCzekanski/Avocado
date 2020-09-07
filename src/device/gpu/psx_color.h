@@ -17,6 +17,7 @@ union RGB {
 
     RGB() : raw(0) {}
     RGB(int r, int g, int b) : r(r), g(g), b(b) {}
+    RGB(uint32_t raw) : raw(raw) {}
 };
 
 RGB operator*(const RGB& lhs, const float rhs);

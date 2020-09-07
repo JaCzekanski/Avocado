@@ -77,6 +77,14 @@ void replayCommands(gpu::GPU *gpu, int to) {
     gpu->gpuLogEnabled = true;
 }
 
+void colorBox(RGB color) {
+    float fcolor[3];
+    fcolor[0] = color.r / 255.f;
+    fcolor[1] = color.g / 255.f;
+    fcolor[2] = color.b / 255.f;
+    ImGui::ColorEdit3("##color", fcolor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+}
+
 void GPU::logWindow(System *sys) {
     vramAreas.clear();
     if (!textureImage) {
@@ -111,10 +119,6 @@ void GPU::logWindow(System *sys) {
             // Analyze
             if (isHovered || nodeOpen) {
                 bool showArguments = true;
-                float color[3];
-                color[0] = (entry.args[0] & 0xff) / 255.f;
-                color[1] = ((entry.args[0] >> 8) & 0xff) / 255.f;
-                color[2] = ((entry.args[0] >> 16) & 0xff) / 255.f;
 
                 uint8_t command = entry.command;
                 auto arguments = entry.args;
@@ -130,7 +134,7 @@ void GPU::logWindow(System *sys) {
                         v[i].pos.x = extend_sign<11>(arguments[ptr] & 0xffff);
                         v[i].pos.y = extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
-                        if (!arg.isRawTexture && (!arg.gouraudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
+                        if (!arg.gouraudShading || i == 0) v[i].color.raw = arguments[0] & 0xffffff;
                         if (arg.isTextureMapped) {
                             if (i == 0) tex.palette = arguments[ptr];
                             if (i == 1) tex.texpage = arguments[ptr];
@@ -151,15 +155,25 @@ void GPU::logWindow(System *sys) {
                         for (int i = 0; i < arg.getVertexCount(); i++) {
                             auto text = fmt::format("v{}: {}x{}", i, v[i].pos.x + last_offset_x, v[i].pos.y + last_offset_y);
                             if (arg.isTextureMapped) {
-                                text += fmt::format(", uv{}: {}x{}", i, v[i].uv.x, v[i].uv.y);
+                                text += fmt::format(", uv{}: {}x{} ", i, v[i].uv.x, v[i].uv.y);
+                            }
+                            if (arg.gouraudShading) {
+                                text += ", color: ";
                             }
                             ImGui::TextUnformatted(text.c_str());
+
+                            if (arg.gouraudShading) {
+                                ImGui::SameLine();
+                                colorBox(v[i].color);
+                            }
                         }
 
-                        ImGui::NewLine();
-                        ImGui::Text("Color: ");
-                        ImGui::SameLine();
-                        ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+                        if (!arg.gouraudShading) {
+                            ImGui::NewLine();
+                            ImGui::Text("Color: ");
+                            ImGui::SameLine();
+                            colorBox(RGB(arguments[0]));
+                        }
                     }
 
                     // vramAreas.push_back({fmt::format("Rectangle {}", i), ImVec2(x, y), ImVec2(w, h)});
@@ -231,7 +245,7 @@ void GPU::logWindow(System *sys) {
                         ImGui::NewLine();
                         ImGui::Text("Color: ");
                         ImGui::SameLine();
-                        ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+                        colorBox(RGB(arguments[0]));
                     }
 
                     vramAreas.push_back({fmt::format("Rectangle {}", i), ImVec2(x, y), ImVec2(w, h)});
@@ -338,7 +352,6 @@ void GPU::vramWindow(gpu::GPU *gpu) {
         ImVec2(defaultSize.x / 2, defaultSize.y / 2), ImVec2(defaultSize.x * 2, defaultSize.y * 2),
         [](ImGuiSizeCallbackData *data) { data->DesiredSize.y = (data->DesiredSize.x / 2) + ImGui::GetFrameHeightWithSpacing() * 2; });
 
-    ImGui::SetNextWindowSize(defaultSize);
     ImGui::Begin("VRAM", &vramWindowOpen, ImGuiWindowFlags_NoScrollbar);
 
     auto currentSize = ImGui::GetWindowContentRegionMax();

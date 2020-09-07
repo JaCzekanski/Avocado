@@ -258,7 +258,9 @@ void GPU::cmdPolygon(PolygonArgs arg) {
         v[i].pos.x = drawingOffsetX + extend_sign<11>(arguments[ptr] & 0xffff);
         v[i].pos.y = drawingOffsetY + extend_sign<11>((arguments[ptr++] & 0xffff0000) >> 16);
 
-        if (!arg.isRawTexture && (!arg.gouraudShading || i == 0)) v[i].color.raw = arguments[0] & 0xffffff;
+        // If flat shaded - use first color for all vertices.
+        // Otherwise - apply only for the first vertex.
+        if (!arg.gouraudShading || i == 0) v[i].color.raw = arguments[0] & 0xffffff;
         if (arg.isTextureMapped) {
             if (i == 0) tex.palette = arguments[ptr];
             if (i == 1) tex.texpage = arguments[ptr];
