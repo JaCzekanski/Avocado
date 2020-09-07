@@ -606,7 +606,7 @@ void GPU::writeGP0(uint32_t data) {
 
         if (command == 0x00) {
             // NOP
-            if (arguments[0] != 0x000000) {
+            if (verbose && arguments[0] != 0x000000) {
                 fmt::print("[GPU] GP0(0) nop: non-zero argument (0x{:06x})\n", arguments[0]);
             }
         } else if (command == 0x01) {
