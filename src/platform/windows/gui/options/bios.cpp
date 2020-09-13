@@ -2,7 +2,7 @@
 #include "config.h"
 
 namespace gui::options {
-Bios::Bios() {
+Bios::Bios() : FileDialog(Mode::OpenFile) {
     showOptions = false;
     windowName = "Select BIOS##file_dialog";
 }

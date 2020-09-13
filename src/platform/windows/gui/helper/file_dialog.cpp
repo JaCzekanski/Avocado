@@ -6,6 +6,7 @@
 #include <cmath>
 #include <sstream>
 #include <platform/windows/utils/platform_tools.h>
+#include <imgui_internal.h>
 #include "config.h"
 #include "platform/windows/gui/filesystem.h"
 #include "utils/file.h"
@@ -133,7 +134,13 @@ void FileDialog::readDirectory(const fs::path& _path) {
 
 std::string FileDialog::getDefaultPath() { return config.gui.lastPath; }
 
-bool FileDialog::isFileSupported(const File& f) { return true; }
+bool FileDialog::isFileSupported(const File& f) {
+    if (mode == Mode::SelectDirectory) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
 bool FileDialog::onFileSelected(const File& f) { return false; }
 
@@ -166,7 +173,9 @@ void FileDialog::display(bool& windowOpen) {
         readDirectory(fs::path(pathInput));
     }
 
+    openFileBrowserButton(path.string());
     if (showOptions) {
+        ImGui::SameLine();
         ImGui::Checkbox("Show hidden files", &showHidden);
         ImGui::SameLine();
         ImGui::Checkbox("Auto close", &autoClose);
@@ -176,7 +185,8 @@ void FileDialog::display(bool& windowOpen) {
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    ImGui::BeginChild("##files", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()));
+
+    ImGui::BeginChild("##files", ImVec2(0, (mode == Mode::OpenFile) ? 0 : -ImGui::GetFrameHeightWithSpacing()));
     ImGui::Columns(2, nullptr, false);
 
     float maxColumnWidth = 0.f;
@@ -197,12 +207,20 @@ void FileDialog::display(bool& windowOpen) {
             if (f.isDirectory) {
                 path = f.entry.path();
                 refreshDirectory = true;
+
+                if (mode == Mode::SaveFile) {
+                    saveFileName = "";
+                }
             } else if (f.isSupported) {
                 if (fs::exists(f.entry)) {
-                    bool fileHandled = onFileSelected(f);
+                    if (mode == Mode::OpenFile) {
+                        bool fileHandled = onFileSelected(f);
 
-                    if (fileHandled) {
-                        if (autoClose) windowOpen = false;
+                        if (fileHandled) {
+                            if (autoClose) windowOpen = false;
+                        }
+                    } else if (mode == Mode::SaveFile) {
+                        saveFileName = f.filename;
                     }
                 } else {
                     refreshDirectory = true;
@@ -222,12 +240,26 @@ void FileDialog::display(bool& windowOpen) {
 
     ImGui::SetColumnWidth(0, ImGui::GetWindowContentRegionMax().x - maxColumnWidth);
     ImGui::Columns(1);
-
     ImGui::EndChild();
+
+    if (mode == Mode::SelectDirectory) {
+        if (ImGui::Button("Select current directory")) {
+            bool fileHandled = onFileSelected(File(fs::directory_entry(path)));
+            if (fileHandled) {
+                windowOpen = false;
+            }
+        }
+    } else if (mode == Mode::SaveFile) {
+        ImGui::InputText("##saveFileName", &saveFileName);
+        ImGui::SameLine();
+
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, saveFileName.empty());
+        ImGui::Button("Save");
+        ImGui::PopItemFlag();
+    }
     ImGui::PopStyleVar();
     ImGui::PopStyleVar();
 
-    openFileBrowserButton(path.string());
     ImGui::End();
 
     if (!windowOpen) {

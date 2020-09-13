@@ -18,7 +18,15 @@ struct File {
     File(const fs::directory_entry& f, bool isSupported = false);
 };
 
+enum class Mode { OpenFile, SaveFile, SelectDirectory };
+
 class FileDialog {
+    Mode mode;
+
+    // SaveFile only
+    std::string saveFileName;
+
+    // Common
     bool autoClose = true;
     bool showHidden = false;
     bool refreshDirectory = true;
@@ -39,9 +47,14 @@ class FileDialog {
     virtual bool onFileSelected(const File& f);
 
    protected:
+    explicit FileDialog(Mode mode) : mode(mode) {
+        if (mode == Mode::SaveFile || mode == Mode::SelectDirectory) {
+            showOptions = false;
+        }
+    }
     // Config
     bool showOptions = true;
-    std::string windowName = "Open file##file_dialog";
+    std::string windowName;
 
    public:
     void display(bool& windowOpen);

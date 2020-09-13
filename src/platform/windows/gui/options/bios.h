@@ -2,7 +2,8 @@
 #include "platform/windows/gui/helper/file_dialog.h"
 
 namespace gui::options {
-class Bios : public gui::helper::FileDialog {
+using namespace gui::helper;
+class Bios : public FileDialog {
     std::string getDefaultPath() override;
     bool isFileSupported(const gui::helper::File& f) override;
     bool onFileSelected(const gui::helper::File& f) override;

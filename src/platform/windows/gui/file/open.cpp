@@ -2,7 +2,7 @@
 #include "config.h"
 
 namespace gui::file {
-Open::Open() { windowName = "Open file##file_dialog"; }
+Open::Open() : FileDialog(Mode::OpenFile) { windowName = "Open file##file_dialog"; }
 
 bool Open::isFileSupported(const gui::helper::File& f) {
     constexpr std::array<const char*, 10> supportedFiles = {
