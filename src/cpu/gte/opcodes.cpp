@@ -1,4 +1,6 @@
 #include "gte.h"
+#include "utils/screenshot.h"
+#include <algorithm>
 
 using gte::Matrix;
 using gte::toVector;
@@ -92,7 +94,15 @@ void GTE::setOtz(int64_t value) { otz = clip(value >> 12, 0xffff, 0x0000, Flag::
 #define B (rgbc.read(2) << 4)
 
 void GTE::nclip() {
-    setMac<0>((int64_t)s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y);
+    int64_t value = (int64_t)s[0].x * s[1].y + s[1].x * s[2].y + s[2].x * s[0].y - s[0].x * s[2].y - s[1].x * s[0].y - s[2].x * s[1].y;
+    Screenshot *screenshot = screenshot->getInstance();
+    // if (screenshot->getEnabled()) {
+    //        screenshot->originalnclip = value;
+    if (screenshot->doubleSided) {
+        value = std::abs(value);
+    }
+    //}
+    setMac<0>(value);
 }
 
 void GTE::multiplyVectors(Vector<int16_t> v1, Vector<int16_t> v2, Vector<int16_t> tr) {
@@ -213,11 +223,17 @@ void GTE::dpcs(bool useRGB0) {
     int16_t g = useRGB0 ? rgb[0].read(1) << 4 : G;
     int16_t b = useRGB0 ? rgb[0].read(2) << 4 : B;
 
-    setMacAndIr<1>(((int64_t)farColor.r << 12) - (r << 12));
-    setMacAndIr<2>(((int64_t)farColor.g << 12) - (g << 12));
-    setMacAndIr<3>(((int64_t)farColor.b << 12) - (b << 12));
-
-    multiplyVectors(Vector<int16_t>(ir[0]), toVector(ir), Vector<int16_t>(r, g, b));
+    Screenshot *screenshot = screenshot->getInstance();
+    if (screenshot->disableFog) {
+        setMacAndIr<1>((int64_t)(r << 12));
+        setMacAndIr<2>((int64_t)(g << 12));
+        setMacAndIr<3>((int64_t)(b << 12));
+    } else {
+        setMacAndIr<1>(((int64_t)farColor.r << 12) - (r << 12));
+        setMacAndIr<2>(((int64_t)farColor.g << 12) - (g << 12));
+        setMacAndIr<3>(((int64_t)farColor.b << 12) - (b << 12));
+        multiplyVectors(Vector<int16_t>(ir[0]), toVector(ir), Vector<int16_t>(r, g, b));
+    }
     pushColor();
 }
 
@@ -344,11 +360,37 @@ void GTE::pushColor(uint32_t r, uint32_t g, uint32_t b) {
  * Multiplicate vector (V) with rotation matrix (R),
  * translate it (TR) and apply perspective transformation.
  */
-void GTE::rtps(int n, bool setMAC0) {
-    int64_t mac3 = multiplyMatrixByVectorRTP(rotation, v[n], translation);
+void GTE::rtps(int n, bool setMAC0, bool fromRTPT) {
+    float sx;
+    float sy;
+    float sw;
+    int32_t ox;
+    int32_t oy;
+    int32_t oz;
+
+    Screenshot *screenshot = screenshot->getInstance();
+
+    if (screenshot->enabled && screenshot->dontTransform) {
+        sx = v[n].x;
+        sy = v[n].y;
+        sw = v[n].z;
+        ox = v[n].x;
+        oy = v[n].y;
+        oz = v[n].z;
+    }
+
+    int64_t mac3;
+    if (screenshot->freeCamEnabled) {
+        gte::Matrix postRotation;
+        gte::Vector<int32_t> postTranslation;
+        screenshot->processRotTrans(rotation, translation, &postRotation, &postTranslation);
+        mac3 = multiplyMatrixByVectorRTP(postRotation, v[n], postTranslation);
+    } else {
+        mac3 = multiplyMatrixByVectorRTP(rotation, v[n], translation);
+    }
 
     pushScreenZ((int32_t)(mac3 >> 12));
-    int64_t h_s3z = divideUNR(h, s[3].z);
+    int64_t h_s3z = divideUNR(h + screenshot->translationH, s[3].z);
 
     int16_t ir1 = ir[1];
     if (widescreenHack) ir1 = (int16_t)((int32_t)ir1 * 3 / 4);
@@ -356,6 +398,47 @@ void GTE::rtps(int n, bool setMAC0) {
     int32_t x = setMac<0>(h_s3z * ir1 + of[0]) >> 16;
     int32_t y = setMac<0>(h_s3z * ir[2] + of[1]) >> 16;
     pushScreenXY(x, y);
+
+    // float sx = ir[1] / 1024.0f;
+    // float sy = ir[2] / 1024.0f;
+    // float sw = s[3].z / 65535.0f;
+    // float sh = (float)h / 65535.0f;
+    // float z = sh * sw;
+
+    if (screenshot->debug || (screenshot->enabled && !screenshot->dontTransform)) {
+        ox = ir[1];
+        oy = ir[2];
+        oz = s[3].z;
+        sx = ox;
+        sy = oy;
+        sw = oz;
+    }
+
+    if (screenshot->debug || screenshot->enabled) {
+        if (screenshot->flipX) {
+            x = -x;
+        }
+        if (screenshot->flipY) {
+            y = -y;
+        }
+        if (screenshot->horizontalScale != 100) {
+            x *= (float)screenshot->horizontalScale / 100.0f;
+        }
+        if (screenshot->verticalScale != 100) {
+            y *= (float)screenshot->verticalScale / 100.0f;
+        }
+        screenshot->addVertex(sx, sy, sw, x, y, ox, oy, oz, h);
+
+        if (fromRTPT) {
+            ScreenshotVertex *v0 = &screenshot->vertexBuffer[screenshot->vertexBuffer.size() - 1];
+            ScreenshotVertex *v1 = &screenshot->vertexBuffer[screenshot->vertexBuffer.size() - 2];
+            ScreenshotVertex *v2 = &screenshot->vertexBuffer[screenshot->vertexBuffer.size() - 3];
+            screenshot->subGroupIndex++;
+            v0->subGroup = screenshot->subGroupIndex;
+            v1->subGroup = screenshot->subGroupIndex;
+            v2->subGroup = screenshot->subGroupIndex;
+        }
+    }
 
     if (setMAC0) {
         int64_t mac0 = setMac<0>(h_s3z * dqa + dqb);
@@ -369,7 +452,7 @@ void GTE::rtps(int n, bool setMAC0) {
 void GTE::rtpt() {
     rtps(0, false);
     rtps(1, false);
-    rtps(2, true);
+    rtps(2, true, true);
 }
 
 /**

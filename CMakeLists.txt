@@ -204,6 +204,7 @@ add_library(core STATIC
         src/device/controller/peripherals/abstract_device.cpp
         src/device/controller/peripherals/analog_controller.cpp
         src/device/controller/peripherals/digital_controller.cpp
+        src/device/controller/peripherals/freecam_controller.cpp
         src/device/controller/peripherals/memory_card.cpp
         src/device/controller/peripherals/mouse.cpp
         src/device/controller/peripherals/none.cpp
@@ -224,6 +225,7 @@ add_library(core STATIC
         src/device/gpu/render/render_line.cpp
         src/device/gpu/render/render_rectangle.cpp
         src/device/gpu/render/render_triangle.cpp
+        src/device/gpu/render/render_debug.cpp
         src/device/interrupt.cpp
         src/device/mdec/algorithm.cpp
         src/device/mdec/mdec.cpp
@@ -301,6 +303,7 @@ set(SOURCES
         src/platform/windows/gui/debug/spu.cpp
         src/platform/windows/gui/debug/timers.cpp
         src/platform/windows/gui/file/open.cpp
+        src/platform/windows/gui/screenshot/select_directory.cpp
         src/platform/windows/gui/gui.cpp
         src/platform/windows/gui/help/about.cpp
         src/platform/windows/gui/helper/file_dialog.cpp

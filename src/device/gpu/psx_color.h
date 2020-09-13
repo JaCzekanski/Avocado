@@ -67,6 +67,12 @@ union PSXColor {
         );
     }
 
+    uint8_t getR() { return (uint8_t)((r << 3) | (r >> 2)); }
+
+    uint8_t getG() { return (uint8_t)((g << 3) | (g >> 2)); }
+
+    uint8_t getB() { return (uint8_t)((b << 3) | (b >> 2)); }
+
     INLINE static PSXColor blend(const PSXColor& bg, const PSXColor& c, const gpu::SemiTransparency& transparency) {
         switch (transparency) {
             case gpu::SemiTransparency::Bby2plusFby2:

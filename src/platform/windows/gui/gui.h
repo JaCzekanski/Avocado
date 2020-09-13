@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <optional>
 #include "file/open.h"
+#include "screenshot/select_directory.h"
 #include "debug/cdrom.h"
 #include "debug/cpu.h"
 #include "debug/gpu.h"
@@ -34,6 +35,8 @@ class GUI {
     gui::debug::GTE gteDebug;
     gui::debug::SPU spuDebug;
     gui::debug::IO ioDebug;
+
+    gui::screenshot::SelectDirectory screenshotSelectDirectory;
 
     gui::options::Bios biosOptions;
     gui::options::MemoryCard memoryCardOptions;

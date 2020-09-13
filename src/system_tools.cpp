@@ -9,6 +9,7 @@
 #include "utils/file.h"
 #include "utils/gpu_draw_list.h"
 #include "utils/psf.h"
+#include "utils/gameshark.h"
 
 namespace system_tools {
 
@@ -71,6 +72,12 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
             bus.notify(Event::Gui::Debug::OpenDrawListWindows{});
             return;
         }
+    }
+
+    if (ext == "txt") {
+        Gameshark* gameshark = Gameshark::getInstance();
+        gameshark->readFile(path);
+        return;
     }
 
     std::unique_ptr<disc::Disc> disc = disc::load(path);

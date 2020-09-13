@@ -2,6 +2,7 @@
 #include <fmt/core.h>
 #include "config.h"
 #include "input/input_manager.h"
+#include "freecam_controller.h"
 
 namespace peripherals {
 void DigitalController::ButtonState::setByName(const std::string& name, bool value) {
@@ -89,5 +90,7 @@ void DigitalController::update() {
     buttons.circle = inputManager->getDigital(path + "circle");
     buttons.cross = inputManager->getDigital(path + "cross");
     buttons.square = inputManager->getDigital(path + "square");
+
+    FreecamController::update(path);
 }
 };  // namespace peripherals

@@ -61,6 +61,13 @@ struct MemoryCardSwapped {
     int slot = 0;
 };
 }  // namespace Controller
+
+namespace Screenshot {
+struct Save {
+    std::string path;
+    bool reset;
+};
+}  // namespace Screenshot
 };  // namespace Event
 
 void toast(const std::string& message);

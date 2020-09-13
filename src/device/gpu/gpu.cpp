@@ -1,6 +1,8 @@
 #include "gpu.h"
 #include <fmt/core.h>
 #include <cassert>
+#include <memory>
+#include <algorithm>
 #include "config.h"
 #include "render/render.h"
 #include "system.h"
@@ -8,6 +10,7 @@
 #include "utils/logic.h"
 #include "utils/macros.h"
 #include "utils/timing.h"
+#include "utils/screenshot.h"
 
 // For vram dump
 #include <stb_image_write.h>
@@ -30,6 +33,9 @@ void GPU::reload() {
 }
 
 void GPU::reset() {
+    Screenshot* screenshot = Screenshot::getInstance();
+    screenshot->fullCleanUp();
+
     irqRequest = false;
     displayDisable = true;
     dmaDirection = 0;
@@ -64,9 +70,18 @@ void GPU::drawTriangle(const primitive::Triangle& triangle) {
             flags |= Vertex::Flags::SemiTransparency;
             flags |= static_cast<int>(triangle.transparency) << 5;
         }
+        Screenshot* screenshot = screenshot->getInstance();
+        if (screenshot->debug || screenshot->enabled) {
+            ivec2 positions[3] = {triangle.v[0].pos, triangle.v[1].pos, triangle.v[2].pos};
+            RGB colors[3] = {triangle.v[0].color, triangle.v[1].color, triangle.v[2].color};
+            ivec2 uvs[3] = {triangle.v[0].uv, triangle.v[1].uv, triangle.v[2].uv};
+            screenshot->processFace(this, triangle.texpage.x, triangle.texpage.y, triangle.clut.x, triangle.clut.y, triangle.bits,
+                                    positions, colors, uvs, triangle.isSemiTransparent);
+        }
 
         for (int i : {0, 1, 2}) {
             auto& v = triangle.v[i];
+
             vertices.push_back({
                 {static_cast<float>(v.pos.x), static_cast<float>(v.pos.y)},
                 {v.color.r, v.color.g, v.color.b},
@@ -272,6 +287,24 @@ void GPU::cmdPolygon(PolygonArgs arg) {
         if (arg.gouraudShading && i < arg.getVertexCount() - 1) v[i + 1].color.raw = arguments[ptr++] & 0xffffff;
     }
 
+    // uint32_t textureIndex;
+
+    Screenshot* screenshot = screenshot->getInstance();
+    // if (screenshot->getEnabled()) {
+    //     int32_t minX = 0;
+    //     int32_t minY = 0;
+    //     int32_t maxX = 0;
+    //     int32_t maxY = 0;
+    //     for (int32_t i = 0; i < arg.getVertexCount(); i++) {
+    //         minX = std::min(minX, v[i].uv.x);
+    //         minY = std::min(minY, v[i].uv.y);
+    //         maxX = std::max(maxX, v[i].uv.x);
+    //         maxY = std::max(maxY, v[i].uv.y);
+    //     }
+    //     screenshot->updateVram(this, tex.getBaseX(), tex.getBaseY(), tex.getClutX(), tex.getClutY(), tex.getBitcount(), minX,
+    //                                           minY, maxX, maxY);//, screenshot->getTextureIndex(tex.getBaseX(), tex.getBaseY()));
+    // }
+
     primitive::Triangle triangle;
 
     for (int i : {0, 1, 2}) triangle.v[i] = v[i];
@@ -303,13 +336,25 @@ void GPU::cmdPolygon(PolygonArgs arg) {
         gp0_e1._reg |= newBits;
     }
 
-    triangle.assureCcw();
+    if (!screenshot->enabled) {
+        triangle.assureCcw();
+    }
+
+    if (screenshot->debug || screenshot->enabled) {
+        screenshot->indices = screenshot->triangleIndices;
+    }
+
     drawTriangle(triangle);
 
     if (arg.isQuad) {
         for (int i : {1, 2, 3}) triangle.v[i - 1] = v[i];
 
-        triangle.assureCcw();
+        if (!screenshot->enabled) {
+            triangle.assureCcw();
+        }
+        if (screenshot->debug || screenshot->enabled) {
+            screenshot->indices = screenshot->quadIndices;
+        }
         drawTriangle(triangle);
     }
 
@@ -410,7 +455,17 @@ void GPU::cmdRectangle(RectangleArgs arg) {
         rect.texpage = ivec2(gp0_e1.texturePageBaseX * 64, gp0_e1.texturePageBaseY * 256);
     }
 
-    drawRectangle(rect);
+    // Screenshot* screenshot = screenshot->getInstance();
+    // uint32_t textureIndex;
+    // if (screenshot->getEnabled()) {
+    //    textureIndex
+    //        = screenshot->updateVram(this, rect.texpage.x, rect.texpage.y, rect.clut.x, rect.clut.y, rect.bits, rect.pos.x, rect.pos.y,
+    //                                 rect.size.x, rect.size.y);//, screenshot->getTextureIndex(rect.texpage.x, rect.texpage.y));
+    //} else {
+    //    textureIndex = 0;
+    //}
+
+    drawRectangle(rect);  //, 0);
 
     cmd = Command::None;
 }
@@ -428,6 +483,9 @@ void GPU::cmdCpuToVram1() {
 
     endX = startX + MaskCopy::w(arguments[2] & 0xffff);
     endY = startY + MaskCopy::h((arguments[2] & 0xffff0000) >> 16);
+
+    // Screenshot* screenshot = Screenshot::getInstance();
+    // screenshot->addTextureRegion(startX, startY, endX, endY);
 
     cmd = Command::CopyCpuToVram2;
     argumentCount = 1;
@@ -460,6 +518,11 @@ void GPU::cmdCpuToVram2() {
 
     uint32_t value = arguments[0];
     currentArgument = 0;
+
+    // Screenshot* screenshot = Screenshot::getInstance();
+    // if (screenshot->getEnabled()) {
+    //    screenshot->addTextureRegion(startX, startY, endX, endY);
+    //}
 
     maskedWrite(currX, currY, value & 0xffff);
     if (advanceOrBreak()) return;
@@ -741,6 +804,8 @@ void GPU::writeGP1(uint32_t data) {
     } else if (command == 0x04) {  // DMA Direction
         dmaDirection = argument & 3;
     } else if (command == 0x05) {  // Start of display area
+        Screenshot* screenshot = screenshot->getInstance();
+        screenshot->flushBuffer(this);
         displayAreaStartX = argument & 0x3ff;
         displayAreaStartY = argument >> 10;
     } else if (command == 0x06) {  // Horizontal display range
@@ -841,17 +906,15 @@ bool GPU::insideDrawingArea(int x, int y) const {
 
 bool GPU::isNtsc() const { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
 
-void GPU::dumpVram() {
-    const char* dumpName = "vram.png";
+void GPU::dumpVram(const char* dumpName) {
     std::vector<uint8_t> vram(VRAM_WIDTH * VRAM_HEIGHT * 3);
-
     for (size_t i = 0; i < this->vram.size(); i++) {
         PSXColor c(this->vram[i]);
         vram[i * 3 + 0] = c.r << 3;
         vram[i * 3 + 1] = c.g << 3;
         vram[i * 3 + 2] = c.b << 3;
     }
-
-    stbi_write_png(dumpName, VRAM_WIDTH, VRAM_HEIGHT, 3, vram.data(), VRAM_WIDTH * 3);
+    stbi_flip_vertically_on_write(false);
+    stbi_write_bmp(dumpName, VRAM_WIDTH, VRAM_HEIGHT, 3, vram.data());
 }
 }  // namespace gpu

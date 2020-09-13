@@ -1,6 +1,7 @@
 #include "instructions.h"
 #include <cstdio>
 #include "system.h"
+#include "utils/screenshot.h"
 
 using namespace mips;
 
@@ -782,8 +783,9 @@ void op_swr(CPU *cpu, Opcode i) {
 // Load to coprocessor 2
 // LWC2 ??? ???
 void op_lwc2(CPU *cpu, Opcode i) {
+    Screenshot *screenshot = screenshot->getInstance();
+    screenshot->groupIndex++;
     uint32_t addr = cpu->reg[i.rs] + i.offset;
-
     assert(i.rt < 64);
     auto data = cpu->sys->readMemory32(addr);
     cpu->gte.write(i.rt, data);

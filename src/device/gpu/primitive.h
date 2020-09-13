@@ -34,8 +34,8 @@ struct Line {
 struct Triangle {
     struct Vertex {
         ivec2 pos;
-        RGB color;  // Valid if bits == 0 or !isRawTexture
-        ivec2 uv;   // Valid if bits != 0
+        RGB color;   // Valid if bits == 0 or !isRawTexture
+        ivec2 uv{};  // Valid if bits != 0
     };
     Vertex v[3];
 

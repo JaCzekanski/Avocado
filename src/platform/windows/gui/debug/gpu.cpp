@@ -4,6 +4,8 @@
 #include <imgui.h>
 #include <math.h>
 #include <magic_enum.hpp>
+#include <stb_image_write.h>
+#include <device/gpu/render/texture_utils.h>
 #include "config.h"
 #include "platform/windows/gui/images.h"
 #include "renderer/opengl/opengl.h"
@@ -510,6 +512,100 @@ void GPU::logWindow(System *sys) {
     if (ImGui::Button("Capture")) {
         GpuDrawList::framesToCapture = framesToCapture;
         sys->state = System::State::run;
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Export textures")) {
+        std::string exportPath = avocado::PATH_USER + "export/";
+        try {
+            fs::create_directory(exportPath);
+        } catch (fs::filesystem_error &err) {
+        }
+        sys->gpu->vram = sys->gpu->prevVram;
+        sys->gpu->gpuLogEnabled = false;
+
+        auto &log = sys->gpu->gpuLogList;
+        int i = 0;
+        for (auto &entry : log) {
+            if (entry.type == 0 && entry.cmd() == 0xe1) {
+                last_e1._reg = entry.args[0];
+            } else if (entry.type == 0 && entry.cmd() == 0xe5) {
+                last_offset_x = extend_sign<11>(entry.args[0] & 0x7ff);
+                last_offset_y = extend_sign<11>((entry.args[0] >> 11) & 0x7ff);
+            }
+            if (entry.cmd() >= 0x60 && entry.cmd() < 0x80) {
+                auto &arguments = entry.args;
+                gpu::RectangleArgs arg = entry.cmd();
+
+                int16_t w = arg.getSize();
+                int16_t h = arg.getSize();
+
+                if (arg.size == 0) {
+                    w = extend_sign<11>(arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff);
+                    h = extend_sign<11>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
+                }
+
+                int16_t x = extend_sign<11>(arguments[1] & 0xffff);
+                int16_t y = extend_sign<11>((arguments[1] & 0xffff0000) >> 16);
+
+                x += last_offset_x;
+                y += last_offset_y;
+                fmt::print("Entry {} texture mapped\n", i);
+
+                if (arg.isTextureMapped && w > 0 && h > 0) {
+                    int texX = arguments[2] & 0xff;
+                    int texY = (arguments[2] & 0xff00) >> 8;
+                    int clutX = ((arguments[2] >> 16) & 0x3f) * 16;
+                    int clutY = ((arguments[2] >> 22) & 0x1ff);
+                    int clutColors;
+                    int textureWidth;
+                    int textureBits;
+
+                    ivec2 tex = ivec2(texX, texY);
+                    ivec2 texPage = ivec2(last_e1.texturePageBaseX * 64, last_e1.texturePageBaseY * 256);
+
+                    std::vector<uint8_t> dump;
+                    dump.resize(w * h * 3);
+                    for (int y = 0; y < h; y++) {
+                        for (int x = 0; x < w; x++) {
+                            PSXColor pixel;
+                            if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit4) {
+                                clutColors = 16;
+                                textureWidth = w / 4;
+                                textureBits = 4;
+                                loadClutCacheIfRequired<ColorDepth::BIT_4>(sys->gpu.get(), ivec2(clutX, clutY));
+                                pixel = tex4bit(sys->gpu.get(), tex + ivec2(x, y), texPage);
+                            } else if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit8) {
+                                clutColors = 256;
+                                textureWidth = w / 2;
+                                textureBits = 8;
+                                loadClutCacheIfRequired<ColorDepth::BIT_8>(sys->gpu.get(), ivec2(clutX, clutY));
+                                pixel = tex8bit(sys->gpu.get(), tex + ivec2(x, y), texPage);
+                            } else {
+                                clutColors = 0;
+                                textureWidth = w;
+                                textureBits = 16;
+                                pixel = tex16bit(sys->gpu.get(), tex + ivec2(x, y), texPage);
+                            }
+
+                            dump[(y * w + x) * 3 + 0] = pixel.r << 3;  // r
+                            dump[(y * w + x) * 3 + 1] = pixel.g << 3;  // g
+                            dump[(y * w + x) * 3 + 2] = pixel.b << 3;  // b
+                        }
+                    }
+
+                    stbi_write_png(fmt::format("{}{}.png", exportPath, i).c_str(), w, h, 3, dump.data(), w * 3);
+                }
+            }
+
+            for (uint32_t arg : entry.args) {
+                uint8_t addr = (entry.type == 0) ? 0 : 4;
+                sys->gpu->write(addr, arg);
+            }
+            i++;
+        }
+        sys->gpu->gpuLogEnabled = true;
+        toast(fmt::format("Exported textures to {}", exportPath));
     }
 
     ImGui::End();

@@ -208,7 +208,7 @@ void button(const std::string& button, const char* tooltip, int controller = 0) 
     bool hotkey = controller == 0;
     int ctrl = controller - 1;
     auto& relatedConfig = hotkey ? config.hotkeys[button] : config.controller[ctrl].keys[button];
-    
+
     Key::Type buttonType = inputManager->lastPressedKey.type;
     bool restrictedDevices = buttonType == Key::Type::None || (hotkey && buttonType == Key::Type::MouseMove);
     if (button == currentButton && !restrictedDevices) {
@@ -233,7 +233,12 @@ void button(const std::string& button, const char* tooltip, int controller = 0) 
     }
 
     const float iconSize = 20.f;
-    drawImage(getImage(button, avocado::assetsPath("buttons/")), iconSize);
+    auto buttonImage = getImage(button, avocado::assetsPath("buttons/"));
+    if (buttonImage) {
+        drawImage(buttonImage, iconSize);
+    } else {
+        ImGui::TextUnformatted(button.c_str());
+    }
     if (ImGui::IsItemHovered() && tooltip != nullptr) {
         ImGui::BeginTooltip();
         ImGui::TextUnformatted(tooltip);
@@ -354,6 +359,7 @@ void controllerSetupWindow() {
         button("l1", "Left Button", selectedController);
         button("r1", "Right Button", selectedController);
     }
+
     if (currentType == ControllerType::digital || currentType == ControllerType::analog) {
         button("dpad_up", "D-Pad Up", selectedController);
         button("dpad_down", "D-Pad Down", selectedController);
@@ -387,6 +393,20 @@ void controllerSetupWindow() {
             button("r_left", "Right Stick Left", selectedController);
         }
     }
+
+    button("freecam_up", "Free Camera Up", selectedController);
+    button("freecam_down", "Free Camera Down", selectedController);
+    button("freecam_left", "Free Camera Left", selectedController);
+    button("freecam_right", "Free Camera Right", selectedController);
+    button("freecam_forward", "Free Camera Forward", selectedController);
+    button("freecam_backward", "Free Camera Backward", selectedController);
+
+    button("freecam_look_up", "Free Camera Look Up", selectedController);
+    button("freecam_look_down", "Free Camera Look Down", selectedController);
+    button("freecam_look_left", "Free Camera Look Left", selectedController);
+    button("freecam_look_right", "Free Camera Look Right", selectedController);
+    button("freecam_look_forward", "Free Camera Roll Left", selectedController);
+    button("freecam_look_backward", "Free Camera Roll Right", selectedController);
 
     pressKeyPopup();
 

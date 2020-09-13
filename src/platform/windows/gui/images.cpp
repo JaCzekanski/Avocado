@@ -15,13 +15,13 @@ std::optional<Image> loadImage(const std::string& file) {
 
     auto rawdata = getFileContents(file);
     if (rawdata.empty()) {
-        fmt::print("[ERROR] Cannot load {}\n", getFilenameExt(file));
+        fmt::print("Cannot load {}\n", getFilenameExt(file));
         return {};
     }
 
     auto data = stbi_load_from_memory(rawdata.data(), rawdata.size(), &w, &h, &bit, 4);
     if (data == nullptr) {
-        fmt::print("[ERROR] Cannot load {}\n", getFilenameExt(file));
+        fmt::print("Cannot load {}\n", getFilenameExt(file));
         return {};
     }
 

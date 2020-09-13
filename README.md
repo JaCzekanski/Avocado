@@ -1,6 +1,9 @@
 # Avocado
 A Modern PlayStation 1 emulator.
 
+## 3D Screenshot and free camera mod by [Rickomax](https://github.com/rickomax)
+Branch not officially supported
+
 <p align="center">
     <img src=".github/screenshots/1.png" height="250">
     <img src=".github/screenshots/2.png" height="250">

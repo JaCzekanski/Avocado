@@ -7,7 +7,7 @@ struct vec2;
 struct vec3;
 
 struct ivec2 {
-    int x, y;
+    int x = 0, y = 0;
     ivec2() = default;
     ivec2(int x, int y) : x(x), y(y) {}
 
@@ -18,7 +18,7 @@ struct ivec2 {
 };
 
 struct ivec3 {
-    int x, y, z;
+    int x = 0, y = 0, z = 0;
     ivec3(int x, int y, int z) : x(x), y(y), z(z) {}
     ivec3(const vec3& v);
 
@@ -29,7 +29,7 @@ struct ivec3 {
 };
 
 struct vec2 {
-    float x, y;
+    float x = 0.f, y = 0.f;
     vec2() = default;
     vec2(float x, float y) : x(x), y(y) {}
     vec2(const ivec2& v);
@@ -46,7 +46,7 @@ struct vec2 {
 };
 
 struct vec3 {
-    float x, y, z;
+    float x = 0.f, y = 0.f, z = 0.f;
     vec3() = default;
     vec3(float x, float y, float z) : x(x), y(y), z(z) {}
     vec3(const ivec3& v);

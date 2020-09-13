@@ -19,6 +19,8 @@
 #include "utils/file.h"
 #include "utils/string.h"
 #include "utils/platform_tools.h"
+#include "utils/screenshot.h"
+#include "utils/gameshark.h"
 #include "version.h"
 #include "memory_card/card_formats.h"
 
@@ -251,6 +253,14 @@ int main(int argc, char** argv) {
         }
     });
 
+    Screenshot* screenshot = screenshot->getInstance();
+
+    bus.listen<Event::Screenshot::Save>(busToken, [&](auto e) {
+        fmt::print("Save screenshot to {}", e.path);
+        screenshot->folder = e.path;
+        screenshot->enabled = true;
+    });
+
     bool exitProgram = false;
     bus.listen<Event::File::Exit>(busToken, [&](auto) { exitProgram = true; });
     bus.listen<Event::System::SoftReset>(busToken, [&](auto) { sys->softReset(); });
@@ -433,7 +443,11 @@ int main(int argc, char** argv) {
         }
 
         SDL_GL_GetDrawableSize(window, &opengl->width, &opengl->height);
+
         opengl->render(sys->gpu.get());
+        if (screenshot->enabled) {
+            screenshot->updateTextures(sys->gpu.get());
+        }
 
         gui->statusFramelimitter = frameLimitEnabled;
         gui->statusMouseLocked = inputManager->mouseLocked;

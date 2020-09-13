@@ -2,9 +2,10 @@
 #include <string>
 #include "abstract_device.h"
 #include "device/device.h"
+#include "freecam_controller.h"
 
 namespace peripherals {
-class DigitalController : public AbstractDevice {
+class DigitalController : public AbstractDevice, public FreecamController {
    protected:
     union ButtonState {
         struct {

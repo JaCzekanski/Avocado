@@ -9,6 +9,8 @@
 #include "utils/gpu_draw_list.h"
 #include "utils/file.h"
 #include "utils/psx_exe.h"
+#include "utils/screenshot.h"
+#include "utils/gameshark.h"
 
 System::System() {
     bios.fill(0);
@@ -345,6 +347,26 @@ void System::singleStep() {
 }
 
 void System::emulateFrame() {
+    Gameshark* gameshark = Gameshark::getInstance();
+    for (auto it = gameshark->gamesharkCheats.begin(); it != gameshark->gamesharkCheats.end(); it++) {
+        if (!it->enabled) {
+            continue;
+        }
+        for (auto it2 = it->codes.begin(); it2 != it->codes.end(); it2++) {
+            switch (it2->opcode) {
+                case 0x80: {
+                    uint32_t address = 0x80000000 | it2->address;
+                    cpu->sys->writeMemory16(address, it2->value);
+                    break;
+                }
+                case 0x30: {
+                    uint32_t address = 0x80000000 | it2->address;
+                    cpu->sys->writeMemory8(address, it2->value);
+                    break;
+                }
+            }
+        }
+    }
 #ifdef ENABLE_IO_LOG
     ioLogList.clear();
 #endif

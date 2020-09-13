@@ -5,18 +5,19 @@ namespace gui::file {
 Open::Open() : FileDialog(Mode::OpenFile) { windowName = "Open file##file_dialog"; }
 
 bool Open::isFileSupported(const gui::helper::File& f) {
-    constexpr std::array<const char*, 11> supportedFiles = {
-        ".iso",         //
-        ".cue",         //
-        ".bin",         //
-        ".img",         //
-        ".chd",         //
-        ".ecm",         //
-        ".exe",         //
-        ".psexe",       //
-        ".psf",         //
-        ".minipsf",     //
-        ".gpudrawlist"  //
+    constexpr std::array<const char*, 12> supportedFiles = {
+        ".iso",          //
+        ".cue",          //
+        ".bin",          //
+        ".img",          //
+        ".chd",          //
+        ".ecm",          //
+        ".exe",          //
+        ".psexe",        //
+        ".psf",          //
+        ".minipsf",      //
+        ".gpudrawlist",  //
+        ".txt",          //
     };
 
     return std::find(supportedFiles.begin(), supportedFiles.end(), f.extension) != supportedFiles.end();

@@ -149,7 +149,7 @@ class GTE {
     void dpcs(bool useRGB0 = false);
     void dcpl();
     void intpl();
-    void rtps(int n = 0, bool setMAC0 = true);
+    void rtps(int n = 0, bool setMAC0 = true, bool fromRTPT = false);
     void rtpt();
     void avsz3();
     void avsz4();

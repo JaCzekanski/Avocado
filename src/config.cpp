@@ -30,6 +30,18 @@ KeyBindings none() {
         {"r_right",    ""},
         {"r_down",     ""},
         {"r_left",     ""},
+        {"freecam_up", ""},
+        {"freecam_down", ""},
+        {"freecam_left", ""},
+        {"freecam_right", ""},
+        {"freecam_forward", ""},
+        {"freecam_backward", ""},
+        {"freecam_look_up", ""},
+        {"freecam_look_down", ""},
+        {"freecam_look_left", ""},
+        {"freecam_look_right", ""},
+        {"freecam_look_forward", ""},
+        {"freecam_look_backward", ""}
     };
 }
 
@@ -60,6 +72,18 @@ KeyBindings keyboard_wadx() {
         {"r_right",    ""},
         {"r_down",     ""},
         {"r_left",     ""},
+        {"freecam_up", ""},
+        {"freecam_down", ""},
+        {"freecam_left", ""},
+        {"freecam_right", ""},
+        {"freecam_forward", ""},
+        {"freecam_backward", ""},
+        {"freecam_look_up", ""},
+        {"freecam_look_down", ""},
+        {"freecam_look_left", ""},
+        {"freecam_look_right", ""},
+        {"freecam_look_forward", ""},
+        {"freecam_look_backward", ""}
     };
 }
 KeyBindings keyboard_numpad() {
@@ -89,6 +113,18 @@ KeyBindings keyboard_numpad() {
         {"r_right",    ""},
         {"r_down",     ""},
         {"r_left",     ""},
+        {"freecam_up", ""},
+        {"freecam_down", ""},
+        {"freecam_left", ""},
+        {"freecam_right", ""},
+        {"freecam_forward", ""},
+        {"freecam_backward", ""},
+        {"freecam_look_up", ""},
+        {"freecam_look_down", ""},
+        {"freecam_look_left", ""},
+        {"freecam_look_right", ""},
+        {"freecam_look_forward", ""},
+        {"freecam_look_backward", ""}
     };
 }
 
@@ -122,6 +158,18 @@ KeyBindings controller(int n) {
         {"r_right",    C("+rightx")},
         {"r_down",     C("+righty")},
         {"r_left",     C("-rightx")},
+        {"freecam_up", ""},
+        {"freecam_down", ""},
+        {"freecam_left", ""},
+        {"freecam_right", ""},
+        {"freecam_forward", ""},
+        {"freecam_backward", ""},
+        {"freecam_look_up", ""},
+        {"freecam_look_down", ""},
+        {"freecam_look_left", ""},
+        {"freecam_look_right", ""},
+        {"freecam_look_forward", ""},
+        {"freecam_look_backward", ""}
     };
 }
 
@@ -152,6 +200,18 @@ KeyBindings mouse() {
         {"r_right",    ""},
         {"r_down",     ""},
         {"r_left",     ""},
+        {"freecam_up", ""},
+        {"freecam_down", ""},
+        {"freecam_left", ""},
+        {"freecam_right", ""},
+        {"freecam_forward", ""},
+        {"freecam_backward", ""},
+        {"freecam_look_up", ""},
+        {"freecam_look_down", ""},
+        {"freecam_look_left", ""},
+        {"freecam_look_right", ""},
+        {"freecam_look_forward", ""},
+        {"freecam_look_backward", ""}
     };
 }
 // clang-format on
