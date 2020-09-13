@@ -4,7 +4,7 @@
 cd /home/build
 
 export BUILD_MODE=release
-if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then 
+if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
     export BUILD_MODE=debug
 fi
 
