@@ -155,15 +155,43 @@ std::string getGP1CommandName(const gpu::LogEntry &entry) {
         case 0x00: return "Reset GPU";
         case 0x01: return "Reset command buffer";
         case 0x02: return "Acknowledge IRQ1";
-        case 0x03: return "Display Enable";
+        case 0x03: {
+            return fmt::format("Display Enable    [{}]", entry.args[0] & 1);
+        }
         case 0x04: {
             return fmt::format("DMA Direction     [{}]", entry.args[0] & 3);
         }
-        case 0x05: return "Start of display area";
-        case 0x06: return "Horizontal display range";
-        case 0x07: return "Vertical display range";
-        case 0x08: return "Display mode";
-        case 0x09: return "Allow texture disable";
+        case 0x05: {
+            uint16_t x = entry.args[0] & 0x3ff;
+            uint16_t y = (entry.args[0] >> 10) & 0x1ff;
+            return fmt::format("display area start[{}:{}]", x, y);
+        }
+        case 0x06: {
+            uint16_t x1 = entry.args[0] & 0xfff;
+            uint16_t x2 = (entry.args[0] >> 12) & 0xfff;
+            return fmt::format("H display range   [{}-{}]", x1, x2);
+        }
+        case 0x07: {
+            uint16_t y1 = entry.args[0] & 0x3ff;
+            uint16_t y2 = (entry.args[0] >> 10) & 0x3ff;
+            return fmt::format("V display range   [{}-{}]", y1, y2);
+        }
+        case 0x08: {
+            gpu::GP1_08 gp1_08;
+            gp1_08._reg = entry.args[0];
+
+            int w = gp1_08.getHorizontalResoulution();
+            int h = gp1_08.getVerticalResoulution();
+            char mode = gp1_08.interlace ? 'i' : 'p';
+            auto region = magic_enum::enum_name(gp1_08.videoMode);
+            int color = gp1_08.colorDepth == gpu::GP1_08::ColorDepth::bit15 ? 15 : 24;
+
+            // Reverse-flag ignored
+            return fmt::format("Display mode      [{}:{}{:c}, {}, {}bits]", w, h, mode, region, color);
+        }
+        case 0x09: {
+            return fmt::format("Allow texture disable [{}]", entry.args[0] & 1);
+        }
         case 0x10 ... 0x1f: return "Get GPU info";
         case 0x20: return "Special texture disable";
         default: return "UNKNOWN";
