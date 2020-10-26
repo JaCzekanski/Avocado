@@ -101,9 +101,8 @@ Requirements:
 
 First build: 
 ```
-git clone https://github.com/JaCzekanski/Avocado.git
+git clone --recursive https://github.com/JaCzekanski/Avocado.git
 cd Avocado
-git submodule update --init --recursive
 premake5 vs2019
 
 # Open avocado.sln with Visual Studio, make sure that Release build is selected, build it
@@ -128,9 +127,8 @@ First build:
 ```
 sudo apt update
 sudo apt install libsdl2-dev
-git clone https://github.com/JaCzekanski/Avocado.git
+git clone --recursive https://github.com/JaCzekanski/Avocado.git
 cd Avocado
-git submodule update --init --recursive
 premake5 gmake
 make config=release_x64 -j4
 
@@ -157,9 +155,8 @@ First build:
 ```
 brew update
 brew install sdl2
-git clone https://github.com/JaCzekanski/Avocado.git
+git clone --recursive https://github.com/JaCzekanski/Avocado.git
 cd Avocado
-git submodule update --init --recursive
 premake5 gmake
 make config=release_x64 -j4
 
