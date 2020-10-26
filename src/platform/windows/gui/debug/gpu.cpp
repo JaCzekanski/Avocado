@@ -71,20 +71,60 @@ void replayCommands(gpu::GPU *gpu, int to) {
 
 // Helpers
 namespace {
-std::string getGP0CommandName(gpu::LogEntry &entry) {
+std::string getGP0CommandName(const gpu::LogEntry &entry) {
     switch (entry.cmd()) {
         case 0x00: return "nop";
         case 0x01: return "clear cache";
-        case 0x02: return "fill rectangle";
+        case 0x02: {
+            uint16_t srcX = entry.args[1] & 0xffff;
+            uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
+
+            uint16_t width = entry.args[2] & 0xffff;
+            uint16_t height = (entry.args[2] >> 16) & 0xffff;
+            return fmt::format("fill rectangle    [{}:{}, size {}:{}]", srcX, srcY, width, height);
+        }
         case 0x1f: return "requestIrq";
         case 0x20 ... 0x3f: return "polygon";
         case 0x40 ... 0x5f: return "line";
         case 0x60 ... 0x7f: return "rectangle";
-        case 0x80 ... 0x9f: return "copy vram -> vram";
-        case 0xa0 ... 0xbf: return "copy cpu -> vram";
-        case 0xc0 ... 0xdf: return "copy vram -> cpu";
+        case 0x80 ... 0x9f: {
+            uint16_t srcX = entry.args[1] & 0xffff;
+            uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
+
+            uint16_t dstX = entry.args[2] & 0xffff;
+            uint16_t dstY = (entry.args[2] >> 16) & 0xffff;
+
+            uint16_t width = entry.args[3] & 0xffff;
+            uint16_t height = (entry.args[3] >> 16) & 0xffff;
+
+            return fmt::format("copy vram -> vram [{}:{} -> {}:{}, size {}:{}]", srcX, srcY, dstX, dstY, width, height);
+        }
+        case 0xa0 ... 0xbf: {
+            uint16_t dstX = entry.args[1] & 0xffff;
+            uint16_t dstY = (entry.args[1] >> 16) & 0xffff;
+
+            uint16_t width = entry.args[2] & 0xffff;
+            uint16_t height = (entry.args[2] >> 16) & 0xffff;
+
+            return fmt::format("copy cpu -> vram  [{}:{}, size {}:{}]", dstX, dstY, width, height);
+        }
+        case 0xc0 ... 0xdf: {
+            uint16_t srcX = entry.args[1] & 0xffff;
+            uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
+
+            uint16_t width = entry.args[2] & 0xffff;
+            uint16_t height = (entry.args[2] >> 16) & 0xffff;
+
+            return fmt::format("copy vram -> cpu  [{}:{}, size {}:{}]", srcX, srcY, width, height);
+        }
         case 0xe1: return "set drawMode";
-        case 0xe2: return "set textureWindow";
+        case 0xe2: {
+            gpu::GP0_E2 e2;
+            e2._reg = entry.args[0];
+
+            return fmt::format("set textureWindow [mask {}:{}, offset {}:{}]", (int)e2.maskX * 8, (int)e2.maskY * 8, (int)e2.offsetX * 8,
+                               (int)e2.offsetY * 8);
+        }
         case 0xe3: {
             uint16_t left = entry.args[0] & 0x3ff;
             uint16_t top = (entry.args[0] & 0xffc00) >> 10;
@@ -101,19 +141,23 @@ std::string getGP0CommandName(gpu::LogEntry &entry) {
             int16_t drawingOffsetY = extend_sign<11>((entry.args[0] >> 11) & 0x7ff);
             return fmt::format("set drawOffset    [{}:{}]", drawingOffsetX, drawingOffsetY);
         }
-        case 0xe6: return "set maskBit";
+        case 0xe6: {
+            gpu::GP0_E6 e6;
+            e6._reg = entry.args[0];
+            return fmt::format("set maskBit       [set:{}, check:{}]", (int)e6.setMaskWhileDrawing, (int)e6.checkMaskBeforeDraw);
+        }
         default: return "UNKNOWN";
     }
 };
 
-std::string getGP1CommandName(gpu::LogEntry &entry) {
+std::string getGP1CommandName(const gpu::LogEntry &entry) {
     switch (entry.cmd()) {
         case 0x00: return "Reset GPU";
         case 0x01: return "Reset command buffer";
         case 0x02: return "Acknowledge IRQ1";
         case 0x03: return "Display Enable";
         case 0x04: {
-            return fmt::format("DMA Direction    [{}]", entry.args[0] & 3);
+            return fmt::format("DMA Direction     [{}]", entry.args[0] & 3);
         }
         case 0x05: return "Start of display area";
         case 0x06: return "Horizontal display range";
@@ -126,16 +170,61 @@ std::string getGP1CommandName(gpu::LogEntry &entry) {
     }
 };
 
-bool isCommandImportant(uint8_t cmd) {
-    if (cmd == 0x02 || (cmd >= 0x20 && cmd < 0xe0)) {
+std::string getCommandName(const gpu::LogEntry &entry) {
+    if (entry.type == 0)
+        return getGP0CommandName(entry);
+    else
+        return getGP1CommandName(entry);
+}
+
+bool commandHasDetails(const gpu::LogEntry &entry) {
+    if (entry.cmd() == 0xe1 || (entry.cmd() >= 0x20 && entry.cmd() < 0x80)) {
         return true;
     } else {
         return false;
     }
 }
+
+bool entryLine(int i, const gpu::LogEntry &entry, bool openable) {
+    ImVec4 entryColor = ImVec4(1.f, 1.f, 1.f, 1.f);
+    if (entry.type == 1) {  // GP1
+        entryColor = ImVec4(0.4f, 0.4f, 0.8f, 1.f);
+    } else if (!commandHasDetails(entry)) {
+        entryColor = ImVec4(0.4f, 0.4f, 0.4f, 1.f);
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Text, entryColor);
+
+    auto lineString = fmt::format("{:3d} GP{}(0x{:02x}) {}", i, entry.type, entry.cmd(), getCommandName(entry));
+    bool opened = false;
+    if (openable) {
+        opened
+            = ImGui::TreeNodeEx((void *)(intptr_t)i,
+                                ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_NoAutoOpenOnLog,
+                                "%s", lineString.c_str());
+    } else {
+        // Hack to match TreeNode left padding (from ImGui::TreeNodeBehavior)
+        auto leftPadding = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.x * 2;
+
+        ImGui::Indent(leftPadding);
+        ImGui::Selectable(lineString.c_str());
+        ImGui::Unindent(leftPadding);
+    }
+    ImGui::PopStyleColor();
+
+    return opened;
+}
+
+void colorBox(RGB color) {
+    float fcolor[3];
+    fcolor[0] = color.r / 255.f;
+    fcolor[1] = color.g / 255.f;
+    fcolor[2] = color.b / 255.f;
+    ImGui::ColorEdit3("##color", fcolor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+}
 };  // namespace
 
-void GPU::handlePolygonCommand(gpu::PolygonArgs arg, const std::vector<uint32_t> &arguments) {
+void GPU::handlePolygonCommand(const gpu::PolygonArgs arg, const std::vector<uint32_t> &arguments) {
     int ptr = 1;
 
     primitive::Triangle::Vertex v[4];
@@ -157,7 +246,7 @@ void GPU::handlePolygonCommand(gpu::PolygonArgs arg, const std::vector<uint32_t>
     }
 
     std::string flags;
-    if (arg.semiTransparency) flags += "semi-transparent, ";  // TODO: print WHICH transparency is used, magic enum
+    if (arg.semiTransparency) flags += "semi-transparent, ";  // TODO: print WHICH transperancy is used, magic enum
     if (arg.isTextureMapped) flags += "textured, ";           // TODO: Bits?
     if (!arg.isRawTexture) flags += "color-blended, ";
     if (arg.gouraudShading) flags += "gouraud-shaded";
@@ -165,37 +254,27 @@ void GPU::handlePolygonCommand(gpu::PolygonArgs arg, const std::vector<uint32_t>
     for (int i = 0; i < arg.getVertexCount(); i++) {
         auto text = fmt::format("v{}: {}x{}", i, v[i].pos.x + last_offset_x, v[i].pos.y + last_offset_y);
         if (arg.isTextureMapped) {
-            text += fmt::format(", uv{}: {}x{}", i, v[i].uv.x, v[i].uv.y);
+            text += fmt::format(", uv{}: {}x{} ", i, v[i].uv.x, v[i].uv.y);
+        }
+        if (arg.gouraudShading) {
+            text += ", color: ";
         }
         ImGui::TextUnformatted(text.c_str());
+
+        if (arg.gouraudShading) {
+            ImGui::SameLine();
+            colorBox(v[i].color);
+        }
     }
 
-    ImGui::NewLine();
-    ImGui::Text("Color: ");
-    ImGui::SameLine();
-    ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
-
-    // vramAreas.push_back({fmt::format("Rectangle {}", i), ImVec2(x, y), ImVec2(w, h)});
+    if (!arg.gouraudShading) {
+        ImGui::NewLine();
+        ImGui::Text("Color: ");
+        ImGui::SameLine();
+        colorBox(RGB(arguments[0]));
+    }
 
     if (arg.isTextureMapped) {
-        // int clutColors = tex.getBitcount();
-        // int textureWidth;
-        // int textureBits;
-
-        // if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit4) {
-        //     clutColors = 16;
-        //     textureWidth = w / 4;
-        //     textureBits = 4;
-        // } else if (last_e1.texturePageColors == gpu::GP0_E1::TexturePageColors::bit8) {
-        //     clutColors = 256;
-        //     textureWidth = w / 2;
-        //     textureBits = 8;
-        // } else {
-        //     clutColors = 0;
-        //     textureWidth = w;
-        //     textureBits = 16;
-        // }
-
         std::string textureInfo = fmt::format("Texture ({} bit)", tex.getBitcount());
 
         ImGui::NewLine();
@@ -203,19 +282,17 @@ void GPU::handlePolygonCommand(gpu::PolygonArgs arg, const std::vector<uint32_t>
         ImGui::Text("texPage: %d:%d", tex.getBaseX(), tex.getBaseY());
         ImGui::Text("CLUT:    %d:%d", tex.getClutX(), tex.getClutY());
 
-        // vramAreas.push_back({textureInfo, ImVec2(texX, texY), ImVec2(textureWidth, h)});
-
         if (tex.getBitcount() != 0) {
             vramAreas.push_back({"CLUT", ImVec2(tex.getClutX(), tex.getClutY()), ImVec2(tex.getBitcount(), 1)});
         }
     }
 }
 
-void GPU::handleLineCommand(gpu::LineArgs arg, const std::vector<uint32_t> &arguments) {
+void GPU::handleLineCommand(const gpu::LineArgs arg, const std::vector<uint32_t> &arguments) {
     (void)arg;  // TODO: Parse Line commands
 }
 
-void GPU::handleRectangleCommand(gpu::RectangleArgs arg, const std::vector<uint32_t> &arguments) {
+void GPU::handleRectangleCommand(const gpu::RectangleArgs arg, const std::vector<uint32_t> &arguments) {
     int16_t w = arg.getSize();
     int16_t h = arg.getSize();
 
@@ -235,13 +312,13 @@ void GPU::handleRectangleCommand(gpu::RectangleArgs arg, const std::vector<uint3
     if (arg.isTextureMapped) flags += "textured, ";
     if (!arg.isRawTexture) flags += "color-blended, ";
     ImGui::Text("Flags: %s", flags.c_str());
-    ImGui::Text("Pos: %d:%d", x, y);
-    ImGui::Text("size: %d:%d", w, h);
+    ImGui::Text("Pos: %dx%d", x, y);
+    ImGui::Text("size: %dx%d", w, h);
 
     ImGui::NewLine();
     ImGui::Text("Color: ");
     ImGui::SameLine();
-    ImGui::ColorEdit3("##color", color, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoInputs);
+    colorBox(RGB(arguments[0]));
 
     vramAreas.push_back({fmt::format("Rectangle {}", /*i*/ -1), ImVec2(x, y), ImVec2(w, h)});
 
@@ -280,9 +357,6 @@ void GPU::handleRectangleCommand(gpu::RectangleArgs arg, const std::vector<uint3
         ImGui::NewLine();
         ImGui::Text("Pos:     %d:%d (raw value in draw call)", texX, texY);
         ImGui::Text("texPage: %d:%d (from latest GP0_E1)", texPageX, texPageY);
-        // ImGui::SameLine();
-        // ImGui::Image()
-        // TODO: Render texture
 
         vramAreas.push_back({textureInfo, ImVec2(texPageX + texX / (16 / textureBits), texPageY + texY), ImVec2(textureWidth, h)});
 
@@ -292,40 +366,14 @@ void GPU::handleRectangleCommand(gpu::RectangleArgs arg, const std::vector<uint3
     }
 }
 
-void GPU::printCommandDetails(gpu::LogEntry &entry) {
+void GPU::printCommandDetails(const gpu::LogEntry &entry) {
     uint8_t command = entry.cmd();
-    color[0] = (entry.args[0] & 0xff) / 255.f;
-    color[1] = ((entry.args[0] >> 8) & 0xff) / 255.f;
-    color[2] = ((entry.args[0] >> 16) & 0xff) / 255.f;
-
     if (command >= 0x20 && command < 0x40) {
         handlePolygonCommand(command, entry.args);
     } else if (command >= 0x40 && command < 0x60) {
         handleLineCommand(command, entry.args);
     } else if (command >= 0x60 && command < 0x80) {
         handleRectangleCommand(command, entry.args);
-    } else if (command >= 0x80 && command <= 0x9f) {
-        uint16_t srcX = entry.args[1] & 0xffff;
-        uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
-
-        uint16_t dstX = entry.args[2] & 0xffff;
-        uint16_t dstY = (entry.args[2] >> 16) & 0xffff;
-
-        uint16_t width = entry.args[3] & 0xffff;
-        uint16_t height = (entry.args[3] >> 16) & 0xffff;
-
-        ImGui::Text("src:  %d:%d", srcX, srcY);
-        ImGui::Text("dst:  %d:%d", dstX, dstY);
-        ImGui::Text("size: %d:%d", width, height);
-    } else if (command >= 0xa0 && command <= 0xdf) {
-        uint16_t srcX = entry.args[1] & 0xffff;
-        uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
-
-        uint16_t width = entry.args[2] & 0xffff;
-        uint16_t height = (entry.args[2] >> 16) & 0xffff;
-
-        ImGui::Text("dst:  %d:%d", srcX, srcY);
-        ImGui::Text("size: %d:%d", width, height);
     } else if (command == 0xe1) {
         gpu::GP0_E1 e1;
         e1._reg = entry.args[0];
@@ -342,38 +390,6 @@ void GPU::printCommandDetails(gpu::LogEntry &entry) {
         ImGui::Text("Rect texture X flip:     %d", e1.texturedRectangleXFlip);
         ImGui::Text("Rect texture Y flip:     %d", e1.texturedRectangleYFlip);
         ImGui::PopStyleColor();
-
-        last_e1 = e1;
-    } else if (command == 0xe2) {
-        gpu::GP0_E2 e2;
-        e2._reg = entry.args[0];
-
-        ImGui::Text("mask:   %d:%d", e2.maskX, e2.maskY);
-        ImGui::Text("offset: %d:%d", e2.offsetX, e2.offsetY);
-    } else if (command == 0xe3) {
-        uint16_t left = entry.args[0] & 0x3ff;
-        uint16_t top = (entry.args[0] & 0xffc00) >> 10;
-
-        ImGui::Text("x0 y0:   %d:%d", left, top);
-    } else if (command == 0xe4) {
-        uint16_t right = entry.args[0] & 0x3ff;
-        uint16_t bottom = (entry.args[0] & 0xffc00) >> 10;
-
-        ImGui::Text("x1 y1:   %d:%d", right, bottom);
-    } else if (command == 0xe5) {
-        int16_t drawingOffsetX = extend_sign<11>(entry.args[0] & 0x7ff);
-        int16_t drawingOffsetY = extend_sign<11>((entry.args[0] >> 11) & 0x7ff);
-
-        ImGui::Text("x y:   %d:%d", drawingOffsetX, drawingOffsetY);
-
-        last_offset_x = drawingOffsetX;
-        last_offset_y = drawingOffsetY;
-    } else if (command == 0xe6) {
-        gpu::GP0_E6 e6;
-        e6._reg = entry.args[0];
-
-        ImGui::Text("setMaskWhileDrawing: %d", e6.setMaskWhileDrawing);
-        ImGui::Text("checkMaskBeforeDraw: %d", e6.checkMaskBeforeDraw);
     }
 }
 
@@ -400,25 +416,7 @@ void GPU::logWindow(System *sys) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
             auto &entry = sys->gpu.get()->gpuLogList[i];
 
-            ImVec4 entryColor = ImVec4(1.f, 1.f, 1.f, 1.f);
-            if (entry.type == 1) {  // GP1
-                entryColor = ImVec4(0.4f, 0.4f, 0.8f, 1.f);
-            } else if (!isCommandImportant(entry.cmd())) {
-                entryColor = ImVec4(0.4f, 0.4f, 0.4f, 1.f);
-            }
-
-            std::string cmdDescription = "";
-            if (entry.type == 0) {
-                cmdDescription = getGP0CommandName(entry);
-            } else if (entry.type == 1) {
-                cmdDescription = getGP1CommandName(entry);
-            }
-
-            ImGui::PushStyleColor(ImGuiCol_Text, entryColor);
-            bool nodeOpen = ImGui::TreeNode((void *)(intptr_t)i,
-                                            fmt::format("{:4d} GP{}(0x{:02x}) {}", i, entry.type, entry.cmd(), cmdDescription).c_str());
-            ImGui::PopStyleColor();
-
+            bool nodeOpen = entryLine(i, entry, commandHasDetails(entry));
             bool isHovered = ImGui::IsItemHovered();
 
             if (isHovered) {
@@ -427,16 +425,29 @@ void GPU::logWindow(System *sys) {
 
             if (nodeOpen) {
                 printCommandDetails(entry);
-                ImGui::TreePop();
-            } else if (isHovered) {
+                ImGui::Separator();
+            } else if (isHovered && commandHasDetails(entry)) {
                 ImGui::BeginTooltip();
                 printCommandDetails(entry);
                 ImGui::EndPopup();
+            }
+
+            // Misc stuff
+            if (entry.type == 0 && entry.cmd() == 0xe1) {
+                last_e1._reg = entry.args[0];
+            } else if (entry.type == 0 && entry.cmd() == 0xe5) {
+                last_offset_x = extend_sign<11>(entry.args[0] & 0x7ff);
+                last_offset_y = extend_sign<11>((entry.args[0] >> 11) & 0x7ff);
             }
         }
     }
     ImGui::PopStyleVar();
     ImGui::EndChild();
+
+    if (ImGui::Button("Save dump")) {
+        // TODO: Save using Laxer3a format
+    }
+
     ImGui::End();
 
     if (sys->state != System::State::run && renderTo >= 0) {

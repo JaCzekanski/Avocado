@@ -30,13 +30,13 @@ class GPU {
     std::vector<uint8_t> vramUnpacked;
 
     // GPU Log
-    float color[3];  // TODO: Refactor
     gpu::GP0_E1 last_e1;
     int16_t last_offset_x;
     int16_t last_offset_y;
-    void handlePolygonCommand(gpu::PolygonArgs arg, const std::vector<uint32_t> &arguments);
-    void handleLineCommand(gpu::LineArgs arg, const std::vector<uint32_t> &arguments);
-    void handleRectangleCommand(gpu::RectangleArgs arg, const std::vector<uint32_t> &arguments);
+    void printCommandDetails(const gpu::LogEntry &entry);
+    void handlePolygonCommand(const gpu::PolygonArgs arg, const std::vector<uint32_t> &arguments);
+    void handleLineCommand(const gpu::LineArgs arg, const std::vector<uint32_t> &arguments);
+    void handleRectangleCommand(const gpu::RectangleArgs arg, const std::vector<uint32_t> &arguments);
 
     void registersWindow(System *sys);
     void logWindow(System *sys);
@@ -50,6 +50,5 @@ class GPU {
     GPU();
     ~GPU();
     void displayWindows(System *sys);
-    void printCommandDetails(gpu::LogEntry &entry);
 };
 }  // namespace gui::debug
