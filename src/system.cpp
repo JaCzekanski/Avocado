@@ -350,6 +350,18 @@ void System::emulateFrame() {
     gpu->gpuLogList.clear();
 
     gpu->prevVram = gpu->vram;
+
+    // Save initial state
+    if (gpu->gpuLogEnabled) {
+        auto gp0 = [&](uint8_t cmd, uint32_t data) { gpu->gpuLogList.push_back(gpu::LogEntry::GP0(cmd, data)); };
+        gp0(0xe1, gpu->gp0_e1._reg);
+        gp0(0xe2, gpu->gp0_e2._reg);
+        gp0(0xe3, ((gpu->drawingArea.top << 10) & 0xffc00) | (gpu->drawingArea.left & 0x3ff));
+        gp0(0xe4, ((gpu->drawingArea.bottom << 10) & 0xffc00) | (gpu->drawingArea.right & 0x3ff));
+        gp0(0xe5, ((gpu->drawingOffsetY & 0x7ff) << 11) | (gpu->drawingOffsetX & 0x7ff));
+        gp0(0xe6, gpu->gp0_e6._reg);
+    }
+
     int systemCycles = 300;
     for (;;) {
         if (!cpu->executeInstructions(systemCycles / 3)) {

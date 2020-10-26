@@ -673,7 +673,7 @@ void GPU::writeGP0(uint32_t data) {
         }
 
         if (gpuLogEnabled && cmd == Command::None) {
-            gpuLogList.push_back(LogEntry(arguments[0]));
+            gpuLogList.push_back(LogEntry::GP0(arguments[0]));
         }
         //        if (verbose && cmd == Command::None) {
         //            fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
@@ -703,14 +703,14 @@ void GPU::writeGP0(uint32_t data) {
     if (gpuLogEnabled) {
         if (cmd == Command::CopyCpuToVram2) {
             gpuLogList.back().args.push_back(arguments[0]);
-        } else if (cmd == Command::Line && LineArgs(command).polyLine)) {
-                // TODO: Command not pushed!
-                gpuLogList.back().args.push_back(arguments[currentArgument - 1]);  // Invalid
-            }
-        else if (cmd == Command::CopyVramToCpu) {
+        } else if (cmd == Command::Line && LineArgs(command).polyLine) {
+            // TODO: Command not pushed!
+            gpuLogList.back().args.push_back(arguments[currentArgument - 1]);  // Invalid
+        } else if (cmd == Command::CopyVramToCpu) {
             // Ignore
         } else {
             LogEntry entry;
+            entry.type = 0;
             entry.args = std::vector<uint32_t>(arguments.begin(), arguments.begin() + argumentCount);
             gpuLogList.push_back(entry);
         }
@@ -785,13 +785,16 @@ void GPU::writeGP1(uint32_t data) {
             // readData unchanged
         }
     } else if (command == 0x20) {
-        fmt::print("[GPU] GP1(0x20) - Special Texutre disable: 0x{:06x}\n", argument);
+        fmt::print("[GPU] GP1(0x20) - Special Texture disable: 0x{:06x}\n", argument);
     } else {
         fmt::print("[GPU] GP1(0x{:02x}) args 0x{:06x}\n", command, argument);
         assert(false);
     }
     if (verbose) {
         fmt::print("[GPU] W GP1(0x{:02x}): 0x{:06x}\n", command, argument);
+    }
+    if (gpuLogEnabled) {
+        gpuLogList.push_back(LogEntry::GP1(data));
     }
 }
 

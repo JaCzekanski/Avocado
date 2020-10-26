@@ -257,10 +257,32 @@ struct TextureInfo {
 
 // Debug/rewind
 struct LogEntry {
+    uint8_t type;  // 0 - gp0, 1 - gp1
     std::vector<uint32_t> args;
 
     LogEntry() = default;
     LogEntry(uint32_t cmd) { args.push_back(cmd); }
+
+    static LogEntry GP0(uint8_t cmd, uint32_t data) {
+        auto e = LogEntry();
+        e.type = 0;
+        e.args.push_back((cmd << 24) | (data & 0x00ffffff));
+        return e;
+    }
+
+    static LogEntry GP0(uint32_t word) {
+        auto e = LogEntry();
+        e.type = 0;
+        e.args.push_back(word);
+        return e;
+    }
+
+    static LogEntry GP1(uint32_t word) {
+        auto e = LogEntry();
+        e.type = 1;
+        e.args.push_back(word);
+        return e;
+    }
 
     uint8_t cmd() const { return (args[0] >> 24) & 0xff; }
 };
