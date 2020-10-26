@@ -117,7 +117,18 @@ std::string getGP0CommandName(const gpu::LogEntry &entry) {
 
             return fmt::format("copy vram -> cpu  [{}:{}, size {}:{}]", srcX, srcY, width, height);
         }
-        case 0xe1: return "set drawMode";
+        case 0xe1: {
+            gpu::GP0_E1 e1;
+            e1._reg = entry.args[0];
+
+            int texPageX = e1.texturePageBaseX * 64;
+            int texPageY = e1.texturePageBaseY * 256;
+            auto semi = magic_enum::enum_name(e1.semiTransparency);
+            auto bits = magic_enum::enum_name(e1.texturePageColors);
+            auto dither = e1.dither24to15 ? "dither" : "no-dither";
+
+            return fmt::format("set drawMode      [{}:{} {} {}, {}]", texPageX, texPageY, semi, bits, dither);
+        }
         case 0xe2: {
             gpu::GP0_E2 e2;
             e2._reg = entry.args[0];
