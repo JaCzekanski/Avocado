@@ -675,12 +675,7 @@ void GPU::writeGP0(uint32_t data) {
         if (gpuLogEnabled && cmd == Command::None) {
             gpuLogList.push_back(LogEntry::GP0(arguments[0]));
         }
-        //        if (verbose && cmd == Command::None) {
-        //            fmt::print("[GPU] W GP0(0x{:02x}): 0x{:06x}\n", command, arguments[0]);
-        //        }
         // TODO: Refactor gpu log to handle copies && multiline
-        // TODO: Refactor gpu log to store initial state
-        // TODO: Refactor gpu log to store gp1 writes
 
         argumentCount++;
         return;
@@ -702,10 +697,16 @@ void GPU::writeGP0(uint32_t data) {
 
     if (gpuLogEnabled) {
         if (cmd == Command::CopyCpuToVram2) {
-            gpuLogList.back().args.push_back(arguments[0]);
-        } else if (cmd == Command::Line && LineArgs(command).polyLine) {
-            // TODO: Command not pushed!
-            gpuLogList.back().args.push_back(arguments[currentArgument - 1]);  // Invalid
+            // Find last gp0(0xa0) command
+            int n = 5;
+            for (int i = gpuLogList.size() - 1; i >= 0; i--) {
+                auto& last = gpuLogList[i];
+                if (last.cmd() == 0xa0) {
+                    last.args.push_back(arguments[0]);
+                    break;
+                }
+                if (n-- == 0) break;
+            }
         } else if (cmd == Command::CopyVramToCpu) {
             // Ignore
         } else {

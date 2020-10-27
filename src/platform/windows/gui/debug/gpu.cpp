@@ -50,19 +50,19 @@ void GPU::registersWindow(System *sys) {
 }
 
 void replayCommands(gpu::GPU *gpu, int to) {
-    using gpu::Command;
-
-    auto commands = gpu->gpuLogList;
     gpu->vram = gpu->prevVram;
 
     gpu->gpuLogEnabled = false;
     for (int i = 0; i <= to; i++) {
-        auto cmd = commands.at(i);
+        auto entry = gpu->gpuLogList.at(i);
 
-        if (cmd.args.size() == 0) fmt::print("Panic! no args");
+        if (entry.args.size() == 0) fmt::print("Panic! no args");
+        if (entry.type == 0 && entry.cmd() == 0xc0) {
+            continue;  // Skip Vram -> CPU
+        }
 
-        for (uint32_t arg : cmd.args) {
-            uint8_t addr = (cmd.type == 0) ? 0 : 4;
+        for (uint32_t arg : entry.args) {
+            uint8_t addr = (entry.type == 0) ? 0 : 4;
             gpu->write(addr, arg);
         }
     }
