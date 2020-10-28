@@ -259,7 +259,19 @@ void FileDialog::display(bool& windowOpen) {
         ImGui::SameLine();
 
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, saveFileName.empty());
-        ImGui::Button("Save");
+        if (ImGui::Button("Save")) {
+            // Hack
+            auto f = File(fs::directory_entry(path));
+            f.filename = getFilename(saveFileName);
+            f.extension = getExtension(saveFileName);
+            if (f.extension != "") {
+                f.extension = std::string(".") + f.extension;
+            }
+            bool fileHandled = onFileSelected(f);
+            if (fileHandled) {
+                windowOpen = false;
+            }
+        }
         ImGui::PopItemFlag();
     }
     ImGui::PopStyleVar();

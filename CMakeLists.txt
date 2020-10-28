@@ -254,6 +254,7 @@ add_library(core STATIC
         src/system_tools.cpp
         src/utils/bcd.cpp
         src/utils/event.cpp
+        src/utils/gpu_draw_list.cpp
         src/utils/file.cpp
         src/utils/psf.cpp
         src/utils/stb_image_write.cpp

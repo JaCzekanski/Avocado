@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <system.h>
+#include "platform/windows/gui/helper/file_dialog.h"
 
 struct System;
 class Texture;
@@ -13,6 +14,15 @@ class GPU;
 };
 
 namespace gui::debug {
+class SaveDumpDialog : public helper::FileDialog {
+    bool isFileSupported(const helper::File &f) override;
+    bool onFileSelected(const gui::helper::File &f) override;
+
+   public:
+    std::function<bool(const gui::helper::File &f)> callback;
+    SaveDumpDialog();
+};
+
 class GPU {
     struct Area {
         std::string name;
@@ -30,6 +40,8 @@ class GPU {
     std::vector<uint8_t> vramUnpacked;
 
     // GPU Log
+    SaveDumpDialog saveDumpDialog;
+    int framesToCapture = 60;
     gpu::GP0_E1 last_e1;
     int16_t last_offset_x;
     int16_t last_offset_y;
@@ -46,6 +58,7 @@ class GPU {
     bool registersWindowOpen = false;
     bool logWindowOpen = false;
     bool vramWindowOpen = false;
+    bool saveDumpWindowOpen = false;
 
     GPU();
     ~GPU();

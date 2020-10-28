@@ -42,6 +42,9 @@ struct Toast {
     std::string message;
 };
 struct ToggleFullscreen {};
+namespace Debug {
+struct OpenDrawListWindows {};
+}  // namespace Debug
 }  // namespace Gui
 
 namespace Controller {

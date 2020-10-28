@@ -23,9 +23,6 @@ enum class Mode { OpenFile, SaveFile, SelectDirectory };
 class FileDialog {
     Mode mode;
 
-    // SaveFile only
-    std::string saveFileName;
-
     // Common
     bool autoClose = true;
     bool showHidden = false;
@@ -52,6 +49,9 @@ class FileDialog {
             showOptions = false;
         }
     }
+    // SaveFile only
+    std::string saveFileName;
+
     // Config
     bool showOptions = true;
     std::string windowName;

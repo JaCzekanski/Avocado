@@ -6,6 +6,7 @@
 #include "state/state.h"
 #include "system.h"
 #include "utils/file.h"
+#include "utils/gpu_draw_list.h"
 #include "utils/psf.h"
 
 namespace system_tools {
@@ -57,6 +58,17 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
 
     if (ext == "state") {
         if (state::loadFromFile(sys.get(), path)) {
+            sys->state = System::State::pause;
+            return;
+        }
+    }
+
+    if (ext == "gpudrawlist") {
+        if (GpuDrawList::load(sys.get(), path)) {
+            sys->state = System::State::pause;
+            GpuDrawList::replayCommands(sys->gpu.get());
+            toast(fmt::format("{} loaded", filenameExt));
+            bus.notify(Event::Gui::Debug::OpenDrawListWindows{});
             return;
         }
     }

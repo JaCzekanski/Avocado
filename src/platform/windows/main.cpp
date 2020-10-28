@@ -244,7 +244,9 @@ int main(int argc, char** argv) {
 
         bool isPaused = sys->state == System::State::pause;
         system_tools::loadFile(sys, e.file);
-        sys->state = isPaused ? System::State::pause : System::State::run;
+        if (isPaused && sys->state != System::State::pause) {
+            sys->state = System::State::pause;
+        }
     });
 
     bool exitProgram = false;

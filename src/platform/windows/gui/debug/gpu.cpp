@@ -9,8 +9,17 @@
 #include "renderer/opengl/opengl.h"
 #include "system.h"
 #include "utils/file.h"
+#include "utils/gpu_draw_list.h"
 
 namespace gui::debug {
+SaveDumpDialog::SaveDumpDialog() : FileDialog(helper::Mode::SaveFile) {
+    saveFileName = "dump.gpudrawlist";
+    windowName = "Save GPU dump##file_dialog";
+}
+
+bool SaveDumpDialog::isFileSupported(const helper::File &f) { return f.extension == ".gpudrawlist"; }
+bool SaveDumpDialog::onFileSelected(const gui::helper::File &f) { return callback(f); }
+
 GPU::GPU() {
     busToken = bus.listen<Event::Config::Graphics>([&](auto) {
         textureImage.release();
@@ -47,26 +56,6 @@ void GPU::registersWindow(System *sys) {
     // ImGui::Text("")
 
     ImGui::End();
-}
-
-void replayCommands(gpu::GPU *gpu, int to) {
-    gpu->vram = gpu->prevVram;
-
-    gpu->gpuLogEnabled = false;
-    for (int i = 0; i <= to; i++) {
-        auto entry = gpu->gpuLogList.at(i);
-
-        if (entry.args.size() == 0) fmt::print("Panic! no args");
-        if (entry.type == 0 && entry.cmd() == 0xc0) {
-            continue;  // Skip Vram -> CPU
-        }
-
-        for (uint32_t arg : entry.args) {
-            uint8_t addr = (entry.type == 0) ? 0 : 4;
-            gpu->write(addr, arg);
-        }
-    }
-    gpu->gpuLogEnabled = true;
 }
 
 // Helpers
@@ -483,14 +472,28 @@ void GPU::logWindow(System *sys) {
     ImGui::PopStyleVar();
     ImGui::EndChild();
 
-    if (ImGui::Button("Save dump")) {
-        // TODO: Save using Laxer3a format
+    if (ImGui::Button("Save current dump")) {
+        saveDumpDialog.callback
+            = [sys](const gui::helper::File &f) { return GpuDrawList::save(sys, (f.entry.path() / (f.filename + f.extension)).string()); };
+        saveDumpWindowOpen = true;
+    }
+    ImGui::SameLine();
+
+    ImGui::Text("Frames to capture");
+    ImGui::SameLine();
+    ImGui::PushItemWidth(100.f);
+    ImGui::InputInt("##Frames to capture", &framesToCapture);
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    if (ImGui::Button("Capture")) {
+        GpuDrawList::framesToCapture = framesToCapture;
+        sys->state = System::State::run;
     }
 
     ImGui::End();
 
     if (sys->state != System::State::run && renderTo >= 0) {
-        replayCommands(sys->gpu.get(), renderTo);
+        GpuDrawList::replayCommands(sys->gpu.get(), renderTo);
     }
 }
 
@@ -566,5 +569,6 @@ void GPU::displayWindows(System *sys) {
     if (registersWindowOpen) registersWindow(sys);
     if (logWindowOpen) logWindow(sys);
     if (vramWindowOpen) vramWindow(sys->gpu.get());
+    if (saveDumpWindowOpen) saveDumpDialog.display(saveDumpWindowOpen);
 }
 };  // namespace gui::debug

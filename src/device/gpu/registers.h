@@ -263,13 +263,6 @@ struct LogEntry {
     LogEntry() = default;
     LogEntry(uint32_t cmd) { args.push_back(cmd); }
 
-    static LogEntry GP0(uint8_t cmd, uint32_t data) {
-        auto e = LogEntry();
-        e.type = 0;
-        e.args.push_back((cmd << 24) | (data & 0x00ffffff));
-        return e;
-    }
-
     static LogEntry GP0(uint32_t word) {
         auto e = LogEntry();
         e.type = 0;
@@ -277,12 +270,16 @@ struct LogEntry {
         return e;
     }
 
+    static LogEntry GP0(uint8_t cmd, uint32_t data) { return GP0((cmd << 24) | (data & 0x00ffffff)); }
+
     static LogEntry GP1(uint32_t word) {
         auto e = LogEntry();
         e.type = 1;
         e.args.push_back(word);
         return e;
     }
+
+    static LogEntry GP1(uint8_t cmd, uint32_t data) { return GP1((cmd << 24) | (data & 0x00ffffff)); }
 
     uint8_t cmd() const { return (args[0] >> 24) & 0xff; }
 };

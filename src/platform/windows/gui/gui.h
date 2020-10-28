@@ -19,6 +19,7 @@
 struct System;
 
 class GUI {
+    int busToken;
     SDL_Window* window;
     bool notInitializedWindowShown = false;
     std::string iniPath;

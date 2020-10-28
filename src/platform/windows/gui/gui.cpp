@@ -78,9 +78,17 @@ GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
 
     ImGui_ImplSDL2_InitForOpenGL(window, glContext);
     ImGui_ImplOpenGL3_Init();
+
+    busToken = bus.listen<Event::Gui::Debug::OpenDrawListWindows>([&](auto) {
+        gpuDebug.logWindowOpen = true;
+        gpuDebug.vramWindowOpen = true;
+    });
 }
 
-GUI::~GUI() { ImGui::DestroyContext(); }
+GUI::~GUI() {
+    bus.unlistenAll(busToken);
+    ImGui::DestroyContext();
+}
 
 void GUI::processEvent(SDL_Event* e) { ImGui_ImplSDL2_ProcessEvent(e); }
 
