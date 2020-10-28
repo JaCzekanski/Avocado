@@ -61,142 +61,138 @@ void GPU::registersWindow(System *sys) {
 // Helpers
 namespace {
 std::string getGP0CommandName(const gpu::LogEntry &entry) {
-    switch (entry.cmd()) {
-        case 0x00: return "nop";
-        case 0x01: return "clear cache";
-        case 0x02: {
-            uint16_t srcX = entry.args[1] & 0xffff;
-            uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
+    uint8_t cmd = entry.cmd();
+    if (cmd == 0x00) {
+        return "nop";
+    } else if (cmd == 0x01) {
+        return "clear cache";
+    } else if (cmd == 0x02) {
+        uint16_t srcX = entry.args[1] & 0xffff;
+        uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
 
-            uint16_t width = entry.args[2] & 0xffff;
-            uint16_t height = (entry.args[2] >> 16) & 0xffff;
-            return fmt::format("fill rectangle    [{}:{}, size {}:{}]", srcX, srcY, width, height);
-        }
-        case 0x1f: return "requestIrq";
-        case 0x20 ... 0x3f: return "polygon";
-        case 0x40 ... 0x5f: return "line";
-        case 0x60 ... 0x7f: return "rectangle";
-        case 0x80 ... 0x9f: {
-            uint16_t srcX = entry.args[1] & 0xffff;
-            uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
+        uint16_t width = entry.args[2] & 0xffff;
+        uint16_t height = (entry.args[2] >> 16) & 0xffff;
+        return fmt::format("fill rectangle    [{}:{}, size {}:{}]", srcX, srcY, width, height);
+    } else if (cmd == 0x1f) {
+        return "requestIrq";
+    } else if (cmd >= 0x20 && cmd <= 0x3f) {
+        return "polygon";
+    } else if (cmd >= 0x40 && cmd <= 0x5f) {
+        return "line";
+    } else if (cmd >= 0x60 && cmd <= 0x7f) {
+        return "rectangle";
+    } else if (cmd >= 0x80 && cmd <= 0x9f) {
+        uint16_t srcX = entry.args[1] & 0xffff;
+        uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
 
-            uint16_t dstX = entry.args[2] & 0xffff;
-            uint16_t dstY = (entry.args[2] >> 16) & 0xffff;
+        uint16_t dstX = entry.args[2] & 0xffff;
+        uint16_t dstY = (entry.args[2] >> 16) & 0xffff;
 
-            uint16_t width = entry.args[3] & 0xffff;
-            uint16_t height = (entry.args[3] >> 16) & 0xffff;
+        uint16_t width = entry.args[3] & 0xffff;
+        uint16_t height = (entry.args[3] >> 16) & 0xffff;
 
-            return fmt::format("copy vram -> vram [{}:{} -> {}:{}, size {}:{}]", srcX, srcY, dstX, dstY, width, height);
-        }
-        case 0xa0 ... 0xbf: {
-            uint16_t dstX = entry.args[1] & 0xffff;
-            uint16_t dstY = (entry.args[1] >> 16) & 0xffff;
+        return fmt::format("copy vram -> vram [{}:{} -> {}:{}, size {}:{}]", srcX, srcY, dstX, dstY, width, height);
+    } else if (cmd >= 0xa0 && cmd <= 0xbf) {
+        uint16_t dstX = entry.args[1] & 0xffff;
+        uint16_t dstY = (entry.args[1] >> 16) & 0xffff;
 
-            uint16_t width = entry.args[2] & 0xffff;
-            uint16_t height = (entry.args[2] >> 16) & 0xffff;
+        uint16_t width = entry.args[2] & 0xffff;
+        uint16_t height = (entry.args[2] >> 16) & 0xffff;
 
-            return fmt::format("copy cpu -> vram  [{}:{}, size {}:{}]", dstX, dstY, width, height);
-        }
-        case 0xc0 ... 0xdf: {
-            uint16_t srcX = entry.args[1] & 0xffff;
-            uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
+        return fmt::format("copy cpu -> vram  [{}:{}, size {}:{}]", dstX, dstY, width, height);
+    } else if (cmd >= 0xc0 && cmd <= 0xdf) {
+        uint16_t srcX = entry.args[1] & 0xffff;
+        uint16_t srcY = (entry.args[1] >> 16) & 0xffff;
 
-            uint16_t width = entry.args[2] & 0xffff;
-            uint16_t height = (entry.args[2] >> 16) & 0xffff;
+        uint16_t width = entry.args[2] & 0xffff;
+        uint16_t height = (entry.args[2] >> 16) & 0xffff;
 
-            return fmt::format("copy vram -> cpu  [{}:{}, size {}:{}]", srcX, srcY, width, height);
-        }
-        case 0xe1: {
-            gpu::GP0_E1 e1;
-            e1._reg = entry.args[0];
+        return fmt::format("copy vram -> cpu  [{}:{}, size {}:{}]", srcX, srcY, width, height);
+    } else if (cmd == 0xe1) {
+        gpu::GP0_E1 e1;
+        e1._reg = entry.args[0];
 
-            int texPageX = e1.texturePageBaseX * 64;
-            int texPageY = e1.texturePageBaseY * 256;
-            auto semi = magic_enum::enum_name(e1.semiTransparency);
-            auto bits = magic_enum::enum_name(e1.texturePageColors);
-            auto dither = e1.dither24to15 ? "dither" : "no-dither";
+        int texPageX = e1.texturePageBaseX * 64;
+        int texPageY = e1.texturePageBaseY * 256;
+        auto semi = magic_enum::enum_name(e1.semiTransparency);
+        auto bits = magic_enum::enum_name(e1.texturePageColors);
+        auto dither = e1.dither24to15 ? "dither" : "no-dither";
 
-            return fmt::format("set drawMode      [{}:{} {} {}, {}]", texPageX, texPageY, semi, bits, dither);
-        }
-        case 0xe2: {
-            gpu::GP0_E2 e2;
-            e2._reg = entry.args[0];
+        return fmt::format("set drawMode      [{}:{} {} {}, {}]", texPageX, texPageY, semi, bits, dither);
+    } else if (cmd == 0xe2) {
+        gpu::GP0_E2 e2;
+        e2._reg = entry.args[0];
 
-            return fmt::format("set textureWindow [mask {}:{}, offset {}:{}]", (int)e2.maskX * 8, (int)e2.maskY * 8, (int)e2.offsetX * 8,
-                               (int)e2.offsetY * 8);
-        }
-        case 0xe3: {
-            uint16_t left = entry.args[0] & 0x3ff;
-            uint16_t top = (entry.args[0] & 0xffc00) >> 10;
+        return fmt::format("set textureWindow [mask {}:{}, offset {}:{}]", (int)e2.maskX * 8, (int)e2.maskY * 8, (int)e2.offsetX * 8,
+                           (int)e2.offsetY * 8);
+    } else if (cmd == 0xe3) {
+        uint16_t left = entry.args[0] & 0x3ff;
+        uint16_t top = (entry.args[0] & 0xffc00) >> 10;
 
-            return fmt::format("set drawAreaBegin [{}:{}]", left, top);
-        }
-        case 0xe4: {
-            uint16_t right = entry.args[0] & 0x3ff;
-            uint16_t bottom = (entry.args[0] & 0xffc00) >> 10;
-            return fmt::format("set drawAreaEnd   [{}:{}]", right, bottom);
-        }
-        case 0xe5: {
-            int16_t drawingOffsetX = extend_sign<11>(entry.args[0] & 0x7ff);
-            int16_t drawingOffsetY = extend_sign<11>((entry.args[0] >> 11) & 0x7ff);
-            return fmt::format("set drawOffset    [{}:{}]", drawingOffsetX, drawingOffsetY);
-        }
-        case 0xe6: {
-            gpu::GP0_E6 e6;
-            e6._reg = entry.args[0];
-            return fmt::format("set maskBit       [set:{}, check:{}]", (int)e6.setMaskWhileDrawing, (int)e6.checkMaskBeforeDraw);
-        }
-        default: return "UNKNOWN";
+        return fmt::format("set drawAreaBegin [{}:{}]", left, top);
+    } else if (cmd == 0xe4) {
+        uint16_t right = entry.args[0] & 0x3ff;
+        uint16_t bottom = (entry.args[0] & 0xffc00) >> 10;
+        return fmt::format("set drawAreaEnd   [{}:{}]", right, bottom);
+    } else if (cmd == 0xe5) {
+        int16_t drawingOffsetX = extend_sign<11>(entry.args[0] & 0x7ff);
+        int16_t drawingOffsetY = extend_sign<11>((entry.args[0] >> 11) & 0x7ff);
+        return fmt::format("set drawOffset    [{}:{}]", drawingOffsetX, drawingOffsetY);
+    } else if (cmd == 0xe6) {
+        gpu::GP0_E6 e6;
+        e6._reg = entry.args[0];
+        return fmt::format("set maskBit       [set:{}, check:{}]", (int)e6.setMaskWhileDrawing, (int)e6.checkMaskBeforeDraw);
+    } else {
+        return "UNKNOWN";
     }
-};
+}
 
 std::string getGP1CommandName(const gpu::LogEntry &entry) {
-    switch (entry.cmd()) {
-        case 0x00: return "Reset GPU";
-        case 0x01: return "Reset command buffer";
-        case 0x02: return "Acknowledge IRQ1";
-        case 0x03: {
-            return fmt::format("Display Enable    [{}]", entry.args[0] & 1);
-        }
-        case 0x04: {
-            return fmt::format("DMA Direction     [{}]", entry.args[0] & 3);
-        }
-        case 0x05: {
-            uint16_t x = entry.args[0] & 0x3ff;
-            uint16_t y = (entry.args[0] >> 10) & 0x1ff;
-            return fmt::format("display area start[{}:{}]", x, y);
-        }
-        case 0x06: {
-            uint16_t x1 = entry.args[0] & 0xfff;
-            uint16_t x2 = (entry.args[0] >> 12) & 0xfff;
-            return fmt::format("H display range   [{}-{}]", x1, x2);
-        }
-        case 0x07: {
-            uint16_t y1 = entry.args[0] & 0x3ff;
-            uint16_t y2 = (entry.args[0] >> 10) & 0x3ff;
-            return fmt::format("V display range   [{}-{}]", y1, y2);
-        }
-        case 0x08: {
-            gpu::GP1_08 gp1_08;
-            gp1_08._reg = entry.args[0];
+    uint8_t cmd = entry.cmd();
+    if (cmd == 0x00) {
+        return "Reset GPU";
+    } else if (cmd == 0x01) {
+        return "Reset command buffer";
+    } else if (cmd == 0x02) {
+        return "Acknowledge IRQ1";
+    } else if (cmd == 0x03) {
+        return fmt::format("Display Enable    [{}]", entry.args[0] & 1);
+    } else if (cmd == 0x04) {
+        return fmt::format("DMA Direction     [{}]", entry.args[0] & 3);
+    } else if (cmd == 0x05) {
+        uint16_t x = entry.args[0] & 0x3ff;
+        uint16_t y = (entry.args[0] >> 10) & 0x1ff;
+        return fmt::format("display area start[{}:{}]", x, y);
+    } else if (cmd == 0x06) {
+        uint16_t x1 = entry.args[0] & 0xfff;
+        uint16_t x2 = (entry.args[0] >> 12) & 0xfff;
+        return fmt::format("H display range   [{}-{}]", x1, x2);
+    } else if (cmd == 0x07) {
+        uint16_t y1 = entry.args[0] & 0x3ff;
+        uint16_t y2 = (entry.args[0] >> 10) & 0x3ff;
+        return fmt::format("V display range   [{}-{}]", y1, y2);
+    } else if (cmd == 0x08) {
+        gpu::GP1_08 gp1_08;
+        gp1_08._reg = entry.args[0];
 
-            int w = gp1_08.getHorizontalResoulution();
-            int h = gp1_08.getVerticalResoulution();
-            char mode = gp1_08.interlace ? 'i' : 'p';
-            auto region = magic_enum::enum_name(gp1_08.videoMode);
-            int color = gp1_08.colorDepth == gpu::GP1_08::ColorDepth::bit15 ? 15 : 24;
+        int w = gp1_08.getHorizontalResoulution();
+        int h = gp1_08.getVerticalResoulution();
+        char mode = gp1_08.interlace ? 'i' : 'p';
+        auto region = magic_enum::enum_name(gp1_08.videoMode);
+        int color = gp1_08.colorDepth == gpu::GP1_08::ColorDepth::bit15 ? 15 : 24;
 
-            // Reverse-flag ignored
-            return fmt::format("Display mode      [{}:{}{:c}, {}, {}bits]", w, h, mode, region, color);
-        }
-        case 0x09: {
-            return fmt::format("Allow texture disable [{}]", entry.args[0] & 1);
-        }
-        case 0x10 ... 0x1f: return "Get GPU info";
-        case 0x20: return "Special texture disable";
-        default: return "UNKNOWN";
+        // Reverse-flag ignored
+        return fmt::format("Display mode      [{}:{}{:c}, {}, {}bits]", w, h, mode, region, color);
+    } else if (cmd == 0x09) {
+        return fmt::format("Allow texture disable [{}]", entry.args[0] & 1);
+    } else if (cmd >= 0x10 && cmd <= 0x1f) {
+        return "Get GPU info";
+    } else if (cmd == 0x20) {
+        return "Special texture disable";
+    } else {
+        return "UNKNOWN";
     }
-};
+}
 
 std::string getCommandName(const gpu::LogEntry &entry) {
     if (entry.type == 0)
@@ -299,7 +295,7 @@ void GPU::handlePolygonCommand(const gpu::PolygonArgs arg, const std::vector<uin
         ImGui::NewLine();
         ImGui::Text("Color: ");
         ImGui::SameLine();
-        colorBox(RGB(arguments[0]));
+        colorBox(RGB{arguments[0]});
     }
 
     if (arg.isTextureMapped) {
@@ -346,7 +342,7 @@ void GPU::handleRectangleCommand(const gpu::RectangleArgs arg, const std::vector
     ImGui::NewLine();
     ImGui::Text("Color: ");
     ImGui::SameLine();
-    colorBox(RGB(arguments[0]));
+    colorBox(RGB{arguments[0]});
 
     vramAreas.push_back({fmt::format("Rectangle {}", /*i*/ -1), ImVec2(x, y), ImVec2(w, h)});
 
