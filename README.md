@@ -59,7 +59,7 @@ Currently audio is hard synced to NTSC (60Hz) (**running PAL games will make aud
 
 ## Requirements
 - OS: Windows 7 or later, macOS 10.13 or later, Linux (Ubuntu 16.04 or later)
-- GPU: Graphics card supporting **OpenGL 3.2**
+- GPU: Graphics card supporting **OpenGL 3.1**
 - CPU: [SSE3 compatible (CPUs after 2004)](https://en.wikipedia.org/wiki/SSE3#CPUs_with_SSE3) x64 or x86 processor
 
 ### Notes
@@ -67,7 +67,7 @@ Avocado focuses on supporting relatively modern hardware (2010 and forwards) and
 
 Emulator is currently single-threaded - if you have multicore CPU you will not benefit from it. Single thread performance is what really matters.
 
-Currently Avocado requires OpenGL 3.2. In the future this limitation will be lifted for software rendering.
+Currently Avocado requires OpenGL 3.1. In the future this limitation will be lifted for software rendering.
 
 ## Running
 

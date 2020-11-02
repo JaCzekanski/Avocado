@@ -11,7 +11,7 @@ precision mediump float;
 
 )EOF";
 #else
-const char* Shader::header = R"EOF(#version 150
+const char* Shader::header = R"EOF(#version 140
 
 )EOF";
 #endif

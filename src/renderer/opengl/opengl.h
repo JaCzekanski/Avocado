@@ -15,7 +15,7 @@ class OpenGL {
     const int VERSION_MINOR = 0;
 #else
     const int VERSION_MAJOR = 3;
-    const int VERSION_MINOR = 2;
+    const int VERSION_MINOR = 1;
 #endif
 
     static const int resWidth = 640;
