@@ -18,6 +18,10 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
+//  2020-05-25: Misc: Report a zero display-size when window is minimized, to be consistent with other backends.
+//  2020-02-20: Inputs: Fixed mapping for ImGuiKey_KeyPadEnter (using SDL_SCANCODE_KP_ENTER instead of SDL_SCANCODE_RETURN2).
+//  2019-12-17: Inputs: On Wayland, use SDL_GetMouseState (because there is no global mouse state).
+//  2019-12-05: Inputs: Added support for ImGuiMouseCursor_NotAllowed mouse cursor.
 //  2019-07-21: Inputs: Added mapping for ImGuiKey_KeyPadEnter.
 //  2019-04-23: Inputs: Added support for SDL_GameController (if ImGuiConfigFlags_NavEnableGamepad is set by user application).
 //  2019-03-12: Misc: Preserve DisplayFramebufferScale when main window is minimized.
@@ -40,8 +44,8 @@
 //  Inputs: Added mapping for ImGuiKey_Insert. 2017-08-25: Inputs: MousePos set to -FLT_MAX,-FLT_MAX when mouse is unavailable/missing
 //  (instead of -1,-1). 2016-10-15: Misc: Added a void* user_data parameter to Clipboard function handlers.
 
-#include "imgui_impl_sdl.h"
 #include "imgui.h"
+#include "imgui_impl_sdl.h"
 
 // SDL
 #include <SDL.h>
@@ -57,8 +61,9 @@
 static SDL_Window* g_Window = NULL;
 static Uint64 g_Time = 0;
 static bool g_MousePressed[3] = {false, false, false};
-static SDL_Cursor* g_MouseCursors[ImGuiMouseCursor_COUNT] = {0};
+static SDL_Cursor* g_MouseCursors[ImGuiMouseCursor_COUNT] = {};
 static char* g_ClipboardTextData = NULL;
+static bool g_MouseCanUseGlobalState = true;
 
 static const char* ImGui_ImplSDL2_GetClipboardText(void*) {
     if (g_ClipboardTextData) SDL_free(g_ClipboardTextData);
@@ -102,7 +107,11 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event) {
             io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
+#ifdef _WIN32
+            io.KeySuper = false;
+#else
             io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
+#endif
             return true;
         }
     }
@@ -134,7 +143,7 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window) {
     io.KeyMap[ImGuiKey_Space] = SDL_SCANCODE_SPACE;
     io.KeyMap[ImGuiKey_Enter] = SDL_SCANCODE_RETURN;
     io.KeyMap[ImGuiKey_Escape] = SDL_SCANCODE_ESCAPE;
-    io.KeyMap[ImGuiKey_KeyPadEnter] = SDL_SCANCODE_RETURN2;
+    io.KeyMap[ImGuiKey_KeyPadEnter] = SDL_SCANCODE_KP_ENTER;
     io.KeyMap[ImGuiKey_A] = SDL_SCANCODE_A;
     io.KeyMap[ImGuiKey_C] = SDL_SCANCODE_C;
     io.KeyMap[ImGuiKey_V] = SDL_SCANCODE_V;
@@ -146,6 +155,7 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window) {
     io.GetClipboardTextFn = ImGui_ImplSDL2_GetClipboardText;
     io.ClipboardUserData = NULL;
 
+    // Load mouse cursors
     g_MouseCursors[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     g_MouseCursors[ImGuiMouseCursor_TextInput] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
     g_MouseCursors[ImGuiMouseCursor_ResizeAll] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
@@ -154,6 +164,10 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window) {
     g_MouseCursors[ImGuiMouseCursor_ResizeNESW] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);
     g_MouseCursors[ImGuiMouseCursor_ResizeNWSE] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
     g_MouseCursors[ImGuiMouseCursor_Hand] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+    g_MouseCursors[ImGuiMouseCursor_NotAllowed] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO);
+
+    // Check and store if we are on Wayland
+    g_MouseCanUseGlobalState = strncmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0;
 
 #ifdef _WIN32
     SDL_SysWMinfo wmInfo;
@@ -185,6 +199,8 @@ bool ImGui_ImplSDL2_InitForD3D(SDL_Window* window) {
 #endif
     return ImGui_ImplSDL2_Init(window);
 }
+
+bool ImGui_ImplSDL2_InitForMetal(SDL_Window* window) { return ImGui_ImplSDL2_Init(window); }
 
 void ImGui_ImplSDL2_Shutdown() {
     g_Window = NULL;
@@ -220,14 +236,16 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons() {
 #if SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IOS)
     SDL_Window* focused_window = SDL_GetKeyboardFocus();
     if (g_Window == focused_window) {
-        // SDL_GetMouseState() gives mouse position seemingly based on the last window entered/focused(?)
-        // The creation of a new windows at runtime and SDL_CaptureMouse both seems to severely mess up with that, so we retrieve that
-        // position globally.
-        int wx, wy;
-        SDL_GetWindowPosition(focused_window, &wx, &wy);
-        SDL_GetGlobalMouseState(&mx, &my);
-        mx -= wx;
-        my -= wy;
+        if (g_MouseCanUseGlobalState) {
+            // SDL_GetMouseState() gives mouse position seemingly based on the last window entered/focused(?)
+            // The creation of a new windows at runtime and SDL_CaptureMouse both seems to severely mess up with that, so we retrieve that
+            // position globally. Won't use this workaround when on Wayland, as there is no global mouse position.
+            int wx, wy;
+            SDL_GetWindowPosition(focused_window, &wx, &wy);
+            SDL_GetGlobalMouseState(&mx, &my);
+            mx -= wx;
+            my -= wy;
+        }
         io.MousePos = ImVec2((float)mx, (float)my);
     }
 
@@ -307,6 +325,7 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window) {
     int w, h;
     int display_w, display_h;
     SDL_GetWindowSize(window, &w, &h);
+    if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) w = h = 0;
     SDL_GL_GetDrawableSize(window, &display_w, &display_h);
     io.DisplaySize = ImVec2((float)w, (float)h);
     if (w > 0 && h > 0) io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
