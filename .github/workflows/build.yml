@@ -7,32 +7,42 @@ jobs:
     name: "Linux Clang6"
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - uses: actions/cache@v2
+
+    - name: Prepare cache
+      uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{ job.container.id }}-ccache-${{ github.sha }}
-        restore-keys: ${{ job.container.id }}-ccache-
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-ccache-
 
-    - run: .ci/linux/run-container.sh 6
+    - name: Build
+      run: .ci/linux/run-container.sh 6
     
   linux_clang8:
     name: "Linux Clang8"
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - uses: actions/cache@v2
+
+    - name: Prepare cache
+      uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{ job.container.id }}-ccache-${{ github.sha }}
-        restore-keys: ${{ job.container.id }}-ccache-
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-ccache-
 
-    - run: .ci/linux/run-container.sh 8
-    - uses: kittaakos/upload-artifact-as-is@v0
+    - name: Build
+      run: .ci/linux/run-container.sh 8
+
+    - name: Upload
+      uses: kittaakos/upload-artifact-as-is@v0
       with: 
         path: upload/
     
@@ -40,17 +50,23 @@ jobs:
     name: "Android"
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - uses: actions/cache@v2
+
+    - name: Prepare cache
+      uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{ job.container.id }}-ccache-${{ github.sha }}
-        restore-keys: ${{ job.container.id }}-ccache-
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-ccache-
 
-    - run: .ci/android/run-container.sh
-    - uses: kittaakos/upload-artifact-as-is@v0
+    - name: Build
+      run: .ci/android/run-container.sh
+
+    - name: Upload
+      uses: kittaakos/upload-artifact-as-is@v0
       with: 
         path: upload/
     
@@ -58,18 +74,26 @@ jobs:
     name: "macOS"
     runs-on: macOS-10.15
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - uses: actions/cache@v2
+    
+    - name: Prepare cache
+      uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{ job.container.id }}-ccache-${{ github.sha }}
-        restore-keys: ${{ job.container.id }}-ccache-
-          
-    - run: .ci/macos/install-dependencies.sh
-    - run: .ci/macos/build.sh
-    - uses: kittaakos/upload-artifact-as-is@v0
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-ccache-
+
+    - name: Install
+      run: .ci/macos/install-dependencies.sh
+    
+    - name: Build
+      run: .ci/macos/build.sh
+    
+    - name: Upload
+      uses: kittaakos/upload-artifact-as-is@v0
       with: 
         path: upload/
     
