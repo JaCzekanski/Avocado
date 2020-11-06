@@ -11,10 +11,6 @@ jobs:
       with:
         submodules: 'recursive'
     - run: .ci/linux/run-container.sh 6
-    - uses: actions/upload-artifact@v2
-      with: 
-        name: Linux Clang6
-        path: upload/
     
   linux_clang8:
     name: "Linux Clang8"
@@ -24,9 +20,8 @@ jobs:
       with:
         submodules: 'recursive'
     - run: .ci/linux/run-container.sh 8
-    - uses: actions/upload-artifact@v2
+    - uses: kittaakos/upload-artifact-as-is@v0
       with: 
-        name: Linux Clang8
         path: upload/
     
   android:
@@ -37,9 +32,8 @@ jobs:
       with:
         submodules: 'recursive'
     - run: .ci/android/run-container.sh
-    - uses: actions/upload-artifact@v2
+    - uses: kittaakos/upload-artifact-as-is@v0
       with: 
-        name: Android
         path: upload/
     
   macos:
@@ -51,9 +45,8 @@ jobs:
         submodules: 'recursive'
     - run: .ci/macos/install-dependencies.sh
     - run: .ci/macos/build.sh
-    - uses: actions/upload-artifact@v2
+    - uses: kittaakos/upload-artifact-as-is@v0
       with: 
-        name: macOS
         path: upload/
     
 # TODO: Add Windows
