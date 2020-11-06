@@ -21,4 +21,4 @@ docker run \
     -v $(pwd):/home/build \
     -v "$HOME/.ccache":/root/.ccache \
     avocadoemu/android \
-    /bin/bash -ex /home/build/.travis/android/build.sh
+    /bin/bash -ex /home/build/.ci/android/build.sh

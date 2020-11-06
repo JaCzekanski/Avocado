@@ -6,10 +6,10 @@ environment:
   PREMAKE_VERSION: 5.0.0-alpha14
   SDL_VERSION: 2.0.10
   matrix:
-  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     TOOLSET: vs2019
     platform: x64
-  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 Preview
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     TOOLSET: vs2019
     platform: Win32
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -85,4 +85,4 @@ artifacts:
     name: avocado
 
 deploy_script:
-  - bash ./.travis/deploy.sh %DEPLOY_KEY% upload/
+  - bash ./.ci/deploy.sh %DEPLOY_KEY% upload/

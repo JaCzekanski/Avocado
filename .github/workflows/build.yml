@@ -10,7 +10,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - run: ./.travis/linux/run-container.sh 6
+    - run: .ci/linux/run-container.sh 6
     - uses: actions/upload-artifact@v2
       with: 
         name: Linux Clang6
@@ -23,7 +23,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - run: ./.travis/linux/run-container.sh 8
+    - run: .ci/linux/run-container.sh 8
     - uses: actions/upload-artifact@v2
       with: 
         name: Linux Clang8
@@ -36,7 +36,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - run: ./.travis/android/run-container.sh
+    - run: .ci/android/run-container.sh
     - uses: actions/upload-artifact@v2
       with: 
         name: Android
@@ -49,8 +49,8 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
-    - run: ./.travis/macos/install-dependencies.sh
-    - run: ./.travis/macos/build.sh
+    - run: .ci/macos/install-dependencies.sh
+    - run: .ci/macos/build.sh
     - uses: actions/upload-artifact@v2
       with: 
         name: macOS

@@ -136,7 +136,7 @@ make config=release_x64 -j4
 ./build/release_x64/avocado
 ```
 
-See .travis/linux/build.sh in case of problems.
+See .ci/linux/build.sh in case of problems.
 
 Update:
 ```
@@ -164,7 +164,7 @@ make config=release_x64 -j4
 ./build/release_x64/avocado.app
 ```
 
-See .travis/macos/build.sh in case of problems.
+See .ci/macos/build.sh in case of problems.
 
 Update:
 ```

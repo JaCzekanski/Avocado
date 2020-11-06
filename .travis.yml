@@ -10,38 +10,38 @@ matrix:
     os: linux
     dist: bionic
     services: docker
-    script: "./.travis/linux/run-container.sh 6"
+    script: ".ci/linux/run-container.sh 6"
   - name: Linux Clang8
     env: SKIP_DEPLOY=skip
     os: linux
     dist: bionic
     services: docker
-    script: "./.travis/linux/run-container.sh 8"
+    script: ".ci/linux/run-container.sh 8"
   - name: Linux Clang10
     os: linux
     dist: bionic
     services: docker
-    script: "./.travis/linux/run-container.sh 10"
+    script: ".ci/linux/run-container.sh 10"
   - name: Android
     os: linux
     dist: bionic
     services: docker
-    script: "./.travis/android/run-container.sh"
+    script: ".ci/android/run-container.sh"
   - name: macOS
     os: osx
     osx_image: xcode11
-    install: "./.travis/macos/install-dependencies.sh"
-    script: "./.travis/macos/build.sh"
+    install: ".ci/macos/install-dependencies.sh"
+    script: ".ci/macos/build.sh"
 
-after_success: "./.travis/notify-discord.sh success $WEBHOOK_URL"
-after_failure: "./.travis/notify-discord.sh failure $WEBHOOK_URL"
+after_success: ".ci/notify-discord.sh success $WEBHOOK_URL"
+after_failure: ".ci/notify-discord.sh failure $WEBHOOK_URL"
 
 notifications:
   email: false
 
 deploy:
   provider: script
-  script: "./.travis/deploy.sh $DEPLOY_KEY upload/*"
+  script: ".ci/deploy.sh $DEPLOY_KEY upload/*"
   skip_cleanup: true
   on:
     all_branches: true
