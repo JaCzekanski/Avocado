@@ -3,10 +3,7 @@
 
 cd /home/build
 
-export BUILD_MODE=release
-if [ "$TRAVIS_PULL_REQUEST" = "true" ]; then
-    export BUILD_MODE=debug
-fi
+export BUILD_MODE=${BUILD_MODE:-debug}
 
 export OS=android
 export DATE=$(date +%Y%m%d)

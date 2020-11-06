@@ -9,5 +9,5 @@ mv premake5 /usr/local/bin/
 rm premake-$PREMAKE_VERSION-macosx.tar.gz
 
 # Download SDL2 and ccache
-brew update
+brew update > /dev/null
 brew install sdl2 ccache
