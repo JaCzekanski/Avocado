@@ -5,7 +5,7 @@
 
 namespace disc {
 struct Track {
-    static const int SECTOR_SIZE = 2352;
+    inline static const int SECTOR_SIZE = 2352;
 
     std::string filename;
     int number = 0;
@@ -27,4 +27,4 @@ struct Track {
         frames = 0;
     }
 };
-}  // namespace utils
+}  // namespace disc

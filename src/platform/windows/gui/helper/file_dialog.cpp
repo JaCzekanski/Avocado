@@ -19,6 +19,11 @@
 
 namespace gui::helper {
 
+bool isHidden(const fs::directory_entry& f) {
+    auto filename = f.path().filename().string();
+    return filename[0] == '.' && filename != "..";
+}
+
 File::File(const fs::directory_entry& f, bool isSupported) : entry(f), isSupported(isSupported) {
     filename = f.path().filename().string();
     extension = f.path().extension().string();
@@ -29,7 +34,7 @@ File::File(const fs::directory_entry& f, bool isSupported) : entry(f), isSupport
         size = formatFileSize(fs::file_size(f));
     }
 
-    isHidden = filename[0] == '.' && filename != "..";
+    isHidden = gui::helper::isHidden(f);
 }
 
 void FileDialog::getDriveList() {
@@ -52,15 +57,15 @@ void FileDialog::getDriveList() {
 #ifdef __APPLE__
     // Get list of drives by iterating /Volumes
     auto volumes = fs::directory_iterator("/Volumes", fs::directory_options::skip_permission_denied);
-    try {
-        for (auto& volume : volumes) {
-            if (!fs::exists(volume) || !fs::is_directory(volume)) {
+    for (auto& volume : volumes) {
+        try {
+            if (!fs::exists(volume) || !fs::is_directory(volume) || isHidden(volume)) {
                 continue;
             }
             drivePaths[volume.path().filename().string()] = volume.path().string();
+        } catch (fs::filesystem_error& err) {
+            fmt::print("{}\n", err.what());
         }
-    } catch (fs::filesystem_error& err) {
-        fmt::print("{}\n", err.what());
     }
 #endif
 
@@ -107,15 +112,15 @@ void FileDialog::readDirectory(const fs::path& _path) {
 
     path = fs::canonical(_path);
 
-    try {
-        auto it = fs::directory_iterator(path, fs::directory_options::skip_permission_denied);
+    auto it = fs::directory_iterator(path, fs::directory_options::skip_permission_denied);
 
-        files.push_back(fs::directory_entry(path / ".."));
-        for (auto& f : it) {
+    files.push_back(fs::directory_entry(path / ".."));
+    for (auto& f : it) {
+        try {
             files.push_back(File(f, isFileSupported(f)));
+        } catch (fs::filesystem_error& err) {
+            fmt::print("{}\n", err.what());
         }
-    } catch (fs::filesystem_error& err) {
-        fmt::print("{}\n", err.what());
     }
 
     std::sort(files.begin(), files.end(), [](const File& lhs, const File& rhs) -> bool {
