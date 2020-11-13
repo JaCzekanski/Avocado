@@ -707,8 +707,6 @@ void GPU::writeGP0(uint32_t data) {
                 }
                 if (n-- == 0) break;
             }
-        } else if (cmd == Command::CopyVramToCpu) {
-            // Ignore
         } else {
             LogEntry entry;
             entry.type = 0;

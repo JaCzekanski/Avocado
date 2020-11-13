@@ -453,7 +453,7 @@ void GPU::logWindow(System *sys) {
             } else if (isHovered && commandHasDetails(entry)) {
                 ImGui::BeginTooltip();
                 printCommandDetails(entry);
-                ImGui::EndPopup();
+                ImGui::EndTooltip();
             }
 
             // Misc stuff
