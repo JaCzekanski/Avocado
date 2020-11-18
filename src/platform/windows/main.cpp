@@ -328,8 +328,8 @@ int main(int argc, char** argv) {
             if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_AC_BACK) running = false;
-                if (event.key.keysym.sym == SDLK_F1) gui->showMenu = !gui->showMenu;
-                if (event.key.keysym.sym == SDLK_F2) {
+                if (event.key.keysym.sym == Key(config.hotkeys["toggle_menu"]).key) gui->showMenu = !gui->showMenu;
+                if (event.key.keysym.sym == Key(config.hotkeys["reset"]).key) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
                         sys = system_tools::hardReset();
                         toast("Hard reset");
@@ -338,24 +338,24 @@ int main(int argc, char** argv) {
                         toast("Soft reset");
                     }
                 }
-                if (event.key.keysym.sym == SDLK_F3) {
+                if (event.key.keysym.sym == Key(config.hotkeys["close_tray"]).key) {
                     sys->cdrom->toggleShell();
                     toast(fmt::format("Shell {}", sys->cdrom->getShell() ? "open" : "closed"));
                 }
-                if (event.key.keysym.sym == SDLK_F5) {
+                if (event.key.keysym.sym == Key(config.hotkeys["quick_save"]).key) {
                     bus.notify(Event::System::SaveState{});
                 }
-                if (event.key.keysym.sym == SDLK_F6) {
+                if (event.key.keysym.sym == Key(config.hotkeys["single_frame"]).key) {
                     gui->singleFrame = true;
                     sys->state = System::State::run;
                 }
-                if (event.key.keysym.sym == SDLK_F7) {
+                if (event.key.keysym.sym == Key(config.hotkeys["quick_load"]).key) {
                     bus.notify(Event::System::LoadState{});
                 }
-                if (event.key.keysym.sym == SDLK_F8) {
+                if (event.key.keysym.sym == Key(config.hotkeys["single_step"]).key) {
                     sys->singleStep();
                 }
-                if (event.key.keysym.sym == SDLK_SPACE) {
+                if (event.key.keysym.sym == Key(config.hotkeys["toggle_pause"]).key) {
                     if (sys->state == System::State::pause) {
                         sys->state = System::State::run;
                     } else if (sys->state == System::State::run) {
@@ -363,11 +363,11 @@ int main(int argc, char** argv) {
                     }
                     toast(fmt::format("Emulation {}", sys->state == System::State::run ? "resumed" : "paused"));
                 }
-                if (event.key.keysym.sym == SDLK_TAB) {
+                if (event.key.keysym.sym == Key(config.hotkeys["toggle_framelimit"]).key) {
                     frameLimitEnabled = !frameLimitEnabled;
                     toast(fmt::format("Frame limiter {}", frameLimitEnabled ? "enabled" : "disabled"));
                 }
-                if (event.key.keysym.sym == SDLK_BACKSPACE) {
+                if (event.key.keysym.sym == Key(config.hotkeys["rewind_state"]).key) {
                     if (state::rewindState(sys.get())) {
                         toast("Going back 1 second");
                     }

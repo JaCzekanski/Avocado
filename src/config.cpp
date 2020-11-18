@@ -157,6 +157,23 @@ KeyBindings mouse() {
 // clang-format on
 }  // namespace DefaultKeyBindings
 
+namespace DefaultHotkeys {
+KeyBindings keyboard() {
+    return {
+        {"toggle_menu", "keyboard|F1"},
+        {"reset", "keyboard|F2"},
+        {"close_tray", "keyboard|F3"},
+        {"quick_save", "keyboard|F5"},
+        {"single_frame", "keyboard|F6"},
+        {"quick_load", "keyboard|F7"}, 
+        {"single_step", "keyboard|F8"},
+        {"toggle_pause", "keyboard|Space"},
+        {"toggle_framelimit", "keyboard|Tab"},
+        {"rewind_state", "keyboard|Backspace"},
+    };
+}
+}  // namespace DefaultHotkeys
+
 avocado_config_t config;
 
 namespace avocado {

@@ -101,32 +101,42 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Emulation")) {
-        if (ImGui::MenuItem("Pause/Resume", "Space")) {
+        if (ImGui::MenuItem("Pause/Resume", Key(config.hotkeys["toggle_pause"]).getName())) {
             if (sys->state == System::State::pause) {
                 sys->state = System::State::run;
             } else if (sys->state == System::State::run) {
                 sys->state = System::State::pause;
             }
         }
-        if (ImGui::MenuItem("Soft reset", "F2")) bus.notify(Event::System::SoftReset{});
-        if (ImGui::MenuItem("Hard reset", "Shift+F2")) bus.notify(Event::System::HardReset{});
+        if (ImGui::MenuItem("Soft reset", Key(config.hotkeys["reset"]).getName())) {
+            bus.notify(Event::System::SoftReset{});
+        }
+
+        std::string key = "Shift+";
+        key += Key(config.hotkeys["reset"]).getName();
+        if (ImGui::MenuItem("Hard reset", key.c_str())) {
+            bus.notify(Event::System::HardReset{});
+        }
 
         const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
-        if (ImGui::MenuItem(shellStatus, "F3")) {
+        if (ImGui::MenuItem(shellStatus, Key(config.hotkeys["close_tray"]).getName())) {
             sys->cdrom->toggleShell();
         }
 
-        if (ImGui::MenuItem("Single frame", "F6")) {
+        if (ImGui::MenuItem("Single frame", Key(config.hotkeys["single_frame"]).getName())) {
             singleFrame = true;
             sys->state = System::State::run;
         }
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("Quick save", "F5")) bus.notify(Event::System::SaveState{});
+        if (ImGui::MenuItem("Quick save", Key(config.hotkeys["quick_save"]).getName())) {
+            bus.notify(Event::System::SaveState{});
+        }
 
         bool quickLoadStateExists = fs::exists(state::getStatePath(sys.get()));
-        if (ImGui::MenuItem("Quick load", "F7", nullptr, quickLoadStateExists)) bus.notify(Event::System::LoadState{});
+        if (ImGui::MenuItem("Quick load", Key(config.hotkeys["quick_load"]).getName(), nullptr, quickLoadStateExists))
+            bus.notify(Event::System::LoadState{});
 
         if (ImGui::BeginMenu("Save")) {
             for (int i = 1; i <= 5; i++) {
@@ -196,6 +206,7 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         if (ImGui::MenuItem("Graphics", nullptr)) showGraphicsOptionsWindow = true;
         ImGui::MenuItem("BIOS", nullptr, &biosOptions.biosWindowOpen);
         if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
+        if (ImGui::MenuItem("Hotkeys", nullptr)) showHotkeysSetupWindow = true;
         ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
 
         bool soundEnabled = config.options.sound.enabled;
@@ -284,6 +295,7 @@ void GUI::render(std::unique_ptr<System>& sys) {
         // Options
         if (showGraphicsOptionsWindow) graphicsOptionsWindow();
         if (showControllerSetupWindow) controllerSetupWindow();
+        if (showHotkeysSetupWindow) hotkeysSetupWindow();
 
         biosOptions.displayWindows();
         memoryCardOptions.displayWindows(sys.get());
