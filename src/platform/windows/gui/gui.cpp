@@ -472,7 +472,7 @@ void GUI::drawControls(std::unique_ptr<System>& sys) {
     if (ImGui::BeginPopupContextItem(nullptr, 0)) {
         if (ImGui::Selectable("Controller")) showControllerSetupWindow = !showControllerSetupWindow;
         ImGui::Separator();
-        ImGui::MenuItem("Show menu", "F1", &showMenu);
+        ImGui::MenuItem("Show menu", Key(config.hotkeys["toggle_menu"]).getName(), &showMenu);
         ImGui::EndPopup();
     }
 
