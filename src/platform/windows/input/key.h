@@ -37,7 +37,7 @@ struct Key {
     static Key mouseButton(SDL_MouseButtonEvent button);
     static Key controllerMove(SDL_ControllerAxisEvent axis);
     static Key controllerButton(SDL_ControllerButtonEvent button);
-    const char* Key::getName();
+    const char* getName();
 
     bool operator==(const Key& rhs) const;
 
