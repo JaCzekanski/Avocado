@@ -23,6 +23,8 @@ void saveConfigFile() {
     json["extension"] = config.extension;
     json["iso"] = config.iso;
 
+    json["hotkeys"] = config.hotkeys;
+
     for (int i = 0; i < 2; i++) {
         json["controller"][std::to_string(i + 1)] = {
             {"type", config.controller[i].type},
@@ -93,6 +95,10 @@ void loadConfigFile() {
         config.bios = json["bios"];
         config.extension = json["extension"];
         config.iso = json["iso"];
+
+        if (auto h = json["hotkeys"]; !h.is_null()) {
+            config.hotkeys = h.get<KeyBindings>();
+        }
 
         for (int i = 0; i < 2; i++) {
             auto ctrl = json["controller"][std::to_string(i + 1)];

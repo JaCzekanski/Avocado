@@ -214,3 +214,7 @@ bool Key::operator==(const Key& rhs) const {
 
     return false;
 }
+
+const char* Key::getName() { 
+    return SDL_GetKeyName(key);
+}

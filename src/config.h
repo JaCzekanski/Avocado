@@ -27,10 +27,16 @@ KeyBindings mouse();
 KeyBindings controller(int n);
 }  // namespace DefaultKeyBindings
 
+namespace DefaultHotkeys {
+KeyBindings keyboard();
+}  // namespace DefaultKeyBindings
+
 struct avocado_config_t {
     std::string bios = "";
     std::string extension = "";
     std::string iso = "";
+
+    KeyBindings hotkeys = DefaultHotkeys::keyboard();
 
     struct {
         ControllerType type;
