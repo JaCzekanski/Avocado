@@ -225,7 +225,7 @@ void button(const std::string& button, const char* tooltip, int controller = 0) 
             ImGui::OpenPopup("Waiting for key...");
         }
         ImGui::SameLine();
-        ImGui::Text(tooltip);
+        ImGui::TextUnformatted(tooltip);
 
         return;
     }
