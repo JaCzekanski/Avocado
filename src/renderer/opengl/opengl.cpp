@@ -293,21 +293,19 @@ void OpenGL::renderVertices(gpu::GPU* gpu) {
             continue;
         }
 
+        bool isTextured = bitsToDepth(buffer[i].bitcount) != ColorDepth::NONE;
         if (buffer[i].flags & gpu::Vertex::SemiTransparency) {
             auto semi = static_cast<Transparency>((buffer[i].flags >> 5) & 3);
-            // TODO: Refactor and batch
-            if (semi == Transparency::Bby2plusFby2) {
-                glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-                glBlendFuncSeparate(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA, GL_ONE, GL_ZERO);
-            } else if (semi == Transparency::BplusF) {
-                glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-                glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
-            } else if (semi == Transparency::BminusF) {
-                glBlendEquationSeparate(GL_FUNC_REVERSE_SUBTRACT, GL_FUNC_ADD);
-                glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
-            } else if (semi == Transparency::BplusFby4) {
-                glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-                glBlendFuncSeparate(GL_CONSTANT_COLOR, GL_ONE, GL_ONE, GL_ZERO);
+
+            glBlendEquationSeparate(semi == Transparency::BminusF ? GL_FUNC_REVERSE_SUBTRACT : GL_FUNC_ADD, GL_FUNC_ADD);
+            switch (semi) {
+                case Transparency::Bby2plusFby2:
+                    isTextured ? glBlendFunc(GL_ONE, GL_SRC_ALPHA) : glBlendFunc(GL_CONSTANT_ALPHA, GL_CONSTANT_ALPHA); break;
+                case Transparency::BplusF:
+                case Transparency::BminusF:
+                    isTextured ? glBlendFunc(GL_ONE, GL_SRC_ALPHA) : glBlendFunc(GL_ONE, GL_ONE); break;
+                case Transparency::BplusFby4:
+                    isTextured ? glBlendFunc(GL_CONSTANT_COLOR, GL_SRC_ALPHA) : glBlendFunc(GL_CONSTANT_COLOR, GL_ONE); break;
             }
 
             glEnable(GL_BLEND);
