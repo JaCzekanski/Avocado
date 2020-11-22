@@ -170,6 +170,7 @@ KeyBindings keyboard() {
         {"toggle_pause", "keyboard|Space"},
         {"toggle_framelimit", "keyboard|Tab"},
         {"rewind_state", "keyboard|Backspace"},
+        {"toggle_fullscreen", "keyboard|F4"}
     };
 }
 }  // namespace DefaultHotkeys

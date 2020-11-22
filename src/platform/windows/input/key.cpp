@@ -215,6 +215,16 @@ bool Key::operator==(const Key& rhs) const {
     return false;
 }
 
-const char* Key::getName() { 
-    return SDL_GetKeyName(key);
+const char* Key::getButton() { 
+    button = this->to_string();
+    size_t dpos = button.find('|');
+    button = button.substr(dpos+1);
+    return button.c_str();
+}
+
+const char* Key::getDevice() {
+    device = this->to_string();
+    size_t dpos = device.find('|');
+    device = device.substr(0, dpos);
+    return device.c_str();
 }
