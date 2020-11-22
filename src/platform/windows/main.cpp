@@ -333,7 +333,6 @@ int main(int argc, char** argv) {
             switch (event.type) {
                 case SDL_KEYDOWN:
                     button = Key::keyboard(event.key.keysym.sym);
-                    controllerButtonDown = true;
                     break;
                 case SDL_CONTROLLERBUTTONDOWN:
                     button = Key::controllerButton(event.cbutton);
