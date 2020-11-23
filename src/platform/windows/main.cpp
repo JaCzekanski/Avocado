@@ -328,24 +328,16 @@ int main(int argc, char** argv) {
             if (inputManager->handleEvent(event)) continue;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
 
-            Key button;
-            bool controllerButtonDown = false;
-            switch (event.type) {
-                case SDL_KEYDOWN:
-                    button = Key::keyboard(event.key.keysym.sym);
-                    break;
-                case SDL_CONTROLLERBUTTONDOWN:
-                    button = Key::controllerButton(event.cbutton);
-                    controllerButtonDown = true;
-                    break;
-                case SDL_CONTROLLERAXISMOTION:
-                    button = Key::controllerMove(event.caxis);
-                    if (button.controller.value) controllerButtonDown = true;
-                    break;
+            Key button = Key();
+            if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                button = Key::keyboard(event.key.keysym.sym);
+            } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+                button = Key::controllerButton(event.cbutton);
+            } else if (event.type == SDL_CONTROLLERAXISMOTION) {
+                if (std::abs(event.caxis.value) == 32767) button = Key::controllerMove(event.caxis);
             }
 
-            const bool buttonPress = (event.type == SDL_KEYDOWN && !event.key.repeat) || controllerButtonDown;
-            if (!inputManager->keyboardCaptured && buttonPress) {
+            if (!inputManager->keyboardCaptured && button.type != Key::Type::None) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_AC_BACK) running = false;
                 if (button == Key(config.hotkeys["toggle_menu"])) gui->showMenu = !gui->showMenu;

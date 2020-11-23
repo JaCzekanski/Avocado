@@ -6,9 +6,6 @@ struct Key {
     enum class Type { None, Keyboard, MouseMove, MouseButton, ControllerMove, ControllerButton };
     enum class Axis { Invalid = 0, Up = 1, Right, Left, Down };
 
-    std::string button;
-    std::string device;
-
     Type type;
     union {
         SDL_Keycode key;
@@ -35,8 +32,8 @@ struct Key {
     Key();
     Key(std::string& s);
     std::string to_string() const;
-    const char* getButton();
-    const char* getDevice();
+    std::string getButton();
+    std::string getDevice();
     static Key keyboard(SDL_Keycode keyCode);
     static Key mouseMove(int8_t xrel, int8_t yrel);
     static Key mouseButton(SDL_MouseButtonEvent button);

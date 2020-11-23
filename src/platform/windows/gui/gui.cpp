@@ -109,14 +109,14 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Emulation")) {
-        if (ImGui::MenuItem("Pause/Resume", Key(config.hotkeys["toggle_pause"]).getButton())) {
+        if (ImGui::MenuItem("Pause/Resume", Key(config.hotkeys["toggle_pause"]).getButton().c_str())) {
             if (sys->state == System::State::pause) {
                 sys->state = System::State::run;
             } else if (sys->state == System::State::run) {
                 sys->state = System::State::pause;
             }
         }
-        if (ImGui::MenuItem("Soft reset", Key(config.hotkeys["reset"]).getButton())) {
+        if (ImGui::MenuItem("Soft reset", Key(config.hotkeys["reset"]).getButton().c_str())) {
             bus.notify(Event::System::SoftReset{});
         }
 
@@ -127,23 +127,23 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         }
 
         const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
-        if (ImGui::MenuItem(shellStatus, Key(config.hotkeys["close_tray"]).getButton())) {
+        if (ImGui::MenuItem(shellStatus, Key(config.hotkeys["close_tray"]).getButton().c_str())) {
             sys->cdrom->toggleShell();
         }
 
-        if (ImGui::MenuItem("Single frame", Key(config.hotkeys["single_frame"]).getButton())) {
+        if (ImGui::MenuItem("Single frame", Key(config.hotkeys["single_frame"]).getButton().c_str())) {
             singleFrame = true;
             sys->state = System::State::run;
         }
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("Quick save", Key(config.hotkeys["quick_save"]).getButton())) {
+        if (ImGui::MenuItem("Quick save", Key(config.hotkeys["quick_save"]).getButton().c_str())) {
             bus.notify(Event::System::SaveState{});
         }
 
         bool quickLoadStateExists = fs::exists(state::getStatePath(sys.get()));
-        if (ImGui::MenuItem("Quick load", Key(config.hotkeys["quick_load"]).getButton(), nullptr, quickLoadStateExists))
+        if (ImGui::MenuItem("Quick load", Key(config.hotkeys["quick_load"]).getButton().c_str(), nullptr, quickLoadStateExists))
             bus.notify(Event::System::LoadState{});
 
         if (ImGui::BeginMenu("Save")) {
@@ -231,7 +231,7 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         }
 
         bool timeTravel = config.options.emulator.timeTravel;
-        if (ImGui::MenuItem("Time travel", Key(config.hotkeys["rewind_state"]).getButton(), &timeTravel)) {
+        if (ImGui::MenuItem("Time travel", Key(config.hotkeys["rewind_state"]).getButton().c_str(), &timeTravel)) {
             config.options.emulator.timeTravel = timeTravel;
         }
 
@@ -480,13 +480,13 @@ void GUI::drawControls(std::unique_ptr<System>& sys) {
     if (ImGui::BeginPopupContextItem(nullptr, 0)) {
         if (ImGui::Selectable("Controller")) showControllerSetupWindow = !showControllerSetupWindow;
         ImGui::Separator();
-        ImGui::MenuItem("Show menu", Key(config.hotkeys["toggle_menu"]).getButton(), &showMenu);
+        ImGui::MenuItem("Show menu", Key(config.hotkeys["toggle_menu"]).getButton().c_str(), &showMenu);
         ImGui::EndPopup();
     }
 
     ImGui::SameLine();
 
-    std::string hint = "Toggle fullscreen (" + (std::string)Key(config.hotkeys["toggle_fullscreen"]).getButton() + ")";
+    std::string hint = "Toggle fullscreen (" + (std::string)Key(config.hotkeys["toggle_fullscreen"]).getButton().c_str() + ")";
     if (symbolButton(hint.c_str(), ICON_FA_COMPRESS)) {
         bus.notify(Event::Gui::ToggleFullscreen{});
     }
