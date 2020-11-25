@@ -32,12 +32,13 @@ struct Key {
     Key();
     Key(std::string& s);
     std::string to_string() const;
+    std::string getButton();
+    std::string getDevice();
     static Key keyboard(SDL_Keycode keyCode);
     static Key mouseMove(int8_t xrel, int8_t yrel);
     static Key mouseButton(SDL_MouseButtonEvent button);
     static Key controllerMove(SDL_ControllerAxisEvent axis);
     static Key controllerButton(SDL_ControllerButtonEvent button);
-    const char* getName();
 
     bool operator==(const Key& rhs) const;
 

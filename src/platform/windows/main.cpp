@@ -327,11 +327,21 @@ int main(int argc, char** argv) {
             newEvent = false;
             if (inputManager->handleEvent(event)) continue;
             if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)) running = false;
-            if (!inputManager->keyboardCaptured && event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+
+            Key button = Key();
+            if (event.type == SDL_KEYDOWN && event.key.repeat == 0) {
+                button = Key::keyboard(event.key.keysym.sym);
+            } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+                button = Key::controllerButton(event.cbutton);
+            } else if (event.type == SDL_CONTROLLERAXISMOTION) {
+                if (std::abs(event.caxis.value) == 32767) button = Key::controllerMove(event.caxis);
+            }
+
+            if (!inputManager->keyboardCaptured && button.type != Key::Type::None) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
                 if (event.key.keysym.sym == SDLK_AC_BACK) running = false;
-                if (event.key.keysym.sym == Key(config.hotkeys["toggle_menu"]).key) gui->showMenu = !gui->showMenu;
-                if (event.key.keysym.sym == Key(config.hotkeys["reset"]).key) {
+                if (button == Key(config.hotkeys["toggle_menu"])) gui->showMenu = !gui->showMenu;
+                if (button == Key(config.hotkeys["reset"])) {
                     if (event.key.keysym.mod & KMOD_SHIFT) {
                         sys = system_tools::hardReset();
                         toast("Hard reset");
@@ -340,24 +350,24 @@ int main(int argc, char** argv) {
                         toast("Soft reset");
                     }
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["close_tray"]).key) {
+                if (button == Key(config.hotkeys["close_tray"])) {
                     sys->cdrom->toggleShell();
                     toast(fmt::format("Shell {}", sys->cdrom->getShell() ? "open" : "closed"));
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["quick_save"]).key) {
+                if (button == Key(config.hotkeys["quick_save"])) {
                     bus.notify(Event::System::SaveState{});
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["single_frame"]).key) {
+                if (button == Key(config.hotkeys["single_frame"])) {
                     gui->singleFrame = true;
                     sys->state = System::State::run;
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["quick_load"]).key) {
+                if (button == Key(config.hotkeys["quick_load"])) {
                     bus.notify(Event::System::LoadState{});
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["single_step"]).key) {
+                if (button == Key(config.hotkeys["single_step"])) {
                     sys->singleStep();
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["toggle_pause"]).key) {
+                if (button == Key(config.hotkeys["toggle_pause"])) {
                     if (sys->state == System::State::pause) {
                         sys->state = System::State::run;
                     } else if (sys->state == System::State::run) {
@@ -365,14 +375,17 @@ int main(int argc, char** argv) {
                     }
                     toast(fmt::format("Emulation {}", sys->state == System::State::run ? "resumed" : "paused"));
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["toggle_framelimit"]).key) {
+                if (button == Key(config.hotkeys["toggle_framelimit"])) {
                     frameLimitEnabled = !frameLimitEnabled;
                     toast(fmt::format("Frame limiter {}", frameLimitEnabled ? "enabled" : "disabled"));
                 }
-                if (event.key.keysym.sym == Key(config.hotkeys["rewind_state"]).key) {
+                if (button == Key(config.hotkeys["rewind_state"])) {
                     if (state::rewindState(sys.get())) {
                         toast("Going back 1 second");
                     }
+                }
+                if (button == Key(config.hotkeys["toggle_fullscreen"])) {
+                    bus.notify(Event::Gui::ToggleFullscreen{});
                 }
             }
             if (event.type == SDL_DROPFILE) {

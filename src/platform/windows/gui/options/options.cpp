@@ -209,14 +209,16 @@ void button(const std::string& button, const char* tooltip, int controller = 0) 
     int ctrl = controller - 1;
     auto& relatedConfig = hotkey ? config.hotkeys[button] : config.controller[ctrl].keys[button];
     
-    if (button == currentButton && inputManager->lastPressedKey.type != Key::Type::None) {
+    Key::Type buttonType = inputManager->lastPressedKey.type;
+    bool restrictedDevices = buttonType == Key::Type::None || (hotkey && buttonType == Key::Type::MouseMove);
+    if (button == currentButton && !restrictedDevices) {
         relatedConfig = inputManager->lastPressedKey.to_string();
         inputManager->lastPressedKey = Key();
     }
 
     std::string key = relatedConfig;
 
-    key = Key(key).getName();
+    key = Key(key).getButton();
 
     if (hotkey) {
         if (ImGui::Button(fmt::format("{}##{}", key, button).c_str(), ImVec2(150.f, 0.f))) {
@@ -393,18 +395,19 @@ void controllerSetupWindow() {
 }
 
 void hotkeysSetupWindow() {
-    ImGui::SetNextWindowSize(ImVec2(300.f, 300.f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(300.f, 325.f), ImGuiCond_Once);
     ImGui::Begin("Hotkeys", &showHotkeysSetupWindow, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize);
 
     button("toggle_menu", "Toggle menu");
-    button("reset", "Reset");
-    button("close_tray", "Close disk shell");
+    button("toggle_fullscreen", "Toggle fullscreen");
     button("quick_save", "Quick save");
-    button("single_frame", "Single frame");
     button("quick_load", "Quick load");
-    button("single_step", "Single step");
     button("toggle_pause", "Pause");
+    button("reset", "Reset");
     button("toggle_framelimit", "Toggle framelimit");
+    button("close_tray", "Close disk tray");
+    button("single_frame", "Single frame");
+    button("single_step", "Single step");
     button("rewind_state", "Time travel");
 
     pressKeyPopup();
