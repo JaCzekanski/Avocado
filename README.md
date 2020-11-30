@@ -1,5 +1,5 @@
 # Avocado
-A Modern Playstation 1 emulator.
+A Modern PlayStation 1 emulator.
 
 <p align="center">
     <img src=".github/screenshots/1.png" height="250">
