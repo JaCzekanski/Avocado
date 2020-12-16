@@ -20,7 +20,7 @@ bool Bios::isFileSupported(const gui::helper::File& f) {
     }
 
     auto size = fs::file_size(f.entry);
-    if (size != 512 * 1024 && size != 256 * 1024) {
+    if (size > 512 * 1024) {
         return false;
     }
 
