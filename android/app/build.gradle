@@ -8,7 +8,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "info.czekanski.avocado"
-        minSdkVersion 24
+        minSdkVersion 21
         targetSdkVersion 28
         versionCode 100
         versionName "0.1.0"
