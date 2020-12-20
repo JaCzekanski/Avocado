@@ -28,12 +28,14 @@ else
 fi
 
 BRANCH=""
-if [[ ! -z "${TRAVIS_BRANCH}" ]]; then
+if [[ -n "${TRAVIS_BRANCH}" ]]; then
   BRANCH=$TRAVIS_BRANCH
-elif [[ ! -z "${APPVEYOR_REPO_BRANCH}" ]]; then
+elif [[ -n "${APPVEYOR_REPO_BRANCH}" ]]; then
   BRANCH=$APPVEYOR_REPO_BRANCH
-else 
-  echo "TRAVIS_BRANCH or APPVEYOR_REPO_BRANCH env not found"
+elif [[ -n "${GITHUB_REF}" ]]; then
+  BRANCH=${GITHUB_REF##*/}
+else
+  echo "TRAVIS_BRANCH, APPVEYOR_REPO_BRANCH or GITHUB_SHA env not found"
   exit 3
 fi
 

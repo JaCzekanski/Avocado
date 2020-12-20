@@ -1,6 +1,6 @@
 apply plugin: 'com.android.application'
 
-def signingPassword = System.getenv("keystore_password")
+def signingPassword = System.getenv("KEYSTORE_PASSWORD")
 def signingEnabled = signingPassword != null
 println "App signing: $signingEnabled"
 

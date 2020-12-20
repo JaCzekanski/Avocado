@@ -21,7 +21,12 @@ jobs:
 
     - name: Build
       run: .ci/linux/run-container.sh 6
-    
+
+    - uses: sarisia/actions-status-discord@v1
+      if: always()
+      with:
+        webhook: ${{ secrets.WEBHOOK_URL }}
+
   linux_clang8:
     name: "Linux Clang8"
     runs-on: ubuntu-18.04
@@ -41,11 +46,19 @@ jobs:
     - name: Build
       run: .ci/linux/run-container.sh 8
 
-    - name: Upload
+    - name: Upload Github
       uses: kittaakos/upload-artifact-as-is@v0
       with: 
         path: upload/
-    
+
+    - name: Upload Builds
+      run: .ci/deploy.sh ${{ secrets.DEPLOY_KEY }} upload/*
+
+    - uses: sarisia/actions-status-discord@v1
+      if: always()
+      with:
+        webhook: ${{ secrets.WEBHOOK_URL }}
+
   android:
     name: "Android"
     runs-on: ubuntu-18.04
@@ -64,12 +77,23 @@ jobs:
 
     - name: Build
       run: .ci/android/run-container.sh
+      env:
+        KEYSTORE_KEY: ${{ secrets.KEYSTORE_KEY }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-    - name: Upload
+    - name: Upload Github
       uses: kittaakos/upload-artifact-as-is@v0
-      with: 
+      with:
         path: upload/
-    
+
+    - name: Upload Builds
+      run: .ci/deploy.sh ${{ secrets.DEPLOY_KEY }} upload/*
+
+    - uses: sarisia/actions-status-discord@v1
+      if: always()
+      with:
+        webhook: ${{ secrets.WEBHOOK_URL }}
+
   macos:
     name: "macOS"
     runs-on: macOS-10.15
@@ -86,15 +110,26 @@ jobs:
         key: ${{ runner.os }}-ccache-${{ github.sha }}
         restore-keys: ${{ runner.os }}-ccache-
 
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '11.7'
+
     - name: Install
       run: .ci/macos/install-dependencies.sh
     
     - name: Build
       run: .ci/macos/build.sh
-    
-    - name: Upload
+
+    - name: Upload Github
       uses: kittaakos/upload-artifact-as-is@v0
-      with: 
+      with:
         path: upload/
-    
+
+    - name: Upload Builds
+      run: .ci/deploy.sh ${{ secrets.DEPLOY_KEY }} upload/*
+
+    - uses: sarisia/actions-status-discord@v1
+      if: always()
+      with:
+        webhook: ${{ secrets.WEBHOOK_URL }}
 # TODO: Add Windows
