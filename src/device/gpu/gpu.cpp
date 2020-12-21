@@ -422,9 +422,6 @@ struct MaskCopy {
 };
 
 void GPU::cmdCpuToVram1() {
-    if ((arguments[0] & 0x00ffffff) != 0) {
-        fmt::print("[GPU] cmdCpuToVram1: Suspicious arg0: 0x{:x}\n", arguments[0]);
-    }
     startX = currX = MaskCopy::x(arguments[1] & 0xffff);
     startY = currY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
 
@@ -471,10 +468,6 @@ void GPU::cmdCpuToVram2() {
 }
 
 void GPU::cmdVramToCpu() {
-    if ((arguments[0] & 0x00ffffff) != 0) {
-        fmt::print("[GPU] cmdVramToCpu: Suspicious arg0: 0x{:x}\n", arguments[0]);
-    }
-
     readMode = ReadMode::Vram;
     startX = currX = MaskCopy::x(arguments[1] & 0xffff);
     startY = currY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
@@ -506,11 +499,6 @@ uint32_t GPU::readVramData() {
 
 void GPU::cmdVramToVram() {
     cmd = Command::None;
-
-    if ((arguments[0] & 0x00ffffff) != 0) {
-        fmt::print("[GPU] cpuVramToVram: Suspicious arg0: 0x{:x}, breaking!!!\n", arguments[0]);
-        return;
-    }
 
     int srcX = MaskCopy::x(arguments[1] & 0xffff);
     int srcY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
