@@ -155,7 +155,7 @@ class CDROM {
     void handleCommand(uint8_t cmd);
 
     void writeResponse(uint8_t byte) {
-        if (CDROM_response.full()) {
+        if (CDROM_response.is_full()) {
             return;
         }
         CDROM_response.add(byte);
@@ -165,7 +165,7 @@ class CDROM {
     uint8_t readParam() {
         uint8_t param = CDROM_params.get();
 
-        status.parameterFifoEmpty = CDROM_params.empty();
+        status.parameterFifoEmpty = CDROM_params.is_empty();
         status.parameterFifoFull = 1;
 
         return param;

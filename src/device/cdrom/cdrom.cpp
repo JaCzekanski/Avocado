@@ -18,7 +18,7 @@ CDROM::CDROM(System* sys) : sys(sys) {
 
 void CDROM::step() {
     status.transmissionBusy = 0;
-    if (!interruptQueue.empty()) {
+    if (!interruptQueue.is_empty()) {
         if ((interruptEnable & 7) & (interruptQueue.peek() & 7)) {
             sys->interrupt->trigger(interrupt::CDROM);
         }
@@ -152,10 +152,10 @@ uint8_t CDROM::read(uint32_t address) {
     }
     if (address == 1) {  // CD Response
         uint8_t response = 0;
-        if (!CDROM_response.empty()) {
+        if (!CDROM_response.is_empty()) {
             response = CDROM_response.get();
 
-            if (CDROM_response.empty()) {
+            if (CDROM_response.is_empty()) {
                 status.responseFifoEmpty = 0;
             }
         }
@@ -174,7 +174,7 @@ uint8_t CDROM::read(uint32_t address) {
         }
         if (status.index == 1 || status.index == 3) {  // Interrupt flags
             uint8_t _status = 0b11100000;
-            if (!interruptQueue.empty()) {
+            if (!interruptQueue.is_empty()) {
                 _status |= interruptQueue.peek() & 7;
             }
             if (verbose == 2) fmt::print("CDROM: R INTF: 0x{:02x}\n", _status);
@@ -336,7 +336,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
             status.parameterFifoFull = 1;
         }
 
-        if (!interruptQueue.empty()) {
+        if (!interruptQueue.is_empty()) {
             interruptQueue.get();
         }
         if (verbose == 2) fmt::print("CDROM: W INTF: 0x{:02x}\n", data);

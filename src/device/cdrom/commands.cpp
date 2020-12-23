@@ -27,7 +27,7 @@ void CDROM::cmdSetloc() {
 void CDROM::cmdPlay() {
     // Play NOT IMPLEMENTED
     disc::Position pos;
-    if (!CDROM_params.empty()) {
+    if (!CDROM_params.is_empty()) {
         int track = readParam();  // param or setloc used
         if (track >= (int)disc->getTrackCount()) {
             fmt::print("CDROM: Invalid PLAY track parameter ({})\n", track);
