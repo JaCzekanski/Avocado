@@ -225,6 +225,9 @@ add_library(core STATIC
         src/device/gpu/render/render_triangle.cpp
         src/device/interrupt.cpp
         src/device/mdec/algorithm.cpp
+        src/device/mdec/rle.cpp
+        src/device/mdec/idct.cpp
+        src/device/mdec/yuv.cpp
         src/device/mdec/mdec.cpp
         src/device/memory_control.cpp
         src/device/ram_control.cpp

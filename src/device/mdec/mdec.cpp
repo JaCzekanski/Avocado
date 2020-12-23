@@ -1,6 +1,5 @@
 #include "mdec.h"
 #include <fmt/core.h>
-#include <cassert>
 #include "config.h"
 #include "device/gpu/psx_color.h"
 
@@ -17,12 +16,15 @@ void MDEC::reset() {
 
     cmd = Commands::None;
 
+    output.clear();
     outputPtr = 0;
 }
 
 int part = 0;
 uint32_t MDEC::read(uint32_t address) {
     if (address < 4) {
+        if (output.empty()) return 0;
+
         // 0:  r B G R
         // 1:  G R b g
         // 2:  b g r B
@@ -55,7 +57,10 @@ uint32_t MDEC::read(uint32_t address) {
         }
 
         if (outputPtr >= output.size()) {
+            output.clear();
             outputPtr = 0;
+            status.dataInRequest = control.enableDataIn;
+            status.dataOutRequest = false;
         }
         return data;
     }
@@ -67,7 +72,6 @@ uint32_t MDEC::read(uint32_t address) {
         return status._reg;
     }
 
-    assert(false && "UNHANDLED MDEC READ");
     return 0;
 }
 
@@ -86,14 +90,19 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
                 fmt::print(
                     "[MDEC] Warning: 4 and 8 bit format not supported, please report this game "
                     "(https://github.com/JaCzekanski/Avocado/issues).\n");
+                status.currentBlock = Status::CurrentBlock::Y4;
+            } else {
+                status.currentBlock = Status::CurrentBlock::Cr;
             }
 
-            input.resize(paramCount * 2);  // 16bit, so paramCount * 2
             outputPtr = 0;
             part = 0;
             output.resize(0);
 
             status.commandBusy = true;
+
+            status.dataInRequest = control.enableDataIn;
+            status.dataOutRequest = 0;
 
             if (verbose)
                 fmt::print("[MDEC] Decode macroblock (depth: {}, signed: {}, setBit15: {}, size: 0x{:x})\n",
@@ -132,14 +141,8 @@ void MDEC::write(uint32_t address, uint32_t data) {
         if (paramCount != 0) {
             switch (cmd) {
                 case Commands::DecodeMacroblock:
-                    // Macroblock consist of
-                    input[cnt * 2] = data & 0xffff;
-                    input[cnt * 2 + 1] = (data >> 16) & 0xffff;
-                    if (paramCount == 1) {
-                        // TODO: Pass macroblock, not raw pointer
-                        decodeMacroblocks();
-                    }
-
+                    handleWord(data & 0xffff);
+                    handleWord((data >> 16) & 0xffff);
                     break;
 
                 case Commands::SetQuantTable: {
@@ -182,15 +185,14 @@ void MDEC::write(uint32_t address, uint32_t data) {
         return;
     }
     if (address >= 4 && address < 8) {
-        _control._reg = data;
+        control._reg = data;
 
-        if (_control.getBit(31)) reset();
-        status.dataInRequest = _control.getBit(28);
-        status.dataOutRequest = _control.getBit(27);
+        if (control.reset) {
+            control.reset = 0;
+            reset();
+        }
         return;
     }
-
-    assert(false && "UNHANDLED MDEC WRITE");
 }
 
 };  // namespace mdec
