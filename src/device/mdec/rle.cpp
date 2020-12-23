@@ -57,6 +57,7 @@ bool MDEC::decodeBlock(std::array<int16_t, 64>& blk, const std::vector<uint16_t>
         } else if (dct.qFactor == 0) {
             blk.at(n) = value;
         }
+        if (n == 63) break;
 
         if (src == input.end()) return false;
         RLE rle = *src++;

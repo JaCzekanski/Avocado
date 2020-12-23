@@ -5,26 +5,39 @@ namespace mdec {
 // Helpers for accessing 1d arrays with 2d addressing
 #define _CR ((int16_t(*)[8])crblk.data())
 #define _CB ((int16_t(*)[8])cbblk.data())
-#define _Y(x) ((int16_t(*)[8])yblk[x].data())
+#define _Y ((int16_t(*)[8])yblk.data())
 
-void MDEC::yuvToRgb(decodedBlock& output, int blockX, int blockY) {
+void MDEC::yuvToRgb(DecodedBlock& output) {
     // YUV 4:2:0
     // Y component is at full resolution
     // Cr and Cb components are half resolution horizontally and vertically
 
+    int mx = 0;
+    int my = 0;
+    if (status.currentBlock == Status::CurrentBlock::Y1) {
+        mx = 0;
+        my = 0;
+    } else if (status.currentBlock == Status::CurrentBlock::Y2) {
+        mx = 8;
+        my = 0;
+    } else if (status.currentBlock == Status::CurrentBlock::Y3) {
+        mx = 0;
+        my = 8;
+    } else if (status.currentBlock == Status::CurrentBlock::Y4) {
+        mx = 8;
+        my = 8;
+    }
     // Y, Cb, Cr
-    auto sample = [this](int x, int y, int yBlock) -> std::tuple<int16_t, int16_t, int16_t> {
-        int16_t Y = _Y(yBlock)[y % 8][x % 8];
-        int16_t Cb = _CB[y / 2][x / 2];
-        int16_t Cr = _CR[y / 2][x / 2];
+    auto sample = [&](int x, int y) -> std::tuple<int16_t, int16_t, int16_t> {
+        int16_t Y = _Y[y][x];
+        int16_t Cb = _CB[(my + y) / 2][(mx + x) / 2];
+        int16_t Cr = _CR[(my + y) / 2][(mx + x) / 2];
         return std::make_tuple(Y, Cb, Cr);
     };
 
     for (int y = 0; y < 8; y++) {
         for (int x = 0; x < 8; x++) {
-            int yBlock = (blockY / 8) * 2 + (blockX / 8);
-            auto [Y, Cb, Cr] = sample(x + blockX, y + blockY, yBlock);
-            // int16_t Y = yblk[(blockY/8)*2 * (blockX/8)].at(y*8 + x);
+            auto [Y, Cb, Cr] = sample(x, y);
             // Y += 128;
 
             // Constants from https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
@@ -40,7 +53,7 @@ void MDEC::yuvToRgb(decodedBlock& output, int blockX, int blockY) {
             // uint8_t b = clamp<int16_t>(Y, 0, 255);
 
             // TODO: unsigned;
-            output[(blockY + y) * 16 + (blockX + x)] = (b << 16) | (g << 8) | (r);
+            output[y * 8 + x] = (b << 16) | (g << 8) | (r);
         }
     }
 }

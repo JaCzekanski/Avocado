@@ -58,6 +58,8 @@ void DMAChannel::maskControl() { control._reg &= ~CHCR::MASK; }
 
 // Sync 0 - no cpu execution in between
 void DMAChannel::burstTransfer() {
+    if (!dataRequest()) return;
+
     uint32_t addr = baseAddress.address;
 
     uint32_t wordCount = count.syncMode0.wordCount;
@@ -115,6 +117,8 @@ void DMAChannel::syncBlockTransfer() {
 }
 
 void DMAChannel::linkedListTransfer() {
+    if (!dataRequest()) return;
+
     uint32_t addr = baseAddress.address;
 
     if (verbose && canLog) {

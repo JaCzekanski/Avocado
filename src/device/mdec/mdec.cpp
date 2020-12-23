@@ -7,7 +7,17 @@ namespace mdec {
 
 MDEC::MDEC() { reset(); }
 
-void MDEC::step() {}
+void MDEC::step() {
+    while (!input.is_empty()) {
+        uint32_t data = input.get();
+        handleWord(data & 0xffff);
+        handleWord((data >> 16) & 0xffff);
+    }
+    if (input.is_empty()) {
+        status.dataInFifoFull = input.is_full();
+        status.dataInRequest = !status.dataInFifoFull && control.enableDataIn;
+    }
+}
 
 void MDEC::reset() {
     verbose = config.debug.log.mdec;
@@ -18,18 +28,24 @@ void MDEC::reset() {
 
     output.clear();
     outputPtr = 0;
+
+    input.clear();
 }
 
 int part = 0;
 uint32_t MDEC::read(uint32_t address) {
     if (address < 4) {
-        if (output.empty()) return 0;
+        if (output.empty()) {
+            fmt::print("[MDEC] reading empty buffer\n");
+            return 0;
+        }
 
         // 0:  r B G R
         // 1:  G R b g
         // 2:  b g r B
         // 3:    B G R  <- cycle continues
 
+        // TODO: Implement block swizzling
         uint32_t data = 0;
         if (status.colorDepth == Status::ColorDepth::bit_24) {
             if (part == 0)
@@ -50,25 +66,31 @@ uint32_t MDEC::read(uint32_t address) {
             data = (bit15 | to15bit(output[outputPtr + 0]));
             data |= (bit15 | to15bit(output[outputPtr + 1])) << 16;
             outputPtr += 2;
+        } else if (status.colorDepth == Status::ColorDepth::bit_8) {
+            for (int i = 0; i < 4; i++) {
+                // Cheating a bit, using R channel of decoded (Y, 0, 0)
+                data |= (output[outputPtr++] & 0xff) << (i * 8);
+            }
+        } else if (status.colorDepth == Status::ColorDepth::bit_4) {
+            for (int i = 0; i < 8; i++) {
+                data |= ((output[outputPtr++] & 0xf0) >> 4) << (i * 4);
+            }
         } else {
-            // Unsupported 4 and 8 bit modes
-            data = 0;
-            outputPtr++;
+            __builtin_unreachable();
         }
 
         if (outputPtr >= output.size()) {
             output.clear();
             outputPtr = 0;
-            status.dataInRequest = control.enableDataIn;
-            status.dataOutRequest = false;
+
+            status.dataOutFifoEmpty = true;
+            status.dataInRequest = control.enableDataIn;  // Only when cmdBusy (still decoding/waiting for data)
+            status.dataOutRequest = !status.dataOutFifoEmpty && control.enableDataOut;
         }
         return data;
     }
     if (address >= 4 && address < 8) {
-        // TODO: Handle fifo bits
-        status.dataOutFifoEmpty = outputPtr >= output.size();
-        status.dataInFifoFull = 0;
-        status.commandBusy = 0;
+        // TODO: Add input fifo
         return status._reg;
     }
 
@@ -87,22 +109,28 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
             paramCount = data & 0xffff;
 
             if (status.colorDepth == Status::ColorDepth::bit_4 || status.colorDepth == Status::ColorDepth::bit_8) {
-                fmt::print(
-                    "[MDEC] Warning: 4 and 8 bit format not supported, please report this game "
-                    "(https://github.com/JaCzekanski/Avocado/issues).\n");
                 status.currentBlock = Status::CurrentBlock::Y4;
             } else {
                 status.currentBlock = Status::CurrentBlock::Cr;
             }
 
+            crblk.fill(0);
+            cbblk.fill(0);
+            yblk.fill(0);
+
+            input.clear();
+
             outputPtr = 0;
             part = 0;
-            output.resize(0);
+            output.clear();
 
             status.commandBusy = true;
 
-            status.dataInRequest = control.enableDataIn;
-            status.dataOutRequest = 0;
+            status.dataOutFifoEmpty = 1;
+            status.dataInFifoFull = input.is_full();
+
+            status.dataOutRequest = !status.dataOutFifoEmpty && control.enableDataOut;
+            status.dataInRequest = !status.dataInFifoFull && control.enableDataIn;
 
             if (verbose)
                 fmt::print("[MDEC] Decode macroblock (depth: {}, signed: {}, setBit15: {}, size: 0x{:x})\n",
@@ -121,6 +149,7 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
                 paramCount = 128 / 4;  // 128 uint8_t
             }
             status.commandBusy = true;
+            status.dataInRequest = control.enableDataIn;
 
             if (verbose) fmt::print("[MDEC] Set Quant table (color: {})\n", color);
             break;
@@ -129,6 +158,7 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
 
             paramCount = 64 / 2;  // 64 uint16_t
             status.commandBusy = true;
+            status.dataInRequest = control.enableDataIn;
 
             if (verbose) fmt::print("[MDEC] Set IDCT table\n");
             break;
@@ -141,8 +171,11 @@ void MDEC::write(uint32_t address, uint32_t data) {
         if (paramCount != 0) {
             switch (cmd) {
                 case Commands::DecodeMacroblock:
-                    handleWord(data & 0xffff);
-                    handleWord((data >> 16) & 0xffff);
+                    if (input.is_full()) fmt::print("[MDEC] pushing data while fifo is full\n");
+                    input.add(data);
+
+                    status.dataInFifoFull = input.is_full();
+                    status.dataInRequest = !status.dataInFifoFull && control.enableDataIn;
                     break;
 
                 case Commands::SetQuantTable: {
@@ -177,6 +210,7 @@ void MDEC::write(uint32_t address, uint32_t data) {
             cnt++;
             paramCount--;
             status.parameterCount = (paramCount - 1) & 0xffff;
+            status.commandBusy = status.parameterCount == 0;
         } else {
             command._reg = data;
             handleCommand(command.cmd, command.data);

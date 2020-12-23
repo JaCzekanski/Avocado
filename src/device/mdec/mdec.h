@@ -2,10 +2,11 @@
 #include <array>
 #include <vector>
 #include <optional>
+#include "device/cdrom/fifo.h"
 #include "device/device.h"
 
 namespace mdec {
-using decodedBlock = std::array<uint32_t, 16 * 16>;
+using DecodedBlock = std::array<uint32_t, 8 * 8>;
 
 class MDEC {
     enum class Commands { None, DecodeMacroblock, SetQuantTable, SetIDCT };
@@ -88,13 +89,15 @@ class MDEC {
     std::vector<uint32_t> output;
     size_t outputPtr;
 
+    fifo<uint32_t, 32> input;
+
     std::array<int16_t, 64> crblk = {{0}};
     std::array<int16_t, 64> cbblk = {{0}};
-    std::array<int16_t, 64> yblk[4] = {{0}};  // Can be reduced to 1 instance
+    std::array<int16_t, 64> yblk = {{0}};
 
     // Algorithm
     void handleWord(uint16_t data);
-    void yuvToRgb(decodedBlock& output, int blockX, int blockY);
+    void yuvToRgb(DecodedBlock& output);
     bool decodeBlock(std::array<int16_t, 64>& blk, const std::vector<uint16_t>& input, const std::array<uint8_t, 64>& table);
     void idct(std::array<int16_t, 64>& src);
 
@@ -105,8 +108,10 @@ class MDEC {
     uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
     void write(uint32_t address, uint32_t data);
+
+    // DMA
     bool dataInRequest() const { return status.dataInRequest; }
-    bool dataOutRequest() { return status.dataOutRequest; }
+    bool dataOutRequest() const { return status.dataOutRequest; }
 
     template <class Archive>
     void serialize(Archive& ar) {

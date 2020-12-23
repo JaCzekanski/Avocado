@@ -378,6 +378,7 @@ void System::emulateFrame() {
 
         dma->step();
         cdrom->step();
+        mdec->step();
         timer[0]->step(systemCycles);
         timer[1]->step(systemCycles);
         timer[2]->step(systemCycles);
