@@ -20,7 +20,7 @@ uint8_t DMAChannel::read(uint32_t address) {
     if (address >= 0x8 && address < 0xc) return control._byte[address - 8];
     return 0;
 }
-
+static bool canLog = true;
 void DMAChannel::write(uint32_t address, uint8_t data) {
     if (address < 0x4) {
         baseAddress._byte[address] = data;
@@ -32,101 +32,125 @@ void DMAChannel::write(uint32_t address, uint8_t data) {
         maskControl();
 
         if (address == 0xb) {
-            if (!sys->dma->isChannelEnabled(channel)) return;
-            if (control.syncMode == CHCR::SyncMode::block && control.startTrigger != CHCR::StartTrigger::manual) return;
-            if (control.enabled != CHCR::Enabled::start) return;
-
-            startTransfer();
+            canLog = true;
+            step();
         }
+    }
+}
+
+void DMAChannel::step() {
+    if (!sys->dma->isChannelEnabled(channel)) return;
+    if (control.enabled != CHCR::Enabled::start) return;
+    if (control.syncMode == CHCR::SyncMode::block && control.startTrigger != CHCR::StartTrigger::manual) return;
+
+    control.startTrigger = CHCR::StartTrigger::clear;
+
+    if (control.syncMode == CHCR::SyncMode::block) {
+        burstTransfer();
+    } else if (control.syncMode == CHCR::SyncMode::sync) {
+        syncBlockTransfer();
+    } else if (control.syncMode == CHCR::SyncMode::linkedList) {
+        linkedListTransfer();
     }
 }
 
 void DMAChannel::maskControl() { control._reg &= ~CHCR::MASK; }
 
-void DMAChannel::startTransfer() {
-    using namespace magic_enum;
-
-    int step = control.memoryAddressStep == CHCR::MemoryAddressStep::forward ? 4 : -4;
+// Sync 0 - no cpu execution in between
+void DMAChannel::burstTransfer() {
     uint32_t addr = baseAddress.address;
 
-    control.startTrigger = CHCR::StartTrigger::clear;
+    uint32_t wordCount = count.syncMode0.wordCount;
+    if (wordCount == 0) wordCount = 0x10000;
 
-    if (control.syncMode == CHCR::SyncMode::block) {
-        if (verbose) {
-            fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}, count: 0x{:04x}\n", (int)channel, enum_name(channel), control.dir(), addr,
-                       enum_name(control.syncMode), (int)count.syncMode0.wordCount);
+    if (verbose && canLog) {
+        fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}, count: 0x{:04x}\n", (int)channel, magic_enum::enum_name(channel), control.dir(),
+                   addr, magic_enum::enum_name(control.syncMode), wordCount);
+        canLog = false;
+    }
+    if (control.direction == CHCR::Direction::toRam) {
+        for (size_t i = 0; i < wordCount; i++, addr += control.step()) {
+            sys->writeMemory32(addr, readDevice());
         }
-        if (control.direction == CHCR::Direction::fromRam) {
-            for (size_t i = 0; i < count.syncMode0.wordCount; i++, addr += step) {
-                writeDevice(sys->readMemory32(addr));
-            }
-        } else if (control.direction == CHCR::Direction::toRam) {
-            for (size_t i = 0; i < count.syncMode0.wordCount; i++, addr += step) {
-                sys->writeMemory32(addr, readDevice());
-            }
+    } else if (control.direction == CHCR::Direction::fromRam) {
+        for (size_t i = 0; i < wordCount; i++, addr += control.step()) {
+            writeDevice(sys->readMemory32(addr));
         }
-        control.enabled = CHCR::Enabled::stop;
-    } else if (control.syncMode == CHCR::SyncMode::sync) {
-        int blockCount = count.syncMode1.blockCount;
-        int blockSize = count.syncMode1.blockSize;
-        if (blockCount == 0) blockCount = 0x10000;
-
-        if (verbose) {
-            fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}, BS: 0x{:04x}, BC: 0x{:04x}\n", (int)channel, enum_name(channel), control.dir(),
-                       addr, enum_name(control.syncMode), blockSize, blockCount);
-        }
-
-        // TODO: Execute sync with chopping
-        if (control.direction == CHCR::Direction::toRam) {
-            for (int block = 0; block < blockCount; block++) {
-                for (int i = 0; i < blockSize; i++, addr += step) {
-                    sys->writeMemory32(addr, readDevice());
-                }
-            }
-        } else if (control.direction == CHCR::Direction::fromRam) {
-            for (int block = 0; block < blockCount; block++) {
-                for (int i = 0; i < blockSize; i++, addr += step) {
-                    writeDevice(sys->readMemory32(addr));
-                }
-            }
-        }
-        // TODO: Need proper Chopping implementation for SPU READ to work
-        baseAddress.address = addr;
-        count.syncMode1.blockCount = 0;
-    } else if (control.syncMode == CHCR::SyncMode::linkedList) {
-        if (verbose) {
-            fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}\n", (int)channel, enum_name(channel), control.dir(), addr,
-                       enum_name(control.syncMode));
-        }
-
-        std::unordered_set<uint32_t> visited;
-        for (;;) {
-            uint32_t blockInfo = sys->readMemory32(addr);
-            int commandCount = blockInfo >> 24;
-            int nextAddr = blockInfo & 0xffffff;
-
-            if (verbose >= 2) {
-                fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}, count: {}, nextAddr: 0x{:08x}\n", (int)channel, enum_name(channel),
-                           control.dir(), addr, enum_name(control.syncMode), commandCount, nextAddr);
-            }
-
-            addr += step;
-            for (int i = 0; i < commandCount; i++, addr += step) {
-                writeDevice(sys->readMemory32(addr));
-            }
-
-            addr = nextAddr;
-            if (addr == 0xffffff || addr == 0) break;
-
-            if (visited.find(addr) != visited.end()) {
-                fmt::print("[DMA{}] GPU DMA transfer loop detected, breaking.\n", (int)channel);
-                break;
-            }
-            visited.insert(addr);
-        }
-        baseAddress.address = addr;
     }
 
+    irqFlag = true;
+    control.enabled = CHCR::Enabled::completed;
+}
+
+void DMAChannel::syncBlockTransfer() {
+    if (!dataRequest()) return;
+
+    uint32_t addr = baseAddress.address;
+
+    if (verbose && canLog) {
+        fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}, BS: 0x{:04x}, BC: 0x{:04x}\n", (int)channel, magic_enum::enum_name(channel),
+                   control.dir(), addr, magic_enum::enum_name(control.syncMode), (int)count.syncMode1.blockSize,
+                   (int)count.syncMode1.blockCount);
+        canLog = false;
+    }
+
+    // TODO: DREQ DACK for MDEC
+    // TODO: Execute sync with chopping
+    if (control.direction == CHCR::Direction::toRam) {
+        for (int i = 0; i < count.syncMode1.blockSize; i++, addr += control.step()) {
+            sys->writeMemory32(addr, readDevice());
+        }
+    } else if (control.direction == CHCR::Direction::fromRam) {
+        for (int i = 0; i < count.syncMode1.blockSize; i++, addr += control.step()) {
+            writeDevice(sys->readMemory32(addr));
+        }
+    }
+    // TODO: Need proper Chopping implementation for SPU READ to work
+
+    baseAddress.address = addr;
+    if (--count.syncMode1.blockCount == 0) {
+        irqFlag = true;
+        control.enabled = CHCR::Enabled::completed;
+    }
+}
+
+void DMAChannel::linkedListTransfer() {
+    uint32_t addr = baseAddress.address;
+
+    if (verbose && canLog) {
+        fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}\n", (int)channel, magic_enum::enum_name(channel), control.dir(), addr,
+                   magic_enum::enum_name(control.syncMode));
+        canLog = false;
+    }
+
+    // TODO: Break execution in between
+    std::unordered_set<uint32_t> visited;
+    for (;;) {
+        uint32_t blockInfo = sys->readMemory32(addr);
+        int commandCount = blockInfo >> 24;
+        int nextAddr = blockInfo & 0xffffff;
+
+        if (verbose >= 2) {
+            fmt::print("[DMA{}] {:<8} {} RAM @ 0x{:08x}, {}, count: {}, nextAddr: 0x{:08x}\n", (int)channel, magic_enum::enum_name(channel),
+                       control.dir(), addr, magic_enum::enum_name(control.syncMode), commandCount, nextAddr);
+        }
+
+        addr += control.step();
+        for (int i = 0; i < commandCount; i++, addr += control.step()) {
+            writeDevice(sys->readMemory32(addr));
+        }
+
+        addr = nextAddr;
+        if (addr == 0xffffff || addr == 0) break;
+
+        if (visited.find(addr) != visited.end()) {
+            fmt::print("[DMA{}] GPU DMA transfer loop detected, breaking.\n", (int)channel);
+            break;
+        }
+        visited.insert(addr);
+    }
+
+    baseAddress.address = addr;
     irqFlag = true;
     control.enabled = CHCR::Enabled::completed;
 }

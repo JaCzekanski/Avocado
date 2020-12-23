@@ -74,6 +74,8 @@ union CHCR {
         else
             return "->";
     }
+
+    int step() const { return memoryAddressStep == MemoryAddressStep::forward ? 4 : -4; }
 };
 
 class DMAChannel {
@@ -90,7 +92,13 @@ class DMAChannel {
     virtual uint32_t readDevice();
     virtual void writeDevice(uint32_t data);
     virtual void maskControl();
-    virtual void startTransfer();
+
+    virtual void burstTransfer();
+    void syncBlockTransfer();
+    void linkedListTransfer();
+
+    // DACK/DREQ
+    virtual bool dataRequest() { return true; }
 
    public:
     bool irqFlag = false;
@@ -99,6 +107,7 @@ class DMAChannel {
 
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
+    void step();
 
     template <class Archive>
     void serialize(Archive& ar) {

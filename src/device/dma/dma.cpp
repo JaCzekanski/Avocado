@@ -28,6 +28,17 @@ void DMA::reset() {
 }
 
 void DMA::step() {
+    for (int channel = 0; channel < 7; channel++) {
+        dma[channel]->step();
+        if (dma[channel]->irqFlag) {
+            dma[channel]->irqFlag = false;
+            if (status.getEnableDma(channel)) {
+                status.setFlagDma(channel, 1);
+                pendingInterrupt = status.calcMasterFlag();
+            }
+        }
+    }
+
     if (pendingInterrupt) {
         pendingInterrupt = false;
         sys->interrupt->trigger(interrupt::DMA);
@@ -67,13 +78,6 @@ void DMA::write(uint32_t address, uint8_t data) {
     }
 
     dma[channel]->write(address % 0x10, data);
-    if (dma[channel]->irqFlag) {
-        dma[channel]->irqFlag = false;
-        if (status.getEnableDma(channel)) {
-            status.setFlagDma(channel, 1);
-            pendingInterrupt = status.calcMasterFlag();
-        }
-    }
 }
 
 bool DMA::isChannelEnabled(Channel ch) {
