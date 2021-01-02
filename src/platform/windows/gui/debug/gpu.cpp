@@ -313,7 +313,33 @@ void GPU::handlePolygonCommand(const gpu::PolygonArgs arg, const std::vector<uin
 }
 
 void GPU::handleLineCommand(const gpu::LineArgs arg, const std::vector<uint32_t> &arguments) {
-    (void)arg;  // TODO: Parse Line commands
+    int vertexCount;
+    if (!arg.gouraudShading) {
+        vertexCount = arguments.size() - 1;  // ignore arg[0] aka base color
+    } else {
+        vertexCount = arguments.size() / 2;
+    }
+
+    std::string flags;
+    if (arg.semiTransparency) flags += "semi-transparent, ";
+    if (arg.gouraudShading) flags += "Gouraud-shaded, ";
+    if (arg.polyLine) flags += "poly-line, ";
+    ImGui::Text("Flags: %s", flags.c_str());
+
+    int ptr = 0;
+    for (int i = 0; i < vertexCount; i++) {
+        uint32_t color = arg.gouraudShading ? arguments[ptr++] : arguments[0];
+        int16_t x = extend_sign<11>(arguments[ptr] & 0xffff);
+        int16_t y = extend_sign<11>((arguments[ptr] & 0xffff0000) >> 16);
+        ptr++;
+
+        x += last_offset_x;
+        y += last_offset_y;
+
+        colorBox(RGB{color});
+        ImGui::SameLine();
+        ImGui::Text("Pos: %dx%d", x, y);
+    }
 }
 
 void GPU::handleRectangleCommand(const gpu::RectangleArgs arg, const std::vector<uint32_t> &arguments) {

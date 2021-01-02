@@ -41,9 +41,12 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
     int dy = y1 - y0;
     int derror = std::abs(dy) * 2;
     int error = !steep;
-    int _y = y0;
+    int y = y0;
 
     float length = sqrtf(powf(x1 - x0, 2) + powf(y1 - y0, 2));
+    if (length == 0) {
+        length = 1.f;  // Prevent NaN in getColor
+    }
 
     // TODO: Precalculate color stepping
     auto getColor = [&](int x, int y) -> RGB {
@@ -81,16 +84,16 @@ void Render::drawLine(gpu::GPU* gpu, const primitive::Line& line) {
         VRAM[y][x] = c.raw;
     };
 
-    for (int _x = x0; _x <= x1; _x++) {
+    for (int x = x0; x <= x1; x++) {
         if (steep) {
             // TODO: Remove insideDrawingArea calls
-            if (gpu->insideDrawingArea(_y, _x)) putPixel(_y, _x, getColor(_x, _y));
+            if (gpu->insideDrawingArea(y, x)) putPixel(y, x, getColor(x, y));
         } else {
-            if (gpu->insideDrawingArea(_x, _y)) putPixel(_x, _y, getColor(_x, _y));
+            if (gpu->insideDrawingArea(x, y)) putPixel(x, y, getColor(x, y));
         }
         error += derror;
         if (error > dx) {
-            _y += (y1 > y0 ? 1 : -1);
+            y += (y1 > y0 ? 1 : -1);
             error -= dx * 2;
         }
     }
