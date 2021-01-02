@@ -67,6 +67,8 @@ struct System {
 
     uint64_t cycles;
 
+    int stolenCycles;
+
     // Devices
     std::unique_ptr<mips::CPU> cpu;
 

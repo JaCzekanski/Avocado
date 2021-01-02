@@ -371,8 +371,11 @@ void System::emulateFrame() {
     }
 
     int systemCycles = 300;
+    stolenCycles = 0;
     for (;;) {
-        if (!cpu->executeInstructions(systemCycles / 3)) {
+        if (stolenCycles > 0) {
+            stolenCycles -= systemCycles;
+        } else if (!cpu->executeInstructions(systemCycles / 3)) {
             return;
         }
 

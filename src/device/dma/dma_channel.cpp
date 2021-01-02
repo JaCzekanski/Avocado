@@ -80,6 +80,7 @@ void DMAChannel::burstTransfer() {
         }
     }
 
+    sys->stolenCycles += wordCount;
     irqFlag = true;
     control.enabled = CHCR::Enabled::completed;
 }
@@ -109,6 +110,7 @@ void DMAChannel::syncBlockTransfer() {
     }
     // TODO: Need proper Chopping implementation for SPU READ to work
 
+    sys->stolenCycles += count.syncMode1.blockSize;
     baseAddress.address = addr;
     if (--count.syncMode1.blockCount == 0) {
         irqFlag = true;
@@ -143,6 +145,8 @@ void DMAChannel::linkedListTransfer() {
         for (int i = 0; i < commandCount; i++, addr += control.step()) {
             writeDevice(sys->readMemory32(addr));
         }
+
+        sys->stolenCycles += commandCount;
 
         addr = nextAddr;
         if (addr == 0xffffff || addr == 0) break;
