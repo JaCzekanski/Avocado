@@ -11,7 +11,9 @@ class fifo {
 
    public:
     size_t size() const {
-        if (write_ptr >= read_ptr) {
+        if (is_full()) {
+            return length;
+        } else if (write_ptr >= read_ptr) {
             return write_ptr - read_ptr;
         } else {
             return length + write_ptr - read_ptr;
@@ -43,7 +45,7 @@ class fifo {
 
     T get() {
         if (is_empty()) {
-            return 0;
+            return {};
         }
 
         T t = data[read_ptr];
@@ -56,7 +58,15 @@ class fifo {
 
     T peek(const size_t ptr = 0) const {
         if (ptr >= size()) {
-            return 0;
+            return {};
+        }
+
+        return data[(read_ptr + ptr) % length];
+    }
+
+    T& ref(const size_t ptr = 0) {
+        if (ptr >= size()) {
+            throw std::runtime_error("Trying to get ref for element outside FIFO size.");
         }
 
         return data[(read_ptr + ptr) % length];
