@@ -19,7 +19,7 @@ CDROM::CDROM(System* sys) : sys(sys) {
 void CDROM::step() {
     status.transmissionBusy = 0;
     if (!interruptQueue.is_empty()) {
-        if ((interruptEnable & 7) & (interruptQueue.peek() & 7)) {
+        if ((interruptEnable & 7) & (interruptQueue.peek().irq & 7)) {
             sys->interrupt->trigger(interrupt::CDROM);
         }
     }
@@ -67,7 +67,7 @@ void CDROM::step() {
                 writeResponse(bcd::toBcd(0));       // peakhi
 
                 if (verbose) {
-                    fmt::print("CDROM: CDDA report -> ({})\n", dumpFifo(CDROM_response));
+                    fmt::print("CDROM:CDDA report -> ({})\n", dumpFifo(interruptQueue.peek().response));
                 }
             }
 
@@ -144,23 +144,44 @@ void CDROM::step() {
     }
 }
 
+void CDROM::writeResponse(uint8_t byte) {
+    if (interruptQueue.is_empty()) {
+        fmt::print("CDROM: Fatal: Trying to write response to empty interruptQueue\n");
+        return;
+    }
+    auto& entry = interruptQueue.ref(interruptQueue.size() - 1);
+    if (entry.response.is_full()) {
+        return;
+    }
+    entry.response.add(byte);
+}
+
 uint8_t CDROM::read(uint32_t address) {
     if (address == 0) {  // CD Status
         // status.transmissionBusy = !interruptQueue.empty();
         if (verbose == 2) fmt::print("CDROM: R STATUS: 0x{:02x}\n", status._reg);
+        bool responseFifoEmpty = interruptQueue.is_empty() || interruptQueue.peek().response.is_empty();
+
+        status.parameterFifoEmpty = CDROM_params.is_empty();
+        status.parameterFifoFull = !CDROM_params.is_full();  // Inverse logic
+        status.responseFifoEmpty = !responseFifoEmpty;       // Inverse logic
         return status._reg;
     }
     if (address == 1) {  // CD Response
-        uint8_t response = 0;
-        if (!CDROM_response.is_empty()) {
-            response = CDROM_response.get();
+        uint8_t ret = 0;
 
-            if (CDROM_response.is_empty()) {
-                status.responseFifoEmpty = 0;
+        if (!interruptQueue.is_empty()) {
+            auto& response = interruptQueue.ref();
+            if (!response.response.is_empty()) {
+                ret = response.response.get();
+
+                if (response.response.is_empty() && response.ack == true) {
+                    interruptQueue.get();
+                }
             }
         }
-        if (verbose == 2) fmt::print("CDROM: R RESPONSE: 0x{:02x}\n", response);
-        return response;
+        if (verbose == 2) fmt::print("CDROM: R RESPONSE: 0x{:02x}\n", ret);
+        return ret;
     }
     if (address == 2) {  // CD Data
         uint8_t byte = readByte();
@@ -175,7 +196,7 @@ uint8_t CDROM::read(uint32_t address) {
         if (status.index == 1 || status.index == 3) {  // Interrupt flags
             uint8_t _status = 0b11100000;
             if (!interruptQueue.is_empty()) {
-                _status |= interruptQueue.peek() & 7;
+                _status |= interruptQueue.peek().irq & 7;
             }
             if (verbose == 2) fmt::print("CDROM: R INTF: 0x{:02x}\n", _status);
             return _status;
@@ -234,7 +255,6 @@ std::string CDROM::dumpFifo(const FIFO& f) {
 
 void CDROM::handleCommand(uint8_t cmd) {
     interruptQueue.clear();
-    CDROM_response.clear();
     switch (cmd) {
         case 0x01: cmdGetstat(); break;
         case 0x02: cmdSetloc(); break;
@@ -282,8 +302,6 @@ void CDROM::handleCommand(uint8_t cmd) {
     }
 
     CDROM_params.clear();
-    status.parameterFifoEmpty = 1;
-    status.parameterFifoFull = 1;
     status.transmissionBusy = 1;
     status.xaFifoEmpty = 0;
 }
@@ -299,10 +317,7 @@ void CDROM::write(uint32_t address, uint8_t data) {
         return handleCommand(data);
     }
     if (address == 2 && status.index == 0) {  // Parameter fifo
-        assert(CDROM_params.size() < 16);
         CDROM_params.add(data);
-        status.parameterFifoEmpty = 0;
-        status.parameterFifoFull = !(CDROM_params.size() >= 16);
         if (verbose == 3) fmt::print("CDROM: W PARAMFIFO: 0x{:02x}\n", data);
         return;
     }
@@ -332,12 +347,13 @@ void CDROM::write(uint32_t address, uint8_t data) {
         if (data & 0x40)                      // reset parameter fifo
         {
             CDROM_params.clear();
-            status.parameterFifoEmpty = 1;
-            status.parameterFifoFull = 1;
         }
 
         if (!interruptQueue.is_empty()) {
-            interruptQueue.get();
+            interruptQueue.ref().ack = true;
+            if (interruptQueue.ref().response.is_empty()) {
+                interruptQueue.get();
+            }
         }
         if (verbose == 2) fmt::print("CDROM: W INTF: 0x{:02x}\n", data);
         return;

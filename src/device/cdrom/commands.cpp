@@ -8,7 +8,7 @@ void CDROM::cmdGetstat() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    if (verbose) fmt::print("CDROM: cmdGetstat -> 0x{:02x}\n", CDROM_response[0]);
+    if (verbose) fmt::print("CDROM: cmdGetstat -> 0x{:02x}\n", interruptQueue.peek().response[0]);
 }
 
 void CDROM::cmdSetloc() {
@@ -156,7 +156,7 @@ void CDROM::cmdGetparam() {
     writeResponse(filter.file);
     writeResponse(filter.channel);
 
-    if (verbose) fmt::print("CDROM: cmdGetparam({})\n", dumpFifo(CDROM_response));
+    if (verbose) fmt::print("CDROM: cmdGetparam({})\n", dumpFifo(interruptQueue.peek().response));
 }
 
 void CDROM::cmdSetSession() {
@@ -205,6 +205,7 @@ void CDROM::cmdGetlocL() {
     writeResponse(rawSector[19]);  // ci
 
     if (verbose) {
+        auto CDROM_response = interruptQueue.peek().response;
         fmt::print(
             "CDROM: cmdGetlocL -> ("
             "pos = (0x{:02x}:0x{:02x}:0x{:02x}), "
@@ -232,6 +233,7 @@ void CDROM::cmdGetlocP() {
     writeResponse(lastQ.data[8]);  // sector (disc)
 
     if (verbose) {
+        auto CDROM_response = interruptQueue.peek().response;
         fmt::print("CDROM: cmdGetlocP -> ({})\n", dumpFifo(CDROM_response));
     }
 }
@@ -243,6 +245,7 @@ void CDROM::cmdGetTN() {
     writeResponse(bcd::toBcd(disc->getTrackCount()));
 
     if (verbose) {
+        auto CDROM_response = interruptQueue.peek().response;
         fmt::print("CDROM: cmdGetTN -> ({})\n", dumpFifo(CDROM_response));
     }
 }
@@ -275,6 +278,7 @@ void CDROM::cmdGetTD() {
     }
 
     if (verbose) {
+        auto CDROM_response = interruptQueue.peek().response;
         fmt::print("CDROM: cmdGetTD(0x{:02x}) -> ({})\n", track, dumpFifo(CDROM_response));
     }
 }
@@ -331,7 +335,8 @@ void CDROM::cmdTest() {
     }
 
     if (verbose) {
-        fmt::print("CDROM: cmdTest(0x{:02x}) -> ({})\n", opcode, dumpFifo(CDROM_response));
+        auto CDROM_response = interruptQueue.peek().response;
+        fmt::print("//CDROM: cmdTest(0x{:02x}) -> ({})\n", opcode, dumpFifo(CDROM_response));
     }
 }
 
@@ -347,6 +352,10 @@ void CDROM::cmdGetId() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
+    if (disc->getTrackCount() == 0) {
+        stat.idError = 1;
+    }
+
     // No CD
     if (disc->getTrackCount() == 0) {
         postInterrupt(5);
@@ -356,7 +365,7 @@ void CDROM::cmdGetId() {
     }
     // Audio CD
     else if (disc->read(disc::Position(0, 2, 0)).second == disc::TrackType::AUDIO) {
-        postInterrupt(5);
+        postInterrupt(2);
         writeResponse(0x0a);
         writeResponse(0x90);
         for (int i = 0; i < 6; i++) writeResponse(0);
@@ -374,7 +383,10 @@ void CDROM::cmdGetId() {
     }
 
     if (verbose) {
-        fmt::print("CDROM: cmdGetId -> ({})\n", dumpFifo(CDROM_response));
+        for (int i = 0; i < interruptQueue.size(); i++) {
+            auto CDROM_response = interruptQueue.peek(i).response;
+            fmt::print("CDROM: cmdGetId -> INT{} ({})\n", interruptQueue.peek(i).irq, dumpFifo(CDROM_response));
+        }
     }
 }
 
@@ -407,6 +419,7 @@ void CDROM::cmdUnlock() {
     writeResponse(0x40);
 
     if (verbose) {
+        auto CDROM_response = interruptQueue.peek().response;
         fmt::print("CDROM: cmdUnlock -> ({})\n", dumpFifo(CDROM_response));
     }
 }
