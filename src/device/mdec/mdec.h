@@ -104,6 +104,7 @@ class MDEC {
     MDEC();
     void reset();
     void step();
+    template <bool dma = false>
     uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
     void write(uint32_t address, uint32_t data);

@@ -38,6 +38,7 @@ void MDEC::reset() {
 }
 
 int part = 0;
+template <bool dma>
 uint32_t MDEC::read(uint32_t address) {
     if (address < 4) {
         if (output.empty()) {
@@ -45,27 +46,43 @@ uint32_t MDEC::read(uint32_t address) {
             return 0;
         }
 
-        // 0:  r B G R
-        // 1:  G R b g
-        // 2:  b g r B
-        // 3:    B G R  <- cycle continues
+        const auto getPixel = [&](int ptr) -> uint32_t {
+// Cast uint32_t flat buffer to uint32_t[4][8][8] blocks
+#define BLOCK ((uint32_t(*)[8][8])output.data())
+            if (!dma) {
+                const int x = (ptr & 0b0000'0111);
+                const int y = (ptr & 0b0011'1000) >> 3;
+                const int b = (ptr & 0b1100'0000) >> 6;
 
-        // TODO: Implement block swizzling
-        // TODO: Somehow distinguish between DMA and CPU read
+                return BLOCK[b][y][x];
+            } else {
+                // Swizzle for 15bit/24bit DMA reads
+                const int x = (ptr & 0b0000'0111);
+                const int b = (ptr & 0b1000'0000) >> 6 | (ptr & 0b0000'1000) >> 3;
+                const int y = (ptr & 0b0111'0000) >> 4;
+
+                return BLOCK[b][y][x];
+            }
+#undef BLOCK
+        };
+
         uint32_t data = 0;
         if (status.colorDepth == Status::ColorDepth::bit_24) {
-            uint32_t ptr = outputPtr;
+            // 0:  r B G R
+            // 1:  G R b g
+            // 2:  b g r B
+            // 3:    B G R  <- cycle continues
 
-            //            if ((outputPtr % 12) < 6) {
-            //                ptr += 8*8*3 / 4;
-            //            }
-
-            if (part == 0)
-                data = (output[ptr] & 0xffffff) | ((output[ptr + 1] & 0xff) << 24);
-            else if (part == 1)
-                data = ((output[ptr + 1] & 0xffff00) >> 8) | ((output[ptr + 2] & 0xffff) << 16);
-            else if (part == 2)
-                data = ((output[ptr + 2] & 0xff0000) >> 16) | ((output[ptr + 3] & 0xffffff) << 8);
+            if (part == 0) {
+                data |= (getPixel(outputPtr) & 0xffffff);
+                data |= ((getPixel(outputPtr + 1) & 0xff) << 24);
+            } else if (part == 1) {
+                data |= ((getPixel(outputPtr + 1) & 0xffff00) >> 8);
+                data |= ((getPixel(outputPtr + 2) & 0xffff) << 16);
+            } else if (part == 2) {
+                data |= ((getPixel(outputPtr + 2) & 0xff0000) >> 16);
+                data |= ((getPixel(outputPtr + 3) & 0xffffff) << 8);
+            }
 
             if (part == 2) {
                 part = 0;
@@ -74,24 +91,29 @@ uint32_t MDEC::read(uint32_t address) {
                 part++;
             }
         } else if (status.colorDepth == Status::ColorDepth::bit_15) {
-            // even lines - read ptr + 0
-            // odd lines - read ptr + 8x8 block
             uint16_t bit15 = (uint16_t)status.outputSetBit15 << 15;
-            data = (bit15 | to15bit(output[outputPtr + 0]));
-            data |= (bit15 | to15bit(output[outputPtr + 1])) << 16;
+            data |= (bit15 | to15bit(getPixel(outputPtr)));
+            data |= (bit15 | to15bit(getPixel(outputPtr + 1))) << 16;
 
             outputPtr += 2;
         } else if (status.colorDepth == Status::ColorDepth::bit_8) {
             for (int i = 0; i < 4; i++) {
                 // Cheating a bit, using R channel of decoded (Y, 0, 0)
-                data |= (output[outputPtr++] & 0xff) << (i * 8);
+                data |= (output[outputPtr + i] & 0xff) << (i * 8);
             }
+            outputPtr += 4;
         } else if (status.colorDepth == Status::ColorDepth::bit_4) {
             for (int i = 0; i < 8; i++) {
-                data |= ((output[outputPtr++] & 0xf0) >> 4) << (i * 4);
+                data |= ((output[outputPtr + i] & 0xf0) >> 4) << (i * 4);
             }
+            outputPtr += 8;
         } else {
             __builtin_unreachable();
+        }
+
+        if (outputPtr >= 8 * 8 * 4) {
+            output.erase(output.begin(), output.begin() + 8 * 8 * 4);
+            outputPtr -= 8 * 8 * 4;
         }
 
         if (outputPtr >= output.size()) {
@@ -112,6 +134,9 @@ uint32_t MDEC::read(uint32_t address) {
 
     return 0;
 }
+
+template uint32_t MDEC::read<false>(uint32_t);
+template uint32_t MDEC::read<true>(uint32_t);
 
 void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
     this->cnt = 0;
