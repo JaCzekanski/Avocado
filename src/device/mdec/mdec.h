@@ -81,11 +81,11 @@ class MDEC {
     std::array<uint8_t, 64> colorQuantTable;
     std::array<int16_t, 64> idctTable;
 
-    bool color = false;  // 0 - luminance only, 1 - luminance and color
-    int cnt = 0;
+    size_t tablePtr;
 
     std::vector<uint32_t> output;
     size_t outputPtr;
+    int part = 0;  // TODO: remove this
 
     fifo<uint32_t, 32> input;
     bool startDecoding;
@@ -96,7 +96,7 @@ class MDEC {
 
     // Algorithm
     void handleWord(uint16_t data);
-    void yuvToRgb(DecodedBlock& output);
+    DecodedBlock yuvToRgb(Status::CurrentBlock currentBlock);
     bool decodeBlock(std::array<int16_t, 64>& blk, const std::vector<uint16_t>& input, const std::array<uint8_t, 64>& table);
     void idct(std::array<int16_t, 64>& src);
 
@@ -117,8 +117,8 @@ class MDEC {
     void serialize(Archive& ar) {
         ar(command._reg, status._reg, control._reg, cmd);
         ar(luminanceQuantTable, colorQuantTable, idctTable);
-        ar(color, cnt);
-        ar(output, outputPtr);
+        ar(tablePtr);
+        ar(output, outputPtr, part);
     }
 };
 };  // namespace mdec

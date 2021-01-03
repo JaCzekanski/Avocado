@@ -7,26 +7,14 @@ namespace mdec {
 #define _CB ((int16_t(*)[8])cbblk.data())
 #define _Y ((int16_t(*)[8])yblk.data())
 
-void MDEC::yuvToRgb(DecodedBlock& output) {
+DecodedBlock MDEC::yuvToRgb(Status::CurrentBlock currentBlock) {
     // YUV 4:2:0
     // Y component is at full resolution
     // Cr and Cb components are half resolution horizontally and vertically
 
-    int mx = 0;
-    int my = 0;
-    if (status.currentBlock == Status::CurrentBlock::Y1) {
-        mx = 0;
-        my = 0;
-    } else if (status.currentBlock == Status::CurrentBlock::Y2) {
-        mx = 8;
-        my = 0;
-    } else if (status.currentBlock == Status::CurrentBlock::Y3) {
-        mx = 0;
-        my = 8;
-    } else if (status.currentBlock == Status::CurrentBlock::Y4) {
-        mx = 8;
-        my = 8;
-    }
+    const int mx = ((int)currentBlock & 0b01) * 8;
+    const int my = (((int)currentBlock & 0b10) >> 1) * 8;
+
     // Y, Cb, Cr
     auto sample = [&](int x, int y) -> std::tuple<int16_t, int16_t, int16_t> {
         int16_t Y = _Y[y][x];
@@ -35,6 +23,7 @@ void MDEC::yuvToRgb(DecodedBlock& output) {
         return std::make_tuple(Y, Cb, Cr);
     };
 
+    DecodedBlock block;
     for (int y = 0; y < 8; y++) {
         for (int x = 0; x < 8; x++) {
             auto [Y, Cb, Cr] = sample(x, y);
@@ -53,8 +42,9 @@ void MDEC::yuvToRgb(DecodedBlock& output) {
             // uint8_t b = clamp<int16_t>(Y, 0, 255);
 
             // TODO: unsigned;
-            output[y * 8 + x] = (b << 16) | (g << 8) | (r);
+            block[y * 8 + x] = (b << 16) | (g << 8) | (r);
         }
     }
+    return block;
 }
 }  // namespace mdec

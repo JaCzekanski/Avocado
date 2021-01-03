@@ -43,8 +43,7 @@ void MDEC::handleWord(uint16_t data) {
     inputBuffer.clear();
 
     if (isLumaStage) {
-        DecodedBlock decodedBlock;
-        yuvToRgb(decodedBlock);
+        DecodedBlock decodedBlock = yuvToRgb(status.currentBlock);
         output.insert(output.end(), decodedBlock.begin(), decodedBlock.end());
 
         if (status.currentBlock == Status::CurrentBlock::Y4) {

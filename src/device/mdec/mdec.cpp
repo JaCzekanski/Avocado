@@ -30,14 +30,15 @@ void MDEC::reset() {
     status._reg = 0x80040000;
 
     cmd = Commands::None;
+    tablePtr = 0;
 
     output.clear();
     outputPtr = 0;
+    part = 0;
 
     input.clear();
 }
 
-int part = 0;
 template <bool dma>
 uint32_t MDEC::read(uint32_t address) {
     if (address < 4) {
@@ -111,11 +112,6 @@ uint32_t MDEC::read(uint32_t address) {
             __builtin_unreachable();
         }
 
-        if (outputPtr >= 8 * 8 * 4) {
-            output.erase(output.begin(), output.begin() + 8 * 8 * 4);
-            outputPtr -= 8 * 8 * 4;
-        }
-
         if (outputPtr >= output.size()) {
             output.clear();
             outputPtr = 0;
@@ -139,7 +135,6 @@ template uint32_t MDEC::read<false>(uint32_t);
 template uint32_t MDEC::read<true>(uint32_t);
 
 void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
-    this->cnt = 0;
     switch (cmd) {
         case 1:  // Decode macroblock
             this->cmd = Commands::DecodeMacroblock;
@@ -180,25 +175,28 @@ void MDEC::handleCommand(uint8_t cmd, uint32_t data) {
                            static_cast<int>(status.outputSetBit15), static_cast<int>(status.parameterCount));
 
             break;
-        case 2:  // Set Quant table
+        case 2: {  // Set Quant table
             this->cmd = Commands::SetQuantTable;
 
-            color = data & 1;
+            tablePtr = 0;
+            bool color = data & 1;
             // 64 quant table when luma only, 64+64 when color
             if (!color) {
-                status.parameterCount = 64 / 4;  // 64 uint8_t
+                status.parameterCount = luminanceQuantTable.size() / 4;  // 64 uint8_t
             } else {
-                status.parameterCount = 128 / 4;  // 128 uint8_t
+                status.parameterCount = luminanceQuantTable.size() / 4 + colorQuantTable.size() / 4;  // 128 uint8_t
             }
             status.commandBusy = true;
             status.dataInRequest = control.enableDataIn;
 
             if (verbose) fmt::print("[MDEC] Set Quant table (color: {})\n", color);
             break;
+        }
         case 3:
             this->cmd = Commands::SetIDCT;
 
-            status.parameterCount = 64 / 2;  // 64 uint16_t
+            tablePtr = 0;
+            status.parameterCount = idctTable.size() / 2;  // 64 uint16_t
             status.commandBusy = true;
             status.dataInRequest = control.enableDataIn;
 
@@ -215,11 +213,11 @@ void MDEC::write(uint32_t address, uint32_t data) {
             handleCommand(command.cmd, command.data);
             return;
         }
-        status.parameterCount--;
 
         switch (cmd) {
             case Commands::DecodeMacroblock:
                 input.add(data);
+                status.parameterCount--;
 
                 status.dataInFifoFull = input.is_full() || status.parameterCount == 0;
                 status.dataInRequest = !status.dataInFifoFull && control.enableDataIn;
@@ -229,35 +227,31 @@ void MDEC::write(uint32_t address, uint32_t data) {
                 }
                 break;
 
-            case Commands::SetQuantTable: {
-                uint8_t* table;
-                size_t base;
-                if (cnt < 64 / 4) {
-                    base = (cnt)*4;
-                    table = luminanceQuantTable.data();
-                } else if (cnt < 128 / 4) {
-                    base = (cnt - 64 / 4) * 4;
-                    table = colorQuantTable.data();
-                } else {
-                    break;
+            case Commands::SetQuantTable:
+                if (tablePtr < luminanceQuantTable.size()) {
+                    for (int i = 0; i < 4; i++) {
+                        luminanceQuantTable[tablePtr + i] = data >> (i * 8);
+                    }
+                } else if (tablePtr >= luminanceQuantTable.size() && tablePtr < luminanceQuantTable.size() + colorQuantTable.size()) {
+                    for (int i = 0; i < 4; i++) {
+                        colorQuantTable[(tablePtr - 64) + i] = data >> (i * 8);
+                    }
                 }
-
-                for (int i = 0; i < 4; i++) {
-                    table[base + i] = data >> (i * 8);
-                }
+                tablePtr += 4;
+                status.parameterCount--;
                 break;
-            }
 
             case Commands::SetIDCT:
                 for (int i = 0; i < 2; i++) {
-                    idctTable[cnt * 2 + i] = data >> (i * 16);
+                    idctTable[tablePtr + i] = data >> (i * 16);
                 }
+                tablePtr += 2;
+                status.parameterCount--;
                 break;
 
             case Commands::None:
             default: break;
         }
-        cnt++;
         status.commandBusy = status.parameterCount > 0 || !input.is_empty() || startDecoding || !status.dataOutFifoEmpty;
         return;
     }
