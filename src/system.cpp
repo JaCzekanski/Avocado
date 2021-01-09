@@ -443,7 +443,7 @@ bool System::loadExeFile(const std::vector<uint8_t>& _exe) {
 
     if (exe.t_size > _exe.size() - 0x800) {
         fmt::print("Invalid exe t_size: 0x{:08x}\n", exe.t_size);
-        return false;
+        exe.t_size = _exe.size() - 0x800;
     }
 
     for (uint32_t i = 0; i < exe.t_size; i++) {
