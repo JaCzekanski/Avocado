@@ -7,6 +7,7 @@
 #include "utils/file.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
+#include "utils/timing.h"
 
 // For vram dump
 #include <stb_image_write.h>
@@ -793,7 +794,7 @@ bool GPU::emulateGpuCycles(int cycles) {
     gpuDot %= 3413;
     gpuLine += newLines;
 
-    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
+    if (gpuLine < timing::LINE_VBLANK_START_NTSC - 1) {
         if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
             odd = (frames % 2) != 0;
         } else {
@@ -803,7 +804,7 @@ bool GPU::emulateGpuCycles(int cycles) {
         odd = false;
     }
 
-    if (gpuLine == LINES_TOTAL_NTSC - 1) {
+    if (gpuLine == timing::LINES_TOTAL_NTSC - 1) {
         gpuLine = 0;
         frames++;
         return true;

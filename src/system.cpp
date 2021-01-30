@@ -332,7 +332,7 @@ void System::singleStep() {
     state = State::pause;
 
     dma->step();
-    cdrom->step();
+    cdrom->step(3);
     timer[0]->step(3);
     timer[1]->step(3);
     timer[2]->step(3);
@@ -377,7 +377,7 @@ void System::emulateFrame() {
         }
 
         dma->step();
-        cdrom->step();
+        cdrom->step(systemCycles / 1.5f);
         timer[0]->step(systemCycles);
         timer[1]->step(systemCycles);
         timer[2]->step(systemCycles);
@@ -409,7 +409,7 @@ void System::emulateFrame() {
         }
 
         // TODO: Move this code to Timer class
-        if (gpu->gpuLine > gpu::LINE_VBLANK_START_NTSC) {
+        if (gpu->gpuLine > timing::LINE_VBLANK_START_NTSC) {
             auto& t = *timer[1];
             if (t.mode.syncEnabled) {
                 using modes = device::timer::CounterMode::SyncMode1;

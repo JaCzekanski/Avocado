@@ -17,9 +17,6 @@ namespace gpu {
 const int VRAM_WIDTH = 1024;
 const int VRAM_HEIGHT = 512;
 
-const int LINE_VBLANK_START_NTSC = 243;
-const int LINES_TOTAL_NTSC = 263;
-
 class GPU {
     friend struct ::System;
     friend class ::Render;

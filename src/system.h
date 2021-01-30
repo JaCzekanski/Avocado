@@ -15,6 +15,7 @@
 #include "device/spu/spu.h"
 #include "device/timer.h"
 #include "utils/macros.h"
+#include "utils/timing.h"
 
 #include <memory>
 #include <vector>
