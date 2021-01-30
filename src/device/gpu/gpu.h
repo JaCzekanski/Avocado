@@ -17,7 +17,6 @@ namespace gpu {
 const int VRAM_WIDTH = 1024;
 const int VRAM_HEIGHT = 512;
 
-
 class GPU {
     friend struct ::System;
     friend class ::Render;
@@ -136,6 +135,9 @@ class GPU {
     uint32_t readVramData();
     uint32_t getStat();
 
+    float cyclesPerLine() const;
+    int linesPerFrame() const;
+
    public:
     GPU(System* sys);
     ~GPU();
@@ -143,7 +145,7 @@ class GPU {
     bool emulateGpuCycles(int cycles);
     uint32_t read(uint32_t address);
     void write(uint32_t address, uint32_t data);
-    bool isNtsc();
+    bool isNtsc() const;
 
     int minDrawingX(int x) const;
     int minDrawingY(int y) const;

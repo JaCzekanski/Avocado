@@ -422,6 +422,8 @@ struct MaskCopy {
     constexpr static int h(int h) { return ((h - 1) & 0x1ff) + 1; }
 };
 
+// TODO: Add busy period
+
 void GPU::cmdCpuToVram1() {
     startX = currX = MaskCopy::x(arguments[1] & 0xffff);
     startY = currY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
@@ -527,7 +529,7 @@ void GPU::cmdVramToVram() {
 
 uint32_t GPU::getStat() {
     bool odd;
-    if (gpuLine >= timing::LINE_VBLANK_START_NTSC && gpuLine < timing::LINE_VBLANK_START_NTSC + 6) {
+    if (gpuLine >= linesPerFrame() - 20 && gpuLine < linesPerFrame() - 20 + 6) {
         odd = false;
     } else {
         if (gp1_08.interlace) {
@@ -801,20 +803,34 @@ void GPU::writeGP1(uint32_t data) {
     }
 }
 
+float GPU::cyclesPerLine() const {
+    if (isNtsc())
+        return timing::CYCLES_PER_LINE_NTSC;
+    else
+        return timing::CYCLES_PER_LINE_PAL;
+}
+
+int GPU::linesPerFrame() const {
+    if (isNtsc())
+        return timing::LINES_TOTAL_NTSC;
+    else
+        return timing::LINES_TOTAL_PAL;
+}
+
 bool GPU::emulateGpuCycles(int cycles) {
     gpuDot += cycles;
 
-    int newLines = gpuDot / timing::DOTS_TOTAL;
+    int newLines = gpuDot / cyclesPerLine();
     if (newLines == 0) return false;
-    gpuDot = fmod(gpuDot, timing::DOTS_TOTAL);
+    gpuDot = fmod(gpuDot, cyclesPerLine());
     gpuLine += newLines;
 
-    if (gpuLine == timing::LINE_VBLANK_START_NTSC) {
+    if (gpuLine == linesPerFrame() - 20) {
         return true;
     }
 
-    if (gpuLine == timing::LINES_TOTAL_NTSC) {
-        gpuLine = 0;
+    if (gpuLine >= linesPerFrame()) {
+        gpuLine %= linesPerFrame();
         frames++;
     }
     return false;
@@ -833,7 +849,7 @@ bool GPU::insideDrawingArea(int x, int y) const {
            && (y < VRAM_HEIGHT);
 }
 
-bool GPU::isNtsc() { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
+bool GPU::isNtsc() const { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
 
 void GPU::dumpVram() {
     const char* dumpName = "vram.png";

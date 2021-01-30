@@ -430,7 +430,7 @@ void System::emulateFrame() {
         }
 
         // TODO: Move this code to Timer class
-        if (gpu->gpuLine > timing::LINE_VBLANK_START_NTSC) {
+        if (gpu->gpuLine > timing::LINES_TOTAL_NTSC - 20) {
             auto& t = *timer[1];
             if (t.mode.syncEnabled) {
                 using modes = device::timer::CounterMode::SyncMode1;
