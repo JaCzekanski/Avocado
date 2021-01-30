@@ -7,6 +7,7 @@
 #include "utils/file.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
+#include "utils/timing.h"
 
 // For vram dump
 #include <stb_image_write.h>
@@ -526,7 +527,7 @@ void GPU::cmdVramToVram() {
 
 uint32_t GPU::getStat() {
     bool odd;
-    if (gpuLine >= LINE_VBLANK_START_NTSC && gpuLine < LINE_VBLANK_START_NTSC + 6) {
+    if (gpuLine >= timing::LINE_VBLANK_START_NTSC && gpuLine < timing::LINE_VBLANK_START_NTSC + 6) {
         odd = false;
     } else {
         if (gp1_08.interlace) {
@@ -803,16 +804,16 @@ void GPU::writeGP1(uint32_t data) {
 bool GPU::emulateGpuCycles(int cycles) {
     gpuDot += cycles;
 
-    int newLines = gpuDot / DOTS_TOTAL;
+    int newLines = gpuDot / timing::DOTS_TOTAL;
     if (newLines == 0) return false;
-    gpuDot = fmod(gpuDot, DOTS_TOTAL);
+    gpuDot = fmod(gpuDot, timing::DOTS_TOTAL);
     gpuLine += newLines;
 
-    if (gpuLine == LINE_VBLANK_START_NTSC) {
+    if (gpuLine == timing::LINE_VBLANK_START_NTSC) {
         return true;
     }
 
-    if (gpuLine == LINES_TOTAL_NTSC) {
+    if (gpuLine == timing::LINES_TOTAL_NTSC) {
         gpuLine = 0;
         frames++;
     }

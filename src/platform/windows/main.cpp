@@ -41,7 +41,7 @@ double limitFramerate(bool framelimiter, bool ntsc) {
     double currentTime = SDL_GetPerformanceCounter() / counterFrequency;
     double deltaTime = currentTime - startTime;
 
-    double frameTime = ntsc ? (1.0 / gpu::NTSC_FRAMERATE) : (1.0 / 50.0);
+    double frameTime = ntsc ? (1.0 / timing::NTSC_FRAMERATE) : (1.0 / 50.0);
 
     if (framelimiter && deltaTime < frameTime) {
         // If deltaTime was shorter than frameTime - spin
