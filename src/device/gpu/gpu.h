@@ -78,6 +78,10 @@ class GPU {
     bool displayDisable;
 
     // GP1(0x04)
+    // 0 - off
+    // 1 - FIFO
+    // 2 - CPU to GP0
+    // 3 - GPUREAD to CPU
     int dmaDirection = 0;
 
     // GP1(0x05)
@@ -191,6 +195,7 @@ class GPU {
 
         ar(vram);
     }
+    bool dmaDataRequest();
 };
 
 }  // namespace gpu

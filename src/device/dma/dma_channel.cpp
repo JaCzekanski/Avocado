@@ -97,7 +97,6 @@ void DMAChannel::syncBlockTransfer() {
         canLog = false;
     }
 
-    // TODO: DREQ DACK for MDEC
     // TODO: Execute sync with chopping
     if (control.direction == CHCR::Direction::toRam) {
         for (int i = 0; i < count.syncMode1.blockSize; i++, addr += control.step()) {
@@ -109,8 +108,12 @@ void DMAChannel::syncBlockTransfer() {
         }
     }
     // TODO: Need proper Chopping implementation for SPU READ to work
+    if (channel == Channel::GPU) {
+        sys->stolenCycles += count.syncMode1.blockSize * 3;
+    } else {
+        sys->stolenCycles += count.syncMode1.blockSize;
+    }
 
-    sys->stolenCycles += count.syncMode1.blockSize;
     baseAddress.address = addr;
     if (--count.syncMode1.blockCount == 0) {
         irqFlag = true;
@@ -129,7 +132,7 @@ void DMAChannel::linkedListTransfer() {
         canLog = false;
     }
 
-    // TODO: Break execution in between
+    bool transferFinished = false;
     std::unordered_set<uint32_t> visited;
     for (;;) {
         uint32_t blockInfo = sys->readMemory32(addr);
@@ -149,17 +152,24 @@ void DMAChannel::linkedListTransfer() {
         sys->stolenCycles += commandCount;
 
         addr = nextAddr;
-        if (addr == 0xffffff || addr == 0) break;
+        if (addr == 0xffffff || addr == 0) {
+            transferFinished = true;
+            break;
+        }
 
         if (visited.find(addr) != visited.end()) {
             fmt::print("[DMA{}] GPU DMA transfer loop detected, breaking.\n", (int)channel);
+            transferFinished = true;
             break;
         }
         visited.insert(addr);
     }
 
     baseAddress.address = addr;
-    irqFlag = true;
-    control.enabled = CHCR::Enabled::completed;
+
+    if (transferFinished) {
+        irqFlag = true;
+        control.enabled = CHCR::Enabled::completed;
+    }
 }
 }  // namespace device::dma

@@ -12,6 +12,9 @@ class DMA2Channel : public DMAChannel {
     uint32_t readDevice() override;
     void writeDevice(uint32_t data) override;
 
+   protected:
+    bool dataRequest() override;
+
    public:
     DMA2Channel(Channel channel, System *sys, gpu::GPU *gpu);
 };

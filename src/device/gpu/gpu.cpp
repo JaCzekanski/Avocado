@@ -525,21 +525,22 @@ void GPU::cmdVramToVram() {
 }
 
 uint32_t GPU::getStat() {
-    uint32_t GPUSTAT = 0;
-    uint8_t dataRequest = 0;
-    if (dmaDirection == 0)
-        dataRequest = 0;
-    else if (dmaDirection == 1)
-        dataRequest = 1;  // FIFO not full
-    else if (dmaDirection == 2)
-        dataRequest = 1;  // Same as bit28, ready to receive dma block
-    else if (dmaDirection == 3)
-        dataRequest = readMode == ReadMode::Vram;  // Same as bit27, ready to send VRAM to CPU
+    bool odd;
+    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
+        if (gp1_08.interlace) {
+            odd = (frames % 2) != 0;
+        } else {
+            odd = (gpuLine % 2) != 0;
+        }
+    } else {
+        odd = false;
+    }
 
+    uint32_t GPUSTAT = 0;
     GPUSTAT = gp0_e1._reg & 0x7FF;
     GPUSTAT |= gp0_e6.setMaskWhileDrawing << 11;
     GPUSTAT |= gp0_e6.checkMaskBeforeDraw << 12;
-    GPUSTAT |= 1 << 13;  // always set
+    GPUSTAT |= 1 << 13;  // TODO: Add proper implementation
     GPUSTAT |= (uint8_t)gp1_08.reverseFlag << 14;
     GPUSTAT |= (uint8_t)gp0_e1.textureDisable << 15;
     GPUSTAT |= (uint8_t)gp1_08.horizontalResolution2 << 16;
@@ -550,14 +551,28 @@ uint32_t GPU::getStat() {
     GPUSTAT |= gp1_08.interlace << 22;
     GPUSTAT |= displayDisable << 23;
     GPUSTAT |= irqRequest << 24;
-    GPUSTAT |= dataRequest << 25;
-    GPUSTAT |= (cmd == Command::None) << 26;  // Ready for DMA command
-    GPUSTAT |= (readMode == ReadMode::Vram) << 27;
-    GPUSTAT |= 1 << 28;  // Ready for receive DMA block
+    GPUSTAT |= dmaDataRequest() << 25;
+    GPUSTAT |= (cmd == Command::None) << 26;        // Ready to receive a command
+    GPUSTAT |= (readMode == ReadMode::Vram) << 27;  // Ready to send VRAM to CPU
+    GPUSTAT |= 1 << 28;                             // Ready for receive DMA block
     GPUSTAT |= (dmaDirection & 3) << 29;
     GPUSTAT |= odd << 31;
 
     return GPUSTAT;
+}
+
+bool GPU::dmaDataRequest() {
+    bool dataRequest = false;
+    if (dmaDirection == 0) {
+        dataRequest = false;  // Always 0
+    } else if (dmaDirection == 1) {
+        dataRequest = true;  // FIFO not full
+    } else if (dmaDirection == 2) {
+        dataRequest = true;  // GPUSTAT.28
+    } else if (dmaDirection == 3) {
+        dataRequest = readMode == ReadMode::Vram;  // GPUSTAT.27
+    }
+    return dataRequest;
 }
 
 uint32_t GPU::read(uint32_t address) {
