@@ -7,7 +7,7 @@ namespace mdec {
 
 MDEC::MDEC() { reset(); }
 
-void MDEC::step() {
+void MDEC::step(int cycles) {
     if (!startDecoding) return;
 
     while (!input.is_empty()) {

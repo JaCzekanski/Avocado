@@ -103,7 +103,7 @@ class MDEC {
    public:
     MDEC();
     void reset();
-    void step();
+    void step(int cycles);
     template <bool dma = false>
     uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
