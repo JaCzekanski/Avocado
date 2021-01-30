@@ -526,14 +526,14 @@ void GPU::cmdVramToVram() {
 
 uint32_t GPU::getStat() {
     bool odd;
-    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
+    if (gpuLine >= LINE_VBLANK_START_NTSC && gpuLine < LINE_VBLANK_START_NTSC + 6) {
+        odd = false;
+    } else {
         if (gp1_08.interlace) {
             odd = (frames % 2) != 0;
         } else {
             odd = (gpuLine % 2) != 0;
         }
-    } else {
-        odd = false;
     }
 
     uint32_t GPUSTAT = 0;
@@ -808,11 +808,11 @@ bool GPU::emulateGpuCycles(int cycles) {
     gpuDot = fmod(gpuDot, DOTS_TOTAL);
     gpuLine += newLines;
 
-    if (gpuLine == LINE_VBLANK_START_NTSC - 1) {
+    if (gpuLine == LINE_VBLANK_START_NTSC) {
         return true;
     }
 
-    if (gpuLine == LINES_TOTAL_NTSC - 1) {
+    if (gpuLine == LINES_TOTAL_NTSC) {
         gpuLine = 0;
         frames++;
     }
