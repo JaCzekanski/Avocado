@@ -19,30 +19,32 @@ void Timer::step(int cycles) {
             tval += cnt / 6;
             cnt %= 6;
         } else {  // System Clock
-            tval += (int)(cnt / 1.5f);
-            cnt %= (int)1.5f;
+            tval += cnt;
+            cnt = 0;
         }
     } else if (which == 1) {
         auto clock = static_cast<CounterMode::ClockSource1>(mode.clockSource & 1);
         using modes = CounterMode::ClockSource1;
 
         if (clock == modes::hblank) {
-            tval += cnt / 3413;
-            cnt %= 3413;
+            const int gpuCycles = 3413 * 7/11;
+
+            tval += cnt / gpuCycles;
+            cnt %= gpuCycles;
         } else {  // System Clock
-            tval += (int)(cnt / 1.5f);
-            cnt %= (int)1.5f;
+            tval += cnt;
+            cnt = 0;
         }
     } else if (which == 2) {
         auto clock = static_cast<CounterMode::ClockSource2>((mode.clockSource >> 1) & 1);
         using modes = CounterMode::ClockSource2;
 
         if (clock == modes::systemClock_8) {
-            tval += (int)(cnt / (8 * 1.5f));
-            cnt %= (int)(8 * 1.5f);
+            tval += cnt / 8;
+            cnt %= 8;
         } else {  // System Clock
-            tval += (int)(cnt * 1.5f);
-            cnt %= (int)1.5f;
+            tval += cnt;
+            cnt = 0;
         }
     }
 
