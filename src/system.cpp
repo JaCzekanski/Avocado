@@ -348,10 +348,10 @@ void System::singleStep() {
 
     dma->step();
     cdrom->step(1);
+    controller->step(1);
     timer[0]->step(1);
     timer[1]->step(1);
     timer[2]->step(1);
-    controller->step();
     spu->step(cdrom.get());
 
     if (gpu->emulateGpuCycles(3)) {
@@ -398,15 +398,7 @@ void System::emulateFrame() {
         dma->step();
         mdec->step(systemCycles);
         cdrom->step(systemCycles);
-
-        static int controllerCounter = 0;
-        controllerCounter += systemCycles;
-        if (controllerCounter >= 100) {
-            for (int i = 0; i < controllerCounter / 100; i++) {
-                controller->step();
-            }
-            controllerCounter %= 100;
-        }
+        controller->step(systemCycles);
         timer[0]->step(systemCycles);
         timer[1]->step(systemCycles);
         timer[2]->step(systemCycles);
