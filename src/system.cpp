@@ -332,7 +332,7 @@ void System::singleStep() {
     state = State::pause;
 
     dma->step();
-    cdrom->step();
+    cdrom->step(3);
     timer[0]->step(3);
     timer[1]->step(3);
     timer[2]->step(3);
@@ -370,46 +370,49 @@ void System::emulateFrame() {
         }
     }
 
-    int systemCycles = 300;
+    const int systemCycles = 100;
     stolenCycles = 0;
     for (;;) {
         if (stolenCycles > 0) {
             stolenCycles -= systemCycles;
-        } else if (!cpu->executeInstructions(systemCycles / 3)) {
+        } else if (!cpu->executeInstructions(systemCycles)) {
             return;
         }
 
         dma->step();
-        cdrom->step();
-        mdec->step();
+        mdec->step(systemCycles);
+        cdrom->step(systemCycles);
+        for (int i = 0; i<3; i++) {
+            controller->step();
+        }
         timer[0]->step(systemCycles);
         timer[1]->step(systemCycles);
         timer[2]->step(systemCycles);
 
-        static float spuCounter = 0;
+        static int spuCounter = 0;
+        spuCounter += systemCycles;
+        if (spuCounter >= 768) {
+            for (int i = 0; i< spuCounter/768; i++) {
+                spu->step(cdrom.get());
+            }
+            spuCounter %= 768;
 
-        float magicNumber = 1.575f;
-        if (!gpu->isNtsc()) {
-            // Hack to prevent crackling audio on PAL games
-            // Note - this overclocks SPU clock, bugs might appear.
-            magicNumber *= 50.f / 60.f;
-        }
-        spuCounter += (float)systemCycles / magicNumber / (float)0x300;
-        if (spuCounter >= 1.f) {
-            spu->step(cdrom.get());
-            spuCounter -= 1.0f;
-        }
-
-        if (spu->bufferReady) {
-            spu->bufferReady = false;
-            Sound::appendBuffer(spu->audioBuffer.begin(), spu->audioBuffer.end());
+            if (spu->bufferReady) {
+                spu->bufferReady = false;
+                Sound::appendBuffer(spu->audioBuffer.begin(), spu->audioBuffer.end());
+            }
         }
 
-        controller->step();
+        static int gpuCounter = 0;
+        gpuCounter += systemCycles;
+        if (gpuCounter >= 7 * systemCycles) {
+            int executedCycles = 11 * systemCycles * (gpuCounter / (7 * systemCycles));
+            gpuCounter %= (7 * systemCycles);
 
-        if (gpu->emulateGpuCycles(systemCycles)) {
-            interrupt->trigger(interrupt::VBLANK);
-            return;  // frame emulated
+            if (gpu->emulateGpuCycles(executedCycles)) {
+                interrupt->trigger(interrupt::VBLANK);
+                return;  // frame emulated
+            }
         }
 
         // TODO: Move this code to Timer class

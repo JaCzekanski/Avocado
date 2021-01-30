@@ -17,8 +17,13 @@ namespace gpu {
 const int VRAM_WIDTH = 1024;
 const int VRAM_HEIGHT = 512;
 
+const int GPU_CLOCK = 53'222'400;
+
+const float DOTS_TOTAL = 3413.6f;
 const int LINE_VBLANK_START_NTSC = 243;
 const int LINES_TOTAL_NTSC = 263;
+
+const float NTSC_FRAMERATE = (float)GPU_CLOCK / (DOTS_TOTAL * LINES_TOTAL_NTSC);
 
 class GPU {
     friend struct ::System;
@@ -49,8 +54,7 @@ class GPU {
 
     // Timing
     int gpuLine = 0;
-    int gpuDot = 0;
-    bool odd = false;
+    float gpuDot = 0;
     int frames = 0;
 
     // TODO: Move Debug GUI stuff to class and befriend it
@@ -174,7 +178,7 @@ class GPU {
         ar(currentArgument, argumentCount);
 
         ar(gpuLine, gpuDot);
-        ar(odd, frames);
+        ar(frames);
 
         // GP0_xx
         ar(gp0_e1._reg);

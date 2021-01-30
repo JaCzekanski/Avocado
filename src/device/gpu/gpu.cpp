@@ -803,25 +803,18 @@ void GPU::writeGP1(uint32_t data) {
 bool GPU::emulateGpuCycles(int cycles) {
     gpuDot += cycles;
 
-    int newLines = gpuDot / 3413;
+    int newLines = gpuDot / DOTS_TOTAL;
     if (newLines == 0) return false;
-    gpuDot %= 3413;
+    gpuDot = fmod(gpuDot, DOTS_TOTAL);
     gpuLine += newLines;
 
-    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
-        if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
-            odd = (frames % 2) != 0;
-        } else {
-            odd = (gpuLine % 2) != 0;
-        }
-    } else {
-        odd = false;
+    if (gpuLine == LINE_VBLANK_START_NTSC - 1) {
+        return true;
     }
 
     if (gpuLine == LINES_TOTAL_NTSC - 1) {
         gpuLine = 0;
         frames++;
-        return true;
     }
     return false;
 }
