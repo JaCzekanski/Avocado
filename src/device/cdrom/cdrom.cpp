@@ -1,6 +1,7 @@
 #include "cdrom.h"
 #include <fmt/core.h>
 #include <cassert>
+#include <disc/track.h>
 #include "config.h"
 #include "disc/empty.h"
 #include "sound/adpcm.h"
@@ -11,137 +12,152 @@
 namespace device {
 namespace cdrom {
 
+const int CPU_FREQ = 38'868'800;
+
 CDROM::CDROM(System* sys) : sys(sys) {
     verbose = config.debug.log.cdrom;
     disc = std::make_unique<disc::Empty>();
 }
 
-void CDROM::step() {
-    status.transmissionBusy = 0;
-    if (!interruptQueue.is_empty()) {
-        if ((interruptEnable & 7) & (interruptQueue.peek().irq & 7)) {
-            sys->interrupt->trigger(interrupt::CDROM);
+void CDROM::handleSector() {
+    if (!stat.read && !stat.play) return;
+
+    const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
+
+    auto pos = disc::Position::fromLba(readSector);
+    std::tie(rawSector, trackType) = disc->read(pos);
+    auto q = disc->getSubQ(pos);
+    if (q.validCrc()) {
+        this->lastQ = q;
+    }
+    readSector++;
+
+    if (trackType == disc::TrackType::AUDIO && stat.play) {
+        if (!mode.cddaEnable) {
+            return;
+        }
+
+        if (memcmp(rawSector.data(), sync.data(), sync.size()) == 0) {
+            fmt::print("[CDROM] Trying to read Data track as audio\n");
+            return;
+        }
+
+        if (mode.cddaReport) {
+            // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
+            auto pos = disc::Position::fromLba(readSector);
+
+            int track = disc->getTrackByPosition(pos);
+
+            postInterrupt(1);
+            writeResponse(stat._reg);           // stat
+            writeResponse(bcd::toBcd(track));   // track
+            writeResponse(0x01);                // index
+            writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
+            writeResponse(bcd::toBcd(pos.ss));  // second (disc)
+            writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
+            writeResponse(bcd::toBcd(0));       // peaklo
+            writeResponse(bcd::toBcd(0));       // peakhi
+
+            if (verbose) {
+                fmt::print("CDROM:CDDA report -> ({})\n", dumpFifo(interruptQueue.peek().response));
+            }
+        }
+
+        if (!mute) {
+            // Decode Red Book Audio (16bit Stereo 44100Hz)
+            for (size_t i = 0; i < rawSector.size(); i += 4) {
+                int16_t left = rawSector[i + 0] | (rawSector[i + 1] << 8);
+                int16_t right = rawSector[i + 2] | (rawSector[i + 3] << 8);
+
+                audio.push_back(mixSample(std::make_pair(left, right)));
+            }
+        }
+    } else if (trackType == disc::TrackType::DATA && stat.read) {
+        ackMoreData();
+
+        if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
+            fmt::print("CDROM: Invalid sync\n");
+            return;
+        }
+
+        // uint8_t minute = rawSector[12];
+        // uint8_t second = rawSector[13];
+        // uint8_t frame = rawSector[14];
+        uint8_t mode = rawSector[15];
+
+        uint8_t file = rawSector[16];
+        uint8_t channel = rawSector[17];
+        auto submode = static_cast<cd::Submode>(rawSector[18]);
+        auto codinginfo = static_cast<cd::Codinginfo>(rawSector[19]);
+
+        // XA uses Mode2 sectors
+        // Does PSX even support Mode1?
+        if (mode != 2) {
+            fmt::print("CDROM: Not mode2 ({} instead)\n", mode);
+            return;
+        }
+
+        // Only Form2 ?
+        // Does PSX support Form1?
+        // Streaming
+        if (submode.form2 && submode.realtime) {
+            // Filter XA file/channel
+            if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
+                return;
+            }
+
+            // Only realtime audio
+            if (!submode.audio || !submode.realtime) {
+                return;
+            }
+
+            if (codinginfo.bits == 1) {
+                fmt::print("[CDROM] Unsupported 8bit mode for XA\n");
+                exit(1);
+            }
+
+            if (this->mode.xaEnabled && !this->mute) {
+                auto frame = ADPCM::decodeXA(rawSector.data() + 24, codinginfo);
+
+                for (auto sample : frame) {
+                    audio.push_back(mixSample(sample));
+                }
+            }
+
+            if (submode.endOfFile) {
+                fmt::print("CDROM: End of file\n");
+                stat.read = false;
+                return;
+            }
+        } else {
+            // Plain data
+        }
+    }
+}
+
+void CDROM::step(int cycles) {
+    static int intCycles = 0;
+
+    readcnt += cycles;
+    intCycles += cycles;
+
+    if (intCycles >= 300) {
+        intCycles -= 300;
+        status.transmissionBusy = 0;
+        if (!interruptQueue.is_empty()) {
+            if ((interruptEnable & 7) & (interruptQueue.peek().irq & 7)) {
+                sys->interrupt->trigger(interrupt::CDROM);
+            }
         }
     }
 
-    // TODO: Calculate correct interval using delta cycles
-    int MAGIC_NUMBER = 1150;  // FIXME: yey, magic numbers
-    if (!mode.speed) MAGIC_NUMBER *= 2;
-
-    if ((stat.read || stat.play) && readcnt++ == MAGIC_NUMBER) {
-        readcnt = 0;
-        const std::array<uint8_t, 12> sync = {{0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00}};
-
-        auto pos = disc::Position::fromLba(readSector);
-        std::tie(rawSector, trackType) = disc->read(pos);
-        auto q = disc->getSubQ(pos);
-        if (q.validCrc()) {
-            this->lastQ = q;
-        }
-        readSector++;
-
-        if (trackType == disc::TrackType::AUDIO && stat.play) {
-            if (!mode.cddaEnable) {
-                return;
-            }
-
-            if (memcmp(rawSector.data(), sync.data(), sync.size()) == 0) {
-                fmt::print("[CDROM] Trying to read Data track as audio\n");
-                return;
-            }
-
-            if (mode.cddaReport) {
-                // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-                auto pos = disc::Position::fromLba(readSector);
-
-                int track = disc->getTrackByPosition(pos);
-
-                postInterrupt(1);
-                writeResponse(stat._reg);           // stat
-                writeResponse(bcd::toBcd(track));   // track
-                writeResponse(0x01);                // index
-                writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
-                writeResponse(bcd::toBcd(pos.ss));  // second (disc)
-                writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
-                writeResponse(bcd::toBcd(0));       // peaklo
-                writeResponse(bcd::toBcd(0));       // peakhi
-
-                if (verbose) {
-                    fmt::print("CDROM:CDDA report -> ({})\n", dumpFifo(interruptQueue.peek().response));
-                }
-            }
-
-            if (!mute) {
-                // Decode Red Book Audio (16bit Stereo 44100Hz)
-                for (size_t i = 0; i < rawSector.size(); i += 4) {
-                    int16_t left = rawSector[i + 0] | (rawSector[i + 1] << 8);
-                    int16_t right = rawSector[i + 2] | (rawSector[i + 3] << 8);
-
-                    audio.push_back(mixSample(std::make_pair(left, right)));
-                }
-            }
-        } else if (trackType == disc::TrackType::DATA && stat.read) {
-            ackMoreData();
-
-            if (memcmp(rawSector.data(), sync.data(), sync.size()) != 0) {
-                fmt::print("CDROM: Invalid sync\n");
-                return;
-            }
-
-            // uint8_t minute = rawSector[12];
-            // uint8_t second = rawSector[13];
-            // uint8_t frame = rawSector[14];
-            uint8_t mode = rawSector[15];
-
-            uint8_t file = rawSector[16];
-            uint8_t channel = rawSector[17];
-            auto submode = static_cast<cd::Submode>(rawSector[18]);
-            auto codinginfo = static_cast<cd::Codinginfo>(rawSector[19]);
-
-            // XA uses Mode2 sectors
-            // Does PSX even support Mode1?
-            if (mode != 2) {
-                fmt::print("CDROM: Not mode2 ({} instead)\n", mode);
-                return;
-            }
-
-            // Only Form2 ?
-            // Does PSX support Form1?
-            // Streaming
-            if (submode.form2 && submode.realtime) {
-                // Filter XA file/channel
-                if (this->mode.xaFilter && (filter.file != file || filter.channel != channel)) {
-                    return;
-                }
-
-                // Only realtime audio
-                if (!submode.audio || !submode.realtime) {
-                    return;
-                }
-
-                if (codinginfo.bits == 1) {
-                    fmt::print("[CDROM] Unsupported 8bit mode for XA\n");
-                    exit(1);
-                }
-
-                if (this->mode.xaEnabled && !this->mute) {
-                    auto frame = ADPCM::decodeXA(rawSector.data() + 24, codinginfo);
-
-                    for (auto sample : frame) {
-                        audio.push_back(mixSample(sample));
-                    }
-                }
-
-                if (submode.endOfFile) {
-                    fmt::print("CDROM: End of file\n");
-                    stat.read = false;
-                    return;
-                }
-            } else {
-                // Plain data
-            }
-        }
+    const int CD_SECTOR_SIZE = 2048;
+    const int sectorsPerSecond = (44100 * 2 * 2) / CD_SECTOR_SIZE;
+    const int cyclesPerSector = (CPU_FREQ / sectorsPerSecond) / (mode.speed ? 2 : 1);  // not perfect division
+    for (int i = 0; i < readcnt / cyclesPerSector; i++) {
+        handleSector();
     }
+    readcnt %= cyclesPerSector;
 }
 
 void CDROM::writeResponse(uint8_t byte) {

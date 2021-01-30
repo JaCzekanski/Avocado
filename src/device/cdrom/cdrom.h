@@ -177,6 +177,8 @@ class CDROM {
     std::string dumpFifo(const FIFO& f);
     std::pair<int16_t, int16_t> mixSample(std::pair<int16_t, int16_t> sample);
 
+    void handleSector();
+
    public:
     std::deque<std::pair<int16_t, int16_t>> audio;
     std::vector<uint8_t> rawSector;
@@ -194,7 +196,7 @@ class CDROM {
     bool mute = false;
 
     CDROM(System* sys);
-    void step();
+    void step(int cycles);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
