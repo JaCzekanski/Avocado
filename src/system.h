@@ -69,6 +69,18 @@ struct System {
 
     int stolenCycles;
 
+    template <typename T, int deviceBusWidth = 8>
+    constexpr void timing(int accessDelay) {
+        constexpr auto hostBits = sizeof(T);
+        constexpr auto deviceBits = deviceBusWidth / 8;
+
+        if constexpr (hostBits <= deviceBits) {
+            stolenCycles += accessDelay;
+        } else {
+            stolenCycles += accessDelay * (hostBits / deviceBits);
+        }
+    }
+
     // Devices
     std::unique_ptr<mips::CPU> cpu;
 
