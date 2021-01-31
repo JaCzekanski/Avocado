@@ -31,19 +31,19 @@ void CDROM::cmdSetloc() {
 }
 
 void CDROM::cmdPlay() {
-    // Play NOT IMPLEMENTED
     disc::Position pos;
-    if (!CDROM_params.is_empty()) {
-        int track = readParam();  // param or setloc used
-        if (track > (int)disc->getTrackCount()) {
-            fmt::print("CDROM: Invalid PLAY track parameter ({})\n", track);
-            return;
-        }
-        pos = disc->getTrackStart(track);
-        if (verbose) fmt::print("CDROM: PLAY (track: {})\n", track);
-    } else {
+    if (CDROM_params.is_empty() || CDROM_params.peek() == 0) {
         pos = disc::Position::fromLba(seekSector);
+    } else {
+        int track = bcd::toBinary(readParam()) - 1;
+        if (track >= (int)disc->getTrackCount()) {
+            pos = disc->getTrackStart(disc->getTrackCount() - 1);
+        } else {
+            pos = disc->getTrackStart(track);
+        }
+        if (verbose) fmt::print("CDROM: PLAY (track: {})\n", track + 1);
     }
+    // Too many params - INT5 0x93 0x20
 
     readSector = pos.toLba();
 
@@ -113,13 +113,14 @@ void CDROM::cmdInit() {
     postInterrupt(3, 0x13ce);
     writeResponse(stat._reg);
 
-    stat.motor = 1;
     stat.setMode(StatusCode::Mode::None);
 
     mode._reg = 0;
 
     postInterrupt(2);
     writeResponse(stat._reg);
+
+    mute = false;  // TODO: This is not what PSX does! I dunno why Ridge racer has no music without it
 
     if (verbose) fmt::print("CDROM: cmdInit\n");
 }
@@ -271,7 +272,7 @@ void CDROM::cmdGetTD() {
         writeResponse(bcd::toBcd(diskSize.mm));
         writeResponse(bcd::toBcd(diskSize.ss));
     } else if (track <= disc->getTrackCount()) {  // Start of n track
-        auto start = disc->getTrackStart(track);
+        auto start = disc->getTrackStart(track - 1);
 
         postInterrupt(3);
         writeResponse(stat._reg);

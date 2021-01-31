@@ -31,10 +31,6 @@ void CDROM::handleSector() {
     readSector++;
 
     if (trackType == disc::TrackType::AUDIO && stat.play) {
-        if (!mode.cddaEnable) {
-            return;
-        }
-
         if (memcmp(rawSector.data(), sync.data(), sync.size()) == 0) {
             fmt::print("[CDROM] Trying to read Data track as audio\n");
             return;
@@ -42,23 +38,39 @@ void CDROM::handleSector() {
 
         if (mode.cddaReport) {
             // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-            auto pos = disc::Position::fromLba(readSector);
+            auto pos = disc::Position::fromLba(readSector - 1);
             int track = disc->getTrackByPosition(pos);
 
             auto posInTrack = pos - disc->getTrackStart(track);
 
-            postInterrupt(1);
-            writeResponse(stat._reg);                         // stat
-            writeResponse(bcd::toBcd(track));                 // track
-            writeResponse(0x01);                              // index
-            writeResponse(bcd::toBcd(posInTrack.mm));         // minute (disc) <<< invalid
-            writeResponse(bcd::toBcd(posInTrack.ss) | 0x80);  // second (disc) <<< invalid
-            writeResponse(bcd::toBcd(posInTrack.ff));         // sector (disc)
-            writeResponse(bcd::toBcd(0));                     // peaklo
-            writeResponse(bcd::toBcd(0));                     // peakhi
+            uint8_t sector = pos.ff;
 
-            if (verbose) {
-                fmt::print("CDROM:CDDA report -> ({})\n", dumpFifo(interruptQueue.peek().response));
+            auto cddaReport = [&](bool isTrack) {
+                postInterrupt(1);
+                writeResponse(stat._reg);              // stat
+                writeResponse(bcd::toBcd(track + 1));  // track
+                writeResponse(0x01);                   // index
+                if (isTrack) {
+                    writeResponse(bcd::toBcd(posInTrack.mm));         // minute (track)
+                    writeResponse(bcd::toBcd(posInTrack.ss) | 0x80);  // second (track)
+                    writeResponse(bcd::toBcd(posInTrack.ff));         // sector (track)
+                } else {
+                    writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
+                    writeResponse(bcd::toBcd(pos.ss));  // second (disc)
+                    writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
+                }
+                writeResponse(rand());  // peaklo
+                writeResponse(rand());  // peakhi
+
+                if (verbose) {
+                    fmt::print("CDROM:CDDA report -> ({})\n", dumpFifo(interruptQueue.peek().response));
+                }
+            };
+
+            if (sector % 0x20 == 0) {
+                cddaReport(false);
+            } else if ((sector - 0x10) % 0x20 == 0) {
+                cddaReport(true);
             }
         }
 
@@ -135,9 +147,6 @@ void CDROM::handleSector() {
 }
 
 void CDROM::step(int cycles) {
-    readcnt += cycles;
-    busyFor -= cycles;
-
     if (!interruptQueue.is_empty()) {
         interruptQueue.ref().delay -= cycles;
 
@@ -150,12 +159,15 @@ void CDROM::step(int cycles) {
         }
     }
 
+    busyFor -= cycles;
     if (busyFor < 0) {
         status.transmissionBusy = 0;
     }
 
     const int sectorsPerSecond = mode.speed ? 150 : 75;
     const int cyclesPerSector = timing::CPU_CLOCK / sectorsPerSecond;
+
+    readcnt += cycles;
     for (int i = 0; i < readcnt / cyclesPerSector; i++) {
         handleSector();
     }
