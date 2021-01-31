@@ -20,7 +20,7 @@ Position Cue::getTrackStart(int track) const {
     if (tracks.at(0).type == disc::TrackType::DATA) {
         total += 75 * 2;
     }
-    for (int i = 0; i < track - 1; i++) {
+    for (int i = 0; i < track; i++) {
         total += tracks.at(i).frames;
     }
     return Position::fromLba(total);
