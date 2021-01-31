@@ -40,21 +40,14 @@ class CDROM {
 
         void setShell(bool opened) {
             shellOpen = opened;
-            if (!shellOpen) {
+
                 setMode(Mode::None);
+            if (opened) {
+                motor = false;
             }
         }
 
         bool getShell() const { return shellOpen; }
-
-        void toggleShell() {
-            if (!shellOpen) {
-                shellOpen = true;
-                setMode(Mode::None);
-            } else {
-                shellOpen = false;
-            }
-        }
 
         StatusCode() : _reg(0) { shellOpen = true; }
     };
@@ -202,11 +195,12 @@ class CDROM {
 
     void setShell(bool opened) { stat.setShell(opened); }
     bool getShell() const { return stat.getShell(); }
-    void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
         postInterrupt(1);
         writeResponse(stat._reg);
     }
+
+    bool discPresent() { return stat.getShell() == false && disc; }
 
     template <class Archive>
     void serialize(Archive& ar) {

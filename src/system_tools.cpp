@@ -75,6 +75,7 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
 
     std::unique_ptr<disc::Disc> disc = disc::load(path);
     if (disc) {
+        sys->cdrom->setShell(true);
         sys->cdrom->disc = std::move(disc);
         sys->cdrom->setShell(false);
         toast(fmt::format("{} loaded", filenameExt));
