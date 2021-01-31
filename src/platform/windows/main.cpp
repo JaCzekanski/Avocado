@@ -234,6 +234,7 @@ int main(int argc, char** argv) {
                 toast("Fastboot");
                 return;
             } else if (e.action == Event::File::Load::Action::swap) {
+                sys->cdrom->setShell(true);
                 sys->cdrom->disc = std::move(disc);
                 sys->cdrom->setShell(false);
 
@@ -351,7 +352,7 @@ int main(int argc, char** argv) {
                     }
                 }
                 if (button == Key(config.hotkeys["close_tray"])) {
-                    sys->cdrom->toggleShell();
+                    sys->cdrom->setShell(!sys->cdrom->getShell());
                     toast(fmt::format("Shell {}", sys->cdrom->getShell() ? "open" : "closed"));
                 }
                 if (button == Key(config.hotkeys["quick_save"])) {

@@ -43,16 +43,17 @@ void CDROM::handleSector() {
         if (mode.cddaReport) {
             // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
             auto pos = disc::Position::fromLba(readSector);
-
             int track = disc->getTrackByPosition(pos);
+
+            auto posInTrack = pos - disc->getTrackStart(track);
 
             postInterrupt(1);
             writeResponse(stat._reg);           // stat
             writeResponse(bcd::toBcd(track));   // track
             writeResponse(0x01);                // index
-            writeResponse(bcd::toBcd(pos.mm));  // minute (disc)
-            writeResponse(bcd::toBcd(pos.ss));  // second (disc)
-            writeResponse(bcd::toBcd(pos.ff));  // sector (disc)
+            writeResponse(bcd::toBcd(posInTrack.mm));         // minute (disc) <<< invalid
+            writeResponse(bcd::toBcd(posInTrack.ss) | 0x80);  // second (disc) <<< invalid
+            writeResponse(bcd::toBcd(posInTrack.ff));         // sector (disc)
             writeResponse(bcd::toBcd(0));       // peaklo
             writeResponse(bcd::toBcd(0));       // peakhi
 

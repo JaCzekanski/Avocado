@@ -128,7 +128,7 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
 
         const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
         if (ImGui::MenuItem(shellStatus, Key(config.hotkeys["close_tray"]).getButton().c_str())) {
-            sys->cdrom->toggleShell();
+            sys->cdrom->setShell(!sys->cdrom->getShell());
         }
 
         if (ImGui::MenuItem("Single frame", Key(config.hotkeys["single_frame"]).getButton().c_str())) {
