@@ -625,10 +625,10 @@ void GPU::write(uint32_t address, uint32_t data) {
 }
 
 void GPU::writeGP0(uint32_t data) {
-    if (cmd == Command::Busy) {
-        return;
-    }
-    if (cmd == Command::None) {
+    if (cmd == Command::None || cmd == Command::Busy) {
+        // Note: Tony Hawk's series write to GP0 with 0xe2 command
+        // when GPU is busy rendering
+        bool isBusy = cmd == Command::Busy;
         command = data >> 24;
         arguments[0] = data;
         argumentCount = 0;
@@ -642,31 +642,31 @@ void GPU::writeGP0(uint32_t data) {
         } else if (command == 0x01) {
             // Clear Cache
             clutCachePos = ivec2(-1, -1);
-        } else if (command == 0x02) {
+        } else if (command == 0x02 && !isBusy) {
             // Fill rectangle
             cmd = Command::FillRectangle;
             argumentCount = 2;
-        } else if (command >= 0x20 && command < 0x40) {
+        } else if (command >= 0x20 && command < 0x40 && !isBusy) {
             // Polygons
             cmd = Command::Polygon;
             argumentCount = PolygonArgs(command).getArgumentCount();
-        } else if (command >= 0x40 && command < 0x60) {
+        } else if (command >= 0x40 && command < 0x60 && !isBusy) {
             // Lines
             cmd = Command::Line;
             argumentCount = LineArgs(command).getArgumentCount();
-        } else if (command >= 0x60 && command < 0x80) {
+        } else if (command >= 0x60 && command < 0x80 && !isBusy) {
             // Rectangles
             cmd = Command::Rectangle;
             argumentCount = RectangleArgs(command).getArgumentCount();
-        } else if (command >= 0x80 && command <= 0x9f) {
+        } else if (command >= 0x80 && command <= 0x9f && !isBusy) {
             // Copy rectangle (VRAM -> VRAM)
             cmd = Command::CopyVramToVram;
             argumentCount = 3;
-        } else if (command >= 0xa0 && command <= 0xbf) {
+        } else if (command >= 0xa0 && command <= 0xbf && !isBusy) {
             // Copy rectangle (CPU -> VRAM)
             cmd = Command::CopyCpuToVram1;
             argumentCount = 2;
-        } else if (command >= 0xc0 && command <= 0xdf) {
+        } else if (command >= 0xc0 && command <= 0xdf && !isBusy) {
             // Copy rectangle (VRAM -> CPU)
             cmd = Command::CopyVramToCpu;
             argumentCount = 2;
@@ -694,18 +694,18 @@ void GPU::writeGP0(uint32_t data) {
         } else if (command == 0xe6) {
             // Mask bit setting
             gp0_e6._reg = arguments[0];
-        } else if (command == 0x1f) {
+        } else if (command == 0x1f && !isBusy) {
             // Interrupt request
             irqRequest = true;
             sys->interrupt->trigger(interrupt::IrqNumber::GPU);
         } else {
+            // TODO: Broken in Gran Turismo 2, fifo required
             fmt::print("GPU: GP0(0x{:02x}) args 0x{:06x}\n", command, arguments[0]);
         }
 
         if (gpuLogEnabled && cmd == Command::None) {
             gpuLogList.push_back(LogEntry::GP0(arguments[0]));
         }
-        // TODO: Refactor gpu log to handle copies && multiline
 
         argumentCount++;
         return;
