@@ -12,8 +12,6 @@
 namespace device {
 namespace cdrom {
 
-const int CPU_FREQ = 38'868'800;
-
 CDROM::CDROM(System* sys) : sys(sys) {
     verbose = config.debug.log.cdrom;
     disc = std::make_unique<disc::Empty>();
@@ -151,9 +149,8 @@ void CDROM::step(int cycles) {
         }
     }
 
-    const int CD_SECTOR_SIZE = 2048;
-    const int sectorsPerSecond = (44100 * 2 * 2) / CD_SECTOR_SIZE;
-    const int cyclesPerSector = (CPU_FREQ / sectorsPerSecond) / (mode.speed ? 2 : 1);  // not perfect division
+    const int sectorsPerSecond = mode.speed ? 150 : 75;
+    const int cyclesPerSector = timing::CPU_CLOCK / sectorsPerSecond;
     for (int i = 0; i < readcnt / cyclesPerSector; i++) {
         handleSector();
     }

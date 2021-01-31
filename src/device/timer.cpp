@@ -27,7 +27,7 @@ void Timer::step(int cycles) {
         using modes = CounterMode::ClockSource1;
 
         if (clock == modes::hblank) {
-            const int gpuCycles = 3413 * 7/11;
+            const int gpuCycles = 3413 * 7 / 11;
 
             tval += cnt / gpuCycles;
             cnt %= gpuCycles;
@@ -117,22 +117,16 @@ void Timer::write(uint32_t address, uint8_t data) {
                     using modes = CounterMode::SyncMode0;
                     auto mode0 = static_cast<CounterMode::SyncMode0>(mode.syncMode);
                     if (mode0 == modes::pauseUntilHblankAndFreerun) paused = true;
-
-                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode0);
                 }
                 if (which == 1) {
                     using modes = CounterMode::SyncMode1;
                     auto mode1 = static_cast<CounterMode::SyncMode1>(mode.syncMode);
                     if (mode1 == modes::pauseUntilVblankAndFreerun) paused = true;
-
-                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode1);
                 }
                 if (which == 2) {
                     using modes = CounterMode::SyncMode2;
                     auto mode2 = static_cast<CounterMode::SyncMode2>(mode.syncMode);
                     if (mode2 == modes::stopCounter || mode2 == modes::stopCounter_) paused = true;
-
-                    fmt::print("[Timer{}]: Synchronization enabled: {}\n", which, (int)mode2);
                 }
             }
         }
