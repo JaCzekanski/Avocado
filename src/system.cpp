@@ -417,11 +417,12 @@ void System::emulateFrame() {
             }
         }
 
+        const int CPU_GPU_MULTIP = 10;
         static int gpuCounter = 0;
         gpuCounter += systemCycles;
-        if (gpuCounter >= 7 * systemCycles) {
-            int executedCycles = 11 * systemCycles * (gpuCounter / (7 * systemCycles));
-            gpuCounter %= (7 * systemCycles);
+        if (gpuCounter >= 7 * CPU_GPU_MULTIP) {
+            int executedCycles = 11 * CPU_GPU_MULTIP * (gpuCounter / (7 * CPU_GPU_MULTIP));
+            gpuCounter %= (7 * CPU_GPU_MULTIP);
 
             if (gpu->emulateGpuCycles(executedCycles)) {
                 interrupt->trigger(interrupt::VBLANK);

@@ -85,6 +85,7 @@ void replayCommands(gpu::GPU *gpu, int to) {
             uint8_t addr = (entry.type == 0) ? 0 : 4;
             gpu->write(addr, arg);
         }
+        gpu->emulateGpuCycles(100000);
     }
     gpu->gpuLogEnabled = true;
 }
