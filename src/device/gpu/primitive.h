@@ -56,6 +56,13 @@ struct Triangle {
         }
     }
 
+    int calculateArea() const {
+        return ((v[0].pos.x * (v[1].pos.y - v[2].pos.y)) +  //
+                (v[1].pos.x * (v[2].pos.y - v[0].pos.y)) +  //
+                (v[2].pos.x * (v[0].pos.y - v[1].pos.y)))
+               / 2;
+    }
+
    private:
     bool isCw() const {
         auto ab = v[1].pos - v[0].pos;

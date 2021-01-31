@@ -80,7 +80,7 @@ void DMAChannel::burstTransfer() {
         }
     }
 
-    sys->stolenCycles += wordCount;
+    //    sys->stolenCycles += wordCount;
     irqFlag = true;
     control.enabled = CHCR::Enabled::completed;
 }
@@ -108,11 +108,7 @@ void DMAChannel::syncBlockTransfer() {
         }
     }
     // TODO: Need proper Chopping implementation for SPU READ to work
-    if (channel == Channel::GPU) {
-        sys->stolenCycles += count.syncMode1.blockSize * 3;
-    } else {
-        sys->stolenCycles += count.syncMode1.blockSize;
-    }
+    //    sys->stolenCycles += count.syncMode1.blockSize;
 
     baseAddress.address = addr;
     if (--count.syncMode1.blockCount == 0) {
@@ -122,8 +118,6 @@ void DMAChannel::syncBlockTransfer() {
 }
 
 void DMAChannel::linkedListTransfer() {
-    if (!dataRequest()) return;
-
     uint32_t addr = baseAddress.address;
 
     if (verbose && canLog) {
@@ -135,6 +129,8 @@ void DMAChannel::linkedListTransfer() {
     bool transferFinished = false;
     std::unordered_set<uint32_t> visited;
     for (;;) {
+        if (!dataRequest()) break;
+
         uint32_t blockInfo = sys->readMemory32(addr);
         int commandCount = blockInfo >> 24;
         int nextAddr = blockInfo & 0xffffff;
@@ -149,7 +145,7 @@ void DMAChannel::linkedListTransfer() {
             writeDevice(sys->readMemory32(addr));
         }
 
-        sys->stolenCycles += commandCount;
+        //        sys->stolenCycles += commandCount + 1;
 
         addr = nextAddr;
         if (addr == 0xffffff || addr == 0) {

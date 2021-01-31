@@ -14,8 +14,8 @@ class OpenGL;
 
 namespace gpu {
 
-const int VRAM_WIDTH = 1024;
-const int VRAM_HEIGHT = 512;
+constexpr int VRAM_WIDTH = 1024;
+constexpr int VRAM_HEIGHT = 512;
 
 class GPU {
     friend struct ::System;
@@ -48,6 +48,8 @@ class GPU {
     int gpuLine = 0;
     float gpuDot = 0;
     int frames = 0;
+
+    int delayCycles = 0;
 
     // TODO: Move Debug GUI stuff to class and befriend it
    public:

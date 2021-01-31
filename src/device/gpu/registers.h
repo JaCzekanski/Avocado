@@ -201,7 +201,7 @@ enum class Command : int {
     CopyCpuToVram2,
     CopyVramToCpu,
     CopyVramToVram,
-    Extra
+    Busy  // Meta command for simulating command delays
 };
 
 struct Vertex {

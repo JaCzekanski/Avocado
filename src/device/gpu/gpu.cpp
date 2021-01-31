@@ -52,7 +52,16 @@ void GPU::reset() {
     gp0_e6._reg = 0;
 
     clutCachePos = ivec2(-1, -1);
+
+    delayCycles = 0;
 }
+
+// TODO: Remove /2 speed hack
+#define TIMING(cycles, render)                                                                                          \
+    {                                                                                                                   \
+        delayCycles = cycles / (((render) && (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480)) ? 2 : 1); \
+        cmd = Command::Busy;                                                                                            \
+    }
 
 void GPU::drawTriangle(const primitive::Triangle& triangle) {
     if (hardwareRendering) {
@@ -215,8 +224,6 @@ void GPU::cmdFillRectangle() {
         }
     }
 
-    cmd = Command::None;
-
     if (hardwareRendering) {
         ivec2 p[4] = {
             {startX, startY},
@@ -247,6 +254,8 @@ void GPU::cmdFillRectangle() {
             vertices.push_back(v[i]);
         }
     }
+
+    TIMING((endY - startY) * (endX - startX) / 8, true);
 }
 
 void GPU::cmdPolygon(PolygonArgs arg) {
@@ -303,17 +312,27 @@ void GPU::cmdPolygon(PolygonArgs arg) {
         gp0_e1._reg |= newBits;
     }
 
+    int cycles = 0;
+    auto calculateCycles = [&arg](const primitive::Triangle& triangle) {
+        int cycles = triangle.calculateArea();
+        if (arg.isTextureMapped) cycles *= 1.5f;
+        if (arg.semiTransparency) cycles *= 1.5f;
+        return cycles;
+    };
+
     triangle.assureCcw();
     drawTriangle(triangle);
+    cycles += calculateCycles(triangle);
 
     if (arg.isQuad) {
         for (int i : {1, 2, 3}) triangle.v[i - 1] = v[i];
 
         triangle.assureCcw();
         drawTriangle(triangle);
+        cycles += calculateCycles(triangle);
     }
 
-    cmd = Command::None;
+    TIMING(cycles, true);
 }
 
 void GPU::cmdLine(LineArgs arg) {
@@ -369,8 +388,8 @@ void GPU::cmdRectangle(RectangleArgs arg) {
         h = extend_sign<11>((arguments[(arg.isTextureMapped ? 3 : 2)] & 0xffff0000) >> 16);
     }
 
-    int16_t x = drawingOffsetX + extend_sign<11>(arguments[1] & 0xffff);
-    int16_t y = drawingOffsetY + extend_sign<11>((arguments[1] & 0xffff0000) >> 16);
+    int16_t x = (drawingOffsetX + extend_sign<16>(arguments[1] & 0xffff)) % VRAM_WIDTH;
+    int16_t y = (drawingOffsetY + extend_sign<16>((arguments[1] & 0xffff0000) >> 16)) % VRAM_HEIGHT;
 
     primitive::Rect rect;
     rect.pos = ivec2(x, y);
@@ -412,7 +431,10 @@ void GPU::cmdRectangle(RectangleArgs arg) {
 
     drawRectangle(rect);
 
-    cmd = Command::None;
+    int cycles = w * h;
+    if (arg.isTextureMapped) cycles *= 2;
+    if (arg.semiTransparency) cycles *= 1.5f;
+    TIMING(cycles, true);
 }
 
 struct MaskCopy {
@@ -421,8 +443,6 @@ struct MaskCopy {
     constexpr static int w(int w) { return ((w - 1) & 0x3ff) + 1; }
     constexpr static int h(int h) { return ((h - 1) & 0x1ff) + 1; }
 };
-
-// TODO: Add busy period
 
 void GPU::cmdCpuToVram1() {
     startX = currX = MaskCopy::x(arguments[1] & 0xffff);
@@ -501,8 +521,6 @@ uint32_t GPU::readVramData() {
 }
 
 void GPU::cmdVramToVram() {
-    cmd = Command::None;
-
     int srcX = MaskCopy::x(arguments[1] & 0xffff);
     int srcY = MaskCopy::y((arguments[1] & 0xffff0000) >> 16);
 
@@ -525,9 +543,12 @@ void GPU::cmdVramToVram() {
             maskedWrite(dstX + x, dstY + y, src);
         }
     }
+
+    TIMING(w * h * 2, false);
 }
 
 uint32_t GPU::getStat() {
+    // TODO: Simulate GPU on read
     bool odd;
     if (gpuLine >= linesPerFrame() - 20 && gpuLine < linesPerFrame() - 20 + 6) {
         odd = false;
@@ -557,7 +578,7 @@ uint32_t GPU::getStat() {
     GPUSTAT |= dmaDataRequest() << 25;
     GPUSTAT |= (cmd == Command::None) << 26;        // Ready to receive a command
     GPUSTAT |= (readMode == ReadMode::Vram) << 27;  // Ready to send VRAM to CPU
-    GPUSTAT |= 1 << 28;                             // Ready for receive DMA block
+    GPUSTAT |= (cmd != Command::Busy) << 28;        // Ready for receive DMA block
     GPUSTAT |= (dmaDirection & 3) << 29;
     GPUSTAT |= odd << 31;
 
@@ -571,7 +592,7 @@ bool GPU::dmaDataRequest() {
     } else if (dmaDirection == 1) {
         dataRequest = true;  // FIFO not full
     } else if (dmaDirection == 2) {
-        dataRequest = true;  // GPUSTAT.28
+        dataRequest = cmd != Command::Busy;  // GPUSTAT.28
     } else if (dmaDirection == 3) {
         dataRequest = readMode == ReadMode::Vram;  // GPUSTAT.27
     }
@@ -604,6 +625,9 @@ void GPU::write(uint32_t address, uint32_t data) {
 }
 
 void GPU::writeGP0(uint32_t data) {
+    if (cmd == Command::Busy) {
+        return;
+    }
     if (cmd == Command::None) {
         command = data >> 24;
         arguments[0] = data;
@@ -750,7 +774,9 @@ void GPU::writeGP1(uint32_t data) {
     if (command == 0x00) {  // Reset GPU
         reset();
     } else if (command == 0x01) {  // Reset command buffer
+        delayCycles = 0;
         cmd = Command::None;
+        readMode = ReadMode::Register;
     } else if (command == 0x02) {  // Acknowledge IRQ1
         irqRequest = false;
     } else if (command == 0x03) {  // Display Enable
@@ -818,6 +844,10 @@ int GPU::linesPerFrame() const {
 }
 
 bool GPU::emulateGpuCycles(int cycles) {
+    if (delayCycles > 0) {
+        delayCycles -= cycles;
+    }
+    if (cmd == Command::Busy && delayCycles <= 0) cmd = Command::None;
     gpuDot += cycles;
 
     int newLines = gpuDot / cyclesPerLine();
