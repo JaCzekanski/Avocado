@@ -41,7 +41,7 @@ class CDROM {
         void setShell(bool opened) {
             shellOpen = opened;
 
-                setMode(Mode::None);
+            setMode(Mode::None);
             if (opened) {
                 motor = false;
             }
@@ -100,10 +100,11 @@ class CDROM {
         uint8_t irq;
         fifo<uint8_t, 16> response;
         bool ack;
+        int delay;
 
         template <class Archive>
         void serialize(Archive& ar) {
-            ar(irq, response, ack);
+            ar(irq, response, ack, delay);
         }
     };
 
@@ -165,7 +166,15 @@ class CDROM {
         return param;
     }
 
-    void postInterrupt(int irq) { interruptQueue.add(irq_response_t{.irq = (uint8_t)irq, .response = {}}); }
+    int busyFor = 0;
+
+    void postInterrupt(int irq, int delay = 50000) {
+        interruptQueue.add(irq_response_t{
+            .irq = (uint8_t)irq,  //
+            .response = {},       //
+            .delay = delay        //
+        });
+    }
 
     std::string dumpFifo(const FIFO& f);
     std::pair<int16_t, int16_t> mixSample(std::pair<int16_t, int16_t> sample);
@@ -193,10 +202,20 @@ class CDROM {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    void setShell(bool opened) { stat.setShell(opened); }
+    void setShell(bool opened) {
+        stat.setShell(opened);
+
+        if (opened) {
+            if (disc) {
+                postInterrupt(0x05, 1000);
+                writeResponse(0x16);
+                writeResponse(0x08);
+            }
+        }
+    }
     bool getShell() const { return stat.getShell(); }
     void ackMoreData() {
-        postInterrupt(1);
+        postInterrupt(1, 0);
         writeResponse(stat._reg);
     }
 
