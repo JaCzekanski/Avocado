@@ -127,7 +127,7 @@ void DMAChannel::linkedListTransfer() {
     }
 
     bool transferFinished = false;
-    std::unordered_set<uint32_t> visited;
+    static std::unordered_set<uint32_t> visited;
     for (;;) {
         if (!dataRequest()) break;
 
@@ -154,8 +154,6 @@ void DMAChannel::linkedListTransfer() {
         }
 
         if (visited.find(addr) != visited.end()) {
-            fmt::print("[DMA{}] GPU DMA transfer loop detected, breaking.\n", (int)channel);
-            transferFinished = true;
             break;
         }
         visited.insert(addr);
@@ -164,6 +162,7 @@ void DMAChannel::linkedListTransfer() {
     baseAddress.address = addr;
 
     if (transferFinished) {
+        visited.clear();
         irqFlag = true;
         control.enabled = CHCR::Enabled::completed;
     }
