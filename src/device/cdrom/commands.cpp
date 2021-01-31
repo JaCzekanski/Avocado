@@ -17,11 +17,17 @@ void CDROM::cmdSetloc() {
     uint8_t sector = bcd::toBinary(readParam());
 
     seekSector = sector + (second * 75) + (minute * 60 * 75);
-
-    postInterrupt(3);
-    writeResponse(stat._reg);
-
     if (verbose) fmt::print("CDROM: cmdSetloc(min = {}, sec = {}, sect = {})\n", minute, second, sector);
+
+    if (!discPresent()) {
+        postInterrupt(5);
+        writeResponse(0x11);
+        writeResponse(0x80);
+        return;
+    }
+
+    postInterrupt(3, 2000);
+    writeResponse(stat._reg);
 }
 
 void CDROM::cmdPlay() {
@@ -29,7 +35,7 @@ void CDROM::cmdPlay() {
     disc::Position pos;
     if (!CDROM_params.is_empty()) {
         int track = readParam();  // param or setloc used
-        if (track >= (int)disc->getTrackCount()) {
+        if (track > (int)disc->getTrackCount()) {
             fmt::print("CDROM: Invalid PLAY track parameter ({})\n", track);
             return;
         }
@@ -50,14 +56,20 @@ void CDROM::cmdPlay() {
 }
 
 void CDROM::cmdReadN() {
-    readSector = seekSector;
+    if (verbose) fmt::print("CDROM: cmdReadN\n");
 
+    if (!discPresent()) {
+        postInterrupt(5);
+        writeResponse(0x11);
+        writeResponse(0x80);
+        return;
+    }
+
+    readSector = seekSector;
     stat.setMode(StatusCode::Mode::Reading);
 
-    postInterrupt(3);
+    postInterrupt(3, 5000);
     writeResponse(stat._reg);
-
-    if (verbose) fmt::print("CDROM: cmdReadN\n");
 }
 
 void CDROM::cmdMotorOn() {
@@ -98,7 +110,7 @@ void CDROM::cmdPause() {
 }
 
 void CDROM::cmdInit() {
-    postInterrupt(3);
+    postInterrupt(3, 0x13ce);
     writeResponse(stat._reg);
 
     stat.motor = 1;
@@ -142,7 +154,7 @@ void CDROM::cmdSetmode() {
 
     mode._reg = setmode;
 
-    postInterrupt(3);
+    postInterrupt(3, 2000);
     writeResponse(stat._reg);
 
     if (verbose) fmt::print("CDROM: cmdSetmode(0x{:02x})\n", setmode);
@@ -177,9 +189,7 @@ void CDROM::cmdSeekP() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
-    stat.setMode(StatusCode::Mode::Seeking);
-
-    postInterrupt(2);
+    postInterrupt(2, 500000);
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::None);
@@ -222,7 +232,7 @@ void CDROM::cmdGetlocL() {
 }
 
 void CDROM::cmdGetlocP() {
-    postInterrupt(3);
+    postInterrupt(3, 1000);
     writeResponse(lastQ.data[0]);  // track
     writeResponse(lastQ.data[1]);  // index
     writeResponse(lastQ.data[2]);  // minute (track)
@@ -284,17 +294,24 @@ void CDROM::cmdGetTD() {
 }
 
 void CDROM::cmdSeekL() {
+    if (verbose) fmt::print("CDROM: cmdSeekL\n");
+
     readSector = seekSector;
 
-    postInterrupt(3);
+    if (!discPresent()) {
+        postInterrupt(5);
+        writeResponse(0x11);
+        writeResponse(0x80);
+        return;
+    }
+
+    postInterrupt(3, 5000);
     writeResponse(stat._reg);
 
-    stat.setMode(StatusCode::Mode::Seeking);
-
-    postInterrupt(2);
+    postInterrupt(2, 500000);
     writeResponse(stat._reg);
 
-    if (verbose) fmt::print("CDROM: cmdSeekL\n");
+    stat.setMode(StatusCode::Mode::None);
 }
 
 void CDROM::cmdTest() {
@@ -396,7 +413,7 @@ void CDROM::cmdReadS() {
     audio.clear();
     stat.setMode(StatusCode::Mode::Reading);
 
-    postInterrupt(3);
+    postInterrupt(3, 500);
     writeResponse(stat._reg);
 
     if (verbose) fmt::print("CDROM: cmdReadS\n");

@@ -48,14 +48,14 @@ void CDROM::handleSector() {
             auto posInTrack = pos - disc->getTrackStart(track);
 
             postInterrupt(1);
-            writeResponse(stat._reg);           // stat
-            writeResponse(bcd::toBcd(track));   // track
-            writeResponse(0x01);                // index
+            writeResponse(stat._reg);                         // stat
+            writeResponse(bcd::toBcd(track));                 // track
+            writeResponse(0x01);                              // index
             writeResponse(bcd::toBcd(posInTrack.mm));         // minute (disc) <<< invalid
             writeResponse(bcd::toBcd(posInTrack.ss) | 0x80);  // second (disc) <<< invalid
             writeResponse(bcd::toBcd(posInTrack.ff));         // sector (disc)
-            writeResponse(bcd::toBcd(0));       // peaklo
-            writeResponse(bcd::toBcd(0));       // peakhi
+            writeResponse(bcd::toBcd(0));                     // peaklo
+            writeResponse(bcd::toBcd(0));                     // peakhi
 
             if (verbose) {
                 fmt::print("CDROM:CDDA report -> ({})\n", dumpFifo(interruptQueue.peek().response));
@@ -135,19 +135,23 @@ void CDROM::handleSector() {
 }
 
 void CDROM::step(int cycles) {
-    static int intCycles = 0;
-
     readcnt += cycles;
-    intCycles += cycles;
+    busyFor -= cycles;
 
-    if (intCycles >= 300) {
-        intCycles -= 300;
-        status.transmissionBusy = 0;
-        if (!interruptQueue.is_empty()) {
+    if (!interruptQueue.is_empty()) {
+        interruptQueue.ref().delay -= cycles;
+
+        if (interruptQueue.peek().delay <= 0) {
+            status.transmissionBusy = 0;
+
             if ((interruptEnable & 7) & (interruptQueue.peek().irq & 7)) {
                 sys->interrupt->trigger(interrupt::CDROM);
             }
         }
+    }
+
+    if (busyFor < 0) {
+        status.transmissionBusy = 0;
     }
 
     const int sectorsPerSecond = mode.speed ? 150 : 75;
@@ -210,7 +214,9 @@ uint8_t CDROM::read(uint32_t address) {
         if (status.index == 1 || status.index == 3) {  // Interrupt flags
             uint8_t _status = 0b11100000;
             if (!interruptQueue.is_empty()) {
-                _status |= interruptQueue.peek().irq & 7;
+                if (interruptQueue.peek().delay <= 0) {
+                    _status |= interruptQueue.peek().irq & 7;
+                }
             }
             if (verbose == 2) fmt::print("CDROM: R INTF: 0x{:02x}\n", _status);
             return _status;
@@ -315,6 +321,7 @@ void CDROM::handleCommand(uint8_t cmd) {
             break;
     }
 
+    busyFor = 1000;
     CDROM_params.clear();
     status.transmissionBusy = 1;
     status.xaFifoEmpty = 0;
