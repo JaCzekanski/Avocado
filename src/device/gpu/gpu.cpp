@@ -27,6 +27,9 @@ void GPU::reload() {
     auto mode = config.options.graphics.renderingMode;
     softwareRendering = (mode & RenderingMode::software) != 0;
     hardwareRendering = (mode & RenderingMode::hardware) != 0;
+
+    sys->timer[0]->updateDotclockPeriod(gp1_08.getHorizontalResoulution());
+    sys->timer[1]->updateHblankPeriod(isNtsc());
 }
 
 void GPU::reset() {
@@ -54,6 +57,9 @@ void GPU::reset() {
     clutCachePos = ivec2(-1, -1);
 
     delayCycles = 0;
+
+    sys->timer[0]->updateDotclockPeriod(gp1_08.getHorizontalResoulution());
+    sys->timer[1]->updateHblankPeriod(isNtsc());
 }
 
 // TODO: Remove /2 speed hack
@@ -794,6 +800,8 @@ void GPU::writeGP1(uint32_t data) {
         displayRangeY2 = argument >> 10;
     } else if (command == 0x08) {  // Display mode
         gp1_08._reg = argument;
+        sys->timer[0]->updateDotclockPeriod(gp1_08.getHorizontalResoulution());
+        sys->timer[1]->updateHblankPeriod(isNtsc());
     } else if (command == 0x09) {  // Allow texture disable
         textureDisableAllowed = argument & 1;
     } else if (command >= 0x10 && command <= 0x1f) {  // get GPU Info

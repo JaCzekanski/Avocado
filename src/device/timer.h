@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include "interrupt.h"
+#include "utils/timing.h"
 
 namespace gui::debug {
 class Timers;
@@ -82,16 +83,20 @@ class Timer {
 
    private:
     bool oneShotIrqOccured = false;
+    int customPeriod = 5;
 
     System* sys;
 
     void checkIrq();
     interrupt::IrqNumber mapIrqNumber() const {
-        if (which == 0) return interrupt::TIMER0;
-        if (which == 1) return interrupt::TIMER1;
-        if (which == 2) return interrupt::TIMER2;
-        assert(false);
-        return interrupt::TIMER0;
+        if (which == 0)
+            return interrupt::TIMER0;
+        else if (which == 1)
+            return interrupt::TIMER1;
+        else if (which == 2)
+            return interrupt::TIMER2;
+        else
+            __builtin_unreachable();
     }
 
    public:
@@ -100,9 +105,34 @@ class Timer {
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
+    void updateDotclockPeriod(int horizontalResolution) {
+        if (which != 0) return;
+
+        int step;
+        switch (horizontalResolution) {
+            case 256: step = timing::GPU_CLOCK / 10; break;
+            case 320: step = timing::GPU_CLOCK / 8; break;
+            case 368: step = timing::GPU_CLOCK / 7; break;
+            case 512: step = timing::GPU_CLOCK / 5; break;
+            case 640: step = timing::GPU_CLOCK / 4; break;
+            default: __builtin_unreachable();
+        }
+        customPeriod = roundf(timing::CPU_CLOCK / step);
+    }
+
+    void updateHblankPeriod(bool isNtsc) {
+        if (which != 1) return;
+
+        if (isNtsc) {
+            customPeriod = roundf(timing::CYCLES_PER_LINE_NTSC * 7 / 11);
+        } else {
+            customPeriod = roundf(timing::CYCLES_PER_LINE_PAL * 7 / 11);
+        }
+    }
+
     template <class Archive>
     void serialize(Archive& ar) {
-        ar(current, mode._reg, target, cnt, oneShotIrqOccured);
+        ar(current, mode._reg, target, cnt, oneShotIrqOccured, customPeriod);
     }
 };
 };  // namespace device::timer

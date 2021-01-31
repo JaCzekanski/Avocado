@@ -16,8 +16,8 @@ void Timer::step(int cycles) {
         using modes = CounterMode::ClockSource0;
 
         if (clock == modes::dotClock) {
-            tval += cnt / 6;
-            cnt %= 6;
+            tval += cnt / customPeriod;
+            cnt %= customPeriod;
         } else {  // System Clock
             tval += cnt;
             cnt = 0;
@@ -27,10 +27,8 @@ void Timer::step(int cycles) {
         using modes = CounterMode::ClockSource1;
 
         if (clock == modes::hblank) {
-            const int gpuCycles = 3413 * 7 / 11;
-
-            tval += cnt / gpuCycles;
-            cnt %= gpuCycles;
+            tval += cnt / customPeriod;
+            cnt %= customPeriod;
         } else {  // System Clock
             tval += cnt;
             cnt = 0;

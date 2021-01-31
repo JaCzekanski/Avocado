@@ -10,14 +10,12 @@ constexpr uint64_t GPU_CLOCK = 53'222'400;
 #ifdef USE_EXACT_FPS
 const float CYCLES_PER_LINE_NTSC = 3413.6f;
 const float CYCLES_PER_LINE_PAL = 3406.1f;
-const int LINES_TOTAL_NTSC = 263;
-const int LINES_TOTAL_PAL = 314;
 #else
 const float CYCLES_PER_LINE_NTSC = 3372.7f;
 const float CYCLES_PER_LINE_PAL = 3389;
+#endif
 const int LINES_TOTAL_NTSC = 263;
 const int LINES_TOTAL_PAL = 314;
-#endif
 
 const double NTSC_FRAMERATE = (double)GPU_CLOCK / (CYCLES_PER_LINE_NTSC * LINES_TOTAL_NTSC);
 const double PAL_FRAMERATE = (double)GPU_CLOCK / (CYCLES_PER_LINE_PAL * LINES_TOTAL_PAL);
