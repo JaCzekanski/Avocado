@@ -179,6 +179,7 @@ INLINE T System::readMemory(uint32_t address) {
     READ_IO(0x1f801100, 0x1f801110, timer[0], 32, 2);
     READ_IO(0x1f801110, 0x1f801120, timer[1], 32, 2);
     READ_IO(0x1f801120, 0x1f801130, timer[2], 32, 2);
+    // TODO: Consume write to 1f801130? (Gran Turismo 2)
     READ_IO(0x1f801800, 0x1f801804, cdrom, 8, 8);
     READ_IO32(0x1f801810, 0x1f801818, gpu, 2);
     READ_IO32(0x1f801820, 0x1f801828, mdec, 3);
@@ -193,7 +194,7 @@ INLINE T System::readMemory(uint32_t address) {
     }
 
     fmt::print("[SYS] R Unhandled address at 0x{:08x}\n", address);
-    cpu->busError();
+    //    cpu->busError();
 
     return 0;
 }
@@ -385,7 +386,7 @@ void System::emulateFrame() {
         }
     }
 
-    const int systemCycles = 200;
+    const int systemCycles = 100;
     for (;;) {
         if (stolenCycles > 0) stolenCycles -= systemCycles;
 
@@ -395,6 +396,7 @@ void System::emulateFrame() {
             }
         }
 
+        // TODO: Update GPU more periodically
         dma->step();
         mdec->step(systemCycles);
         cdrom->step(systemCycles);

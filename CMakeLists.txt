@@ -288,6 +288,10 @@ target_compile_options(core PUBLIC
         /W4>
 )
 
+target_compile_definitions(core
+        PUBLIC
+        ENABLE_IO_LOG)
+
 set(SOURCES
         src/imgui/imgui_impl_opengl3.cpp
         src/imgui/imgui_impl_sdl.cpp

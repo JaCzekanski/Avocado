@@ -117,16 +117,16 @@ class Timer {
             case 640: step = timing::GPU_CLOCK / 4; break;
             default: __builtin_unreachable();
         }
-        customPeriod = roundf(timing::CPU_CLOCK / step);
+        customPeriod = roundf((float)timing::CPU_CLOCK / step);
     }
 
     void updateHblankPeriod(bool isNtsc) {
         if (which != 1) return;
 
         if (isNtsc) {
-            customPeriod = roundf(timing::CYCLES_PER_LINE_NTSC * 7 / 11);
+            customPeriod = roundf((float)timing::CYCLES_PER_LINE_NTSC * 7 / 11);
         } else {
-            customPeriod = roundf(timing::CYCLES_PER_LINE_PAL * 7 / 11);
+            customPeriod = roundf((float)timing::CYCLES_PER_LINE_PAL * 7 / 11);
         }
     }
 

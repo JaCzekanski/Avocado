@@ -27,9 +27,6 @@ void GPU::reload() {
     auto mode = config.options.graphics.renderingMode;
     softwareRendering = (mode & RenderingMode::software) != 0;
     hardwareRendering = (mode & RenderingMode::hardware) != 0;
-
-    sys->timer[0]->updateDotclockPeriod(gp1_08.getHorizontalResoulution());
-    sys->timer[1]->updateHblankPeriod(isNtsc());
 }
 
 void GPU::reset() {
@@ -57,9 +54,6 @@ void GPU::reset() {
     clutCachePos = ivec2(-1, -1);
 
     delayCycles = 0;
-
-    sys->timer[0]->updateDotclockPeriod(gp1_08.getHorizontalResoulution());
-    sys->timer[1]->updateHblankPeriod(isNtsc());
 }
 
 // TODO: Remove /2 speed hack

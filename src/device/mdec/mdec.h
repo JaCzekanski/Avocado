@@ -81,6 +81,8 @@ class MDEC {
     std::array<uint8_t, 64> colorQuantTable;
     std::array<int16_t, 64> idctTable;
 
+    int waitCycles = 0;
+
     size_t tablePtr;
 
     std::vector<uint32_t> output;

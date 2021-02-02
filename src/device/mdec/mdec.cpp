@@ -8,6 +8,9 @@ namespace mdec {
 MDEC::MDEC() { reset(); }
 
 void MDEC::step(int cycles) {
+    waitCycles -= cycles;
+
+    if (waitCycles > 0) return;
     if (!startDecoding) return;
 
     while (!input.is_empty()) {

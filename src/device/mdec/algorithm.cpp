@@ -51,6 +51,7 @@ void MDEC::handleWord(uint16_t data) {
             status.dataOutRequest = !status.dataOutFifoEmpty && control.enableDataOut;
 
             status.dataInRequest = 0;
+            //            waitCycles = 50;
         }
     }
 

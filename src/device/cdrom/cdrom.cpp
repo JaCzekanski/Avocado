@@ -46,7 +46,7 @@ void CDROM::handleSector() {
             uint8_t sector = pos.ff;
 
             auto cddaReport = [&](bool isTrack) {
-                postInterrupt(1);
+                postInterrupt(1, 1000);
                 writeResponse(stat._reg);              // stat
                 writeResponse(bcd::toBcd(track + 1));  // track
                 writeResponse(0x01);                   // index
@@ -195,7 +195,7 @@ uint8_t CDROM::read(uint32_t address) {
         status.parameterFifoEmpty = CDROM_params.is_empty();
         status.parameterFifoFull = !CDROM_params.is_full();  // Inverse logic
         status.responseFifoEmpty = !responseFifoEmpty;       // Inverse logic
-        return status._reg;
+        return rand();
     }
     if (address == 1) {  // CD Response
         uint8_t ret = 0;
@@ -249,7 +249,6 @@ bool CDROM::isBufferEmpty() {
 
 uint8_t CDROM::readByte() {
     if (dataBuffer.empty()) {
-        fmt::print("[CDROM] Buffer empty\n");
         return 0;
     }
 
