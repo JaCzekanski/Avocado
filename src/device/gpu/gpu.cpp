@@ -550,7 +550,7 @@ void GPU::cmdVramToVram() {
 uint32_t GPU::getStat() {
     // TODO: Simulate GPU on read
     bool odd;
-    if (gpuLine >= linesPerFrame() - 20 && gpuLine < linesPerFrame() - 20 + 6) {
+    if (gpuLine >= linesPerFrame() - 3) {
         odd = false;
     } else {
         if (gp1_08.interlace) {
@@ -857,7 +857,7 @@ bool GPU::emulateGpuCycles(int cycles) {
     gpuDot = fmod(gpuDot, cyclesPerLine());
     gpuLine += newLines;
 
-    if (gpuLine == linesPerFrame() - 20) {
+    if (gpuLine == linesPerFrame() - 3) {
         return true;
     }
 
