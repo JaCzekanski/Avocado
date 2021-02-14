@@ -36,13 +36,11 @@ void CDROM::handleSector() {
             return;
         }
 
+        int track = disc->getTrackByPosition(disc::Position::fromLba(readSector - 1));
+
         if (mode.cddaReport) {
             // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-            auto pos = disc::Position::fromLba(readSector - 1);
-            int track = disc->getTrackByPosition(pos);
-
             auto posInTrack = pos - disc->getTrackStart(track);
-
             uint8_t sector = pos.ff;
 
             auto cddaReport = [&](bool isTrack) {
@@ -74,7 +72,7 @@ void CDROM::handleSector() {
             }
         }
 
-        if (!mute) {
+        if (!mute && mode.cddaEnable) {
             // Decode Red Book Audio (16bit Stereo 44100Hz)
             for (size_t i = 0; i < rawSector.size(); i += 4) {
                 int16_t left = rawSector[i + 0] | (rawSector[i + 1] << 8);
@@ -83,6 +81,16 @@ void CDROM::handleSector() {
                 audio.push_back(mixSample(std::make_pair(left, right)));
             }
         }
+
+        if (mode.cddaAutoPause) {
+            if (track > previousTrack) {
+                postInterrupt(4);
+                writeResponse(stat._reg);
+
+                stat.play = false;  // Pause
+            }
+        }
+        previousTrack = track;
     } else if (trackType == disc::TrackType::DATA && stat.read) {
         ackMoreData();
 
@@ -195,7 +203,7 @@ uint8_t CDROM::read(uint32_t address) {
         status.parameterFifoEmpty = CDROM_params.is_empty();
         status.parameterFifoFull = !CDROM_params.is_full();  // Inverse logic
         status.responseFifoEmpty = !responseFifoEmpty;       // Inverse logic
-        return rand();
+        return status._reg;
     }
     if (address == 1) {  // CD Response
         uint8_t ret = 0;
