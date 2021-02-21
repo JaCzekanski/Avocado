@@ -29,15 +29,15 @@ INLINE void rasterizeRectangle(gpu::GPU* gpu, const primitive::Rect& rect) {
         gpu->maxDrawingY(pos.y + rect.size.y - 1)   //
     );
 
-    const ivec2 uv(                   //
+    ivec2 uv(                         //
         rect.uv.x + (min.x - pos.x),  // Add offset if part of rectange was cut off
         rect.uv.y + (min.y - pos.y)   //
     );
     int uStep = 1, vStep = 1;
 
     // Texture flipping
-    // TODO: Not tested!
     if (gpu->gp0_e1.texturedRectangleXFlip) {
+        uv.x += 1;
         uStep = -1;
     }
     if (gpu->gp0_e1.texturedRectangleYFlip) {
