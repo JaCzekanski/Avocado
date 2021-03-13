@@ -90,6 +90,12 @@ bool CPU::executeInstructions(int count) {
         }
 
         _opcode = Opcode(fetchInstruction(PC));
+
+        if (_opcode == "0000ff61"){
+            //printf("%#02x\n", _opcode.op);
+            printf("%x\n", _opcode);
+        }
+
         const auto& op = instructions::OpcodeTable[_opcode.op];
 
         setPC(nextPC);
