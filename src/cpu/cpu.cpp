@@ -3,6 +3,10 @@
 #include "cpu/instructions.h"
 #include "system.h"
 
+
+#include <csignal>
+
+
 namespace mips {
 CPU::CPU(System* sys) : sys(sys), _opcode(0) {
     setPC(0xBFC00000);
@@ -91,10 +95,14 @@ bool CPU::executeInstructions(int count) {
 
         _opcode = Opcode(fetchInstruction(PC));
 
-        if (_opcode == "0000ff61"){
-            //printf("%#02x\n", _opcode.op);
-            printf("%x\n", _opcode);
-        }
+        //printf("%d\n", _opcode.op);
+
+        //if (_opcode.op == 35){
+            //printf("rs %x\n", _opcode.rs);
+            //printf("rt %x\n", _opcode.rt);
+            //printf("rd %x\n", _opcode.rd);
+            ////std::raise(SIGINT);
+        //}
 
         const auto& op = instructions::OpcodeTable[_opcode.op];
 
