@@ -75,6 +75,11 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
     }
 
     uint32_t data = sys->readMemory32(address);
+    //if ((data >= 2133852160) && (data <= 2233852160)){
+    //if ((data >= 2036896) && (data <= 2196896)){
+        //printf("DATA dec: %u hex: %X\n", data, data);
+    //}
+    //printf("%X\n", data);
     icache[index] = CacheLine{tag, data};
 
     return data;
@@ -95,14 +100,13 @@ bool CPU::executeInstructions(int count) {
 
         _opcode = Opcode(fetchInstruction(PC));
 
-        //printf("%d\n", _opcode.op);
+        uint32_t data = sys->readMemory32(PC);
+        //if ((data >= 2133852160) && (data <= 2233852160)){
+        if ((data >= 2096796) && (data <= 2096996)){
+            printf("DATA dec: %u hex: %X\n", data, data);
+        }
 
-        //if (_opcode.op == 35){
-            //printf("rs %x\n", _opcode.rs);
-            //printf("rt %x\n", _opcode.rt);
-            //printf("rd %x\n", _opcode.rd);
-            ////std::raise(SIGINT);
-        //}
+        //printf("%d\n", _opcode.op);
 
         const auto& op = instructions::OpcodeTable[_opcode.op];
 
