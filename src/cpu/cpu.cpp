@@ -4,6 +4,8 @@
 #include "system.h"
 
 
+#include <iostream>
+#include <string> 
 #include <csignal>
 
 
@@ -58,6 +60,55 @@ bool CPU::handleSoftwareBreakpoints() {
     return true;
 }
 
+// https://stackoverflow.com/questions/23502153/utf-8-encoding-algorithm-vs-utf-16-algorithm
+void GetUnicodeCharUtf16(unsigned int code, unsigned short chars[2]){
+    if ( ((code >= 0x0000) && (code <= 0xD7FF)) ||
+        ((code >= 0xE000) && (code <= 0xFFFF)) )
+    {
+        chars[0] = 0x0000;
+        chars[1] = (unsigned short) code;
+    }
+    else if ((code >= 0xD800) && (code <= 0xDFFF))
+    {
+        // unicode replacement character
+        chars[0] = 0x0000;
+        chars[1] = 0xFFFD;
+    }
+    else
+    {
+        // surrogate pair
+        code -= 0x010000;
+        chars[0] = 0xD800 + (unsigned short)((code >> 10) & 0x3FF);
+        chars[1] = 0xDC00 + (unsigned short)(code & 0x3FF);
+    }
+}
+
+// https://stackoverflow.com/questions/23461499/decimal-to-unicode-char-in-c
+void GetUnicodeCharUtf8(unsigned int code, char chars[5]) {
+    if (code <= 0x7F) {
+        chars[0] = (code & 0x7F); chars[1] = '\0';
+    } else if (code <= 0x7FF) {
+        // one continuation byte
+        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[0] = 0xC0 | (code & 0x1F); chars[2] = '\0';
+    } else if (code <= 0xFFFF) {
+        // two continuation bytes
+        chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[0] = 0xE0 | (code & 0xF); chars[3] = '\0';
+    } else if (code <= 0x10FFFF) {
+        // three continuation bytes
+        chars[3] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+        chars[0] = 0xF0 | (code & 0x7); chars[4] = '\0';
+    } else {
+        // unicode replacement character
+        chars[2] = 0xEF; chars[1] = 0xBF; chars[0] = 0xBD;
+        chars[3] = '\0';
+    }
+}
+
 INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
     // Only KUSEG and KSEG0 have code-cache
     // I'm completely clueless if address comparison here makes any sense
@@ -74,11 +125,19 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
         return line.data;
     }
 
+
     uint32_t data = sys->readMemory32(address);
-    //if ((data >= 2133852160) && (data <= 2233852160)){
-    //if ((data >= 2036896) && (data <= 2196896)){
-        //printf("DATA dec: %u hex: %X\n", data, data);
-    //}
+
+    //char chars[2];
+    //GetUnicodeCharUtf16(data, chars);
+    //std::cout << chars << "\n";
+
+    if (data >= 0x02CF6648 && data <= 0x09480000){
+        //printf("%X\n", data);
+        //printf("ADDR dec: %u hex: %X\n", address, address);
+        printf("DATA dec: %u hex: 0x%X\n", data, data);
+    }
+    //printf("DATA dec: %u hex: %X\n", data, data);
     //printf("%X\n", data);
     icache[index] = CacheLine{tag, data};
 
@@ -99,14 +158,6 @@ bool CPU::executeInstructions(int count) {
         }
 
         _opcode = Opcode(fetchInstruction(PC));
-
-        uint32_t data = sys->readMemory32(PC);
-        //if ((data >= 2133852160) && (data <= 2233852160)){
-        if ((data >= 2096796) && (data <= 2096996)){
-            printf("DATA dec: %u hex: %X\n", data, data);
-        }
-
-        //printf("%d\n", _opcode.op);
 
         const auto& op = instructions::OpcodeTable[_opcode.op];
 

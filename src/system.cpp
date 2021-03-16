@@ -149,21 +149,6 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
-    //if ((address < 1291473) && (address > 0)){
-    //if (address == 160){
-        //printf("NEW FRAME\n\n\n\n\n");
-    //}
-
-    //if ((address < 2048414640) && (address > 538486568)){
-    //if ((address < 1291473) && (address > 0)){
-        //printf("ADDR hex: %X dec: %u\n", address, address);
-    //}
-    //if ((address < 11473) && (address > 0)){
-        //printf("ADDR hex: %X dec: %u\n", address, address);
-    //}
-
-    //usleep(5);
-
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         //if (address < 2049576196){
             //printf("RAM hex: %X dec: %u\n", address, address);

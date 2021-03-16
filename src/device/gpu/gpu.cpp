@@ -8,6 +8,9 @@
 #include "utils/logic.h"
 #include "utils/macros.h"
 
+
+#include <iostream>
+
 // For vram dump
 #include <stb_image_write.h>
 
