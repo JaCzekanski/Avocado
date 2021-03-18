@@ -57,6 +57,8 @@ uint32_t MDEC::read(uint32_t address) {
         if (outputPtr >= output.size()) {
             outputPtr = 0;
         }
+
+
         return data;
     }
     if (address >= 4 && address < 8) {

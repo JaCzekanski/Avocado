@@ -668,11 +668,6 @@ void op_lw(CPU *cpu, Opcode i) {
         return;
     }
     cpu->loadDelaySlot(i.rt, cpu->sys->readMemory32(addr));
-
-    if (cpu->sys->readMemory32(addr) >= 3217440768 && cpu->sys->readMemory32(addr) <= 3217555456){
-        printf("%u\n", cpu->sys->readMemory32(addr));
-
-    }
 }
 
 // Load Byte Unsigned

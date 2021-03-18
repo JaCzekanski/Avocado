@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <string> 
-#include <csignal>
+#include <unistd.h>
 
 
 namespace mips {
@@ -60,54 +60,6 @@ bool CPU::handleSoftwareBreakpoints() {
     return true;
 }
 
-// https://stackoverflow.com/questions/23502153/utf-8-encoding-algorithm-vs-utf-16-algorithm
-void GetUnicodeCharUtf16(unsigned int code, unsigned short chars[2]){
-    if ( ((code >= 0x0000) && (code <= 0xD7FF)) ||
-        ((code >= 0xE000) && (code <= 0xFFFF)) )
-    {
-        chars[0] = 0x0000;
-        chars[1] = (unsigned short) code;
-    }
-    else if ((code >= 0xD800) && (code <= 0xDFFF))
-    {
-        // unicode replacement character
-        chars[0] = 0x0000;
-        chars[1] = 0xFFFD;
-    }
-    else
-    {
-        // surrogate pair
-        code -= 0x010000;
-        chars[0] = 0xD800 + (unsigned short)((code >> 10) & 0x3FF);
-        chars[1] = 0xDC00 + (unsigned short)(code & 0x3FF);
-    }
-}
-
-// https://stackoverflow.com/questions/23461499/decimal-to-unicode-char-in-c
-void GetUnicodeCharUtf8(unsigned int code, char chars[5]) {
-    if (code <= 0x7F) {
-        chars[0] = (code & 0x7F); chars[1] = '\0';
-    } else if (code <= 0x7FF) {
-        // one continuation byte
-        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
-        chars[0] = 0xC0 | (code & 0x1F); chars[2] = '\0';
-    } else if (code <= 0xFFFF) {
-        // two continuation bytes
-        chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
-        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
-        chars[0] = 0xE0 | (code & 0xF); chars[3] = '\0';
-    } else if (code <= 0x10FFFF) {
-        // three continuation bytes
-        chars[3] = 0x80 | (code & 0x3F); code = (code >> 6);
-        chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
-        chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
-        chars[0] = 0xF0 | (code & 0x7); chars[4] = '\0';
-    } else {
-        // unicode replacement character
-        chars[2] = 0xEF; chars[1] = 0xBF; chars[0] = 0xBD;
-        chars[3] = '\0';
-    }
-}
 
 INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
     // Only KUSEG and KSEG0 have code-cache
@@ -116,6 +68,7 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
     if (unlikely(!icacheEnabled) || address >= 0xa000'0000) {
         return sys->readMemory32(address);
     }
+
 
     uint32_t tag = ((address & 0xfffff000) >> 12) | CACHE_LINE_VALID_BIT;
     uint16_t index = (address & 0xffc) >> 2;
@@ -128,17 +81,7 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
 
     uint32_t data = sys->readMemory32(address);
 
-    //char chars[2];
-    //GetUnicodeCharUtf16(data, chars);
-    //std::cout << chars << "\n";
 
-    if (data >= 0x02CF6648 && data <= 0x09480000){
-        //printf("%X\n", data);
-        //printf("ADDR dec: %u hex: %X\n", address, address);
-        printf("DATA dec: %u hex: 0x%X\n", data, data);
-    }
-    //printf("DATA dec: %u hex: %X\n", data, data);
-    //printf("%X\n", data);
     icache[index] = CacheLine{tag, data};
 
     return data;
@@ -166,6 +109,13 @@ bool CPU::executeInstructions(int count) {
         op.instruction(this, _opcode);
 
         moveLoadDelaySlots();
+
+
+        //uint32_t data = sys->readMemory32(maskedPc);
+        //printf("JMP ADDR: 0x%X\n", data);
+        //if ((maskedPc > 0x0008F000) && (maskedPc < 0x0008FFFF)){
+            //printf("JMP ADDR: 0x%X\n", maskedPc);
+        //}
 
         sys->cycles++;
         if (sys->state != System::State::run) return false;

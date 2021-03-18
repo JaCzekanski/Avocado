@@ -149,27 +149,20 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
+    if ((address > 0x0008F000) && (address < 0x0008FFFF)){
+        printf("READ ADDR: 0x%X\n", address);
+    }
+
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        //if (address < 2049576196){
-            //printf("RAM hex: %X dec: %u\n", address, address);
-        //}
-        //if (addr != 2092768 && addr != 930992){
-            //printf("RAM hex: %X dec: %u\n", address, address);
-        //}
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
-        printf("EXPANSION %X\n", addr);
         return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
     }
     if (in_range<SCRATCHPAD_BASE, SCRATCHPAD_SIZE>(addr)) {
-        printf("SCRATCHPAD %X\n", addr);
         return read_fast<T>(scratchpad.data(), addr - SCRATCHPAD_BASE);
     }
     if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
-        //if (addr != 2092768 && addr != 930992){
-            //printf("BIOS hex: %X dec: %u\n", address, address);
-        //}
         return read_fast<T>(bios.data(), addr - BIOS_BASE);
     }
 
@@ -211,6 +204,10 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     }
 
     uint32_t addr = align_mips<T>(address);
+
+    if ((address > 0x0008F000) && (address < 0x0008FFFF)){
+        printf("WRITE ADDR: 0x%X\n", address);
+    }
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);

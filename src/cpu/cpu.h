@@ -102,6 +102,7 @@ struct CPU {
     }
     INLINE void setReg(uint32_t r, uint32_t data) {
         if (r == 0) return;
+
         reg[r] = data;
 
         // Invalidate
@@ -114,6 +115,9 @@ struct CPU {
         branchTaken = true;
     }
     INLINE void setPC(uint32_t address) {
+        if ((address > 0x0008F1F0) && (address < 0x0008F8F0)){
+            printf("SET ADDR: 0x%X\n", address);
+        }
         PC = address;
         nextPC = address + 4;
     }
