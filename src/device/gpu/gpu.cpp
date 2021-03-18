@@ -588,9 +588,9 @@ uint32_t GPU::read(uint32_t address) {
 void GPU::write(uint32_t address, uint32_t data) {
     //printf("GPU DATA: 0x%x\n", data);
     //printf("GPU ADDR: 0x%x\n", address);
-    if ((data > 0x0008F000) && (data < 0x0008FFFF)){
-        printf("GPU ADDR: 0x%x\n", data);
-    }
+    //if ((data > 0x0008F000) && (data < 0x0008FFFF)){
+        //printf("GPU ADDR: 0x%x\n", data);
+    //}
     //if ((address > 0x0008F000) && (address < 0x0008FFFF)){
         //printf("GPU ADDR: 0x%x\n", address);
     //}
