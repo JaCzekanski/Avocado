@@ -1,0 +1,13 @@
+[INFO] Using bios SCPH1000.BIN
+[INFO] Loaded memory card 1 from card1.mcr
+Cannot load main.py
+
+PS-X Realtime Kernel Ver.2.5
+Copyright 1993,1994 (C) Sony Computer Entertainment Inc. 
+KERNEL SETUP!
+
+Configuration : EvCB	0x10		TCB	0x04
+GPU Initialize
+
+[INFO] Saved memory card 1 to card1.mcr
+[INFO] No memory card 2 path in config, skipping save

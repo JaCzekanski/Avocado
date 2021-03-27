@@ -6,7 +6,11 @@
 #include "opcode.h"
 #include "utils/macros.h"
 
+#include <iostream>
+#include <fstream>
+
 struct System;
+
 
 namespace mips {
 
@@ -40,6 +44,7 @@ r30     fp    - frame pointer
 r31     ra    - return address
 */
 
+
 struct LoadSlot {
     uint32_t reg;
     uint32_t data;
@@ -65,6 +70,9 @@ struct CacheLine {
 struct CPU {
     inline static const int REGISTER_COUNT = 32;
 #define DUMMY_REG 32  // Used as dummy Load Delay slot
+
+    // Output file for dialog
+    std::ofstream dialog_ptr_file;
 
     // Saved state for exception handling
     uint32_t exceptionPC;
@@ -93,14 +101,8 @@ struct CPU {
     void checkForInterrupts();
     INLINE void moveLoadDelaySlots();
     INLINE void loadDelaySlot(uint32_t r, uint32_t data) {
-        if ((data > 0x0008F1F0) && (data < 0x0008F8F0)){  // What to do today??
-            printf("SET ADDR: 0x%X\nSET REG: %d\n", data, reg);
-        }
-        if ((data > 0x06450000) && (data < 0x0645FFFF)){ // shiyori home
-            printf("SET ADDR: 0x%X\nSET REG: %d\n", data, reg);
-        }
-
         if (r == 0) return;
+
         if (r == slots[0].reg) {
             slots[0].reg = DUMMY_REG;  // Override previous write to same register
         }
@@ -110,13 +112,6 @@ struct CPU {
     INLINE void setReg(uint32_t r, uint32_t data) {
         if (r == 0) return;
 
-        if ((data > 0x0008F1F0) && (data < 0x0008F8F0)){  // What to do today??
-            printf("SET ADDR: 0x%X\nSET REG: %d\n", data, reg);
-        }
-        if ((data > 0x06450000) && (data < 0x0645FFFF)){ // shiyori home
-            printf("SET ADDR: 0x%X\nSET REG: %d\n", data, reg);
-        }
-
         reg[r] = data;
 
         // Invalidate
@@ -125,16 +120,10 @@ struct CPU {
         }
     }
     INLINE void jump(uint32_t address) {
-        if ((address > 0x0008F1F0) && (address < 0x0008F8F0)){
-            printf("JUMP ADDR: 0x%X\n", address);
-        }
         nextPC = address;
         branchTaken = true;
     }
     INLINE void setPC(uint32_t address) {
-        if ((address > 0x0008F1F0) && (address < 0x0008F8F0)){
-            printf("SETPC ADDR: 0x%X\n", address);
-        }
         PC = address;
         nextPC = address + 4;
     }

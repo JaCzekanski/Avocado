@@ -78,9 +78,12 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
         return line.data;
     }
 
-
+    //printf("address %X\n", address);
     uint32_t data = sys->readMemory32(address);
-
+    //if ((data > 0x35F2EC) && (data < 0x35F7EC)){ // shiyori home
+    //printf("data %X\n", data);
+        //printf("asdf");
+    //}
 
     icache[index] = CacheLine{tag, data};
 
@@ -109,13 +112,6 @@ bool CPU::executeInstructions(int count) {
         op.instruction(this, _opcode);
 
         moveLoadDelaySlots();
-
-
-        //uint32_t data = sys->readMemory32(maskedPc);
-        //printf("JMP ADDR: 0x%X\n", data);
-        //if ((maskedPc > 0x0008F000) && (maskedPc < 0x0008FFFF)){
-            //printf("JMP ADDR: 0x%X\n", maskedPc);
-        //}
 
         sys->cycles++;
         if (sys->state != System::State::run) return false;

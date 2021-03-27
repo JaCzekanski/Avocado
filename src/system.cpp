@@ -149,11 +149,10 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
-    if ((address > 0x0008F000) && (address < 0x0008FFFF)){
-        printf("READ ADDR: 0x%X\n", address);
-    }
-
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
+        if ((addr < 0x1A0000) && (addr > 0x190000)){
+            printf("READ RAM 0x%X\n", addr);
+        }
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
@@ -204,12 +203,10 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     }
 
     uint32_t addr = align_mips<T>(address);
-
-    if ((address > 0x0008F000) && (address < 0x0008FFFF)){
-        printf("WRITE ADDR: 0x%X\n", address);
-    }
-
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
+        if ((addr < 0x1A0000) && (addr > 0x190000)){
+            printf("WRITE RAM 0x%X\n", addr);
+        }
         return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
@@ -244,17 +241,29 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     cpu->busError();
 }
 
-uint8_t System::readMemory8(uint32_t address) { return readMemory<uint8_t>(address); }
+uint8_t System::readMemory8(uint32_t address) { 
+    return readMemory<uint8_t>(address); 
+}
 
-uint16_t System::readMemory16(uint32_t address) { return readMemory<uint16_t>(address); }
+uint16_t System::readMemory16(uint32_t address) {
+    return readMemory<uint16_t>(address); 
+}
 
-uint32_t System::readMemory32(uint32_t address) { return readMemory<uint32_t>(address); }
+uint32_t System::readMemory32(uint32_t address) {
+    return readMemory<uint32_t>(address);
+}
 
-void System::writeMemory8(uint32_t address, uint8_t data) { writeMemory<uint8_t>(address, data); }
+void System::writeMemory8(uint32_t address, uint8_t data) { 
+    writeMemory<uint8_t>(address, data); 
+}
 
-void System::writeMemory16(uint32_t address, uint16_t data) { writeMemory<uint16_t>(address, data); }
+void System::writeMemory16(uint32_t address, uint16_t data) { 
+    writeMemory<uint16_t>(address, data); 
+}
 
-void System::writeMemory32(uint32_t address, uint32_t data) { writeMemory<uint32_t>(address, data); }
+void System::writeMemory32(uint32_t address, uint32_t data) { 
+    writeMemory<uint32_t>(address, data); 
+}
 
 void System::printFunctionInfo(const char* functionNum, const bios::Function& f) {
     fmt::print("  {}: {}(", functionNum, f.name);

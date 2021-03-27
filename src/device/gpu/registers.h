@@ -279,7 +279,8 @@ struct LogEntry {
         return e;
     }
 
-    static LogEntry GP1(uint8_t cmd, uint32_t data) { return GP1((cmd << 24) | (data & 0x00ffffff)); }
+    static LogEntry GP1(uint8_t cmd, uint32_t data) {
+        return GP1((cmd << 24) | (data & 0x00ffffff)); }
 
     uint8_t cmd() const { return (args[0] >> 24) & 0xff; }
 };
