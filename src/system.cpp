@@ -149,9 +149,13 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
+    setvbuf(stdout, NULL, _IONBF, 0); 
+
+
     if ((addr > 0x19A000) && (addr < 0x19E000)){
         printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
     }
+    std::cout << std::flush;
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));

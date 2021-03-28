@@ -1,6 +1,7 @@
 #include "instructions.h"
 #include <cstdio>
 #include "system.h"
+#include "utils/address.h"
 
 using namespace mips;
 
@@ -670,6 +671,12 @@ void op_lw(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorLoad);
         return;
     }
+
+    //uint32_t aligned_addr = align_mips<uint32_t>(cpu->reg[i.rs] + i.offset);
+    //if ((aligned_addr > 0x19A000) && (aligned_addr < 0x19E000)){
+        //printf("LOAD WORD 0x%X\n", aligned_addr);
+    //}
+
     cpu->loadDelaySlot(i.rt, cpu->sys->readMemory32(addr));
 }
 
@@ -765,6 +772,12 @@ void op_sw(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
+
+    uint32_t aligned_addr = align_mips<uint32_t>(cpu->reg[i.rs] + i.offset);
+    if ((aligned_addr > 0x19A000) && (aligned_addr < 0x19E000)){
+        printf("STORE WORD 0x%X\n", aligned_addr);
+    }
+
     cpu->sys->writeMemory32(addr, cpu->reg[i.rt]);
 }
 
