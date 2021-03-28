@@ -69,7 +69,6 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
         return sys->readMemory32(address);
     }
 
-
     uint32_t tag = ((address & 0xfffff000) >> 12) | CACHE_LINE_VALID_BIT;
     uint16_t index = (address & 0xffc) >> 2;
 
@@ -80,9 +79,9 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
 
     //printf("address %X\n", address);
     uint32_t data = sys->readMemory32(address);
-    //if ((data > 0x35F2EC) && (data < 0x35F7EC)){ // shiyori home
-    //printf("data %X\n", data);
-        //printf("asdf");
+        
+    //if ((data > 0x19A000) && (data < 0x19E000)){
+        //printf("DATA %X\n", data);
     //}
 
     icache[index] = CacheLine{tag, data};

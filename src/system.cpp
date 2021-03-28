@@ -149,10 +149,11 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
+    if ((addr > 0x19A000) && (addr < 0x19E000)){
+        printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
+    }
+
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        if ((addr < 0x1A0000) && (addr > 0x190000)){
-            printf("READ RAM 0x%X\n", addr);
-        }
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
@@ -203,10 +204,12 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     }
 
     uint32_t addr = align_mips<T>(address);
+
+    //if ((addr > 0x19A000) && (addr < 0x19E000)){
+        //printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
+    //}
+
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        if ((addr < 0x1A0000) && (addr > 0x190000)){
-            printf("WRITE RAM 0x%X\n", addr);
-        }
         return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
