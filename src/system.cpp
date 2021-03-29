@@ -152,10 +152,16 @@ INLINE T System::readMemory(uint32_t address) {
     setvbuf(stdout, NULL, _IONBF, 0); 
 
 
-    if ((addr > 0x19A000) && (addr < 0x19E000)){
-        printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
+    //if ((addr > 0x19A000) && (addr < 0x19E000)) {
+    if ((addr > 0x1FE900) && (addr < 0x1FE9A0)) {
+        if (sizeof(T) == 1) {
+            printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
+        } else { 
+            //printf("ADDR OFFSET 0x%X ", ((addr - RAM_BASE) & (RAM_SIZE - 1)) / 1);
+            //printf("ADDR 0x%X ", addr);
+            std::cout << std::endl;
+        }
     }
-    std::cout << std::flush;
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
@@ -184,6 +190,7 @@ INLINE T System::readMemory(uint32_t address) {
     READ_IO32(0x1f801820, 0x1f801828, mdec);
     READ_IO(0x1f801C00, 0x1f802000, spu);
     READ_IO(0x1f802000, 0x1f804000, expansion2);
+
 
     if (in_range<0xfffe0130, 4>(address) && sizeof(T) == 4) {
         auto data = cacheControl->read(0);
