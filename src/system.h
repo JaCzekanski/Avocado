@@ -63,6 +63,7 @@ struct System {
 
     bool debugOutput = true;  // Print BIOS logs
     bool biosLoaded = false;
+    bool dialog = false; // For printing dialog
 
     uint64_t cycles;
 

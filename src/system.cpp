@@ -151,19 +151,13 @@ INLINE T System::readMemory(uint32_t address) {
 
     setvbuf(stdout, NULL, _IONBF, 0); 
 
-
-    //if ((addr > 0x19A000) && (addr < 0x19E000)) {
-    if ((addr > 0x1FE900) && (addr < 0x1FE9A0)) {
-        if (sizeof(T) == 1) {
-            printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
-        } else { 
-            //printf("ADDR OFFSET 0x%X ", ((addr - RAM_BASE) & (RAM_SIZE - 1)) / 1);
-            //printf("ADDR 0x%X ", addr);
-            std::cout << std::endl;
-        }
-    }
-
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
+        //if ((addr > 0x19A000) && (addr < 0x19E000)) {
+        //if ((addr > 0x1FE900) && (addr < 0x1FE9A0)) {
+        if ((addr > 0x1FEC24) && (addr < 0x1FEC90)) {
+            dialog = true;
+            printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
+        }
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
@@ -175,6 +169,11 @@ INLINE T System::readMemory(uint32_t address) {
     if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
         return read_fast<T>(bios.data(), addr - BIOS_BASE);
     }
+    if (dialog) {
+        dialog = false;
+        std::cout << std::endl;
+    }
+
 
     READ_IO(0x1f801000, 0x1f801024, memoryControl);
     READ_IO(0x1f801040, 0x1f801050, controller);

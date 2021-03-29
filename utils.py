@@ -8,7 +8,7 @@ from google_trans_new import google_translator
 translator = google_translator()
 
 
-def read_hex(hexf):
+def read_hex(hexf, translate = False):
     hexf = hexf.replace(" ", "")
     hexf = hexf.replace("8200", "")
     hexf = hexf.replace("20", "")
@@ -25,9 +25,11 @@ def read_hex(hexf):
                 continue
 
         out = ''.join(out)
-        # out_trans = translator.translate(out, lang_tgt='en')
 
-        # print("Translated:", out_trans)
+        if translate:
+            out_trans = translator.translate(out, lang_tgt='en')
+            print("Translated:", out_trans)
+
         print("Original:", out)
         print()
 
@@ -47,4 +49,5 @@ def read_hex_file(filename, addr):
 
 if __name__=="__main__":
     text = input()
-    print(read_hex(text))
+    for t in text.split(" 0 "):
+        read_hex(t)
