@@ -152,10 +152,12 @@ INLINE T System::readMemory(uint32_t address) {
     setvbuf(stdout, NULL, _IONBF, 0); 
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        //if ((addr > 0x19A000) && (addr < 0x19E000)) {
-        //if ((addr > 0x1FE900) && (addr < 0x1FE9A0)) {
-        if ((addr > 0x1FEC24) && (addr < 0x1FEC90)) {
+        if ((addr > 0x1FEB16) && (addr < 0x1FEC90) && sizeof(T) == 1) {
             dialog = true;
+            if (read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)) == 0){
+                std::cout << std::endl;
+            }
+
             printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
         }
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
@@ -168,10 +170,6 @@ INLINE T System::readMemory(uint32_t address) {
     }
     if (in_range<BIOS_BASE, BIOS_SIZE>(addr)) {
         return read_fast<T>(bios.data(), addr - BIOS_BASE);
-    }
-    if (dialog) {
-        dialog = false;
-        std::cout << std::endl;
     }
 
 

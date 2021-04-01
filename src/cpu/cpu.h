@@ -71,9 +71,6 @@ struct CPU {
     inline static const int REGISTER_COUNT = 32;
 #define DUMMY_REG 32  // Used as dummy Load Delay slot
 
-    // Output file for dialog
-    std::ofstream dialog_ptr_file;
-
     // Saved state for exception handling
     uint32_t exceptionPC;
     bool exceptionIsInBranchDelay;
