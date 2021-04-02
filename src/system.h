@@ -63,7 +63,9 @@ struct System {
 
     bool debugOutput = true;  // Print BIOS logs
     bool biosLoaded = false;
-    bool dialog = false; // For printing dialog
+
+    bool delimeter = false; // For printing texthook
+    uint32_t ram_tmp; // Keep track of temporary mem for texthooking
 
     uint64_t cycles;
 

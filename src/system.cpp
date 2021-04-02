@@ -150,15 +150,21 @@ INLINE T System::readMemory(uint32_t address) {
     uint32_t addr = align_mips<T>(address);
 
     setvbuf(stdout, NULL, _IONBF, 0); 
-
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        if ((addr > 0x1FEB16) && (addr < 0x1FEC90) && sizeof(T) == 1) {
-            dialog = true;
-            if (read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)) == 0){
+        ram_tmp = read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
+
+        if ((addr > 0x1FEB16) && (addr < 0x1FEC90)) {
+            if ((ram_tmp == 0) && (sizeof(T) == 1)) {
+                std::cout << std::endl;
+
+            } else if ((sizeof(T) == 1)) {
+                delimeter = true;
+                printf("%X ", ram_tmp);
+
+            } else if (sizeof(T) == 2 && delimeter) {
+                delimeter = false;
                 std::cout << std::endl;
             }
-
-            printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
         }
         return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
     }
