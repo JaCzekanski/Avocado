@@ -4,6 +4,7 @@
 #include "system.h"
 
 
+#include "utils/address.h"
 #include <iostream>
 #include <string> 
 #include <unistd.h>
@@ -77,13 +78,8 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
         return line.data;
     }
 
-    //printf("address %X\n", address);
     uint32_t data = sys->readMemory32(address);
         
-    //if ((data > 0x19A000) && (data < 0x19E000)){
-        //printf("DATA %X\n", data);
-    //}
-
     icache[index] = CacheLine{tag, data};
 
     return data;

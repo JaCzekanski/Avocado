@@ -672,11 +672,6 @@ void op_lw(CPU *cpu, Opcode i) {
         return;
     }
 
-    //uint32_t aligned_addr = align_mips<uint32_t>(cpu->reg[i.rs] + i.offset);
-    //if ((aligned_addr > 0x19A000) && (aligned_addr < 0x19E000)){
-        //printf("LOAD WORD 0x%X\n", aligned_addr);
-    //}
-
     cpu->loadDelaySlot(i.rt, cpu->sys->readMemory32(addr));
 }
 

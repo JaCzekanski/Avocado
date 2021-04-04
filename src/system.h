@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <vector>
+#include <queue>
 
 /**
  * NOTE:
@@ -65,6 +66,8 @@ struct System {
     bool biosLoaded = false;
 
     bool delimeter = false; // For printing texthook
+
+    std::queue<uint32_t>trace; // Trace for RAM
     uint32_t ram_tmp; // Keep track of temporary mem for texthooking
 
     uint64_t cycles;

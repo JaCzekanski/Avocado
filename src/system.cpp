@@ -149,17 +149,40 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
+    trace.push(addr);
+    if (trace.size() > 1024) {
+        trace.pop();
+    }
+
     setvbuf(stdout, NULL, _IONBF, 0); 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         ram_tmp = read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
 
-        if ((addr > 0x1FEB16) && (addr < 0x1FEC90)) {
-            if ((ram_tmp == 0) && (sizeof(T) == 1)) {
-                std::cout << std::endl;
+        // Get the name of the person speaking
+        if ((addr > 0x0CA032) && (addr < 0x0CA068)) {
+            if ((sizeof(T) == 1)) {
+                if (ram_tmp == 0) {
+                    std::cout << "[NAME]" << std::endl;
+                } else {
+                    delimeter = true;
+                    printf("%X ", ram_tmp);
+                }
+            }
+        }
 
-            } else if ((sizeof(T) == 1)) {
-                delimeter = true;
-                printf("%X ", ram_tmp);
+        // Get the dialog of the person speaking
+        if ((addr > 0x1FEBEE) && (addr < 0x1FEC90)) {
+            for (int i = 0; i < trace.size(); i++){
+                std::cout << std::hex << trace.front() << std::endl;
+                trace.pop();
+            }
+            if ((sizeof(T) == 1)) {
+                if (ram_tmp == 0) {
+                    std::cout << std::endl;
+                } else {
+                    delimeter = true;
+                    printf("%X ", ram_tmp);
+                }
 
             } else if (sizeof(T) == 2 && delimeter) {
                 delimeter = false;
@@ -218,10 +241,6 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     }
 
     uint32_t addr = align_mips<T>(address);
-
-    //if ((addr > 0x19A000) && (addr < 0x19E000)){
-        //printf("%X ", read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1)));
-    //}
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);
