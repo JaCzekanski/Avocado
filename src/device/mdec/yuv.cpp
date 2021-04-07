@@ -1,5 +1,6 @@
 #include "mdec.h"
 #include "utils/math.h"
+#include <tuple>
 
 namespace mdec {
 // Helpers for accessing 1d arrays with 2d addressing
