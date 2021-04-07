@@ -27,6 +27,7 @@ System::System() {
     expansion2 = std::make_unique<Expansion2>();
     interrupt = std::make_unique<Interrupt>(this);
     memoryControl = std::make_unique<MemoryControl>();
+    ramControl = std::make_unique<RamControl>();
     cacheControl = std::make_unique<CacheControl>(this);
     serial = std::make_unique<Serial>();
     for (int t : {0, 1, 2}) {
@@ -162,7 +163,7 @@ INLINE T System::readMemory(uint32_t address) {
     READ_IO(0x1f801000, 0x1f801024, memoryControl);
     READ_IO(0x1f801040, 0x1f801050, controller);
     READ_IO(0x1f801050, 0x1f801060, serial);
-    READ_IO(0x1f801060, 0x1f801064, memoryControl);
+    READ_IO(0x1f801060, 0x1f801064, ramControl);
     READ_IO(0x1f801070, 0x1f801078, interrupt);
     READ_IO(0x1f801080, 0x1f801100, dma);
     READ_IO(0x1f801100, 0x1f801110, timer[0]);
@@ -211,7 +212,7 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     WRITE_IO(0x1f801000, 0x1f801024, memoryControl);
     WRITE_IO(0x1f801040, 0x1f801050, controller);
     WRITE_IO(0x1f801050, 0x1f801060, serial);
-    WRITE_IO(0x1f801060, 0x1f801064, memoryControl);
+    WRITE_IO(0x1f801060, 0x1f801064, ramControl);
     WRITE_IO(0x1f801070, 0x1f801078, interrupt);
     WRITE_IO(0x1f801080, 0x1f801100, dma);
     WRITE_IO(0x1f801100, 0x1f801110, timer[0]);
@@ -426,7 +427,23 @@ void System::emulateFrame() {
 }
 
 void System::softReset() {
-    fmt::print("Soft reset\n");
+    //    cdrom->reset();
+    //    controller->reset();
+    dma->reset();
+    expansion2->reset();
+    gpu->reset();
+    interrupt->reset();
+    mdec->reset();
+    memoryControl->reset();
+    ramControl->reset();
+    cacheControl->reset();
+    //    spu->reset();
+    serial->reset();
+    for (int t : {0, 1, 2}) {
+        //        timer[t]->reset();
+    }
+
+    //    cpu->reset();
     cpu->setPC(0xBFC00000);
     cpu->inBranchDelay = false;
     state = State::run;

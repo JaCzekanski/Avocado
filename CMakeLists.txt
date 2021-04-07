@@ -227,6 +227,7 @@ add_library(core STATIC
         src/device/mdec/algorithm.cpp
         src/device/mdec/mdec.cpp
         src/device/memory_control.cpp
+        src/device/ram_control.cpp
         src/device/serial.cpp
         src/device/spu/adsr.cpp
         src/device/spu/interpolation.cpp

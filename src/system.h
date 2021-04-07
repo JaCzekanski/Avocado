@@ -10,6 +10,7 @@
 #include "device/interrupt.h"
 #include "device/mdec/mdec.h"
 #include "device/memory_control.h"
+#include "device/ram_control.h"
 #include "device/serial.h"
 #include "device/spu/spu.h"
 #include "device/timer.h"
@@ -77,6 +78,7 @@ struct System {
     std::unique_ptr<Interrupt> interrupt;
     std::unique_ptr<mdec::MDEC> mdec;
     std::unique_ptr<MemoryControl> memoryControl;
+    std::unique_ptr<RamControl> ramControl;
     std::unique_ptr<CacheControl> cacheControl;
     std::unique_ptr<spu::SPU> spu;
     std::unique_ptr<Serial> serial;

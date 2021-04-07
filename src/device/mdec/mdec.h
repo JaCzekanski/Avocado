@@ -61,8 +61,6 @@ class MDEC {
     std::vector<uint32_t> output;
     size_t outputPtr;
 
-    void reset();
-
     // Algorithm
     void decodeMacroblocks();
     void yuvToRgb(decodedBlock& output, int blockX, int blockY);
@@ -72,6 +70,7 @@ class MDEC {
 
    public:
     MDEC();
+    void reset();
     void step();
     uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
