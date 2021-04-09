@@ -738,7 +738,15 @@ void op_sh(CPU *cpu, Opcode i) {
         exception(cpu, COP0::CAUSE::Exception::addressErrorStore);
         return;
     }
+
     cpu->sys->writeMemory16(addr, cpu->reg[i.rt]);
+
+    addr = align_mips<uint32_t>(addr);
+    if ((addr > 0x1FEC30) && (addr < 0x1FEC80)){
+        printf("ADDR %X\n", addr);
+        printf("REG %d\n", i.rt);
+        printf("DATA %X\n\n", cpu->reg[i.rt]);
+    }
 }
 
 // Store Word Left

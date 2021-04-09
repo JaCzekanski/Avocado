@@ -92,7 +92,7 @@ struct CPU {
     bool icacheEnabled;
     CacheLine icache[1024];
 
-    bool breakpointsEnabled = false;
+    bool breakpointsEnabled = true;
 
     CPU(System* sys);
     void checkForInterrupts();

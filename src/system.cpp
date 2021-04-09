@@ -149,48 +149,80 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
-    trace.push(addr);
-    if (trace.size() > 1024) {
-        trace.pop();
-    }
-
     setvbuf(stdout, NULL, _IONBF, 0); 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         ram_tmp = read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
 
-        // Get the name of the person speaking
-        if ((addr > 0x0CA032) && (addr < 0x0CA068)) {
-            if ((sizeof(T) == 1)) {
-                if (ram_tmp == 0) {
-                    std::cout << "[NAME]" << std::endl;
-                } else {
-                    delimeter = true;
-                    printf("%X ", ram_tmp);
+        if (print_dialog){
+            // Get the name of the person speaking
+            if ((addr > 0x0CA032) && (addr < 0x0CA068)) {
+                if ((sizeof(T) == 1)) {
+                    if (ram_tmp == 0) {
+                        std::cout << "[NAME]" << std::endl;
+                    } else {
+                        delimeter = true;
+                        printf("%X ", ram_tmp);
+                    }
+                }
+            }
+
+            // Get the dialog of the person speaking
+            if ((addr > 0x1FEBEE) && (addr < 0x1FEC90)) {
+                if (sizeof(T) == 1) {
+                    if (ram_tmp == 0) {
+                        std::cout << std::endl;
+                    } else {
+                        delimeter = true;
+                        printf("%X ", ram_tmp);
+                    }
+
+                } else if (sizeof(T) == 2 && delimeter) {
+                    delimeter = false;
+                    std::cout << std::endl;
                 }
             }
         }
 
-        // Get the dialog of the person speaking
-        if ((addr > 0x1FEBEE) && (addr < 0x1FEC90)) {
-            for (int i = 0; i < trace.size(); i++){
-                std::cout << std::hex << trace.front() << std::endl;
+
+        if (debug_read_trace){
+            trace.push(addr);
+            trace.push(ram_tmp);
+            if (trace.size() > 1024) {
+                trace.pop();
                 trace.pop();
             }
-            if ((sizeof(T) == 1)) {
-                if (ram_tmp == 0) {
-                    std::cout << std::endl;
-                } else {
-                    delimeter = true;
-                    printf("%X ", ram_tmp);
-                }
 
-            } else if (sizeof(T) == 2 && delimeter) {
-                delimeter = false;
-                std::cout << std::endl;
+            //if (((addr >= breakpoint) && (addr <= breakpoint)) || breakpoint_reached){
+            if (((ram_tmp >= breakpoint) && (ram_tmp <= breakpoint)) || breakpoint_reached){
+                breakpoint_reached = true;
+                trace_counter--;
+
+                //for (uint32_t i = 0; i < sizeof(cpu->reg); i++){
+                    //printf("REG %d: %X\n", i, cpu->reg[i]);
+                //}
+
+                if (trace_counter <= 0){
+                    printf("\nSTART TRACE:\n");
+                    printf(" ----------------------\n");
+                    for (uint32_t i = 1; i < trace.size(); i++){
+                        printf("%d. \033[34m ADDR:\033[0m 0x%-10X", i, trace.front());
+                        trace.pop();
+                        printf("\033[32mDATA:\033[0m 0x%-10X", trace.front());
+                        trace.pop();
+
+                        printf("\n");
+                    }
+                    printf("\033[31mBYTE\n");
+                    printf("\033[34m ADDR:\033[0m 0x%-10X", addr);
+                    printf("\033[32mDATA:\033[0m 0x%-10X\n", ram_tmp);
+                    printf(" ----------------------\n");
+                    printf("END TRACE:\n\n");
+                }
             }
         }
-        return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
-    }
+
+            return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
+        }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
         return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
     }
@@ -241,6 +273,44 @@ INLINE void System::writeMemory(uint32_t address, T data) {
     }
 
     uint32_t addr = align_mips<T>(address);
+
+    if (debug_write_trace){
+        trace.push(addr);
+        trace.push(data);
+        if (trace.size() > 1024) {
+            trace.pop();
+            trace.pop();
+        }
+
+        //if ((addr >= breakpoint) && (addr <= breakpoint)){
+        //if (cpu->reg[4] == breakpoint){
+        if (((data >= breakpoint) && (data <= breakpoint)) || breakpoint_reached){
+            breakpoint_reached = true;
+            trace_counter--;
+
+            //for (uint32_t i = 0; i < sizeof(cpu->reg); i++){
+                //printf("REG %d: %X\n", i, cpu->reg[i]);
+            //}
+
+            if (trace_counter <= 0){
+                printf("\nSTART TRACE:\n");
+                printf(" ----------------------\n");
+                for (uint32_t i = 1; i < trace.size(); i++){
+                    printf("%d. \033[34m ADDR:\033[0m 0x%-10X", i, trace.front());
+                    trace.pop();
+                    printf("\033[32mDATA:\033[0m 0x%-10X", trace.front());
+                    trace.pop();
+
+                    printf("\n");
+                }
+                printf("\033[31mBYTE\n");
+                printf("\033[34m ADDR:\033[0m 0x%-10X", addr);
+                printf("\033[32mDATA:\033[0m 0x%-10X\n", data);
+                printf(" ----------------------\n");
+                printf("END TRACE:\n\n");
+            }
+        }
+    }
 
     if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
         return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);

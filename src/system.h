@@ -27,7 +27,7 @@
 /**
  * #define ENABLE_IO_LOG
  * Switch --enable-io-log
- * Default: false
+ * Default: true 
  *
  * Enables IO access buffer log
  */
@@ -62,13 +62,24 @@ struct System {
     std::array<uint8_t, SCRATCHPAD_SIZE> scratchpad;
     std::array<uint8_t, EXPANSION_SIZE> expansion;
 
+
+    // CONFIG
+    bool debug_write_trace = false; // Show RAM trace
+    bool debug_read_trace = true; // Show RAM trace
+    bool print_dialog = false; // Print in game dialog/text to stdout
+
+
     bool debugOutput = true;  // Print BIOS logs
     bool biosLoaded = false;
 
     bool delimeter = false; // For printing texthook
+    bool breakpoint_reached = false;
 
     std::queue<uint32_t>trace; // Trace for RAM
+    uint32_t trace_counter = 256; // Track how many instructions after bp
     uint32_t ram_tmp; // Keep track of temporary mem for texthooking
+    //uint32_t breakpoint = 0x1FED1C; // Breakpoint for trace printing
+    uint32_t breakpoint = 0x800AFDF4; // Breakpoint for trace printing
 
     uint64_t cycles;
 
