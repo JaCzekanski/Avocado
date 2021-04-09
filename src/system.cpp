@@ -187,7 +187,7 @@ INLINE T System::readMemory(uint32_t address) {
         if (debug_read_trace){
             trace.push(addr);
             trace.push(ram_tmp);
-            if (trace.size() > 1024) {
+            if (trace.size() > trace_len) {
                 trace.pop();
                 trace.pop();
             }
@@ -274,41 +274,39 @@ INLINE void System::writeMemory(uint32_t address, T data) {
 
     uint32_t addr = align_mips<T>(address);
 
+    // Push instructions(addr, data) to trace array
     if (debug_write_trace){
         trace.push(addr);
         trace.push(data);
-        if (trace.size() > 1024) {
+        if (trace.size() > trace_len) {
             trace.pop();
             trace.pop();
         }
 
-        //if ((addr >= breakpoint) && (addr <= breakpoint)){
-        //if (cpu->reg[4] == breakpoint){
-        if (((data >= breakpoint) && (data <= breakpoint)) || breakpoint_reached){
-            breakpoint_reached = true;
-            trace_counter--;
+        // If the data being written is the data set by breakpoint
+        //if (((data >= breakpoint) && (data <= breakpoint)) || breakpoint_reached){
+            //breakpoint_reached = true;
+            //trace_counter--;
 
-            //for (uint32_t i = 0; i < sizeof(cpu->reg); i++){
-                //printf("REG %d: %X\n", i, cpu->reg[i]);
-            //}
-
-            if (trace_counter <= 0){
+        if ((data >= breakpoint) && (data <= breakpoint)){
+            //if (trace_counter <= 0){
                 printf("\nSTART TRACE:\n");
                 printf(" ----------------------\n");
                 for (uint32_t i = 1; i < trace.size(); i++){
                     printf("%d. \033[34m ADDR:\033[0m 0x%-10X", i, trace.front());
                     trace.pop();
-                    printf("\033[32mDATA:\033[0m 0x%-10X", trace.front());
+                    printf("\033[32mDATA:\033[0m 0x%-10X\n", trace.front());
                     trace.pop();
-
+                    print_reg();
                     printf("\n");
                 }
                 printf("\033[31mBYTE\n");
                 printf("\033[34m ADDR:\033[0m 0x%-10X", addr);
                 printf("\033[32mDATA:\033[0m 0x%-10X\n", data);
+                print_reg();
                 printf(" ----------------------\n");
                 printf("END TRACE:\n\n");
-            }
+            //}
         }
     }
 
@@ -625,6 +623,16 @@ bool System::loadExpansion(const std::vector<uint8_t>& _exp) {
 
     std::copy(_exp.begin(), _exp.end(), expansion.begin());
     return true;
+}
+
+// Pretty print CPU registers at each instruction
+void System::print_reg(){
+    for (uint32_t i = 0; i < cpu->REGISTER_COUNT / 4; i++){
+        for (int j = 0; j < cpu->REGISTER_COUNT / 8; j++){
+            printf("    REG %d: %-10X", i * 4 + j, cpu->reg[i * 4 + j]);
+        }
+        printf("\n");
+    }
 }
 
 void System::dumpRam() {
