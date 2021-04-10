@@ -28,6 +28,9 @@ uint32_t MDEC::read(uint32_t address) {
         // 2:  b g r B
         // 3:    B G R  <- cycle continues
 
+        if (output.empty() || outputPtr >= output.size()) {
+            return 0;
+        }
         uint32_t data = 0;
         if (status.colorDepth == Status::ColorDepth::bit_24) {
             if (part == 0)
@@ -55,15 +58,15 @@ uint32_t MDEC::read(uint32_t address) {
         }
 
         if (outputPtr >= output.size()) {
-            outputPtr = 0;
+            output.clear();
         }
         return data;
     }
     if (address >= 4 && address < 8) {
         // TODO: Handle fifo bits
-        status.dataOutFifoEmpty = outputPtr >= output.size();
-        status.dataInFifoFull = 0;
-        status.commandBusy = 0;
+        status.dataOutFifoEmpty = output.empty();
+        status.dataInFifoFull = !input.empty();
+        status.commandBusy = !output.empty();
         return status._reg;
     }
 
@@ -138,6 +141,7 @@ void MDEC::write(uint32_t address, uint32_t data) {
                     if (paramCount == 1) {
                         // TODO: Pass macroblock, not raw pointer
                         decodeMacroblocks();
+                        input.clear();
                     }
 
                     break;
@@ -182,11 +186,11 @@ void MDEC::write(uint32_t address, uint32_t data) {
         return;
     }
     if (address >= 4 && address < 8) {
-        _control._reg = data;
+        control._reg = data;
 
-        if (_control.getBit(31)) reset();
-        status.dataInRequest = _control.getBit(28);
-        status.dataOutRequest = _control.getBit(27);
+        if (control.reset) reset();
+        status.dataInRequest = control.enableDataIn;
+        status.dataOutRequest = control.enableDataOut;
         return;
     }
 

@@ -94,6 +94,8 @@ void DMAChannel::syncBlockTransfer() {
         canLog = false;
     }
 
+hack_transferLoop:
+
     // TODO: DREQ DACK for MDEC
     // TODO: Execute sync with chopping
     if (control.direction == CHCR::Direction::toRam) {
@@ -111,6 +113,9 @@ void DMAChannel::syncBlockTransfer() {
     if (--count.syncMode1.blockCount == 0) {
         irqFlag = true;
         control.enabled = CHCR::Enabled::completed;
+    }
+    if (!hack_supportChoppedTransfer() && count.syncMode1.blockCount > 0) {
+        goto hack_transferLoop;
     }
 }
 

@@ -99,6 +99,7 @@ class DMAChannel {
 
     // DACK/DREQ
     virtual bool dataRequest() { return true; }
+    virtual bool hack_supportChoppedTransfer() const { return false; }
 
    public:
     bool irqFlag = false;

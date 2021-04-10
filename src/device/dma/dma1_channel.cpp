@@ -7,4 +7,6 @@ DMA1Channel::DMA1Channel(Channel channel, System* sys, mdec::MDEC* mdec) : DMACh
 uint32_t DMA1Channel::readDevice() { return mdec->read(0); }
 
 bool DMA1Channel::dataRequest() { return mdec->dataOutRequest(); }
+
+bool DMA1Channel::hack_supportChoppedTransfer() const { return true; }
 }  // namespace device::dma
