@@ -24,12 +24,8 @@ mkdir -p $ARTIFACT/avocado.app/Contents/Resources
 cp -r data $ARTIFACT/avocado.app/Contents/Resources
 cp misc/macos/Info.plist $ARTIFACT/avocado.app/Contents
 
-# Create icon
-wget -ncv https://raw.githubusercontent.com/jamf/icns-Creator/master/icns_creator.sh
-chmod +x icns_creator.sh
-./icns_creator.sh misc/avocado.png avocado
-rm -rf avocado.iconset
-mv avocado.icns $ARTIFACT/avocado.app/Contents/Resources/
+# Copy icon
+mv misc/avocado.icns $ARTIFACT/avocado.app/Contents/Resources/
 
 # Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
