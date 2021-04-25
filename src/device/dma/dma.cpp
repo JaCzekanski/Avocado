@@ -10,7 +10,9 @@
 #include "system.h"
 
 namespace device::dma {
-DMA::DMA(System* sys) : sys(sys) {
+DMA::DMA(System* sys) : sys(sys) { reset(); }
+
+void DMA::reset() {
     dma[0] = std::make_unique<DMA0Channel>(Channel::MDECin, sys, sys->mdec.get());
     dma[1] = std::make_unique<DMA1Channel>(Channel::MDECout, sys, sys->mdec.get());
     dma[2] = std::make_unique<DMA2Channel>(Channel::GPU, sys, sys->gpu.get());
@@ -18,9 +20,25 @@ DMA::DMA(System* sys) : sys(sys) {
     dma[4] = std::make_unique<DMA4Channel>(Channel::SPU, sys, sys->spu.get());
     dma[5] = std::make_unique<DMA5Channel>(Channel::PIO, sys);
     dma[6] = std::make_unique<DMA6Channel>(Channel::OTC, sys);
+
+    // TODO: Verify with real HW
+    control._reg = 0;
+    status._reg = 0;
+    pendingInterrupt = false;
 }
 
 void DMA::step() {
+    for (int channel = 0; channel < 7; channel++) {
+        dma[channel]->step();
+        if (dma[channel]->irqFlag) {
+            dma[channel]->irqFlag = false;
+            if (status.getEnableDma(channel)) {
+                status.setFlagDma(channel, 1);
+                pendingInterrupt = status.calcMasterFlag();
+            }
+        }
+    }
+
     if (pendingInterrupt) {
         pendingInterrupt = false;
         sys->interrupt->trigger(interrupt::DMA);
@@ -60,13 +78,6 @@ void DMA::write(uint32_t address, uint8_t data) {
     }
 
     dma[channel]->write(address % 0x10, data);
-    if (dma[channel]->irqFlag) {
-        dma[channel]->irqFlag = false;
-        if (status.getEnableDma(channel)) {
-            status.setFlagDma(channel, 1);
-            pendingInterrupt = status.calcMasterFlag();
-        }
-    }
 }
 
 bool DMA::isChannelEnabled(Channel ch) {

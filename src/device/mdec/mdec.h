@@ -41,12 +41,24 @@ class MDEC {
 
         Status() : _reg(0) {}
     };
+    union Control {
+        struct {
+            uint32_t : 29;
+            uint32_t enableDataOut : 1;  // Enables DMA1 and DataOut Request status bit
+            uint32_t enableDataIn : 1;   // Enables DMA0 and DataIn Request status bit
+            uint32_t reset : 1;
+        };
+        uint32_t _reg;
+        uint8_t _byte[4];
+
+        Control() : _reg(0) {}
+    };
 
     int verbose;
     Command command;
     Reg32 data;
     Status status;
-    Reg32 _control;
+    Control control;
 
     Commands cmd;
     std::array<uint8_t, 64> luminanceQuantTable;
@@ -61,8 +73,6 @@ class MDEC {
     std::vector<uint32_t> output;
     size_t outputPtr;
 
-    void reset();
-
     // Algorithm
     void decodeMacroblocks();
     void yuvToRgb(decodedBlock& output, int blockX, int blockY);
@@ -72,14 +82,17 @@ class MDEC {
 
    public:
     MDEC();
+    void reset();
     void step();
     uint32_t read(uint32_t address);
     void handleCommand(uint8_t cmd, uint32_t data);
     void write(uint32_t address, uint32_t data);
+    bool dataInRequest() const { return status.dataInRequest && output.empty(); }
+    bool dataOutRequest() const { return status.dataOutRequest && !output.empty(); }
 
     template <class Archive>
     void serialize(Archive& ar) {
-        ar(command._reg, data, status._reg, _control, cmd);
+        ar(command._reg, data, status._reg, control._reg, cmd);
         ar(luminanceQuantTable, colorQuantTable, idctTable);
         ar(color, paramCount, cnt);
         ar(input, output, outputPtr);

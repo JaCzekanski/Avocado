@@ -3,7 +3,14 @@
 
 using namespace interrupt;
 
-Interrupt::Interrupt(System* sys) : sys(sys) {}
+Interrupt::Interrupt(System* sys) : sys(sys) { reset(); }
+
+void Interrupt::reset() {
+    // TODO: Verify with real HW
+    status._reg = 0;
+    mask._reg = 0;
+}
+
 void Interrupt::trigger(IrqNumber irq) {
     if (irq > 10) return;
     status._reg |= (1 << irq);

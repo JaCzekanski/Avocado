@@ -17,8 +17,7 @@ void DMA6Channel::maskControl() {
     control.unknown1 = false;
 }
 
-void DMA6Channel::startTransfer() {
-    control.startTrigger = CHCR::StartTrigger::clear;
+void DMA6Channel::burstTransfer() {
     uint32_t addr = baseAddress.address;
     uint32_t wordCount = count.syncMode0.wordCount;
     if (wordCount == 0) {

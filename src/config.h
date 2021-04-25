@@ -29,7 +29,7 @@ KeyBindings controller(int n);
 
 namespace DefaultHotkeys {
 KeyBindings keyboard();
-}  // namespace DefaultKeyBindings
+}  // namespace DefaultHotkeys
 
 struct avocado_config_t {
     std::string bios = "";
@@ -89,6 +89,7 @@ struct avocado_config_t {
             int memoryCard = 0;
             int spu = 0;
             int system = 1;
+            int memoryControl = 0;
         } log;
     } debug;
 
