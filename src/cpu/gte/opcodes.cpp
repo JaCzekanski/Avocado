@@ -350,8 +350,10 @@ void GTE::rtps(int n, bool setMAC0) {
     pushScreenZ((int32_t)(mac3 >> 12));
     int64_t h_s3z = divideUNR(h, s[3].z);
 
-    float ratio = widescreenHack ? 0.75f : 1.f;
-    int32_t x = setMac<0>((int64_t)(h_s3z * ir[1] * ratio) + of[0]) >> 16;
+    int16_t ir1 = ir[1];
+    if (widescreenHack) ir1 = (int16_t)((int32_t)ir1 * 3 / 4);
+
+    int32_t x = setMac<0>(h_s3z * ir1 + of[0]) >> 16;
     int32_t y = setMac<0>(h_s3z * ir[2] + of[1]) >> 16;
     pushScreenXY(x, y);
 
