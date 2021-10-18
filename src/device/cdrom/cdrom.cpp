@@ -36,17 +36,15 @@ void CDROM::handleSector() {
             return;
         }
 
+        int track = disc->getTrackByPosition(disc::Position::fromLba(readSector - 1));
+
         if (mode.cddaReport) {
             // Report--> INT1(stat, track, index, mm / amm, ss + 80h / ass, sect / asect, peaklo, peakhi)
-            auto pos = disc::Position::fromLba(readSector - 1);
-            int track = disc->getTrackByPosition(pos);
-
             auto posInTrack = pos - disc->getTrackStart(track);
-
             uint8_t sector = pos.ff;
 
             auto cddaReport = [&](bool isTrack) {
-                postInterrupt(1);
+                postInterrupt(1, 1000);
                 writeResponse(stat._reg);              // stat
                 writeResponse(bcd::toBcd(track + 1));  // track
                 writeResponse(0x01);                   // index
@@ -74,7 +72,7 @@ void CDROM::handleSector() {
             }
         }
 
-        if (!mute) {
+        if (!mute && mode.cddaEnable) {
             // Decode Red Book Audio (16bit Stereo 44100Hz)
             for (size_t i = 0; i < rawSector.size(); i += 4) {
                 int16_t left = rawSector[i + 0] | (rawSector[i + 1] << 8);
@@ -83,6 +81,16 @@ void CDROM::handleSector() {
                 audio.push_back(mixSample(std::make_pair(left, right)));
             }
         }
+
+        if (mode.cddaAutoPause) {
+            if (track > previousTrack) {
+                postInterrupt(4);
+                writeResponse(stat._reg);
+
+                stat.play = false;  // Pause
+            }
+        }
+        previousTrack = track;
     } else if (trackType == disc::TrackType::DATA && stat.read) {
         ackMoreData();
 
@@ -249,7 +257,6 @@ bool CDROM::isBufferEmpty() {
 
 uint8_t CDROM::readByte() {
     if (dataBuffer.empty()) {
-        fmt::print("[CDROM] Buffer empty\n");
         return 0;
     }
 

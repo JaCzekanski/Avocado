@@ -26,7 +26,7 @@ void CDROM::cmdSetloc() {
         return;
     }
 
-    postInterrupt(3, 2000);
+    postInterrupt(3, 10000);
     writeResponse(stat._reg);
 }
 
@@ -52,6 +52,8 @@ void CDROM::cmdPlay() {
     postInterrupt(3);
     writeResponse(stat._reg);
 
+    previousTrack = disc->getTrackByPosition(pos);
+
     if (verbose) fmt::print("CDROM: cmdPlay (pos: {})\n", pos.toString());
 }
 
@@ -68,7 +70,7 @@ void CDROM::cmdReadN() {
     readSector = seekSector;
     stat.setMode(StatusCode::Mode::Reading);
 
-    postInterrupt(3, 5000);
+    postInterrupt(3);
     writeResponse(stat._reg);
 }
 
@@ -195,6 +197,7 @@ void CDROM::cmdSeekP() {
 
     stat.setMode(StatusCode::Mode::None);
 
+    previousTrack = disc->getTrackByPosition(disc::Position::fromLba(readSector));
     if (verbose) fmt::print("CDROM: cmdSeekP\n");
 }
 

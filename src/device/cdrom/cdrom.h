@@ -196,6 +196,7 @@ class CDROM {
     std::unique_ptr<disc::Disc> disc;
     disc::SubchannelQ lastQ;
     bool mute = false;
+    int previousTrack;  // for CDDA autopause
 
     CDROM(System* sys);
     void step(int cycles);
