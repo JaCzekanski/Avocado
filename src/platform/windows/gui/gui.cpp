@@ -460,11 +460,9 @@ void GUI::drawControls(std::unique_ptr<System>& sys) {
 
     std::string game{};
 
-    if (sys->cdrom->disc) {
-        auto cdPath = sys->cdrom->disc->getFile();
-        if (!cdPath.empty()) {
-            game = getFilename(cdPath);
-        }
+    auto cdPath = sys->cdrom->disc->getFile();
+    if (!cdPath.empty()) {
+        game = getFilename(cdPath);
     }
     if (!game.empty()) {
         ImGui::TextUnformatted(game.c_str());
