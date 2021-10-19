@@ -28,7 +28,13 @@ void CDROM::handleSector() {
     if (q.validCrc()) {
         this->lastQ = q;
     }
-    readSector++;
+    if (audioStatus == AudioStatus::Forward) {
+        readSector += 5;
+    } else if (audioStatus == AudioStatus::Backward) {
+        readSector -= 5;
+    } else {
+        readSector++;
+    }
 
     if (trackType == disc::TrackType::AUDIO && stat.play) {
         if (memcmp(rawSector.data(), sync.data(), sync.size()) == 0) {
@@ -82,12 +88,18 @@ void CDROM::handleSector() {
             }
         }
 
+        // Broken :( - gets triggered very soon after track starts playing
+        // in Ridge racer music preview.
         if (mode.cddaAutoPause) {
             if (track > previousTrack) {
                 postInterrupt(4);
                 writeResponse(stat._reg);
 
                 stat.play = false;  // Pause
+
+                if (verbose) {
+                    fmt::print("CDROM: CDDA end of track {}, auto pause\n", track);
+                }
             }
         }
         previousTrack = track;
@@ -298,8 +310,8 @@ void CDROM::handleCommand(uint8_t cmd) {
         case 0x01: cmdGetstat(); break;
         case 0x02: cmdSetloc(); break;
         case 0x03: cmdPlay(); break;
-        // Missing 0x04 cmdForward
-        // Missing 0x05 cmdBackward
+        case 0x04: cmdForward(); break;
+        case 0x05: cmdBackward(); break;
         case 0x06: cmdReadN(); break;
         case 0x07: cmdMotorOn(); break;
         case 0x08: cmdStop(); break;
@@ -337,6 +349,7 @@ void CDROM::handleCommand(uint8_t cmd) {
             postInterrupt(5);
             writeResponse(0x11);
             writeResponse(0x40);
+            if (verbose) fmt::print("CDROM: cmd{:02x} -> ({})\n", cmd, dumpFifo(interruptQueue.peek().response));
             break;
     }
 

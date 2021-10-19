@@ -11,6 +11,8 @@ disc::Position Ecm::getDiskSize() const { return disc::Position::fromLba(data.si
 
 size_t Ecm::getTrackCount() const { return 1; }
 
+disc::Position Ecm::getTrackBegin(int track) const { return disc::Position(0, 2, 0); }
+
 disc::Position Ecm::getTrackStart(int track) const { return disc::Position(0, 2, 0); }
 
 disc::Position Ecm::getTrackLength(int track) const { return disc::Position::fromLba(data.size() / Track::SECTOR_SIZE); }

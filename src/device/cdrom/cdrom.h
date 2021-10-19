@@ -11,6 +11,7 @@ namespace device {
 namespace cdrom {
 
 class CDROM {
+    enum class AudioStatus { Stop, Play, Pause, Forward, Backward };
     union StatusCode {
         enum class Mode { None, Reading, Seeking, Playing };
         struct {
@@ -129,12 +130,15 @@ class CDROM {
     int seekSector = 0;
 
     StatusCode stat;
+    AudioStatus audioStatus = AudioStatus::Stop;
 
     int scexCounter = 0;
 
     void cmdGetstat();
     void cmdSetloc();
     void cmdPlay();
+    void cmdForward();
+    void cmdBackward();
     void cmdReadN();
     void cmdMotorOn();
     void cmdStop();
@@ -234,6 +238,7 @@ class CDROM {
         ar(seekSector);
         ar(scexCounter);
         ar(stat._reg);
+        ar(audioStatus);
         ar(volumeLeftToLeft, volumeLeftToRight, volumeRightToLeft, volumeRightToRight);
         ar(audio);
         ar(rawSector);

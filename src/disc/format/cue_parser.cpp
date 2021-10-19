@@ -82,18 +82,8 @@ void CueParser::addTrackToCue() {
     // ignore if track is not completed
     if (track.number == 0) return;
 
-    // if (track.number == 1 && track.type == Track::Type::DATA) {
-    //     track.pregap = track.pregap + Position{0,2,0};
-    // }
-
-    if (track.pregap == Position{0, 0, 0} && track.index0) {
-        track.pregap = track.index1 - *track.index0;
-    } else {
-        track.index0 = track.index1;
-    }
-
     if (!track.index0) {
-        track.index0 = track.index1 - track.pregap;
+        track.index0 = track.index1;
     }
 
     cue.tracks.push_back(track);

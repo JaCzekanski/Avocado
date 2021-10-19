@@ -31,30 +31,69 @@ void CDROM::cmdSetloc() {
 }
 
 void CDROM::cmdPlay() {
-    disc::Position pos;
-    if (CDROM_params.is_empty() || CDROM_params.peek() == 0) {
-        pos = disc::Position::fromLba(seekSector);
-    } else {
-        int track = bcd::toBinary(readParam()) - 1;
-        if (track >= (int)disc->getTrackCount()) {
-            pos = disc->getTrackStart(disc->getTrackCount() - 1);
-        } else {
-            pos = disc->getTrackStart(track);
-        }
-        if (verbose) fmt::print("CDROM: PLAY (track: {})\n", track + 1);
+    // Too many args
+    if (CDROM_params.size() > 1) {
+        postInterrupt(5);
+        writeResponse(0x01);
+        writeResponse(0x20);
+        return;
     }
-    // Too many params - INT5 0x93 0x20
+
+    int trackNo = 0;
+    if (CDROM_params.size() == 1) {
+        trackNo = bcd::toBinary(readParam());
+    }
+
+    disc::Position pos = disc::Position::fromLba(readSector);
+
+    // Start playing track n
+    if (trackNo > 0) {
+        int track = std::min(trackNo - 1, (int)disc->getTrackCount() - 1);
+        pos = disc->getTrackStart(track);
+
+        if (verbose) fmt::print("CDROM: PLAY (track: {}, pos: {})\n", trackNo, pos.toString());
+    } else {
+        if (seekSector != 0) {
+            pos = disc::Position::fromLba(seekSector);
+            seekSector = 0;
+        }
+
+        if (audioStatus == AudioStatus::Pause || audioStatus == AudioStatus::Forward || audioStatus == AudioStatus::Backward) {
+            audioStatus = AudioStatus::Play;
+        } else if (audioStatus == AudioStatus::Play) {
+        } else if (audioStatus == AudioStatus::Stop) {
+            if (seekSector == 0) {
+                pos = disc->getTrackStart(0);
+            }
+            audioStatus = AudioStatus::Play;
+        }
+
+        if (verbose) fmt::print("CDROM: cmdPlay (pos: {})\n", pos.toString());
+    }
 
     readSector = pos.toLba();
-
     stat.setMode(StatusCode::Mode::Playing);
 
     postInterrupt(3);
     writeResponse(stat._reg);
 
     previousTrack = disc->getTrackByPosition(pos);
+}
 
-    if (verbose) fmt::print("CDROM: cmdPlay (pos: {})\n", pos.toString());
+void CDROM::cmdForward() {
+    audioStatus = AudioStatus::Forward;
+    postInterrupt(3);
+    writeResponse(stat._reg);
+
+    if (verbose) fmt::print("CDROM: cmdForward -> 0x{:02x}\n", interruptQueue.peek().response[0]);
+}
+
+void CDROM::cmdBackward() {
+    audioStatus = AudioStatus::Backward;
+    postInterrupt(3);
+    writeResponse(stat._reg);
+
+    if (verbose) fmt::print("CDROM: cmdBackward -> 0x{:02x}\n", interruptQueue.peek().response[0]);
 }
 
 void CDROM::cmdReadN() {
@@ -88,6 +127,7 @@ void CDROM::cmdMotorOn() {
 
 void CDROM::cmdStop() {
     stat.setMode(StatusCode::Mode::None);
+    audioStatus = AudioStatus::Stop;
     stat.motor = 0;
 
     postInterrupt(3);
@@ -104,6 +144,7 @@ void CDROM::cmdPause() {
     writeResponse(stat._reg);
 
     stat.setMode(StatusCode::Mode::None);
+    audioStatus = AudioStatus::Pause;
 
     postInterrupt(2);
     writeResponse(stat._reg);
@@ -188,10 +229,15 @@ void CDROM::cmdSetSession() {
 
 void CDROM::cmdSeekP() {
     readSector = seekSector;
+    seekSector = 0;
 
+    auto prevStat = stat;
+
+    stat.setMode(StatusCode::Mode::None);
     postInterrupt(3);
     writeResponse(stat._reg);
 
+    stat = prevStat;
     postInterrupt(2, 500000);
     writeResponse(stat._reg);
 
@@ -357,7 +403,7 @@ void CDROM::cmdTest() {
 
     if (verbose) {
         auto CDROM_response = interruptQueue.peek().response;
-        fmt::print("//CDROM: cmdTest(0x{:02x}) -> ({})\n", opcode, dumpFifo(CDROM_response));
+        fmt::print("CDROM: cmdTest(0x{:02x}) -> ({})\n", opcode, dumpFifo(CDROM_response));
     }
 }
 

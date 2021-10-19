@@ -21,21 +21,23 @@ void Cdrom::cdromWindow(System* sys) {
         ImGui::Text("%s", cue->file.c_str());
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-        ImGui::Text("Track  Pregap    Start     End       Offset     Type   File");
+        ImGui::Text("Track  Pregap    Pause     Start     End       Length    Offset     Type   File");
 
         ImGuiListClipper clipper((int)cue->getTrackCount());
         while (clipper.Step()) {
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
                 auto track = cue->tracks[i];
 
-                auto line = fmt::format("{:>5}  {:<8}  {:<8}  {:<8}  {:<9}  {:<5}  {}",
-                                        i + 1,                                                     //
-                                        POSITION(track.pregap),                                    //
-                                        POSITION(track.index1),                                    //
-                                        POSITION(track.index1 + Position::fromLba(track.frames)),  //
-                                        track.offset,                                              //
-                                        track.type == TrackType::DATA ? "DATA" : "AUDIO",          //
-                                        getFilenameExt(track.filename)                             //
+                auto line = fmt::format("{:>5}  {:<8}  {:<8}  {:<8}  {:<8}  {:<8}  {:<9}  {:<5}  {}",
+                                        i + 1,                                                                               //
+                                        POSITION(track.pregap),                                                              //
+                                        POSITION(track.pause()),                                                             //
+                                        POSITION(cue->getTrackStart(i)),                                                     //
+                                        POSITION(cue->getTrackStart(i) + cue->getTrackLength(i) - disc::Position(0, 0, 1)),  //
+                                        POSITION(cue->getTrackLength(i)),                                                    //
+                                        track.offset,                                                                        //
+                                        track.type == TrackType::DATA ? "DATA" : "AUDIO",                                    //
+                                        getFilenameExt(track.filename)                                                       //
                 );
 
                 ImGui::Selectable(line.c_str());
@@ -51,4 +53,4 @@ void Cdrom::cdromWindow(System* sys) {
 void Cdrom::displayWindows(System* sys) {
     if (cdromWindowOpen) cdromWindow(sys);
 }
-}  // namespace gui::debug::cdrom
+}  // namespace gui::debug

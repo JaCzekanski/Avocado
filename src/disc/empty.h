@@ -20,6 +20,11 @@ struct Empty : public Disc {
         return 0;
     }
 
+    Position getTrackBegin(int track) const {
+        (void)track;
+        return Position{0, 0, 0};
+    }
+
     Position getTrackStart(int track) const {
         (void)track;
         return Position{0, 0, 0};

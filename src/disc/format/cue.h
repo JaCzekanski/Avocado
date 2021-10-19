@@ -22,6 +22,7 @@ struct Cue : public Disc {
     std::string getFile() const override;
     Position getDiskSize() const override;
     size_t getTrackCount() const override;
+    Position getTrackBegin(int track) const override;
     Position getTrackStart(int track) const override;
     Position getTrackLength(int track) const override;
     int getTrackByPosition(Position pos) const override;
