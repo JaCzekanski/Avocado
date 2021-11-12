@@ -98,10 +98,13 @@ class CDROM {
 
     // Hack
     struct irq_response_t {
-        uint8_t irq;
+        uint8_t irq = 0;
         fifo<uint8_t, 16> response;
-        bool ack;
-        int delay;
+        bool ack = false;
+        int delay = 0;
+
+        irq_response_t() = default;
+        irq_response_t(uint8_t irq, int delay) : irq(irq), delay(delay) {}
 
         template <class Archive>
         void serialize(Archive& ar) {
@@ -172,13 +175,7 @@ class CDROM {
 
     int busyFor = 0;
 
-    void postInterrupt(int irq, int delay = 50000) {
-        interruptQueue.add(irq_response_t{
-            .irq = (uint8_t)irq,  //
-            .response = {},       //
-            .delay = delay        //
-        });
-    }
+    void postInterrupt(int irq, int delay = 50000) { interruptQueue.add(irq_response_t(irq, delay)); }
 
     std::string dumpFifo(const FIFO& f);
     std::pair<int16_t, int16_t> mixSample(std::pair<int16_t, int16_t> sample);
