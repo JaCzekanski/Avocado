@@ -146,6 +146,7 @@ add_library(imgui STATIC
         externals/imgui/imgui.cpp
         externals/imgui/imgui_draw.cpp
         externals/imgui/imgui_widgets.cpp
+        externals/imgui/imgui_tables.cpp
         externals/imgui/misc/cpp/imgui_stdlib.cpp
         )
 target_include_directories(imgui PUBLIC externals/imgui/)
