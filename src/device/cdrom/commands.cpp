@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fmt/core.h>
 #include "cdrom.h"
 #include "utils/bcd.h"
