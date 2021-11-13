@@ -20,7 +20,7 @@ struct Segment {
 };
 
 namespace segments {
-Segment RAM = {"RAM", System::RAM_BASE, System::RAM_SIZE};
+Segment RAM = {"RAM", System::RAM_BASE, System::RAM_SIZE_8MB};
 Segment EXPANSION = {"EXPANSION", System::EXPANSION_BASE, System::EXPANSION_SIZE};
 Segment SCRATCHPAD = {"SCRATCHPAD", System::SCRATCHPAD_BASE, System::SCRATCHPAD_SIZE};
 Segment IO = {"IO", System::IO_BASE, System::IO_SIZE};
@@ -469,7 +469,7 @@ void CPU::watchWindow(System* sys) {
 
 void CPU::ramWindow(System* sys) {
     editor.Open = ramWindowOpen;
-    editor.DrawWindow("Ram", sys->ram.data(), System::RAM_SIZE);
+    editor.DrawWindow("Ram", sys->ram.data(), sys->ram.size());
     ramWindowOpen = editor.Open;
 }
 

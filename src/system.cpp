@@ -12,7 +12,7 @@
 
 System::System() {
     bios.fill(0);
-    ram.fill(0);
+    ram.resize(!config.options.system.ram8mb ? RAM_SIZE_2MB : RAM_SIZE_8MB, 0);
     scratchpad.fill(0);
     expansion.fill(0);
 
@@ -147,8 +147,8 @@ INLINE T System::readMemory(uint32_t address) {
 
     uint32_t addr = align_mips<T>(address);
 
-    if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        return read_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1));
+    if (in_range<RAM_BASE, RAM_SIZE_8MB>(addr)) {
+        return read_fast<T>(ram.data(), (addr - RAM_BASE) & (ram.size() - 1));
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
         return read_fast<T>(expansion.data(), addr - EXPANSION_BASE);
@@ -199,8 +199,8 @@ INLINE void System::writeMemory(uint32_t address, T data) {
 
     uint32_t addr = align_mips<T>(address);
 
-    if (in_range<RAM_BASE, RAM_SIZE * 4>(addr)) {
-        return write_fast<T>(ram.data(), (addr - RAM_BASE) & (RAM_SIZE - 1), data);
+    if (in_range<RAM_BASE, RAM_SIZE_8MB>(addr)) {
+        return write_fast<T>(ram.data(), (addr - RAM_BASE) & (ram.size() - 1), data);
     }
     if (in_range<EXPANSION_BASE, EXPANSION_SIZE>(addr)) {
         return write_fast<T>(expansion.data(), addr - EXPANSION_BASE, data);

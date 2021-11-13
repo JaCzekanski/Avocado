@@ -217,6 +217,8 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         if (ImGui::MenuItem("Hotkeys", nullptr)) showHotkeysSetupWindow = true;
         ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
 
+        ImGui::MenuItem("System", nullptr, &systemOptions.systemWindowOpen);
+
         bool soundEnabled = config.options.sound.enabled;
         if (ImGui::MenuItem("Sound", nullptr, &soundEnabled)) {
             config.options.sound.enabled = soundEnabled;
@@ -307,6 +309,7 @@ void GUI::render(std::unique_ptr<System>& sys) {
 
         biosOptions.displayWindows();
         memoryCardOptions.displayWindows(sys.get());
+        systemOptions.displayWindows();
 
         // Help
         aboutHelp.displayWindows();

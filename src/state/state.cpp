@@ -20,7 +20,7 @@ namespace state {
 const char* lastSaveName = "last.state";
 
 struct StateMetadata {
-    inline static const uint32_t SAVESTATE_VERSION = 7;
+    inline static const uint32_t SAVESTATE_VERSION = 8;
 
     uint32_t version = SAVESTATE_VERSION;
     std::string biosPath;

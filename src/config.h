@@ -75,6 +75,10 @@ struct avocado_config_t {
             bool timeTravel = false;
         } emulator;
 
+        struct {
+            bool ram8mb = false;
+        } system;
+
     } options;
 
     struct {

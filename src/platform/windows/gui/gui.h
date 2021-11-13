@@ -14,6 +14,7 @@
 #include "options/bios.h"
 #include "options/memory_card.h"
 #include "options/options.h"
+#include "options/system.h"
 #include "toasts.h"
 
 struct System;
@@ -36,6 +37,7 @@ class GUI {
 
     gui::options::Bios biosOptions;
     gui::options::MemoryCard memoryCardOptions;
+    gui::options::System systemOptions;
 
     gui::help::About aboutHelp;
 
