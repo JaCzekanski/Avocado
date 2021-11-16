@@ -8,6 +8,6 @@ tar xzf premake-$PREMAKE_VERSION-macosx.tar.gz
 mv premake5 /usr/local/bin/
 rm premake-$PREMAKE_VERSION-macosx.tar.gz
 
-# Download SDL2 and ccache
+# Download dependencies
 brew update > /dev/null
-brew install sdl2 ccache
+brew install sdl2 ccache dylibbundler
