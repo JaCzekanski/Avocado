@@ -3,8 +3,8 @@ version: '{branch}-{build}'
 clone_depth: 1
 
 environment:
-  PREMAKE_VERSION: 5.0.0-alpha15
-  SDL_VERSION: 2.0.10
+  PREMAKE_VERSION: 5.0.0-beta1
+  SDL_VERSION: 2.0.16
   matrix:
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     TOOLSET: vs2019
