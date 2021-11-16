@@ -13,8 +13,7 @@ namespace system_tools {
 
 void bootstrap(std::unique_ptr<System>& sys) {
     Sound::clearBuffer();
-    sys = std::make_unique<System>();
-    sys->loadBios(config.bios);
+    sys = hardReset();
 
     // Breakpoint on BIOS Shell execution
     sys->cpu->addBreakpoint(0x80030000);
@@ -88,12 +87,12 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force) {
     auto saveMemoryCard = [&](int slot) {
         if (!force && !sys->controller->card[slot]->dirty) return;
 
-        std::string pathCard = config.memoryCard[slot].path;
+    std::string pathCard = config.memoryCard[slot].path;
 
-        if (pathCard.empty()) {
-            fmt::print("[INFO] No memory card {} path in config, skipping save\n", slot + 1);
+    if (pathCard.empty()) {
+        fmt::print("[INFO] No memory card {} path in config, skipping save\n", slot + 1);
             return;
-        }
+    }
 
         auto& data = sys->controller->card[slot]->data;
         auto output = std::vector<uint8_t>(data.begin(), data.end());
@@ -101,14 +100,14 @@ void saveMemoryCards(std::unique_ptr<System>& sys, bool force) {
         if (!putFileContents(pathCard, output)) {
             fmt::print("[INFO] Unable to save memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
             return;
-        }
+    }
 
-        fmt::print("[INFO] Saved memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
-    };
+    fmt::print("[INFO] Saved memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
+};
 
     saveMemoryCard(0);
     saveMemoryCard(1);
-}
+    }
 
 std::unique_ptr<System> hardReset() {
     auto sys = std::make_unique<System>();
