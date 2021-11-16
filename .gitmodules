@@ -1,6 +1,6 @@
 [submodule "externals/SDL2"]
 	path = externals/SDL2
-	url = https://github.com/spurious/SDL-mirror
+	url = https://github.com/libsdl-org/SDL
 	ignore = dirty
 [submodule "externals/imgui"]
 	path = externals/imgui
