@@ -307,7 +307,7 @@ set(SOURCES
         src/platform/windows/gui/options/bios.cpp
         src/platform/windows/gui/options/memory_card.cpp
         src/platform/windows/gui/options/options.cpp
-        src/platform/windows/gui/options/system.cpp
+        src/platform/windows/gui/options/system_options.cpp
         src/platform/windows/gui/toasts.cpp
         src/platform/windows/input/key.cpp
         src/platform/windows/input/sdl_input_manager.cpp

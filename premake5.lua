@@ -77,9 +77,13 @@ filter "system:macosx"
 	platforms {"x64"}
 	defaultplatform "x64"
 	xcodebuildsettings {
+		["ARCHS"] = "x86_64",
 		["ALWAYS_SEARCH_USER_PATHS"] = "YES",
 		["MACOSX_DEPLOYMENT_TARGET"] = "10.12",
 	}
+	-- arm64 builds are currently broken (SDL2 from brew linking errors)
+	-- HACK: Temporary SDL2.0.16 xcode build fix
+    -- defines { "SDL_DISABLE_IMMINTRIN_H" }
 
 filter "system:android"
 	platforms {"arm"}

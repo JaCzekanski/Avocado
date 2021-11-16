@@ -1,4 +1,5 @@
 #pragma once
+// Note: should be system.h, but it conflicts with main "system.h"
 
 namespace gui::options {
 class System {

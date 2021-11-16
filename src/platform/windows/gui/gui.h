@@ -14,7 +14,7 @@
 #include "options/bios.h"
 #include "options/memory_card.h"
 #include "options/options.h"
-#include "options/system.h"
+#include "options/system_options.h"
 #include "toasts.h"
 
 struct System;
