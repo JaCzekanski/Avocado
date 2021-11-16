@@ -247,6 +247,7 @@ add_library(core STATIC
         src/disc/position.cpp
         src/disc/subchannel_q.cpp
         src/input/input_manager.cpp
+        src/memory_card/card_formats.cpp
         src/sound/adpcm.cpp
         src/sound/tables.cpp
         src/sound/wave.cpp

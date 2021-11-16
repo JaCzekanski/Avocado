@@ -44,6 +44,7 @@ class GUI {
     gui::Toasts toasts;
 
     void mainMenu(std::unique_ptr<System>& sys);
+    void memoryCardDialog();
     void discDialog();
     void drawControls(std::unique_ptr<System>& sys);
     void renderController();
@@ -62,7 +63,9 @@ class GUI {
 
     // Drag&drop
     std::optional<std::string> droppedItem;
-    bool droppedItemDialogShown = false;
+
+    enum class DroppedItemDialog { None, Disc, MemoryCard };
+    DroppedItemDialog droppedItemDialog = DroppedItemDialog::None;
 
     GUI(SDL_Window* window, void* glContext);
     ~GUI();

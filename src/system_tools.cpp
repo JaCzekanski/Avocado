@@ -5,6 +5,7 @@
 #include "sound/sound.h"
 #include "state/state.h"
 #include "system.h"
+#include "memory_card/card_formats.h"
 #include "utils/file.h"
 #include "utils/gpu_draw_list.h"
 #include "utils/psf.h"
@@ -83,31 +84,49 @@ void loadFile(std::unique_ptr<System>& sys, const std::string& path) {
     }
 }
 
-void saveMemoryCards(std::unique_ptr<System>& sys, bool force) {
-    auto saveMemoryCard = [&](int slot) {
-        if (!force && !sys->controller->card[slot]->dirty) return;
+bool saveMemoryCard(std::unique_ptr<System>& sys, int slot, bool force) {
+    if (!force && !sys->controller->card[slot]->dirty) return true;
 
     std::string pathCard = config.memoryCard[slot].path;
 
     if (pathCard.empty()) {
         fmt::print("[INFO] No memory card {} path in config, skipping save\n", slot + 1);
-            return;
+        return false;
     }
 
-        auto& data = sys->controller->card[slot]->data;
-        auto output = std::vector<uint8_t>(data.begin(), data.end());
-
-        if (!putFileContents(pathCard, output)) {
-            fmt::print("[INFO] Unable to save memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
-            return;
+    if (!memory_card::save(sys->controller->card[slot]->data, pathCard)) {
+        fmt::print("[ERROR] Unable to save memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
+        return false;
     }
+    sys->controller->card[slot]->dirty = false;
 
     fmt::print("[INFO] Saved memory card {} to {}\n", slot + 1, getFilenameExt(pathCard));
+    return true;
 };
 
-    saveMemoryCard(0);
-    saveMemoryCard(1);
+bool loadMemoryCard(std::unique_ptr<System>& sys, int slot) {
+    assert(slot == 0 || slot == 1);
+    auto card = sys->controller->card[slot].get();
+    card->inserted = false;
+
+    auto path = config.memoryCard[slot].path;
+    if (path.empty()) {
+        return false;
     }
+
+    auto cardData = memory_card::load(path);
+    if (!cardData) {
+        fmt::print("[ERROR] Cannot load memory card {} ({})\n", slot, getFilenameExt(path));
+        return false;
+    }
+
+    std::copy(cardData->begin(), cardData->end(), sys->controller->card[slot]->data.begin());
+    card->inserted = true;
+    card->setFresh();
+
+    fmt::print("[INFO] Loaded memory card {} from {}\n", slot + 1, getFilenameExt(path));
+    return true;
+};
 
 std::unique_ptr<System> hardReset() {
     auto sys = std::make_unique<System>();
@@ -128,26 +147,8 @@ std::unique_ptr<System> hardReset() {
         fmt::print("[INFO] Using iso {}\n", iso);
     }
 
-    auto loadMemoryCard = [&](int slot) {
-        assert(slot == 0 || slot == 1);
-        auto card = sys->controller->card[slot].get();
-
-        std::string pathCard = config.memoryCard[slot].path;
-
-        card->inserted = false;
-
-        if (!pathCard.empty()) {
-            auto cardData = getFileContents(pathCard);
-            if (!cardData.empty()) {
-                std::copy_n(std::make_move_iterator(cardData.begin()), cardData.size(), sys->controller->card[slot]->data.begin());
-                card->inserted = true;
-                fmt::print("[INFO] Loaded memory card {} from {}\n", slot + 1, getFilenameExt(pathCard));
-            }
-        }
-    };
-
-    loadMemoryCard(0);
-    loadMemoryCard(1);
+    loadMemoryCard(sys, 0);
+    loadMemoryCard(sys, 1);
 
     return sys;
 }

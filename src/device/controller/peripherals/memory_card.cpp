@@ -149,6 +149,9 @@ uint8_t MemoryCard::handleWrite(uint8_t byte) {
             flag.fresh = 0;
             state = 0;
             command = Command::None;
+
+            bus.notify(Event::Controller::MemoryCardContentsChanged{port});
+
             return static_cast<uint8_t>(writeStatus);
 
         default:

@@ -38,5 +38,7 @@ struct MemoryCard : public AbstractDevice {
 
     MemoryCard(int port);
     uint8_t handle(uint8_t byte) override;
+
+    void setFresh() { flag.fresh = true; }
 };
 }  // namespace peripherals

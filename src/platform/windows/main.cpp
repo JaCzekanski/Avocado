@@ -20,6 +20,7 @@
 #include "utils/string.h"
 #include "utils/platform_tools.h"
 #include "version.h"
+#include "memory_card/card_formats.h"
 
 #ifdef _WIN32
 #include <direct.h>
@@ -199,13 +200,13 @@ int main(int argc, char** argv) {
     std::unique_ptr<System> sys = system_tools::hardReset();
 
     int busToken = bus.listen<Event::File::Load>([&](auto e) {
-        if (disc::isDiscImage(e.file)) {
-            if (e.action == Event::File::Load::Action::ask) {
-                // Show dialog and decide what to do
-                gui->droppedItem = e.file;
-                return;
-            }
+        if (e.action == Event::File::Load::Action::ask && (disc::isDiscImage(e.file) || memory_card::isMemoryCardImage(e.file))) {
+            // Show dialog and decide what to do
+            gui->droppedItem = e.file;
+            return;
+        }
 
+        if (disc::isDiscImage(e.file)) {
             std::unique_ptr<disc::Disc> disc = disc::load(e.file);
             if (!disc) {
                 toast(fmt::format("Cannot load {}", getFilenameExt(e.file)));
@@ -256,6 +257,18 @@ int main(int argc, char** argv) {
     bus.listen<Event::System::HardReset>(busToken, [&](auto) { sys = system_tools::hardReset(); });
     bus.listen<Event::System::SaveState>(busToken, [&](auto e) { state::quickSave(sys.get(), e.slot); });
     bus.listen<Event::System::LoadState>(busToken, [&](auto e) { state::quickLoad(sys.get(), e.slot); });
+
+    bus.listen<Event::Controller::MemoryCardContentsChanged>(busToken, [&](auto e) {
+        // TODO: throttleLast save event
+        system_tools::saveMemoryCard(sys, e.slot);
+    });
+
+    bus.listen<Event::Controller::MemoryCardSwapped>(busToken, [&](auto e) {
+        sys->controller->card[e.slot]->inserted = false;
+        for (int i = 0; i < 60; i++) sys->emulateFrame();
+
+        system_tools::loadMemoryCard(sys, e.slot);
+    });
 
     bus.listen<Event::Gui::ToggleFullscreen>(busToken, [&](auto) {
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
@@ -433,7 +446,8 @@ int main(int argc, char** argv) {
     if (config.options.emulator.preserveState && sys->state != System::State::halted) {
         state::saveLastState(sys.get());
     }
-    system_tools::saveMemoryCards(sys, true);
+    system_tools::saveMemoryCard(sys, 0, true);
+    system_tools::saveMemoryCard(sys, 1, true);
     saveConfigFile();
 
     bus.unlistenAll(busToken);
