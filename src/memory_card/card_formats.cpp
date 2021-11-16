@@ -56,32 +56,37 @@ constexpr int GME_HEADER_SIZE = 3904;
 constexpr int VMP_HEADER_SIZE = 128;
 
 std::optional<std::vector<uint8_t>> load(const std::string& path) {
+    using namespace std::string_literals;
     std::string ext = getExtension(path);
     transform(ext.begin(), ext.end(), ext.begin(), tolower);
 
     auto raw = getFileContents(path);
     int offset = 0;
 
+    auto slice = [](const std::vector<uint8_t>& vec, size_t len) {
+        return std::string(vec.begin(), vec.begin() + (int)std::min(vec.size(), len));  //
+    };
+
     if (ext == "raw" || ext == "ps" || ext == "ddf" || ext == "mcr" || ext == "mcd") {
-        if (memcmp("MC", raw.data(), 2) != 0) {
+        if (slice(raw, 2) != "MC"s) {
             fmt::print("[memory_card] Raw memory card image - Invalid header (expected MC).\n");
             return {};
         }
     } else if (ext == "mem" || ext == "vgs") {
-        if (memcmp("VgsM", raw.data(), 4) != 0) {
+        if (slice(raw, 4) != "VgsM"s) {
             fmt::print("[memory_card] VGS image - Invalid header (expected VgsM).\n");
             return {};
         }
         offset = VGS_HEADER_SIZE;
     } else if (ext == "gme") {
-        if (memcmp("123-456-STD", raw.data(), 11) != 0) {
+        if (slice(raw, 11) != "123-456-STD"s) {
             fmt::print("[memory_card] DexDrive image - Invalid header (expected 123-456-STD).\n");
             return {};
         }
 
         offset = GME_HEADER_SIZE;
     } else if (ext == "vmp") {
-        if (memcmp("\0PMV", raw.data(), 4) != 0) {
+        if (slice(raw, 4) != "\0PMV"s) {
             fmt::print("[memory_card] PSP/Vita image - Invalid header (expected \\0PMV).\n");
             return {};
         }
