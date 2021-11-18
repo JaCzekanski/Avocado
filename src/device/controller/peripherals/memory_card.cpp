@@ -150,7 +150,7 @@ uint8_t MemoryCard::handleWrite(uint8_t byte) {
             state = 0;
             command = Command::None;
 
-            bus.notify(Event::Controller::MemoryCardContentsChanged{port});
+            bus.notify(Event::Controller::MemoryCardContentsChanged{port - 1});
 
             return static_cast<uint8_t>(writeStatus);
 

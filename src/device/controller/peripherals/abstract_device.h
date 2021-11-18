@@ -5,7 +5,7 @@ namespace peripherals {
 enum class Type { None, Digital, Analog, Mouse, MemoryCard };
 struct AbstractDevice {
     Type type;
-    int port;  // Physical port number
+    int port;  // Physical port number (numbered from 1..n)
     int state = 0;
 
     AbstractDevice(Type type, int port);
