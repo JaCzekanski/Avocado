@@ -498,6 +498,20 @@ bool System::loadBios(const std::string& path) {
     this->biosPath = path;
     state = State::run;
     biosLoaded = true;
+
+    auto patch = [&](uint32_t address, uint32_t opcode) {
+        address &= bios.size() - 1;
+        for (int i = 0; i < 4; i++) {
+            bios[address + i] = (opcode >> (i * 8)) & 0xff;
+        }
+    };
+
+    if (config.debug.log.system) {
+        fmt::print("[INFO] Patching BIOS for system log\n");
+        patch(0x6F0C, 0x24010001);
+        patch(0x6F14, 0xAF81A9C0);
+    }
+
     return true;
 }
 
