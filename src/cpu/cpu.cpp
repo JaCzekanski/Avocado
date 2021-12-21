@@ -98,7 +98,6 @@ bool CPU::executeInstructions(int count) {
         moveLoadDelaySlots();
 
         sys->cycles++;
-        if (sys->state != System::State::run) return false;
     }
     return true;
 }
