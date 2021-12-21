@@ -33,6 +33,14 @@
  * Enables IO access buffer log
  */
 
+/**
+ * #define ENABLE_BIOS_HOOKS
+ * Switch --enable-bios-hooks
+ * Default: false
+ *
+ * Enables BIOS syscall hooking/logging
+ */
+
 namespace bios {
 struct Function;
 }

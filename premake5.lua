@@ -22,6 +22,13 @@ filter "options:enable-io-log"
 	defines "ENABLE_IO_LOG"
 
 newoption {
+	trigger = "enable-bios-hooks",
+	description = "Enable BIOS hooks/log",
+}
+filter "options:enable-bios-hooks"
+	defines "ENABLE_BIOS_HOOKS"
+
+newoption {
 	trigger = "asan",
 	description = "Build with Address Sanitizer enabled"
 }

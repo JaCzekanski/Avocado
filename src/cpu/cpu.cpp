@@ -78,9 +78,10 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
 
 bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
-        // HACK: BIOS hooks
+#ifdef ENABLE_BIOS_HOOKS
         uint32_t maskedPc = PC & 0x1fff'ffff;
         if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) sys->handleBiosFunction();
+#endif
 
         saveStateForException();
         checkForInterrupts();
