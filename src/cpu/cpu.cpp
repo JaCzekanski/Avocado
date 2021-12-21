@@ -4,7 +4,7 @@
 #include "system.h"
 
 namespace mips {
-CPU::CPU(System* sys) : sys(sys), _opcode(0) {
+CPU::CPU(System* sys) : sys(sys) {
     setPC(0xBFC00000);
     inBranchDelay = false;
     icacheEnabled = false;
@@ -90,13 +90,11 @@ bool CPU::executeInstructions(int count) {
             if (handleSoftwareBreakpoints()) return false;
         }
 
-        _opcode = Opcode(fetchInstruction(PC));
-        const auto& op = instructions::OpcodeTable[_opcode.op];
+        const auto opcode = Opcode(fetchInstruction(PC));
+        const auto& op = instructions::OpcodeTable[opcode.op];
 
         setPC(nextPC);
-
-        op.instruction(this, _opcode);
-
+        op.instruction(this, opcode);
         moveLoadDelaySlots();
 
         sys->cycles++;

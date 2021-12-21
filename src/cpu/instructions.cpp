@@ -177,7 +177,8 @@ void exception(CPU *cpu, COP0::CAUSE::Exception cause) {
     cpu->cop0.status.enterException();
 
     if (cause != Exception::busErrorInstruction) {
-        cpu->cop0.cause.coprocessorNumber = cpu->_opcode.op & 3;
+        Opcode i(cpu->sys->readMemory32(cpu->exceptionPC));
+        cpu->cop0.cause.coprocessorNumber = i.op & 3;
     }
 
     if (cause == Exception::interrupt) {

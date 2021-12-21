@@ -82,7 +82,6 @@ struct CPU {
     COP0 cop0;
     GTE gte;
     System* sys;
-    Opcode _opcode;
 
     bool icacheEnabled;
     CacheLine icache[1024];
