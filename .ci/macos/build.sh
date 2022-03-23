@@ -27,6 +27,12 @@ cp misc/macos/Info.plist $ARTIFACT/avocado.app/Contents
 # Copy icon
 mv misc/avocado.icns $ARTIFACT/avocado.app/Contents/Resources/
 
+# Copy & fix dylibs
+dylibbundler -od -b \
+  -x $ARTIFACT/avocado.app/Contents/MacOS/avocado \
+  -d $ARTIFACT/avocado.app/Contents/Frameworks/ \
+  -p @executable_path/../Frameworks/
+
 # Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
 

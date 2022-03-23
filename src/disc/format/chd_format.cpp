@@ -127,31 +127,26 @@ int Chd::getTrackByPosition(Position pos) const {
     return 0;
 }
 
-Position Chd::getTrackStart(int track) const {
-    size_t frames = 0;
+Position Chd::getTrackBegin(int track) const {
+    size_t frames = 75 * 2;
     if ((unsigned)track < tracks.size()) {
-        for (int i = 0; i < track - 1; i++) {
+        for (int i = 0; i < track; i++) {
             frames += tracks[i].frames;
         }
     }
 
-    return Position::fromLba(frames) + Position(0, 2, 0);
+    return Position::fromLba(frames);
 }
+Position Chd::getTrackStart(int track) const { return getTrackBegin(track) + tracks[track].start(); }
 
-Position Chd::getTrackLength(int track) const {
-    if ((unsigned)track < tracks.size()) {
-        return Position::fromLba(tracks[track].frames);
-    } else {
-        return Position(0, 2, 0);
-    }
-}
+Position Chd::getTrackLength(int track) const { return Position::fromLba(tracks[track].pregap.toLba() + tracks[track].frames); }
 
 Position Chd::getDiskSize() const {
-    size_t frames = 0;
-    for (size_t i = 0; i < tracks.size(); i++) {
-        frames += tracks[i].frames;
+    size_t frames = 75 * 2;
+    for (auto t : tracks) {
+        frames += t.pregap.toLba() + t.frames;
     }
-    return Position::fromLba(frames) + Position(0, 2, 0);
+    return Position::fromLba(frames);
 }
 }  // namespace format
 }  // namespace disc

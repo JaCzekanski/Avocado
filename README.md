@@ -16,6 +16,8 @@ See [Avocado compatibility list](https://avocado-db.czekanski.info)
 
 ## Changelog
 
+*16.11.2021* - .vgs, .gme, .vmp memory card format support, load memory cards by drag&drop
+
 *28.06.2020* - .ecm format support
 
 *16.09.2019* - Save states

@@ -53,6 +53,13 @@ struct Vibration {
     bool small;
     uint8_t big;
 };
+
+struct MemoryCardContentsChanged {
+    int slot = 0;
+};
+struct MemoryCardSwapped {
+    int slot = 0;
+};
 }  // namespace Controller
 };  // namespace Event
 

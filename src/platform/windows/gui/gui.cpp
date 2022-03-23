@@ -12,6 +12,8 @@
 #include "utils/file.h"
 #include "utils/string.h"
 #include "images.h"
+#include "disc/load.h"
+#include "memory_card/card_formats.h"
 
 float GUI::scale = 1.f;
 
@@ -128,7 +130,7 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
 
         const char* shellStatus = sys->cdrom->getShell() ? "Close disk tray" : "Open disk tray";
         if (ImGui::MenuItem(shellStatus, Key(config.hotkeys["close_tray"]).getButton().c_str())) {
-            sys->cdrom->toggleShell();
+            sys->cdrom->setShell(!sys->cdrom->getShell());
         }
 
         if (ImGui::MenuItem("Single frame", Key(config.hotkeys["single_frame"]).getButton().c_str())) {
@@ -216,6 +218,8 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         if (ImGui::MenuItem("Controller", nullptr)) showControllerSetupWindow = true;
         if (ImGui::MenuItem("Hotkeys", nullptr)) showHotkeysSetupWindow = true;
         ImGui::MenuItem("Memory Card", nullptr, &memoryCardOptions.memoryCardWindowOpen);
+
+        ImGui::MenuItem("System", nullptr, &systemOptions.systemWindowOpen);
 
         bool soundEnabled = config.options.sound.enabled;
         if (ImGui::MenuItem("Sound", nullptr, &soundEnabled)) {
@@ -307,6 +311,7 @@ void GUI::render(std::unique_ptr<System>& sys) {
 
         biosOptions.displayWindows();
         memoryCardOptions.displayWindows(sys.get());
+        systemOptions.displayWindows();
 
         // Help
         aboutHelp.displayWindows();
@@ -318,17 +323,21 @@ void GUI::render(std::unique_ptr<System>& sys) {
         notInitializedWindowShown = true;
         ImGui::OpenPopup("Avocado");
     } else if (droppedItem) {
-        if (!droppedItemDialogShown) {
-            droppedItemDialogShown = true;
-            ImGui::OpenPopup("Disc");
+        if (droppedItemDialog == DroppedItemDialog::None) {
+            if (memory_card::isMemoryCardImage(*droppedItem)) {
+                droppedItemDialog = DroppedItemDialog::MemoryCard;
+                ImGui::OpenPopup("Memory card##select_file");
+            } else if (disc::isDiscImage(*droppedItem)) {
+                droppedItemDialog = DroppedItemDialog::Disc;
+                ImGui::OpenPopup("Disc##select_file");
+            }
         }
     } else {
         drawControls(sys);
     }
 
-    if (droppedItem) {
-        discDialog();
-    }
+    memoryCardDialog();
+    discDialog();
 
     // Work in progress
     //    renderController();
@@ -337,8 +346,33 @@ void GUI::render(std::unique_ptr<System>& sys) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+void GUI::memoryCardDialog() {
+    if (!ImGui::BeginPopupModal("Memory card##select_file", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+
+    ImGui::Text("Select card slot for %s", getFilenameExt(*droppedItem).c_str());
+    for (int slot = 0; slot < 2; slot++) {
+        if (ImGui::Button(fmt::format("Slot {}", slot + 1).c_str())) {
+            config.memoryCard[slot].path = *droppedItem;
+            bus.notify(Event::Controller::MemoryCardSwapped{slot});
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+    }
+
+    if (ImGui::Button("Cancel")) {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+
+    if (!ImGui::IsPopupOpen("Memory card##select_file")) {
+        droppedItem = {};
+        droppedItemDialog = DroppedItemDialog::None;
+    }
+}
 void GUI::discDialog() {
-    if (!ImGui::BeginPopupModal("Disc", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!ImGui::BeginPopupModal("Disc##select_file", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
 
@@ -369,9 +403,9 @@ void GUI::discDialog() {
     }
     ImGui::EndPopup();
 
-    if (!ImGui::IsPopupOpen("Disc")) {
+    if (!ImGui::IsPopupOpen("Disc##select_file")) {
         droppedItem = {};
-        droppedItemDialogShown = false;
+        droppedItemDialog = DroppedItemDialog::None;
     }
 }
 
@@ -460,11 +494,9 @@ void GUI::drawControls(std::unique_ptr<System>& sys) {
 
     std::string game{};
 
-    if (sys->cdrom->disc) {
-        auto cdPath = sys->cdrom->disc->getFile();
-        if (!cdPath.empty()) {
-            game = getFilename(cdPath);
-        }
+    auto cdPath = sys->cdrom->disc->getFile();
+    if (!cdPath.empty()) {
+        game = getFilename(cdPath);
     }
     if (!game.empty()) {
         ImGui::TextUnformatted(game.c_str());

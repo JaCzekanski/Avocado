@@ -146,6 +146,7 @@ add_library(imgui STATIC
         externals/imgui/imgui.cpp
         externals/imgui/imgui_draw.cpp
         externals/imgui/imgui_widgets.cpp
+        externals/imgui/imgui_tables.cpp
         externals/imgui/misc/cpp/imgui_stdlib.cpp
         )
 target_include_directories(imgui PUBLIC externals/imgui/)
@@ -246,6 +247,7 @@ add_library(core STATIC
         src/disc/position.cpp
         src/disc/subchannel_q.cpp
         src/input/input_manager.cpp
+        src/memory_card/card_formats.cpp
         src/sound/adpcm.cpp
         src/sound/tables.cpp
         src/sound/wave.cpp
@@ -306,6 +308,7 @@ set(SOURCES
         src/platform/windows/gui/options/bios.cpp
         src/platform/windows/gui/options/memory_card.cpp
         src/platform/windows/gui/options/options.cpp
+        src/platform/windows/gui/options/system_options.cpp
         src/platform/windows/gui/toasts.cpp
         src/platform/windows/input/key.cpp
         src/platform/windows/input/sdl_input_manager.cpp

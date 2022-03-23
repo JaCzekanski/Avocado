@@ -6,12 +6,12 @@
 
 #include "utils/address.h"
 #include <iostream>
-#include <string> 
+#include <string>
 #include <unistd.h>
 
 
 namespace mips {
-CPU::CPU(System* sys) : sys(sys), _opcode(0) {
+CPU::CPU(System* sys) : sys(sys) {
     setPC(0xBFC00000);
     inBranchDelay = false;
     icacheEnabled = false;
@@ -79,7 +79,7 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
     }
 
     uint32_t data = sys->readMemory32(address);
-        
+
     icache[index] = CacheLine{tag, data};
 
     return data;
@@ -87,9 +87,10 @@ INLINE uint32_t CPU::fetchInstruction(uint32_t address) {
 
 bool CPU::executeInstructions(int count) {
     for (int i = 0; i < count; i++) {
-        // HACK: BIOS hooks
+#ifdef ENABLE_BIOS_HOOKS
         uint32_t maskedPc = PC & 0x1fff'ffff;
         if (maskedPc == 0xa0 || maskedPc == 0xb0 || maskedPc == 0xc0) sys->handleBiosFunction();
+#endif
 
         saveStateForException();
         checkForInterrupts();
@@ -98,18 +99,14 @@ bool CPU::executeInstructions(int count) {
             if (handleSoftwareBreakpoints()) return false;
         }
 
-        _opcode = Opcode(fetchInstruction(PC));
-
-        const auto& op = instructions::OpcodeTable[_opcode.op];
+        const auto opcode = Opcode(fetchInstruction(PC));
+        const auto& op = instructions::OpcodeTable[opcode.op];
 
         setPC(nextPC);
-
-        op.instruction(this, _opcode);
-
+        op.instruction(this, opcode);
         moveLoadDelaySlots();
 
         sys->cycles++;
-        if (sys->state != System::State::run) return false;
     }
     return true;
 }

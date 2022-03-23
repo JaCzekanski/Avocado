@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <stdexcept>
 
 template <typename T, size_t length>
 class fifo {
@@ -7,52 +8,66 @@ class fifo {
     T data[length] = {};
     size_t write_ptr = 0;
     size_t read_ptr = 0;
+    bool full = false;
 
    public:
     size_t size() const {
-        if (write_ptr >= read_ptr) {
+        if (is_full()) {
+            return length;
+        } else if (write_ptr >= read_ptr) {
             return write_ptr - read_ptr;
         } else {
             return length + write_ptr - read_ptr;
         }
     }
 
-    bool empty() const { return size() == 0; }
+    bool is_empty() const { return write_ptr == read_ptr && !full; }
 
-    bool full() const { return size() == length - 1; }
+    bool is_full() const { return full; }
 
     void clear() {
         write_ptr = 0;
         read_ptr = 0;
+        full = false;
     }
 
     bool add(const T t) {
-        if (full()) {
+        if (is_full()) {
             return false;
         }
 
         data[write_ptr] = t;
-        write_ptr = ++write_ptr % length;
+        write_ptr = (write_ptr + 1) % length;
+
+        full = write_ptr == read_ptr;
 
         return true;
     }
 
     T get() {
-        if (empty()) {
-            return 0;
-            // TODO ?
+        if (is_empty()) {
+            return {};
         }
 
         T t = data[read_ptr];
-        read_ptr = ++read_ptr % length;
+        read_ptr = (read_ptr + 1) % length;
+
+        full = false;
 
         return t;
     }
 
     T peek(const size_t ptr = 0) const {
         if (ptr >= size()) {
-            return 0;
-            // TODO ?
+            return {};
+        }
+
+        return data[(read_ptr + ptr) % length];
+    }
+
+    T& ref(const size_t ptr = 0) {
+        if (ptr >= size()) {
+            throw std::runtime_error("Trying to get ref for element outside FIFO size.");
         }
 
         return data[(read_ptr + ptr) % length];
@@ -62,6 +77,6 @@ class fifo {
 
     template <class Archive>
     void serialize(Archive& ar) {
-        ar(data);
+        ar(data, write_ptr, read_ptr, full);
     }
 };

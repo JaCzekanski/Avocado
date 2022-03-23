@@ -7,6 +7,7 @@
 #include "utils/file.h"
 #include "utils/logic.h"
 #include "utils/macros.h"
+#include "utils/timing.h"
 
 
 
@@ -790,6 +791,20 @@ void GPU::writeGP1(uint32_t data) {
     }
 }
 
+float GPU::cyclesPerLine() const {
+    if (isNtsc())
+        return timing::CYCLES_PER_LINE_NTSC;
+    else
+        return timing::CYCLES_PER_LINE_PAL;
+}
+
+int GPU::linesPerFrame() const {
+    if (isNtsc())
+        return timing::LINES_TOTAL_NTSC;
+    else
+        return timing::LINES_TOTAL_PAL;
+}
+
 bool GPU::emulateGpuCycles(int cycles) {
     gpuDot += cycles;
 
@@ -798,7 +813,7 @@ bool GPU::emulateGpuCycles(int cycles) {
     gpuDot %= 3413;
     gpuLine += newLines;
 
-    if (gpuLine < LINE_VBLANK_START_NTSC - 1) {
+    if (gpuLine < linesPerFrame() - 20 - 1) {
         if (gp1_08.verticalResolution == GP1_08::VerticalResolution::r480 && gp1_08.interlace) {
             odd = (frames % 2) != 0;
         } else {
@@ -808,7 +823,7 @@ bool GPU::emulateGpuCycles(int cycles) {
         odd = false;
     }
 
-    if (gpuLine == LINES_TOTAL_NTSC - 1) {
+    if (gpuLine == linesPerFrame() - 1) {
         gpuLine = 0;
         frames++;
         return true;
@@ -829,7 +844,7 @@ bool GPU::insideDrawingArea(int x, int y) const {
            && (y < VRAM_HEIGHT);
 }
 
-bool GPU::isNtsc() { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
+bool GPU::isNtsc() const { return forceNtsc || gp1_08.videoMode == GP1_08::VideoMode::ntsc; }
 
 void GPU::dumpVram() {
     const char* dumpName = "vram.png";

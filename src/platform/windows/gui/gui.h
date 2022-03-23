@@ -14,6 +14,7 @@
 #include "options/bios.h"
 #include "options/memory_card.h"
 #include "options/options.h"
+#include "options/system_options.h"
 #include "toasts.h"
 
 struct System;
@@ -36,12 +37,14 @@ class GUI {
 
     gui::options::Bios biosOptions;
     gui::options::MemoryCard memoryCardOptions;
+    gui::options::System systemOptions;
 
     gui::help::About aboutHelp;
 
     gui::Toasts toasts;
 
     void mainMenu(std::unique_ptr<System>& sys);
+    void memoryCardDialog();
     void discDialog();
     void drawControls(std::unique_ptr<System>& sys);
     void renderController();
@@ -60,7 +63,9 @@ class GUI {
 
     // Drag&drop
     std::optional<std::string> droppedItem;
-    bool droppedItemDialogShown = false;
+
+    enum class DroppedItemDialog { None, Disc, MemoryCard };
+    DroppedItemDialog droppedItemDialog = DroppedItemDialog::None;
 
     GUI(SDL_Window* window, void* glContext);
     ~GUI();

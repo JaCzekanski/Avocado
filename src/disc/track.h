@@ -26,5 +26,14 @@ struct Track {
 
         frames = 0;
     }
+
+    Position pause() const {
+        if (index0) {
+            return (index1 - *index0);
+        }
+        return Position(0, 0, 0);
+    }
+
+    Position start() const { return pregap + pause(); }
 };
 }  // namespace disc

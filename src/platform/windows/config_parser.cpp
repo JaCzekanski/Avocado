@@ -57,6 +57,10 @@ void saveConfigFile() {
         {"timeTravel", config.options.emulator.timeTravel},
     };
 
+    json["options"]["system"] = {
+        {"ram8mb", config.options.system.ram8mb},
+    };
+
     auto l = config.debug.log;
     json["debug"]["log"] = {
         {"bios", l.bios},              //
@@ -125,6 +129,10 @@ void loadConfigFile() {
         if (auto e = json["options"]["emulator"]; !e.is_null()) {
             config.options.emulator.preserveState = e["preserveState"];
             config.options.emulator.timeTravel = e["timeTravel"];
+        }
+
+        if (auto s = json["options"]["system"]; !s.is_null()) {
+            config.options.system.ram8mb = s["ram8mb"];
         }
 
         if (auto l = json["debug"]["log"]; !l.is_null()) {

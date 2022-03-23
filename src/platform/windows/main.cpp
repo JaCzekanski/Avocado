@@ -20,6 +20,7 @@
 #include "utils/string.h"
 #include "utils/platform_tools.h"
 #include "version.h"
+#include "memory_card/card_formats.h"
 
 #ifdef _WIN32
 #include <direct.h>
@@ -41,7 +42,7 @@ double limitFramerate(bool framelimiter, bool ntsc) {
     double currentTime = SDL_GetPerformanceCounter() / counterFrequency;
     double deltaTime = currentTime - startTime;
 
-    double frameTime = ntsc ? (1.0 / 60.0) : (1.0 / 50.0);
+    double frameTime = ntsc ? (1.0 / timing::NTSC_FRAMERATE) : (1.0 / timing::PAL_FRAMERATE);
 
     if (framelimiter && deltaTime < frameTime) {
         // If deltaTime was shorter than frameTime - spin
@@ -199,13 +200,13 @@ int main(int argc, char** argv) {
     std::unique_ptr<System> sys = system_tools::hardReset();
 
     int busToken = bus.listen<Event::File::Load>([&](auto e) {
-        if (disc::isDiscImage(e.file)) {
-            if (e.action == Event::File::Load::Action::ask) {
-                // Show dialog and decide what to do
-                gui->droppedItem = e.file;
-                return;
-            }
+        if (e.action == Event::File::Load::Action::ask && (disc::isDiscImage(e.file) || memory_card::isMemoryCardImage(e.file))) {
+            // Show dialog and decide what to do
+            gui->droppedItem = e.file;
+            return;
+        }
 
+        if (disc::isDiscImage(e.file)) {
             std::unique_ptr<disc::Disc> disc = disc::load(e.file);
             if (!disc) {
                 toast(fmt::format("Cannot load {}", getFilenameExt(e.file)));
@@ -234,6 +235,7 @@ int main(int argc, char** argv) {
                 toast("Fastboot");
                 return;
             } else if (e.action == Event::File::Load::Action::swap) {
+                sys->cdrom->setShell(true);
                 sys->cdrom->disc = std::move(disc);
                 sys->cdrom->setShell(false);
 
@@ -255,6 +257,18 @@ int main(int argc, char** argv) {
     bus.listen<Event::System::HardReset>(busToken, [&](auto) { sys = system_tools::hardReset(); });
     bus.listen<Event::System::SaveState>(busToken, [&](auto e) { state::quickSave(sys.get(), e.slot); });
     bus.listen<Event::System::LoadState>(busToken, [&](auto e) { state::quickLoad(sys.get(), e.slot); });
+
+    bus.listen<Event::Controller::MemoryCardContentsChanged>(busToken, [&](auto e) {
+        // TODO: throttleLast save event
+        system_tools::saveMemoryCard(sys, e.slot);
+    });
+
+    bus.listen<Event::Controller::MemoryCardSwapped>(busToken, [&](auto e) {
+        sys->controller->card[e.slot]->inserted = false;
+        for (int i = 0; i < 60; i++) sys->emulateFrame();
+
+        system_tools::loadMemoryCard(sys, e.slot);
+    });
 
     bus.listen<Event::Gui::ToggleFullscreen>(busToken, [&](auto) {
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
@@ -351,7 +365,7 @@ int main(int argc, char** argv) {
                     }
                 }
                 if (button == Key(config.hotkeys["close_tray"])) {
-                    sys->cdrom->toggleShell();
+                    sys->cdrom->setShell(!sys->cdrom->getShell());
                     toast(fmt::format("Shell {}", sys->cdrom->getShell() ? "open" : "closed"));
                 }
                 if (button == Key(config.hotkeys["quick_save"])) {
@@ -432,7 +446,8 @@ int main(int argc, char** argv) {
     if (config.options.emulator.preserveState && sys->state != System::State::halted) {
         state::saveLastState(sys.get());
     }
-    system_tools::saveMemoryCards(sys, true);
+    system_tools::saveMemoryCard(sys, 0, true);
+    system_tools::saveMemoryCard(sys, 1, true);
     saveConfigFile();
 
     bus.unlistenAll(busToken);

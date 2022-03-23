@@ -18,7 +18,8 @@ struct Disc {
     virtual std::string getFile() const = 0;
     virtual size_t getTrackCount() const = 0;
     virtual int getTrackByPosition(Position pos) const = 0;
-    virtual Position getTrackStart(int track) const = 0;
+    virtual Position getTrackBegin(int track) const = 0;  // MMSSFF of track first sector
+    virtual Position getTrackStart(int track) const = 0;  // MMSSFF of track index1
     virtual Position getTrackLength(int track) const = 0;
     virtual Position getDiskSize() const = 0;
 

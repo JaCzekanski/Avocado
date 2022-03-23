@@ -11,6 +11,7 @@ namespace device {
 namespace cdrom {
 
 class CDROM {
+    enum class AudioStatus { Stop, Play, Pause, Forward, Backward };
     union StatusCode {
         enum class Mode { None, Reading, Seeking, Playing };
         struct {
@@ -40,21 +41,14 @@ class CDROM {
 
         void setShell(bool opened) {
             shellOpen = opened;
-            if (!shellOpen) {
-                setMode(Mode::None);
+
+            setMode(Mode::None);
+            if (opened) {
+                motor = false;
             }
         }
 
         bool getShell() const { return shellOpen; }
-
-        void toggleShell() {
-            if (!shellOpen) {
-                shellOpen = true;
-                setMode(Mode::None);
-            } else {
-                shellOpen = false;
-            }
-        }
 
         StatusCode() : _reg(0) { shellOpen = true; }
     };
@@ -62,11 +56,11 @@ class CDROM {
     union CDROM_Status {
         struct {
             uint8_t index : 2;
-            uint8_t xaFifoEmpty : 1;
-            uint8_t parameterFifoEmpty : 1;  // triggered before writing first byte
-            uint8_t parameterFifoFull : 1;   // triggered after writing 16 bytes
-            uint8_t responseFifoEmpty : 1;   // triggered after reading last byte
-            uint8_t dataFifoEmpty : 1;       // triggered after reading last byte
+            uint8_t xaFifoEmpty : 1;         // 1 - NOT empty, 0 - empty, INVERSE LOGIC
+            uint8_t parameterFifoEmpty : 1;  // 1 - empty, 0 - not empty
+            uint8_t parameterFifoFull : 1;   // 1 - NOT full, 0 - full, INVERSE LOGIC
+            uint8_t responseFifoEmpty : 1;   // 1 - NOT empty, 0 - empty, INVERSE LOGIC
+            uint8_t dataFifoEmpty : 1;       // 1 - NOT empty, 0 - empty, INVERSE LOGIC
             uint8_t transmissionBusy : 1;
         };
         uint8_t _reg;
@@ -102,6 +96,22 @@ class CDROM {
         }
     };
 
+    // Hack
+    struct irq_response_t {
+        uint8_t irq = 0;
+        fifo<uint8_t, 16> response;
+        bool ack = false;
+        int delay = 0;
+
+        irq_response_t() = default;
+        irq_response_t(uint8_t irq, int delay) : irq(irq), delay(delay) {}
+
+        template <class Archive>
+        void serialize(Archive& ar) {
+            ar(irq, response, ack, delay);
+        }
+    };
+
     using FIFO = fifo<uint8_t, 16>;
 
     int verbose = 1;
@@ -109,8 +119,7 @@ class CDROM {
     CDROM_Status status;
     uint8_t interruptEnable = 0;
     FIFO CDROM_params;
-    FIFO CDROM_response;
-    FIFO interruptQueue;
+    fifo<irq_response_t, 16> interruptQueue;
 
     Mode mode;
     Filter filter;
@@ -124,12 +133,15 @@ class CDROM {
     int seekSector = 0;
 
     StatusCode stat;
+    AudioStatus audioStatus = AudioStatus::Stop;
 
     int scexCounter = 0;
 
     void cmdGetstat();
     void cmdSetloc();
     void cmdPlay();
+    void cmdForward();
+    void cmdBackward();
     void cmdReadN();
     void cmdMotorOn();
     void cmdStop();
@@ -154,31 +166,21 @@ class CDROM {
     void cmdSeekP();
     void handleCommand(uint8_t cmd);
 
-    void writeResponse(uint8_t byte) {
-        if (CDROM_response.full()) {
-            return;
-        }
-        CDROM_response.add(byte);
-        status.responseFifoEmpty = 1;
-    }
+    void writeResponse(uint8_t byte);
 
     uint8_t readParam() {
         uint8_t param = CDROM_params.get();
-
-        status.parameterFifoEmpty = CDROM_params.empty();
-        status.parameterFifoFull = 1;
-
         return param;
     }
 
-    void postInterrupt(int irq) {
-        assert(irq <= 7);
+    int busyFor = 0;
 
-        interruptQueue.add(irq);
-    }
+    void postInterrupt(int irq, int delay = 50000) { interruptQueue.add(irq_response_t(irq, delay)); }
 
     std::string dumpFifo(const FIFO& f);
     std::pair<int16_t, int16_t> mixSample(std::pair<int16_t, int16_t> sample);
+
+    void handleSector();
 
    public:
     std::deque<std::pair<int16_t, int16_t>> audio;
@@ -195,25 +197,37 @@ class CDROM {
     std::unique_ptr<disc::Disc> disc;
     disc::SubchannelQ lastQ;
     bool mute = false;
+    int previousTrack;  // for CDDA autopause
 
     CDROM(System* sys);
-    void step();
+    void step(int cycles);
     uint8_t read(uint32_t address);
     void write(uint32_t address, uint8_t data);
 
-    void setShell(bool opened) { stat.setShell(opened); }
+    void setShell(bool opened) {
+        stat.setShell(opened);
+
+        if (opened) {
+            if (disc) {
+                postInterrupt(0x05, 1000);
+                writeResponse(0x16);
+                writeResponse(0x08);
+            }
+        }
+    }
     bool getShell() const { return stat.getShell(); }
-    void toggleShell() { stat.toggleShell(); }
     void ackMoreData() {
-        postInterrupt(1);
+        postInterrupt(1, 0);
         writeResponse(stat._reg);
     }
+
+    bool discPresent() { return stat.getShell() == false && disc; }
 
     template <class Archive>
     void serialize(Archive& ar) {
         ar(status._reg, interruptEnable);
         ar(CDROM_params);
-        ar(CDROM_response);
+        //        ar(CDROM_response);
         ar(interruptQueue);
         ar(mode._reg);
         ar(filter);
@@ -221,6 +235,7 @@ class CDROM {
         ar(seekSector);
         ar(scexCounter);
         ar(stat._reg);
+        ar(audioStatus);
         ar(volumeLeftToLeft, volumeLeftToRight, volumeRightToLeft, volumeRightToRight);
         ar(audio);
         ar(rawSector);
