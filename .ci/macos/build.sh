@@ -36,6 +36,9 @@ dylibbundler -od -b \
 # Remove .gitignore
 find $ARTIFACT -type f -name .gitignore -exec rm {} \;
 
+# Try to fix the "avocado is damaged and can’t be opened. You should move it to the Bin."
+xattr -cr $ARTIFACT
+
 # Prepare upload artifact
 mkdir -p upload
 zip -r upload/$ARTIFACT.zip $ARTIFACT
