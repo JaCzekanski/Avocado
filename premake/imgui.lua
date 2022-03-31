@@ -9,9 +9,13 @@ project "imgui"
 	}
 	includedirs { 
 		"../externals/imgui",
+		"../externals/imgui/backends",
 		"../externals/glad/include",
+		"../externals/SDL2/include",
 	}
 	files { 
 		"../externals/imgui/*.cpp",
+		"../externals/imgui/backends/imgui_impl_opengl3.cpp",
+		"../externals/imgui/backends/imgui_impl_sdl.cpp",
 		"../externals/imgui/misc/cpp/*.cpp",
 	}

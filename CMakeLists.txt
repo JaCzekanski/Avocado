@@ -288,8 +288,8 @@ target_compile_options(core PUBLIC
 )
 
 set(SOURCES
-        src/imgui/imgui_impl_opengl3.cpp
-        src/imgui/imgui_impl_sdl.cpp
+        externals/imgui/backends/imgui_impl_opengl3.cpp
+        externals/imgui/backends/imgui_impl_sdl.cpp
         src/platform/windows/config_parser.cpp
         src/platform/windows/file/file.cpp
         src/platform/windows/gui/debug/cdrom.cpp
@@ -331,6 +331,7 @@ add_executable(avocado ${SOURCES})
 target_include_directories(avocado
         PRIVATE
         src
+        externals/imgui
         )
 
 target_link_libraries(avocado

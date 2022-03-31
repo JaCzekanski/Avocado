@@ -3,8 +3,8 @@
 #include <imgui.h>
 #include <platform/windows/utils/platform_tools.h>
 #include "config.h"
-#include "imgui/imgui_impl_opengl3.h"
-#include "imgui/imgui_impl_sdl.h"
+#include <backends/imgui_impl_opengl3.h>
+#include <backends/imgui_impl_sdl.h>
 #include "platform/windows/input/key.h"
 #include "platform/windows/gui/icons.h"
 #include "system.h"
@@ -23,7 +23,7 @@ GUI::GUI(SDL_Window* window, void* glContext) : window(window) {
     ImGuiIO& io = ImGui::GetIO();
     iniPath = avocado::PATH_USER + "imgui.ini";
     io.IniFilename = iniPath.c_str();
-//    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    //    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 #ifdef ANDROID
     io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
 #endif
@@ -275,18 +275,6 @@ void GUI::render(std::unique_ptr<System>& sys) {
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
 
-    if (ImGui::BeginPopupModal("Avocado", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Avocado needs to be set up before running.");
-        ImGui::Text("You need one of BIOS files placed in data/bios directory.");
-
-        if (ImGui::Button("Select BIOS file")) {
-            biosOptions.biosWindowOpen = true;
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
-    }
-
     if (showGui) {
         if (showMenu) mainMenu(sys);
 
@@ -334,6 +322,19 @@ void GUI::render(std::unique_ptr<System>& sys) {
         }
     } else {
         drawControls(sys);
+    }
+
+    if (ImGui::BeginPopupModal("Avocado", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Avocado needs to be set up before running.");
+        ImGui::Text("You need one of BIOS files placed in data/bios directory.");
+
+        if (ImGui::Button("Select BIOS file")) {
+            notInitializedWindowShown = true;
+            biosOptions.biosWindowOpen = true;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     memoryCardDialog();
