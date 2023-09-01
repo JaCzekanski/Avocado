@@ -580,8 +580,8 @@ struct Screenshot {
         vertexBuffer.push_back(vertex);
     }
 
-    uint32_t outputVertex(std::ofstream &stream, std::ofstream &stream2, float x, float y, float z, float r, float g, float b, float u,
-                          float v, int16_t originalX, int16_t originalY, int16_t originalZ, uint32_t group, uint16_t depth, vec3 normal,
+    uint32_t outputVertex(std::ofstream &stream, float x, float y, float z, float r, float g, float b, float u,
+                          float v, vec3 normal,
                           uint32_t comp) {
         float multiplicator = comp == 0 ? 1.0f : 2.0f;
         stream << "vt " << std::setprecision(6) << u << " " << std::setprecision(6) << 1.0f - v << "\n";
@@ -590,11 +590,6 @@ struct Screenshot {
         stream << "v " << std::setprecision(6) << x << " " << std::setprecision(6) << y << " " << std::setprecision(6) << z << " "
                << std::setprecision(6) << std::min(r * multiplicator, 1.0f) << " " << std::setprecision(6)
                << std::min(g * multiplicator, 1.0f) << " " << std::setprecision(6) << std::min(b * multiplicator, 1.0f) << "\n";
-
-        stream2 << "vt " << (int)(u * 255) << " " << (int)(v * 255) - v << "\n";
-        stream2 << "vn " << std::setprecision(6) << (int)(normal.x * 4096) << " " << std::setprecision(6) << (int)(normal.y * 4096) << " "
-                << std::setprecision(6) << (int)(normal.z * 4096) << "\n";
-        stream2 << "v " << originalX << "  " << originalY << " " << originalZ << " #Group Index:" << group << " H Value:" << depth << "\n";
         return vertexIndex++;
     }
 
@@ -676,9 +671,7 @@ struct Screenshot {
         if (enabled) {
             if (!vertexOnly && faceBuffer.size() > 0 || vertexOnly && vertexBuffer.size() > 0) {
                 std::ofstream stream(fmt::format("{}/output_{}.obj", folder, num));
-                std::ofstream streamRaw(fmt::format("{}/output_{}_raw.obj", folder, num));
                 stream << fmt::format("mtllib output_{}.mtl\n", num);
-                streamRaw << fmt::format("mtllib output_{}.mtl\n", num);
 
                 float yScale
                     = applyAspectRatio ? gpu->gp1_08.getHorizontalResoulution() / (float)gpu->gp1_08.getVerticalResoulution() : 1.0f;
@@ -690,15 +683,15 @@ struct Screenshot {
                         ScreenshotVertex v1 = vertexBuffer[it->v[1]];
                         ScreenshotVertex v2 = vertexBuffer[it->v[2]];
                         vec3 normal = getNormal(v0.pos, v1.pos, v2.pos);
-                        it->vremap[0] = outputVertex(stream, streamRaw, v0.pos.x, -v0.pos.y * yScale, -v0.pos.z * zScale, it->r[0] / 255.0f,
+                        it->vremap[0] = outputVertex(stream, v0.pos.x, -v0.pos.y * yScale, -v0.pos.z * zScale, it->r[0] / 255.0f,
                                                      it->g[0] / 255.0f, it->b[0] / 255.0f, it->s[0] / 255.0f, it->t[0] / 255.0f,
-                                                     v0.originalX, v0.originalY, v0.originalZ, v0.group, v0.depth, normal, it->comp);
-                        it->vremap[1] = outputVertex(stream, streamRaw, v1.pos.x, -v1.pos.y * yScale, -v1.pos.z * zScale, it->r[1] / 255.0f,
+                                                     normal, it->comp);
+                        it->vremap[1] = outputVertex(stream, v1.pos.x, -v1.pos.y * yScale, -v1.pos.z * zScale, it->r[1] / 255.0f,
                                                      it->g[1] / 255.0f, it->b[1] / 255.0f, it->s[1] / 255.0f, it->t[1] / 255.0f,
-                                                     v1.originalX, v1.originalY, v1.originalZ, v1.group, v1.depth, normal, it->comp);
-                        it->vremap[2] = outputVertex(stream, streamRaw, v2.pos.x, -v2.pos.y * yScale, -v2.pos.z * zScale, it->r[2] / 255.0f,
+                                                     normal, it->comp);
+                        it->vremap[2] = outputVertex(stream, v2.pos.x, -v2.pos.y * yScale, -v2.pos.z * zScale, it->r[2] / 255.0f,
                                                      it->g[2] / 255.0f, it->b[2] / 255.0f, it->s[2] / 255.0f, it->t[2] / 255.0f,
-                                                     v2.originalX, v2.originalY, v2.originalZ, v2.group, v2.depth, normal, it->comp);
+                                                     normal, it->comp);
                     }
                     std::map<uint32_t, std::vector<ScreenshotFace>> groups;
                     for (auto it : faceBuffer) {
@@ -720,14 +713,11 @@ struct Screenshot {
                             stream << fmt::format("usemtl output_{}_tex{}\n", num, textureIndex);
                             stream << "f " << vremap0 << "/" << vremap0 << "/" << vremap0 << " " << vremap1 << "/" << vremap1 << "/"
                                    << vremap1 << " " << vremap2 << "/" << vremap2 << "/" << vremap2 << "\n";
-                            streamRaw << "f " << vremap0 << "/" << vremap0 << "/" << vremap0 << " " << vremap1 << "/" << vremap1 << "/"
-                                      << vremap1 << " " << vremap2 << "/" << vremap2 << "/" << vremap2 << "\n";
                         }
                     }
                 } else {
                     for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); it++) {
-                        outputVertex(stream, streamRaw, it->pos.x, -it->pos.y * yScale, -it->pos.z * zScale, 0, 0, 0, 0, 0, it->pos.x,
-                                     it->pos.y, it->pos.z, it->group, it->depth, vec3(0, 0, 0), 0);
+                        outputVertex(stream, it->pos.x, -it->pos.y * yScale, -it->pos.z * zScale, 0, 0, 0, 0, 0, vec3(0, 0, 0), 0);
                     }
                 }
                 std::ofstream streamMtl(fmt::format("{}/output_{}.mtl", folder, num));
@@ -751,7 +741,6 @@ struct Screenshot {
 
                 streamMtl.close();
                 stream.close();
-                streamRaw.close();
                 toast(fmt::format("3d screenshot saved to output_{}.obj", num));
                 
                 num++;
