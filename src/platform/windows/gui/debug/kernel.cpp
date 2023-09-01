@@ -19,7 +19,7 @@ void parse(System* sys) {
     uint32_t addr = sys->readMemory32(0x108);
     uint32_t count = sys->readMemory32(0x108 + 4) / size;
 
-    ImGui::TreePush();
+    ImGui::TreePush((void*)nullptr);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
@@ -43,7 +43,7 @@ void parse(System* sys) {
     uint32_t addr = sys->readMemory32(0x110);
     uint32_t count = sys->readMemory32(0x110 + 4) / size;
 
-    ImGui::TreePush();
+    ImGui::TreePush((void*)nullptr);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();
@@ -153,7 +153,7 @@ void parse(System* sys) {
     uint32_t addr = sys->readMemory32(0x120);
     uint32_t count = sys->readMemory32(0x120 + 4) / size;
 
-    ImGui::TreePush();
+    ImGui::TreePush((void*)nullptr);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Text("(addr: 0x%08x, count: 0x%02x)", addr, count);
     ImGui::Separator();

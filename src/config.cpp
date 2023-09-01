@@ -230,7 +230,8 @@ KeyBindings keyboard() {
         {"toggle_pause", "keyboard|Space"},
         {"toggle_framelimit", "keyboard|Tab"},
         {"rewind_state", "keyboard|Backspace"},
-        {"toggle_fullscreen", "keyboard|F4"}
+        {"toggle_fullscreen", "keyboard|F4"},
+        {"3d_screenshot", "keyboard|F12"},
     };
 }
 }  // namespace DefaultHotkeys

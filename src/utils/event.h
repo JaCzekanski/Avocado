@@ -63,10 +63,7 @@ struct MemoryCardSwapped {
 }  // namespace Controller
 
 namespace Screenshot {
-struct Save {
-    std::string path;
-    bool reset;
-};
+struct Save {};
 }  // namespace Screenshot
 };  // namespace Event
 

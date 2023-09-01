@@ -415,7 +415,7 @@ void controllerSetupWindow() {
 }
 
 void hotkeysSetupWindow() {
-    ImGui::SetNextWindowSize(ImVec2(300.f, 325.f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(300.f, 350.f), ImGuiCond_Once);
     ImGui::Begin("Hotkeys", &showHotkeysSetupWindow, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize);
 
     button("toggle_menu", "Toggle menu");
@@ -429,6 +429,7 @@ void hotkeysSetupWindow() {
     button("single_frame", "Single frame");
     button("single_step", "Single step");
     button("rewind_state", "Time travel");
+    button("3d_screenshot", "Take 3d screenshot");
 
     pressKeyPopup();
 

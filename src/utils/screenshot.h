@@ -6,12 +6,14 @@
 #include <algorithm>
 #include <string>
 #include <map>
+#include <fmt/core.h>
 #include <stb_image_write.h>
 #include "device/gpu/gpu.h"
 #include "device/gpu/render/texture_utils.h"
 #include "utils/math.h"
 #include "cpu/gte/gte.h"
 #include "device/gpu/render/render.h"
+#include "config.h"
 
 #define MAXATTEMPTS 100
 //#define GETTPAGE(x, y) (((y / PAGEHEIGHT) * 16) + (x / PAGECOMPRESSEDWIDTH))
@@ -112,7 +114,7 @@ struct Screenshot {
     int verticalScale = 100;
     int captureFrames = 1;
     bool dontTransform = false;
-    bool doubleSided = false;
+    bool doubleSided = true;
     bool applyAspectRatio = false;
     int rotationX = 0;
     int rotationY = 0;
@@ -128,9 +130,8 @@ struct Screenshot {
     bool connectToGroups = false;
     bool connectToSubGroups = true;
     bool freeCamEnabled = false;
-    bool bmpImages = false;
     bool blackIsTrans = false;
-    bool disableFog = false;
+    bool disableFog = true;
     bool dontProject = false;
     bool vertexOnly = false;
     bool debug = false;
@@ -145,7 +146,8 @@ struct Screenshot {
     uint32_t frameIndex = 0;
     uint32_t vertexIndex = 1;
 
-    std::string folder;
+    std::string folder = avocado::screenshotPath();
+    int num = 1;
 
     const uint32_t quadIndices[3] = {0, 1, 2};
     const uint32_t triangleIndices[3] = {2, 1, 0};
@@ -336,8 +338,7 @@ struct Screenshot {
                     texture->data[textureAddress + 0] = color.getR();
                     texture->data[textureAddress + 1] = color.getG();
                     texture->data[textureAddress + 2] = color.getB();
-                    texture->data[textureAddress + 3]
-                        = !bmpImages && blackIsTrans && color.getR() == 0 && color.getG() == 0 && color.getB() == 0 ? 0 : 255;
+                    texture->data[textureAddress + 3] = blackIsTrans && color.getR() == 0 && color.getG() == 0 && color.getB() == 0 ? 0 : 255;
                 }
             }
         }
@@ -674,12 +675,11 @@ struct Screenshot {
     void flushBuffer(gpu::GPU *gpu) {
         if (enabled) {
             if (!vertexOnly && faceBuffer.size() > 0 || vertexOnly && vertexBuffer.size() > 0) {
-                std::ofstream stream(folder + "/output_" + std::to_string(frameIndex) + ".obj");
-                std::ofstream streamRaw(folder + "/output_" + std::to_string(frameIndex) + "_raw.obj");
-                stream << "mtllib output_" + std::to_string(frameIndex) + ".mtl"
-                       << "\n";
-                streamRaw << "mtllib output_" + std::to_string(frameIndex) + ".mtl"
-                          << "\n";
+                std::ofstream stream(fmt::format("{}/output_{}.obj", folder, num));
+                std::ofstream streamRaw(fmt::format("{}/output_{}_raw.obj", folder, num));
+                stream << fmt::format("mtllib output_{}.mtl\n", num);
+                streamRaw << fmt::format("mtllib output_{}.mtl\n", num);
+
                 float yScale
                     = applyAspectRatio ? gpu->gp1_08.getHorizontalResoulution() / (float)gpu->gp1_08.getVerticalResoulution() : 1.0f;
                 float zScale = (depthScale / 100.0f) * yScale;
@@ -717,7 +717,7 @@ struct Screenshot {
                             uint32_t vremap2 = screenshotFace.vremap[2];
                             uint32_t textureIndex = getTextureIndex(screenshotFace.tpageX, screenshotFace.tpageY);
                             // uint32_t pageId = GETTPAGE(screenshotFace->tpageX, screenshotFace->tpageY);
-                            stream << "usemtl output_" + std::to_string(frameIndex) << "_" << textureIndex << "\n";
+                            stream << fmt::format("usemtl output_{}_tex{}\n", num, textureIndex);
                             stream << "f " << vremap0 << "/" << vremap0 << "/" << vremap0 << " " << vremap1 << "/" << vremap1 << "/"
                                    << vremap1 << " " << vremap2 << "/" << vremap2 << "/" << vremap2 << "\n";
                             streamRaw << "f " << vremap0 << "/" << vremap0 << "/" << vremap0 << " " << vremap1 << "/" << vremap1 << "/"
@@ -730,41 +730,33 @@ struct Screenshot {
                                      it->pos.y, it->pos.z, it->group, it->depth, vec3(0, 0, 0), 0);
                     }
                 }
-                std::ofstream streamMtl(folder + "/output_" + std::to_string(frameIndex) + ".mtl");
+                std::ofstream streamMtl(fmt::format("{}/output_{}.mtl", folder, num));
                 // for (uint32_t i = 0; i < PAGECOUNT; i++) {
                 for (auto it = textures.begin(); it != textures.end(); it++) {
                     uint32_t textureIndex = getTextureIndex(it->tpageX, it->tpageY);
                     // uint32_t pageId = GETTPAGE(it->tpageX, it->tpageY);
                     ScreenshotTexture *texture = &textures[textureIndex];
-                    std::string relativePath("texpage_" + std::to_string(frameIndex) + "_" + std::to_string(textureIndex)
-                                             + (bmpImages ? ".bmp" : ".png"));
-                    std::string fullPath(folder + "/" + relativePath);
-                    if (bmpImages) {
-                        stbi_write_bmp(fullPath.c_str(), PAGEWIDTH, PAGEHEIGHT, PAGEBPP, texture->data);
-                    } else {
-                        stbi_write_png(fullPath.c_str(), PAGEWIDTH, PAGEHEIGHT, PAGEBPP, texture->data, GETSTRIDE);
-                    }
-                    streamMtl << "newmtl output_" << frameIndex << "_" << textureIndex << "\n";
+
+                    auto texFile = fmt::format("output_{}_tex{}.png", num, textureIndex);
+                    stbi_write_png(fmt::format("{}/{}",folder, texFile).c_str(), PAGEWIDTH, PAGEHEIGHT, PAGEBPP, texture->data, GETSTRIDE);
+                    streamMtl << fmt::format("newmtl output_{}_tex{}\n", num, textureIndex);
                     streamMtl << "Ka 0.000000 0.000000 0.000000"
                               << "\n";
                     streamMtl << "Kd 1.000000 1.000000 1.000000"
                               << "\n";
                     streamMtl << "Ks 0.000000 0.000000 0.000000"
                               << "\n";
-                    streamMtl << "map_Kd " << relativePath << "\n";
+                    streamMtl << "map_Kd " << texFile << "\n";
                 }
-                // if (bmpImages) {
-                //    stbi_write_bmp(std::string(folder + "/tetureregions.bmp").c_str(), gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, 4,
-                //                   textureRegions);
-                //} else {
-                //    stbi_write_png(std::string(folder + "/tetureregions.png").c_str(), gpu::VRAM_WIDTH, gpu::VRAM_HEIGHT, 4,
-                //                   textureRegions, gpu::VRAM_WIDTH * 4);
-                //}
 
                 streamMtl.close();
-                frameIndex++;
                 stream.close();
                 streamRaw.close();
+                toast(fmt::format("3d screenshot saved to output_{}.obj", num));
+                
+                num++;
+                frameIndex++;
+                
                 cleanUp();
             }
             attemptCount++;

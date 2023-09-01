@@ -58,3 +58,11 @@ std::string replaceAll(const std::string& str, const std::string& find, const st
     }
     return s;
 }
+
+std::string takeLast(const std::string& input, int n) {
+    if (n >= input.length()) {
+        return input;
+    } else {
+        return input.substr(input.length() - n);
+    }
+}

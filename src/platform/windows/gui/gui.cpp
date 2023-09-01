@@ -284,74 +284,53 @@ void GUI::mainMenu(std::unique_ptr<System>& sys) {
         ImGui::SliderInt("Vertical Scale (%)", &screenshot->verticalScale, 1, 1000);
         ImGui::SliderInt("Depth Scale (%)", &screenshot->depthScale, 1, 1000);
         ImGui::Separator();
+        
         ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
         ImGui::MenuItem("Debug Mode", nullptr, &screenshot->debug);
-        ImGui::PopItemFlag();
         ImGui::Separator();
-        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
         ImGui::MenuItem("Apply Aspect Ratio", nullptr, &screenshot->applyAspectRatio);
-        ImGui::PopItemFlag();
         if (screenshot->applyAspectRatio) {
             ImGui::Value("Aspect Ratio",
                          (float)sys->gpu.get()->gp1_08.getHorizontalResoulution() / (float)sys->gpu.get()->gp1_08.getVerticalResoulution());
             ImGui::Separator();
         }
-        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
         ImGui::MenuItem("Vertex Only", nullptr, &screenshot->vertexOnly);
-        ImGui::PopItemFlag();
-        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
         ImGui::MenuItem("Original Positions (No Perspective/Distortion)", nullptr, &screenshot->dontTransform);
-        ImGui::PopItemFlag();
         if (screenshot->dontTransform && !screenshot->vertexOnly) {
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Dont Project Triangles (UV Discarded)", nullptr, &screenshot->dontProject);
-            ImGui::PopItemFlag();
             ImGui::Separator();
         }
         if (!screenshot->vertexOnly) {
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Flip Projected X", nullptr, &screenshot->flipX);
-            ImGui::PopItemFlag();
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Flip Projected Y", nullptr, &screenshot->flipY);
-            ImGui::PopItemFlag();
-            // ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             // ImGui::MenuItem("Capture Flat Triangles (Unprojected 2D Triangles)", nullptr, &screenshot->captureFlatTris);
-            // ImGui::PopItemFlag();
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Group Objects", nullptr, &screenshot->groupObjects);
-            ImGui::PopItemFlag();
             if (screenshot->groupObjects) {
-                ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
                 ImGui::MenuItem("Connect to Groups only", nullptr, &screenshot->connectToGroups);
-                ImGui::PopItemFlag();
             }
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Try to Connect to Processed Triangles", nullptr, &screenshot->connectToSubGroups);
-            ImGui::PopItemFlag();
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Disable Backface Culling", nullptr, &screenshot->doubleSided);
-            ImGui::PopItemFlag();
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             ImGui::MenuItem("Disable Fog", nullptr, &screenshot->disableFog);
-            ImGui::PopItemFlag();
-            ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
-            ImGui::MenuItem("Save Images as BMP", nullptr, &screenshot->bmpImages);
-            ImGui::PopItemFlag();
-            if (!screenshot->bmpImages) {
-                ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
-                ImGui::MenuItem("Black is Transparent", nullptr, &screenshot->blackIsTrans);
-                ImGui::PopItemFlag();
-            }
+            ImGui::MenuItem("Black is Transparent", nullptr, &screenshot->blackIsTrans);
             // ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
             // ImGui::MenuItem("Experimental Capture (Tries to Capture Vertices that don't go thru Projection)", nullptr,
             //                &screenshot->experimentalCapture);
             // ImGui::PopItemFlag();
         }
+        ImGui::PopItemFlag();
         ImGui::Separator();
-        if (ImGui::MenuItem("Take 3D Screenshot", nullptr, nullptr)) {
+        if (ImGui::MenuItem(fmt::format("Output dir: ...{}", takeLast(screenshot->folder, 40)).c_str(), nullptr, nullptr)) {
             screenshotSelectDirectory.windowOpen = true;
         }
+        gui::helper::openFileBrowserButton(screenshot->folder);
+        ImGui::Separator();
+
+        if (!screenshot->folder.empty()) {
+            if (ImGui::MenuItem("Take screenshot", Key(config.hotkeys["3d_screenshot"]).getButton().c_str(), nullptr)) {
+                bus.notify(Event::Screenshot::Save{});
+            }
+        }
+
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Cheats")) {

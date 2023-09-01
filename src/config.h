@@ -15,6 +15,7 @@ inline std::string biosPath() { return PATH_USER + "bios/"; }
 inline std::string statePath(const char* file = "") { return PATH_USER + "state/" + file; }
 inline std::string memoryPath(const char* file = "") { return PATH_USER + "memory/" + file; }
 inline std::string isoPath(const char* file = "") { return PATH_USER + "iso/" + file; }
+inline std::string screenshotPath(const char* file = "") { return PATH_USER + "screenshot/" + file; }
 };  // namespace avocado
 
 using KeyBindings = std::unordered_map<std::string, std::string>;

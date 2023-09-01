@@ -68,7 +68,6 @@ add_library(flac STATIC
         externals/flac/src/libFLAC/lpc_intrin_avx2.c
         externals/flac/src/libFLAC/lpc_intrin_sse2.c
         externals/flac/src/libFLAC/lpc_intrin_sse41.c
-        externals/flac/src/libFLAC/lpc_intrin_sse.c
         externals/flac/src/libFLAC/md5.c
         externals/flac/src/libFLAC/memory.c
         externals/flac/src/libFLAC/metadata_iterators.c

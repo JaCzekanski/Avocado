@@ -155,6 +155,7 @@ void changeWorkingDirectory() {
         avocado::statePath(),
         avocado::memoryPath(),
         avocado::isoPath(),
+        avocado::screenshotPath(),
     };
 
     for (auto& d : dirsToCreate) {
@@ -256,8 +257,6 @@ int main(int argc, char** argv) {
     Screenshot* screenshot = screenshot->getInstance();
 
     bus.listen<Event::Screenshot::Save>(busToken, [&](auto e) {
-        fmt::print("Save screenshot to {}", e.path);
-        screenshot->folder = e.path;
         screenshot->enabled = true;
     });
 
@@ -410,6 +409,9 @@ int main(int argc, char** argv) {
                 }
                 if (button == Key(config.hotkeys["toggle_fullscreen"])) {
                     bus.notify(Event::Gui::ToggleFullscreen{});
+                }
+                if (button == Key(config.hotkeys["3d_screenshot"])) {
+                    bus.notify(Event::Screenshot::Save{});
                 }
             }
             if (event.type == SDL_DROPFILE) {
