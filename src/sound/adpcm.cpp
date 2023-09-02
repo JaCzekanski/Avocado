@@ -22,7 +22,6 @@ std::vector<int16_t> decode(uint8_t buffer[16], int32_t prevSample[2]) {
     auto filter = (buffer[0] & 0x70) >> 4;  // 0x40 for xa adpcm
     if (shift > 12) shift = 9;
 
-    assert(filter <= 4);
     if (filter > 4) filter = 4;  // TODO: Not sure, check behaviour on real HW
 
     auto filterPos = filterTablePos[filter];
