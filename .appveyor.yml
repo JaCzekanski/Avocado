@@ -3,15 +3,22 @@ version: '{branch}-{build}'
 clone_depth: 1
 
 environment:
-  PREMAKE_VERSION: 5.0.0-beta1
-  SDL_VERSION: 2.0.16
+  PREMAKE_VERSION: 5.0.0-beta2
   matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    TOOLSET: vs2022
+    platform: x64
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    TOOLSET: vs2022
+    platform: Win32
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     TOOLSET: vs2019
     platform: x64
+    SKIP_DEPLOY: skip
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     TOOLSET: vs2019
     platform: Win32
+    SKIP_DEPLOY: skip
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     TOOLSET: vs2017
     platform: x64
