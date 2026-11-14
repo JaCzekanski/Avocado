@@ -6,7 +6,8 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_sdl2.h>
 #include "platform/windows/input/key.h"
-#include "platform/windows/gui/icons.h"
+// #include "platform/windows/gui/icons.h"
+#include "platform/windows/gui/IconsLucide.h"
 #include "system.h"
 #include "state/state.h"
 #include "utils/file.h"
@@ -58,7 +59,7 @@ GUI::GUI(SDL_Window *window, void *glContext) : window(window)
     {
         // auto font = getFileContents(avocado::assetsPath("roboto-mono.ttf"));
         // io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config);
-        io.Fonts->AddFontFromFileTTF(avocado::assetsPath("FragmentMono-Regular.ttf").c_str(), fontSize, &config);
+        io.Fonts->AddFontFromFileTTF(avocado::assetsPath("Cousine-Regular.ttf").c_str(), fontSize, &config);
     }
 
     {
@@ -68,16 +69,15 @@ GUI::GUI(SDL_Window *window, void *glContext) : window(window)
     }
 
     {
-        auto font = getFileContents(avocado::assetsPath("fa-solid-900.ttf"));
         const char *glyphs[] = {
-            ICON_FA_PLAY,
-            ICON_FA_PAUSE,
-            ICON_FA_FLOPPY_DISK,
-            ICON_FA_COMPACT_DISC,
-            ICON_FA_GAMEPAD,
-            ICON_FA_COMPRESS,
-            ICON_FA_GEAR,
-            ICON_FA_ARROWS_ROTATE,
+            ICON_LC_PLAY,
+            ICON_LC_PAUSE,
+            ICON_LC_SAVE,
+            ICON_LC_DISC_3,
+            ICON_LC_GAMEPAD,
+            ICON_LC_FULLSCREEN,
+            ICON_LC_SETTINGS,
+            ICON_LC_REFRESH_CW,
         };
 
         ImVector<ImWchar> ranges;
@@ -87,7 +87,7 @@ GUI::GUI(SDL_Window *window, void *glContext) : window(window)
             builder.AddText(glyph);
         }
         builder.BuildRanges(&ranges);
-        io.Fonts->AddFontFromFileTTF(avocado::assetsPath("fa-solid-900.ttf").c_str(), fontSize, &config, ranges.Data);
+        io.Fonts->AddFontFromFileTTF(avocado::assetsPath("lucide.ttf").c_str(), fontSize, &config, ranges.Data);
         // io.Fonts->AddFontFromMemoryTTF(font.data(), font.size(), fontSize, &config, ranges.Data);
         // io.Fonts->Build();
     }
@@ -113,10 +113,17 @@ void GUI::processEvent(SDL_Event *e) { ImGui_ImplSDL2_ProcessEvent(e); }
 
 void GUI::mainMenu(std::unique_ptr<System> &sys)
 {
+    auto& style = ImGui::GetStyle();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 8.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f, 4.f));
+
     if (!ImGui::BeginMainMenuBar())
     {
+        ImGui::PopStyleVar(2);
         return;
     }
+
     if (ImGui::BeginMenu("File"))
     {
         ImGui::MenuItem("Open", nullptr, &openFile.openWindowOpen);
@@ -325,7 +332,10 @@ void GUI::mainMenu(std::unique_ptr<System> &sys)
         ImGui::TextUnformatted(fmt::format("Frame time: {:.2f} ms\nTab to disable frame limiting", (1000.0 / statusFps)).c_str());
         ImGui::EndTooltip();
     }
+
     ImGui::EndMainMenuBar();
+
+    ImGui::PopStyleVar(2);
 }
 
 void GUI::render(std::unique_ptr<System> &sys)
@@ -502,120 +512,141 @@ void GUI::discDialog()
     }
 }
 
+
 void GUI::drawControls(std::unique_ptr<System> &sys)
 {
-    auto symbolButton = [](const char *hint, const char *symbol, ImVec4 bg = ImVec4(1, 1, 1, 0.08f)) -> bool
-    {
-        auto padding = ImGui::GetStyle().FramePadding;
-        padding.x *= 3.f;
-        padding.y *= 2.5f;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, padding);
-        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(bg.x, bg.y, bg.z, bg.w));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(bg.x, bg.y, bg.z, 0.5));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(bg.x, bg.y, bg.z, 0.75));
-
-        bool clicked = ImGui::Button(symbol);
-
-        ImGui::PopStyleColor(3);
-        ImGui::PopFont();
-        ImGui::PopStyleVar();
-
-        if (ImGui::IsItemHovered())
-        {
-            ImGui::SetTooltip("%s", hint);
-        }
-
-        return clicked;
-    };
     auto io = ImGui::GetIO();
+    auto &style = ImGui::GetStyle();
 
     static auto lastTime = std::chrono::steady_clock::now();
-    // Reset timer if mouse was moved
+
     if (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)
-    {
         lastTime = std::chrono::steady_clock::now();
-    }
 
     auto now = std::chrono::steady_clock::now();
-    float timeDiff = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTime).count() / 1000.f;
+    float timeDiff = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - lastTime).count() / 1000.f;
 
-    const float visibleFor = 1.5f;      // Seconds
-    const float fadeoutDuration = 0.5f; // Seconds
+    constexpr float visibleFor = 1.5f;
+    constexpr float fadeoutDuration = 0.5f;
 
-    // Display for 1.5 seconds, then fade out 0.5 second, then hide
-    float alpha;
+    float alpha = 1.f;
+
     if (timeDiff < visibleFor)
-    {
         alpha = 1.f;
-    }
-    else if (timeDiff < visibleFor + fadeoutDuration) {
+    else if (timeDiff < visibleFor + fadeoutDuration)
         alpha = std::lerp(1.f, 0.f, (timeDiff - visibleFor) / fadeoutDuration);
-    }
     else
-    {
         return;
-    }
 
-    // TODO: Handle gamepad "home" button
+    const float padding = 16.f * scale;
+    const float buttonPaddingX = 14.f * scale;
+    const float buttonPaddingY = 10.f * scale;
+
+    const float rounding = 100.f * scale;
 
     auto displaySize = io.DisplaySize;
-    auto pos = ImVec2(displaySize.x / 2.f, displaySize.y * 0.9f);
-    ImGui::SetNextWindowPos(pos, 0, ImVec2(.5f, .5f));
+
+    // Anchor the window to the bottom-left corner.
+    ImGui::SetNextWindowPos(
+        ImVec2(padding, displaySize.y - padding),
+        ImGuiCond_Always,
+        ImVec2(0.f, 1.f)
+    );
 
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.f);
-    ImGui::Begin("##controls", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.f * scale, 12.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f * scale, 8.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 28.f * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.f * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(buttonPaddingX, buttonPaddingY));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.f * scale, 4.f * scale));
 
-    ImVec4 pauseColor = ImVec4(1, 0, 0, 0.25f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.08f, 0.08f, 0.85f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 1.f, 1.f, 0.08f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 1.f, 1.f, 0.18f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 1.f, 1.f, 0.28f));
+
+    ImGui::Begin(
+        "##controls",
+        nullptr,
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoFocusOnAppearing
+    );
+
+    auto symbolButton = [](const char *hint, const char *symbol,
+                           ImVec4 bg = ImVec4(1.f, 1.f, 1.f, 0.08f)) -> bool
+    {
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+        ImGui::PushStyleColor(ImGuiCol_Button, bg);
+
+        bool clicked = ImGui::Button(symbol);
+
+        ImGui::PopStyleColor();
+        ImGui::PopFont();
+
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", hint);
+
+        return clicked;
+    };
+
+    const ImVec4 pauseColor = ImVec4(1.f, 0.f, 0.f, 0.25f);
+
+    // Pause / Resume
     if (sys->state == System::State::run)
     {
-        if (symbolButton("Pause emulation", ICON_FA_PAUSE, pauseColor))
-        {
+        if (symbolButton("Pause emulation", ICON_LC_PAUSE, pauseColor))
             sys->state = System::State::pause;
-        }
     }
     else
     {
-        if (symbolButton("Resume emulation", ICON_FA_PLAY, pauseColor))
-        {
+        if (symbolButton("Resume emulation", ICON_LC_PLAY, pauseColor))
             sys->state = System::State::run;
-        }
     }
 
     ImGui::SameLine();
 
-    symbolButton("Save/Load", ICON_FA_FLOPPY_DISK);
+    // Save / Load
+    symbolButton("Save / Load", ICON_LC_SAVE);
+
     if (ImGui::BeginPopupContextItem(nullptr, 0))
     {
         if (fs::exists(state::getStatePath(sys.get())))
         {
             if (ImGui::Selectable("Quick load"))
                 bus.notify(Event::System::LoadState{});
+
             ImGui::Separator();
         }
+
         if (ImGui::Selectable("Quick save"))
             bus.notify(Event::System::SaveState{});
+
         ImGui::EndPopup();
     }
 
     ImGui::SameLine();
 
-    std::string game{};
-
+    // Disc
+    std::string game;
     auto cdPath = sys->cdrom->disc->getFile();
+
     if (!cdPath.empty())
-    {
         game = getFilename(cdPath);
-    }
+
     if (!game.empty())
     {
         ImGui::TextUnformatted(game.c_str());
     }
     else
     {
-        if (symbolButton("Open", ICON_FA_COMPACT_DISC, ImVec4(0.25f, 0.5f, 1, 0.4f)))
+        if (symbolButton("Open disc", ICON_LC_DISC_3,
+                         ImVec4(0.25f, 0.5f, 1.f, 0.4f)))
         {
             openFile.openWindowOpen = true;
         }
@@ -623,27 +654,40 @@ void GUI::drawControls(std::unique_ptr<System> &sys)
 
     ImGui::SameLine();
 
-    symbolButton("Settings", ICON_FA_GEAR);
+    // Settings
+    symbolButton("Settings", ICON_LC_SETTINGS);
+
     if (ImGui::BeginPopupContextItem(nullptr, 0))
     {
         if (ImGui::Selectable("Controller"))
             showControllerSetupWindow = !showControllerSetupWindow;
+
         ImGui::Separator();
-        ImGui::MenuItem("Show menu", Key(config.hotkeys["toggle_menu"]).getButton().c_str(), &showMenu);
+
+        ImGui::MenuItem(
+            "Show menu",
+            Key(config.hotkeys["toggle_menu"]).getButton().c_str(),
+            &showMenu
+        );
+
         ImGui::EndPopup();
     }
 
     ImGui::SameLine();
 
-    std::string hint = "Toggle fullscreen (" + (std::string)Key(config.hotkeys["toggle_fullscreen"]).getButton().c_str() + ")";
-    if (symbolButton(hint.c_str(), ICON_FA_COMPRESS))
-    {
+    // Fullscreen
+    std::string hint = "Toggle fullscreen (" +
+        (std::string)Key(config.hotkeys["toggle_fullscreen"]).getButton().c_str() + ")";
+
+    if (symbolButton(hint.c_str(), ICON_LC_FULLSCREEN))
         bus.notify(Event::Gui::ToggleFullscreen{});
-    }
 
     ImGui::End();
-    ImGui::PopStyleVar(3);
+
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar(8);
 }
+
 
 void GUI::renderController()
 {
